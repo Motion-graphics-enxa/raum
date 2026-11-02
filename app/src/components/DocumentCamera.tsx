@@ -258,21 +258,27 @@ function withMarks(text: string): React.ReactNode[] {
 
 /** One read document, drawn as a sheet. Use it for document.ready events from the stream too. */
 export function DocumentCard({ doc, lang }: { doc: DocumentReading; lang: string }) {
-  const rtl = isRtl(doc.lang);
+  // The frame (head, notes, title block) speaks the viewer's language; title, text and facts keep
+  // the reading's own language and direction (a German lawyer may see an Arabic reading).
+  const dir = isRtl(doc.lang) ? "rtl" : "ltr";
   const unsure = doc.facts.filter((f) => f.uncertain);
   const pair = doc.source_lang && doc.source_lang !== doc.lang ? `${doc.source_lang} → ${doc.lang}` : doc.lang;
   return (
-    <article className="docsheet" lang={doc.lang} dir={rtl ? "rtl" : "ltr"}>
+    <article className="docsheet" lang={lang} dir={isRtl(lang) ? "rtl" : "ltr"}>
       <header className="docsheet__head">
         <span>{s("document", lang)}</span>
         <bdi className="mono docsheet__pair" dir="ltr">
           {pair.toUpperCase()}
         </bdi>
       </header>
-      <h3 className="docsheet__title">{doc.title || s("untitled", lang)}</h3>
-      <p className="docsheet__text">{withMarks(doc.text)}</p>
+      <h3 className="docsheet__title" lang={doc.title ? doc.lang : lang} dir={doc.title ? dir : undefined}>
+        {doc.title || s("untitled", lang)}
+      </h3>
+      <p className="docsheet__text" lang={doc.lang} dir={dir}>
+        {withMarks(doc.text)}
+      </p>
       {doc.facts.length ? (
-        <div className="facts docsheet__facts">
+        <div className="facts docsheet__facts" dir={dir}>
           {doc.facts.map((f, i) => (
             <Dimension
               key={`${f.kind}-${i}`}

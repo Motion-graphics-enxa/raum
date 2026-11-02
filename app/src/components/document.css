@@ -91,9 +91,9 @@
   max-width: 60ch;
   overflow-wrap: anywhere;
 }
-.docsheet[lang="ar"] .docsheet__text,
-.docsheet[lang="fa"] .docsheet__text,
-.docsheet[lang="ur"] .docsheet__text {
+.docsheet__text[lang="ar"],
+.docsheet__text[lang="fa"],
+.docsheet__text[lang="ur"] {
   line-height: 1.7;
 }
 /* an unreadable passage: the model's own question mark, in the unsure pen */
