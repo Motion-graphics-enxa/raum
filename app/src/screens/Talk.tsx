@@ -1,11 +1,20 @@
 /** Talk `/r/:room`: the other person's words in my language are the hero. */
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
-import { api, eventsSocketUrl } from "../lib/api";
+import { api, eventsSocketUrl, useFeatures } from "../lib/api";
 import { isRtl, langName, pick, t } from "../lib/i18n";
 import { useEventSocket, useLiveRoom, type LiveSession } from "../lib/live";
-import { clearJoin, deviceAudioOut, loadJoin, rememberAudioOut, rememberLang, saveJoin } from "../lib/session";
-import { AudioOutPicker, LanguagePicker, type AudioOut } from "../components/Pickers";
+import {
+  clearJoin,
+  deviceAudioOut,
+  deviceVoice,
+  loadJoin,
+  rememberAudioOut,
+  rememberLang,
+  rememberVoice,
+  saveJoin,
+} from "../lib/session";
+import { AudioOutPicker, LanguagePicker, VoicePicker, type AudioOut, type Voice } from "../components/Pickers";
 import { tick, unlockSound } from "../lib/sound";
 import { RoomStore, checkState, openFlag, useRoomModel, type Turn } from "../lib/store";
 import { ConfirmSheet, TalkControl, TitleBlock } from "../components/Sheet";
@@ -33,6 +42,8 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
   );
   const [myLang, setMyLang] = useState(join.lang);
   const [audioOut, setAudioOut] = useState<AudioOut>(() => deviceAudioOut());
+  const [voice, setVoice] = useState<Voice>(() => deviceVoice());
+  const voiceClone = !!useFeatures()?.voice_clone; // C-13: the choice only where the box copies voices
   const live = useLiveRoom(session, store, myLang);
   // Second source: core's WS mirror (deduplicated). Keeps the sheet whole if the data channel hiccups.
   useEventSocket(room, store, eventsSocketUrl(room));
@@ -68,6 +79,11 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
     setAudioOut(v);
     rememberAudioOut(v);
     await api.participant(room, join.identity, { audio_out: v }).catch((e) => console.warn("[raum] audio", e));
+  };
+  const changeVoice = async (v: Voice) => {
+    setVoice(v);
+    rememberVoice(v);
+    await api.participant(room, join.identity, { voice: v }).catch((e) => console.warn("[raum] voice", e));
   };
   const me = m.participants[join.identity];
 
@@ -304,6 +320,12 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
               <span className="label">{t(myLang, "join.audio_out")}</span>
               <AudioOutPicker value={audioOut} onChange={(v) => void changeAudioOut(v)} uiLang={myLang} />
             </section>
+            {voiceClone ? (
+              <section className="menu__sec">
+                <span className="label">{t(myLang, "join.voice")}</span>
+                <VoicePicker value={voice} onChange={(v) => void changeVoice(v)} uiLang={myLang} />
+              </section>
+            ) : null}
             {mode.id !== "verhandlungsraum" && (myRole === "a" || myRole === "b") ? (
               <section className="menu__sec">
                 <DocumentCamera room={room} role={myRole} lang={myLang} onRead={() => setMenu(false)} />

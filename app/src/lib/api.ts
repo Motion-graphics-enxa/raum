@@ -1,4 +1,5 @@
 /** raum-core REST client. Same origin: Vite (dev) and Caddy (box) proxy /api and /rtc. */
+import { useEffect, useState } from "react";
 import type { AnyEnvelope, Control, EventData, ParticipantInfo, Role } from "./events";
 
 export interface RoleConfig {
@@ -95,9 +96,29 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
   return (text ? JSON.parse(text) : null) as T;
 }
 
+/** GET /api/health `features`: what this box can do. */
+export interface Features {
+  document_camera?: boolean;
+  voice_clone?: boolean; // C-13: the voice engine speaks in an AI copy of the speaker's voice
+}
+
+export interface Health {
+  ok: boolean;
+  profile?: string;
+  features?: Features;
+  [k: string]: unknown;
+}
+
 export const api = {
-  join: (b: { room: string; role: Role; lang: string; device: string; consent: boolean; audio_out?: string }) =>
-    req<JoinResponse>("POST", "/api/join", b),
+  join: (b: {
+    room: string;
+    role: Role;
+    lang: string;
+    device: string;
+    consent: boolean;
+    audio_out?: string;
+    voice?: string;
+  }) => req<JoinResponse>("POST", "/api/join", b),
   modes: () => req<ModeConfig[] | Record<string, ModeConfig>>("GET", "/api/modes"),
   rooms: () => req<RoomInfo[] | { rooms: RoomInfo[] }>("GET", "/api/rooms"),
   createRoom: (mode: string) => req<{ room: string }>("POST", "/api/rooms", { mode }),
@@ -105,7 +126,7 @@ export const api = {
   events: (room: string, since = 0) =>
     req<AnyEnvelope[] | { events: AnyEnvelope[] }>("GET", `/api/rooms/${room}/events?since=${since}`),
   control: (room: string, c: Control) => req<unknown>("POST", `/api/rooms/${room}/control`, c),
-  participant: (room: string, identity: string, change: { lang?: string; audio_out?: string }) =>
+  participant: (room: string, identity: string, change: { lang?: string; audio_out?: string; voice?: string }) =>
     req<ParticipantInfo>("POST", `/api/rooms/${room}/participant`, { identity, ...change }),
   presence: (room: string, identity: string, rtt_ms: number) =>
     req<unknown>("POST", `/api/rooms/${room}/presence`, { identity, rtt_ms }),
@@ -119,8 +140,35 @@ export const api = {
   auditVerify: () => req<AuditVerify>("GET", "/api/admin/audit/verify"),
   seal: (on: boolean) => req<unknown>("POST", "/api/admin/seal", { on }),
   burnAll: () => req<unknown>("POST", "/api/admin/burn-all"),
-  health: () => req<unknown>("GET", "/api/health"),
+  health: () => req<Health>("GET", "/api/health"),
 };
+
+let featuresOnce: Promise<Features> | null = null;
+
+/** The box's features, fetched once per page load (a failed fetch is retried on the next call). */
+export function features(): Promise<Features> {
+  featuresOnce ??= api.health().then(
+    (h) => h?.features ?? {},
+    () => {
+      featuresOnce = null;
+      return {};
+    },
+  );
+  return featuresOnce;
+}
+
+/** React: the box's features; null until known, empty when the box cannot be reached. */
+export function useFeatures(): Features | null {
+  const [f, setF] = useState<Features | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void features().then((x) => alive && setF(x));
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return f;
+}
 
 export function listOf<T>(x: T[] | Record<string, T[]> | Record<string, T> | null | undefined, key?: string): T[] {
   if (!x) return [];

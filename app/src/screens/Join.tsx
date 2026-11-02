@@ -1,11 +1,20 @@
 /** Join `/j/:room?role=a|b`: one scan, zero decisions (C-01, C-02, C-03). */
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { api, ApiError, listOf, type ModeConfig } from "../lib/api";
+import { api, ApiError, listOf, useFeatures, type ModeConfig } from "../lib/api";
 import type { Role } from "../lib/events";
 import { isRtl, pick, t } from "../lib/i18n";
-import { deviceAudioOut, deviceKind, deviceLang, rememberAudioOut, rememberLang, saveJoin } from "../lib/session";
-import { AudioOutPicker, LanguagePicker, type AudioOut } from "../components/Pickers";
+import {
+  deviceAudioOut,
+  deviceKind,
+  deviceLang,
+  deviceVoice,
+  rememberAudioOut,
+  rememberLang,
+  rememberVoice,
+  saveJoin,
+} from "../lib/session";
+import { AudioOutPicker, LanguagePicker, VoicePicker, type AudioOut, type Voice } from "../components/Pickers";
 import { unlockSound } from "../lib/sound";
 import { Hatch } from "../components/Drawing";
 import "./screens.css";
@@ -34,6 +43,10 @@ export default function Join() {
   const [mode, setMode] = useState<ModeConfig | null>(null);
   const [lang, setLang] = useState(() => qs.get("lang") ?? deviceLang());
   const [audioOut, setAudioOut] = useState<AudioOut>(deviceAudioOut);
+  const [voice, setVoice] = useState<Voice>(deviceVoice);
+  // C-13: the voice choice and its disclosure only when this box speaks in a copy of the speaker's voice
+  const feats = useFeatures();
+  const voiceClone = !!feats?.voice_clone;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -59,7 +72,17 @@ export default function Join() {
     try {
       rememberLang(lang);
       rememberAudioOut(audioOut);
-      const j = await api.join({ room, role, lang, device: deviceKind(), consent: true, audio_out: audioOut });
+      if (voiceClone) rememberVoice(voice);
+      // never a copy of a voice whose owner was not shown the choice: "standard" unless it was on screen
+      const j = await api.join({
+        room,
+        role,
+        lang,
+        device: deviceKind(),
+        consent: true,
+        audio_out: audioOut,
+        voice: voiceClone ? voice : "standard",
+      });
       saveJoin(j);
       nav(`/r/${room}`);
     } catch (e) {
@@ -111,14 +134,23 @@ export default function Join() {
           <AudioOutPicker value={audioOut} onChange={setAudioOut} uiLang={lang} />
         </section>
 
+        {voiceClone ? (
+          <section className="join__lang">
+            <span className="label">{t(lang, "join.voice")}</span>
+            <VoicePicker value={voice} onChange={setVoice} uiLang={lang} />
+          </section>
+        ) : null}
+
         <section className="join__consent" aria-labelledby="consent-title">
           <h2 id="consent-title" className="join__consent-title">
             {t(lang, "join.consent.title")}
           </h2>
           <p className="join__consent-body">{t(lang, "join.consent.body")}</p>
+          {voiceClone ? <p className="join__consent-body">{t(lang, "join.consent.voice")}</p> : null}
           {lang !== "de" ? (
             <p className="join__consent-de" lang="de" dir="ltr">
               {t("de", "join.consent.title")} {t("de", "join.consent.body")}
+              {voiceClone ? ` ${t("de", "join.consent.voice")}` : null}
             </p>
           ) : null}
           <p className="label join__aiact">{t(lang, "join.consent.ai_act")}</p>
@@ -130,7 +162,7 @@ export default function Join() {
               {error}
             </p>
           ) : null}
-          <button type="button" className="btn btn--lg btn--block" onClick={join} disabled={busy || !mode}>
+          <button type="button" className="btn btn--lg btn--block" onClick={join} disabled={busy || !mode || !feats}>
             {busy ? t(lang, "join.joining") : t(lang, "join.continue")}
           </button>
           <p className="join__note">{t(lang, "join.mic_note")}</p>

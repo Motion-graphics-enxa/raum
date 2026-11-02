@@ -1,4 +1,4 @@
-/** One-tap language and voice-output choices (C-02, C-14). */
+/** One-tap language, voice-output and voice choices (C-02, C-14, C-13). */
 import { useRef } from "react";
 import { LANGS, langName, t } from "../lib/i18n";
 import { Globe } from "./Icons";
@@ -8,6 +8,9 @@ import "./pickers.css";
 export const VOICE_LANGS = ["de", "en", "ru", "tr", "ar"];
 
 export type AudioOut = "headphones" | "speaker";
+
+/** C-13: whose voice speaks my words when the box clones voices. */
+export type Voice = "own" | "standard";
 
 export function LanguagePicker({
   lang,
@@ -91,6 +94,35 @@ export function AudioOutPicker({
         >
           <span className="seg__name">{t(uiLang, `join.${v}`)}</span>
           <span className="seg__hint">{t(uiLang, `join.${v}_hint`)}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** C-13: "My own voice" (an AI copy) or the standard voice. Shown only when the box clones voices. */
+export function VoicePicker({
+  value,
+  onChange,
+  uiLang,
+}: {
+  value: Voice;
+  onChange: (v: Voice) => void;
+  uiLang: string;
+}) {
+  return (
+    <div className="seg" role="radiogroup" aria-label={t(uiLang, "join.voice")}>
+      {(["own", "standard"] as const).map((v) => (
+        <button
+          key={v}
+          type="button"
+          role="radio"
+          aria-checked={value === v}
+          className={`seg__opt ${value === v ? "is-on" : ""}`}
+          onClick={() => onChange(v)}
+        >
+          <span className="seg__name">{t(uiLang, `join.voice_${v}`)}</span>
+          <span className="seg__hint">{t(uiLang, `join.voice_${v}_hint`)}</span>
         </button>
       ))}
     </div>

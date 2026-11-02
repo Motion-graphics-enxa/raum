@@ -63,6 +63,23 @@ export function rememberAudioOut(v: string): void {
   }
 }
 
+/** C-13: "own" = an AI copy of my voice speaks my words (the default), "standard" = the standard voice. */
+export function deviceVoice(): "own" | "standard" {
+  try {
+    return localStorage.getItem("raum:voice") === "standard" ? "standard" : "own";
+  } catch {
+    return "own";
+  }
+}
+
+export function rememberVoice(v: string): void {
+  try {
+    localStorage.setItem("raum:voice", v);
+  } catch {
+    /* ignore */
+  }
+}
+
 export function deviceKind(): string {
   const ua = navigator.userAgent;
   if (/iPad|Tablet/i.test(ua)) return "tablet";
