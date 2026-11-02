@@ -126,7 +126,7 @@ ASR_TIMEOUT_S = 15.0
 PARTIAL_TIMEOUT_S = 5.0
 # voice in flight (voicegate.py): a partial waits at most this long for the voice to finish synthesising (spacing
 # partials to ~1 s while it does); the second check (gpt-oss) and the echo check wait up to CHECK_DEFER_S
-PARTIAL_DEFER_S = float(os.environ.get("RAUM_PARTIAL_DEFER_S", "0.5"))
+PARTIAL_DEFER_S = float(os.environ.get("RAUM_PARTIAL_DEFER_S", "0"))  # box: a deferred partial held the pause's final (settle 561 ms)
 CHECK_DEFER_S = float(os.environ.get("RAUM_CHECK_DEFER_S", "2.0"))
 SPEC_DEFER_S = float(os.environ.get("RAUM_SPEC_DEFER_S", "0.3"))
 MT_TIMEOUT_S = 30.0
