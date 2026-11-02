@@ -6,6 +6,8 @@ import { isRtl, t } from "../lib/i18n";
 import { useEventSocket } from "../lib/live";
 import { deviceLang } from "../lib/session";
 import { RoomStore, checkState, useRoomModel } from "../lib/store";
+import { shownTranslation } from "../lib/draft";
+import { DraftText } from "../components/DraftText";
 import { VerifyMark } from "../components/Drawing";
 import "./screens.css";
 
@@ -33,11 +35,16 @@ export default function Listen() {
       </header>
       <main className="listen">
         {turns.map((tu) => {
-          const view = tu.translations[lang] ? lang : tu.lang === "de" ? Object.keys(tu.translations)[0] ?? tu.lang : "de";
-          const text = view === tu.lang ? tu.text ?? tu.partial : tu.translations[view]?.text ?? tu.text ?? tu.partial;
+          const into = { ...tu.drafts, ...tu.translations }; // a live draft counts as translated (draft.ts)
+          const view = into[lang] ? lang : tu.lang === "de" ? Object.keys(into)[0] ?? tu.lang : "de";
+          const shown = view === tu.lang ? { text: "", draft: "" } : shownTranslation(tu, view);
+          const text = view === tu.lang || !(shown.text || shown.draft) ? tu.text ?? tu.partial : shown.text;
           return (
             <article key={tu.utt} className="listen__turn">
-              <p lang={view} dir={isRtl(view) ? "rtl" : "ltr"}>{text}</p>
+              <p lang={view} dir={isRtl(view) ? "rtl" : "ltr"}>
+                {text}
+                {shown.draft ? <DraftText text={shown.draft} ui={lang} lead={!!text} mark /> : null}
+              </p>
               {view !== tu.lang && !tu.continuedIn ? <VerifyMark state={checkState(tu, view)} lang={lang} /> : null}
             </article>
           );

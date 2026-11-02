@@ -1,6 +1,7 @@
 /**
- * UI strings. The interface speaks the device's language; conversation text is whatever was said.
- * de/en/tr/ru/ar are written in full (native-speaker review pending); everything else falls back to en.
+ * UI strings. The interface chrome is English on every device (UI_LANG), whatever the phone's language;
+ * conversation text (what was said, its translation, the read-back question) stays in each person's language.
+ * de/tr/ru/ar dictionaries are kept for a later per-device UI language; t() reads UI_LANG only.
  */
 
 export const RTL = new Set(["ar", "fa", "he", "ur", "ps", "ckb", "yi", "dv"]);
@@ -47,7 +48,7 @@ const en: Dict = {
   "app.tagline": "What's said in the room stays in the room.",
   "join.you_are": "You join as",
   "join.room": "Room",
-  "join.language": "Your language",
+  "join.language": "The language you speak",
   "join.change": "Change",
   "join.consent.title": "This is an AI interpreter.",
   "join.consent.body":
@@ -64,20 +65,12 @@ const en: Dict = {
   "talk.mic_off": "Microphone off",
   "talk.tap_to_talk": "Tap to speak",
   "talk.tap_to_mute": "Tap to mute",
-  "talk.hold_to_talk": "Hold to talk",
-  "talk.release_to_send": "Release to send",
-  "talk.hold_to_answer": "Hold to answer",
-  "talk.talk_mode": "How do you speak?",
-  "talk.mode_ptt": "Hold to talk",
-  "talk.mode_ptt_hint": "Hold the button while you speak",
-  "talk.mode_hands_free": "Hands-free",
-  "talk.mode_hands_free_hint": "Mic stays on, for long talks",
   "talk.waiting": "Waiting for the other person",
   "talk.waiting_body": "As soon as they speak, their words appear here in your language.",
   "talk.speaking": "is speaking",
   "talk.you_said": "You said",
   "talk.they_got": "They read",
-  "talk.translating": "Translating",
+  "talk.translating": "Live draft",
   "talk.checking": "Checking",
   "talk.verified": "Checked",
   "talk.unsure": "Unsure",
@@ -158,6 +151,27 @@ const en: Dict = {
   "kind.percent": "Percent",
   "role.a": "Professional",
   "role.b": "Guest",
+  "talk.live": "Live",
+  "talk.you": "You speak",
+  "talk.other": "They speak",
+  "talk.you_speak": "You speak",
+  "talk.speaks": "speaks",
+  "talk.not_joined": "Not joined yet",
+  "talk.disconnected_short": "Offline",
+  "talk.hold_to_talk": "Hold to talk",
+  "talk.release_to_send": "Release to send",
+  "talk.hold_to_answer": "Hold to answer",
+  "talk.sending": "Sending…",
+  "talk.mic_wait_other": "Wait: the other person is speaking",
+  "talk.mic_wait_voice": "Wait: the translation is playing",
+  "talk.hold_space_pre": "On a keyboard, hold",
+  "talk.handsfree": "Hands-free",
+  "talk.draft": "Live draft",
+  "talk.final": "Final",
+  "join.speaker_only": "Speaker",
+  "talk.you_hear_via": "You hear on",
+  "talk.you_label": "You",
+  "talk.other_label": "Other person",
 };
 
 const de: Dict = {
@@ -197,20 +211,13 @@ const de: Dict = {
   "talk.mic_off": "Mikrofon aus",
   "talk.tap_to_talk": "Tippen zum Sprechen",
   "talk.tap_to_mute": "Tippen zum Stummschalten",
-  "talk.hold_to_talk": "Gedrückt halten zum Sprechen",
-  "talk.release_to_send": "Loslassen zum Senden",
-  "talk.hold_to_answer": "Gedrückt halten zum Antworten",
-  "talk.talk_mode": "Wie sprechen Sie?",
-  "talk.mode_ptt": "Gedrückt halten",
-  "talk.mode_ptt_hint": "Taste halten, solange Sie sprechen",
-  "talk.mode_hands_free": "Freihändig",
-  "talk.mode_hands_free_hint": "Mikrofon bleibt an, für lange Reden",
   "talk.waiting": "Warten auf die andere Person",
   "talk.waiting_body": "Sobald sie spricht, erscheinen ihre Worte hier in Ihrer Sprache.",
   "talk.speaking": "spricht",
   "talk.you_said": "Sie sagten",
   "talk.they_got": "Angekommen",
   "talk.translating": "Übersetzt",
+  "talk.draft": "Entwurf",
   "talk.checking": "Wird geprüft",
   "talk.verified": "Geprüft",
   "talk.unsure": "Unsicher",
@@ -340,20 +347,13 @@ const tr: Dict = {
   "talk.mic_off": "Mikrofon kapalı",
   "talk.tap_to_talk": "Konuşmak için dokunun",
   "talk.tap_to_mute": "Sessize almak için dokunun",
-  "talk.hold_to_talk": "Konuşmak için basılı tutun",
-  "talk.release_to_send": "Göndermek için bırakın",
-  "talk.hold_to_answer": "Yanıtlamak için basılı tutun",
-  "talk.talk_mode": "Nasıl konuşuyorsunuz?",
-  "talk.mode_ptt": "Basılı tut",
-  "talk.mode_ptt_hint": "Konuşurken düğmeyi basılı tutun",
-  "talk.mode_hands_free": "Eller serbest",
-  "talk.mode_hands_free_hint": "Mikrofon açık kalır, uzun konuşmalar için",
   "talk.waiting": "Diğer kişi bekleniyor",
   "talk.waiting_body": "Konuştuğunda sözleri burada sizin dilinizde görünür.",
   "talk.speaking": "konuşuyor",
   "talk.you_said": "Siz dediniz",
   "talk.they_got": "Karşı taraf okudu",
   "talk.translating": "Çevriliyor",
+  "talk.draft": "Taslak",
   "talk.checking": "Kontrol ediliyor",
   "talk.verified": "Kontrol edildi",
   "talk.unsure": "Emin değil",
@@ -469,20 +469,13 @@ const ru: Dict = {
   "talk.mic_off": "Микрофон выключен",
   "talk.tap_to_talk": "Нажмите, чтобы говорить",
   "talk.tap_to_mute": "Нажмите, чтобы выключить звук",
-  "talk.hold_to_talk": "Удерживайте, чтобы говорить",
-  "talk.release_to_send": "Отпустите, чтобы отправить",
-  "talk.hold_to_answer": "Удерживайте, чтобы ответить",
-  "talk.talk_mode": "Как вы говорите?",
-  "talk.mode_ptt": "Удерживать",
-  "talk.mode_ptt_hint": "Держите кнопку, пока говорите",
-  "talk.mode_hands_free": "Без рук",
-  "talk.mode_hands_free_hint": "Микрофон всегда включён, для долгой речи",
   "talk.waiting": "Ждём собеседника",
   "talk.waiting_body": "Как только собеседник заговорит, его слова появятся здесь на вашем языке.",
   "talk.speaking": "говорит",
   "talk.you_said": "Вы сказали",
   "talk.they_got": "Собеседник прочитал",
   "talk.translating": "Перевод",
+  "talk.draft": "Черновик",
   "talk.checking": "Проверка",
   "talk.verified": "Проверено",
   "talk.unsure": "Не уверен",
@@ -598,20 +591,13 @@ const ar: Dict = {
   "talk.mic_off": "الميكروفون مغلق",
   "talk.tap_to_talk": "اضغط للتحدث",
   "talk.tap_to_mute": "اضغط لكتم الصوت",
-  "talk.hold_to_talk": "اضغط مع الاستمرار للتحدث",
-  "talk.release_to_send": "اترك الزر للإرسال",
-  "talk.hold_to_answer": "اضغط مع الاستمرار للإجابة",
-  "talk.talk_mode": "كيف تتحدث؟",
-  "talk.mode_ptt": "اضغط مع الاستمرار",
-  "talk.mode_ptt_hint": "أبقِ الزر مضغوطًا أثناء الكلام",
-  "talk.mode_hands_free": "بدون يدين",
-  "talk.mode_hands_free_hint": "يبقى الميكروفون مفتوحًا، للحديث الطويل",
   "talk.waiting": "في انتظار الشخص الآخر",
   "talk.waiting_body": "عندما يتحدث، تظهر كلماته هنا بلغتك.",
   "talk.speaking": "يتحدث",
   "talk.you_said": "قلتَ",
   "talk.they_got": "وصل إليه",
   "talk.translating": "جارٍ الترجمة",
+  "talk.draft": "مسودة",
   "talk.checking": "جارٍ التحقق",
   "talk.verified": "تم التحقق",
   "talk.unsure": "غير متأكد",
@@ -682,23 +668,29 @@ const ar: Dict = {
 
 const DICTS: Record<string, Dict> = { en, de, tr, ru, ar };
 
-export function t(lang: string, key: string): string {
-  return DICTS[lang]?.[key] ?? en[key] ?? key;
+/** The language of every label, button, banner and help text. Content keeps its own language. */
+export const UI_LANG = "en";
+
+/** A UI string. ``lang`` is the participant's language; the chrome is UI_LANG regardless (kept for call sites). */
+export function t(_lang: string, key: string): string {
+  return DICTS[UI_LANG]?.[key] ?? en[key] ?? key;
 }
 
 export function translator(lang: string) {
   return (key: string) => t(lang, key);
 }
 
-/** Pick a label from a {lang: text} map: exact, then English, then German, then anything. */
-export function pick(map: Record<string, string> | null | undefined, lang: string): string {
+/** Pick a UI label from a {lang: text} map: UI_LANG, then English, then German, then anything.
+ * ``lang`` is ignored (the chrome is English); content reads its own language before falling back here. */
+export function pick(map: Record<string, string> | null | undefined, _lang?: string): string {
   if (!map) return "";
-  return map[lang] ?? map.en ?? map.de ?? Object.values(map)[0] ?? "";
+  return map[UI_LANG] ?? map.en ?? map.de ?? Object.values(map)[0] ?? "";
 }
 
-export function fmtTime(ts: number, lang: string): string {
+export function fmtTime(ts: number, _lang?: string): string {
   try {
-    return new Intl.DateTimeFormat(lang, { hour: "2-digit", minute: "2-digit" }).format(ts);
+    // 24-hour clock with Latin digits, like the rest of the English chrome (Berlin: 21:15, not 9:15 PM)
+    return new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit" }).format(ts);
   } catch {
     return new Date(ts).toTimeString().slice(0, 5);
   }

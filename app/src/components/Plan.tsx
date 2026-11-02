@@ -44,7 +44,7 @@ export function RoomPlan({
       </g>
       {/* dimension along the desk's side */}
       <path className="plan__dim" d="M204 84v52M200 84h8M200 136h8M201 87l6-6M201 139l6-6" />
-      <text className="plan__dimtext" x="216" y="113">0,80</text>
+      <text className="plan__dimtext" x="216" y="113">0.80</text>
     </svg>
   );
 }

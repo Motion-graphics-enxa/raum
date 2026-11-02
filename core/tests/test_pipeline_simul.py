@@ -429,7 +429,8 @@ async def test_off_in_config_or_mode_and_long_turns_only_in_the_sprechzimmer(no_
     utt = await say(h, DOC_DE.id, 5.5)  # a long turn
     await h.p.drain()
     finals = segs(h, "translation.final", utt)
-    assert [f["text"] for f in finals] == ["مرحبًا سيدة دمير. أنا الدكتور فيبر.", "ما الذي أتى بكِ إليّ اليوم؟"]
+    by_seg = {f["seg"]: f["text"] for f in finals}  # the last final may be sent again with segs
+    assert list(by_seg.values()) == ["مرحبًا سيدة دمير. أنا الدكتور فيبر.", "ما الذي أتى بكِ إليّ اليوم؟"]
     assert idx(h, "translation.delta", utt, seg=0) < idx(h, "utterance.end", utt)
 
 
@@ -570,6 +571,7 @@ class _SpyTranslator:
 
 async def test_speculation_on_a_complete_sentence_is_reused_when_the_final_matches(no_guard):
     h = room([DOC_DE, PAT_AR_SPK], complete_clauses=False)
+    h.p.cfg.pipeline.draft_text = False  # draft.py translates partials too: this test counts the speculation's calls
     spy = h.engines.translate = _SpyTranslator()  # type: ignore[assignment]
     utt = await say(h, DOC_DE.id, 2.0)  # stable full sentence at 1.5 s and 2.0 s
     await h.p.drain()
@@ -581,6 +583,7 @@ async def test_speculation_on_a_complete_sentence_is_reused_when_the_final_match
 
 async def test_speculation_is_discarded_when_the_final_differs(no_guard):
     h = room([DOC_DE, PAT_AR_SPK], complete_clauses=False)
+    h.p.cfg.pipeline.draft_text = False  # draft.py translates partials too: this test counts the speculation's calls
     spy = h.engines.translate = _SpyTranslator()  # type: ignore[assignment]
     h.engines.asr = _CountingASR(h.engines.asr, final_text="Guten Tag, Frau Demir.")  # type: ignore[assignment]
     utt = await say(h, DOC_DE.id, 2.4)  # final ASR runs (gap 400 ms) and hears something else

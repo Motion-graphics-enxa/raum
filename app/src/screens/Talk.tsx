@@ -2,7 +2,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { api, eventsSocketUrl, useFeatures } from "../lib/api";
-import { isRtl, langName, pick, t } from "../lib/i18n";
+import { UI_LANG, langName, pick, t } from "../lib/i18n";
 import { useEventSocket, useLiveRoom, type LiveSession } from "../lib/live";
 import {
   clearJoin,
@@ -14,15 +14,7 @@ import {
   rememberVoice,
   saveJoin,
 } from "../lib/session";
-import {
-  AudioOutPicker,
-  LanguagePicker,
-  TalkModePicker,
-  VoicePicker,
-  type AudioOut,
-  type TalkMode,
-  type Voice,
-} from "../components/Pickers";
+import { AudioOutPicker, LanguagePicker, VoicePicker, type AudioOut, type Voice } from "../components/Pickers";
 import { createPtt, deviceHandsFree, keyAction, rememberHandsFree, type PttPhase } from "../lib/ptt";
 import { tick, unlockSound } from "../lib/sound";
 import {
@@ -36,7 +28,7 @@ import {
   useRoomModel,
   type Turn,
 } from "../lib/store";
-import { FactNotes, ReadBack, TalkControl, TitleBlock } from "../components/Sheet";
+import { FactNotes, ReadBack, TalkControl, TitleBlock, type TalkPhase } from "../components/Sheet";
 import { DocumentCamera, DocumentCard } from "../components/DocumentCamera";
 import { GlossaryUpload } from "../components/GlossaryUpload";
 import { TurnView } from "../components/Turn";
@@ -44,6 +36,9 @@ import { RoomPlan } from "../components/Plan";
 import { Ledger, Pause, Person, Play, Repeat, Stop } from "../components/Icons";
 import { OfferStrip } from "../components/Offers";
 import "./screens.css";
+
+/** Push-to-talk ("hold", the default) or hands-free (today's open mic + the box's VAD), per device. */
+type TalkMode = "hold" | "handsfree";
 
 export default function Talk() {
   const { room = "" } = useParams();
@@ -70,7 +65,7 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
   });
   // Push-to-talk is the default (hold to speak, let go and the box ends the turn at once); hands-free is
   // today's open mic with the box's VAD, for long monologues and accessibility. Per device.
-  const [talkMode, setTalkMode] = useState<TalkMode>(() => (deviceHandsFree() ? "hands_free" : "ptt"));
+  const [talkMode, setTalkMode] = useState<TalkMode>(() => (deviceHandsFree() ? "handsfree" : "hold"));
   const [pttPhase, setPttPhase] = useState<PttPhase>("idle");
   // live.hold / live.sendControl only touch the hook's refs: the first render's work for the whole session
   const [ptt] = useState(() =>
@@ -100,7 +95,8 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
   const textDown = events === "reconnecting" && linkLate;
   const mode = join.mode;
   const myRole = join.role;
-  const dir = isRtl(myLang) ? "rtl" : "ltr";
+  // The chrome is English, left to right; each sentence carries its own lang and dir (Turn, ReadBack).
+  const dir = "ltr";
   const [menu, setMenu] = useState(false);
   const [answered, setAnswered] = useState<Map<string, boolean>>(() => new Map()); // read-backs I tapped
   const [ending, setEnding] = useState(false);
@@ -151,7 +147,7 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
   useEffect(() => {
     if (live.state === "connected" && !autoMic.current) {
       autoMic.current = true;
-      if (talkMode === "ptt") void live.pushToTalk(true);
+      if (talkMode === "hold") void live.pushToTalk(true);
       else void live.setMic(true);
     }
   }, [live.state, live, talkMode]);
@@ -159,9 +155,9 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
   const changeTalkMode = (v: TalkMode) => {
     if (v === talkMode) return;
     setTalkMode(v);
-    rememberHandsFree(v === "hands_free");
+    rememberHandsFree(v === "handsfree");
     if (live.state !== "connected") return; // the auto-start above picks it up
-    if (v === "ptt") {
+    if (v === "hold") {
       void live.pushToTalk(true);
     } else {
       ptt.dispose();
@@ -283,7 +279,7 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
   const speakingOther = Object.keys(m.speaking).some((id) => id !== join.identity);
   const empty = turns.length === 0;
 
-  const holdToTalk = talkMode === "ptt";
+  const holdToTalk = talkMode === "hold";
   const talkDisabled = offRecord || live.state !== "connected";
   // a read-back question waits for my spoken yes / no
   const askPending = !!newestAsk && !answered.has(newestAsk);
@@ -323,12 +319,25 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
     };
   }, [holdToTalk, talkDisabled, menu, ptt]);
   const holding = pttPhase !== "idle";
+  // The orb (glass TalkControl). Hold: live while held; "sending" from the release until the box ends my
+  // utterance (RoomPipeline.end_turn, ~the tail); blocked while the voice plays from this phone (C-14 pauses
+  // its mic) unless already holding. Hands-free: exactly the props it always had.
+  const mine = !!m.speaking[join.identity];
+  const holdPhase: TalkPhase | undefined = talkDisabled
+    ? undefined
+    : pttPhase === "held"
+      ? "live"
+      : pttPhase === "tail" || mine
+        ? "sending"
+        : voicePaused
+          ? "blocked"
+          : "idle";
 
   return (
     <div
-      className={`screen screen--talk ${offRecord ? "is-off" : ""}`}
+      className={`screen screen--talk room--${mode.id} ${offRecord ? "is-off" : ""}`}
       dir={dir}
-      lang={myLang}
+      lang={UI_LANG}
       onPointerDown={() => {
         unlockSound();
         live.startAudio(); // iOS: the box's voice may only start from a tap
@@ -344,9 +353,11 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
         link={live.state}
         offRecord={offRecord}
         onMenu={() => setMenu(true)}
+        roles={[t(myLang, "talk.you_label"), roleLabel(otherRole) || t(myLang, "talk.other_label")]}
+        audioOut={audioOut}
       />
 
-      {live.state === "reconnecting" ? <div className="banner banner--warn" role="status">{t(myLang, "talk.reconnecting")}</div> : null}
+      {live.state === "reconnecting" ? <div className="banner banner--warn banner--reconnect" role="status">{t(myLang, "talk.reconnecting")}</div> : null}
       {live.state === "disconnected" ? (
         <div className="banner banner--bad" role="alert">
           {t(myLang, "talk.disconnected")}{" "}
@@ -363,7 +374,7 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
         </div>
       ) : null}
       {textDown && live.state !== "reconnecting" && live.state !== "disconnected" ? (
-        <div className="banner" role="status">{t(myLang, "talk.reconnecting")}</div>
+        <div className="banner banner--warn banner--reconnect" role="status">{t(myLang, "talk.reconnecting")}</div>
       ) : null}
       {live.audioBlocked && live.state === "connected" ? (
         <div className="banner" role="status">
@@ -375,7 +386,7 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
       {offRecord ? <div className="banner banner--off" role="status">{t(myLang, "talk.off_record_on")}</div> : null}
       {sameLang ? (
         <div className="banner banner--warn" role="alert">
-          {t(myLang, "talk.same_lang").replace("{lang}", langName(sameLang, myLang))}{" "}
+          {t(myLang, "talk.same_lang").replace("{lang}", langName(sameLang, UI_LANG))}{" "}
           <button type="button" className="banner__btn" onClick={() => setMenu(true)}>
             {t(myLang, "talk.change_lang")}
           </button>
@@ -456,21 +467,20 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
             unlockSound();
             void live.setMic(!live.micOn);
           }}
-          hold={
-            holdToTalk
-              ? {
-                  press: (h) => {
-                    unlockSound();
-                    ptt.press(h);
-                  },
-                  release: (h) => void ptt.release(h),
-                  label: t(
-                    myLang,
-                    pttPhase === "held" ? "talk.release_to_send" : askPending ? "talk.hold_to_answer" : "talk.hold_to_talk",
-                  ),
-                }
-              : undefined
-          }
+          mode={talkMode}
+          onModeChange={changeTalkMode}
+          {...(holdToTalk
+            ? {
+                phase: holdPhase,
+                blocked: holdPhase === "blocked" ? ("voice_playing" as const) : null,
+                answering: askPending,
+                onHoldStart: () => {
+                  unlockSound();
+                  ptt.press("orb");
+                },
+                onHoldEnd: () => void ptt.release("orb"),
+              }
+            : {})}
         />
         {myRole === "a" && mode.buttons.includes("repeat_back") ? (
           <button
@@ -505,10 +515,6 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
             <section className="menu__sec">
               <span className="label">{t(myLang, "talk.language")}</span>
               <LanguagePicker id="talk-lang" lang={myLang} onChange={(l) => void changeLang(l)} uiLang={myLang} />
-            </section>
-            <section className="menu__sec">
-              <span className="label">{t(myLang, "talk.talk_mode")}</span>
-              <TalkModePicker value={talkMode} onChange={changeTalkMode} uiLang={myLang} />
             </section>
             <section className="menu__sec">
               <span className="label">{t(myLang, "join.audio_out")}</span>

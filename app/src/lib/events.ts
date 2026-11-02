@@ -89,6 +89,10 @@ export interface EventData {
   "transcript.final": { speaker: string; lang: string; text: string; asr_conf: number };
   "translation.delta": { target_lang: string; delta: string; seq?: number | null; seg?: number | null };
   "translation.final": { target_lang: string; text: string; seg?: number | null; segs?: number | null };
+  /** Live draft while the speaker talks (never voiced): replaces the previous draft of this utterance and
+   * language in place; newest `seq` wins. `seg`: simultaneous mode, the uncommitted tail after segments
+   * 0 .. seg-1 (a segment >= seg covers it). The final translation (or that segment) takes its place. */
+  "translation.draft": { target_lang: string; text: string; seq: number; seg?: number | null };
   "verify.facts": { target_lang: string; facts: FactCheck[]; red?: boolean; ms?: number | null; seg?: number | null };
   "verify.result": {
     target_lang: string;
@@ -220,6 +224,7 @@ export const EVENT_TYPES = [
   "transcript.final",
   "translation.delta",
   "translation.final",
+  "translation.draft",
   "verify.facts",
   "verify.result",
   "flag",

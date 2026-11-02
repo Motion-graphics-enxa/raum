@@ -131,6 +131,12 @@ class PipelineConfig(_Open):
     # consecutive (translate and speak after the speaker stops). A mode can narrow it (modes/*.yaml).
     simultaneous: Literal["auto", "off"] = "auto"
     speculate: bool = True  # translate the latest stable text in the background; reused if the final matches
+    # Live draft text (raum.pipeline.draft): while the speaker talks, the stable part of the partial transcript is
+    # translated in the background and shown in place as a draft (translation.draft), never voiced. From
+    # draft_after_ms of speech on; MTs at least draft_every_ms apart per utterance and language.
+    draft_text: bool = True
+    draft_after_ms: float = 1500.0
+    draft_every_ms: float = 600.0
     # Rooms with three or more languages: "one" runs the second model's check once per utterance (the
     # professional's language, or the main listener's when the professional speaks); the other targets
     # get the fact guard only. "all" checks every target (one gpt-oss call each).

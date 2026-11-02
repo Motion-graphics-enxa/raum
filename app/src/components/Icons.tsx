@@ -90,6 +90,21 @@ export const Speaker = (p: P) => (
   </I>
 );
 
+/** How this phone hears the translation: headphones (only you) or the phone speaker. */
+export const Headphones = (p: P) => (
+  <I {...p}>
+    <path d="M4 15.5v-3a8 8 0 0 1 16 0v3" />
+    <path d="M4 14.5h3v6H5.5A1.5 1.5 0 0 1 4 19zM20 14.5h-3v6h1.5a1.5 1.5 0 0 0 1.5-1.5z" />
+  </I>
+);
+
+/** Speech goes one way: from the speaker into the listener's language. */
+export const ArrowRight = (p: P) => (
+  <I {...p}>
+    <path d="M4.5 12h14M13.5 7l5 5-5 5" />
+  </I>
+);
+
 export const RevisionMark = (p: P) => (
   <I {...p}>
     <path d="M12 3.5l9.5 16.5h-19z" />

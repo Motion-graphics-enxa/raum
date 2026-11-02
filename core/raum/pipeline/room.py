@@ -55,7 +55,8 @@ Additions beyond the contract (all optional):
 - Voice echo check (``raum.pipeline.echo_check``, ``tts.options.echo_check: facts``, off by default): a spoken clause
   with a dose / number / date / time is transcribed back at background priority beside the playback; a figure the
   voice said with another value -> ``voice.echo`` + the clause once more in the standard voice ("I repeat: ...").
-- Simultaneous mode (simul.py) and speculative translation (speculate.py) hook in at marked lines.
+- Simultaneous mode (simul.py), speculative translation (speculate.py) and the live draft text (draft.py,
+  ``translation.draft``, never voiced) hook in at marked lines.
 - A sentence cut at a pause, merged again (merge.py, mode ``pipeline.merge_continuation_ms``, 0 = off): the same
   speaker again within that window of an end of turn whose voice still plays continues it in a new utterance
   (``utterance.continued`` for the old one); ``p.tts_stop = fn(lang)`` (the worker) drops what the voice track
@@ -102,6 +103,7 @@ from raum.pipeline import codeswitch, readback, stats, voicegate
 from raum.pipeline import texts as T
 from raum.pipeline._util import int16_to_float, lang_code, lang_name, load_prompt, render_prompt
 from raum.pipeline.base import AsrResult, Engines, TranslateRequest, TurnContext
+from raum.pipeline.draft import Drafts
 from raum.pipeline.echo import EchoControl
 from raum.pipeline.echo_check import EchoCheck
 from raum.pipeline.incomplete import join_fragments
@@ -405,6 +407,7 @@ class RoomPipeline:
             log.warning("RAUM_DEBUG_FORCE_READBACK: every confirm_on fact is read back (testing only)")
         self.simul = Simultaneous(self)  # simultaneous mode + stable partial as final (simul.py)
         self.spec = Speculator(self)  # speculative translation (speculate.py)
+        self.draft = Drafts(self)  # live draft text while the speaker talks, never voiced (draft.py)
         self.merge = Continuations(self)  # a sentence cut at a pause, merged again (merge.py)
         self.echo_check = EchoCheck(self)  # the voice heard back for its figures (echo_check.py)
 
@@ -488,6 +491,7 @@ class RoomPipeline:
         if state.status != "live" or new_session:  # session over: its voice samples go with it
             self._forget_voices()
             self._forget_asks()
+            self.draft.clear()  # draft.py
         self._set_off_record(bool(state.off_record))
 
     def _set_off_record(self, on: bool) -> None:
@@ -507,7 +511,7 @@ class RoomPipeline:
 
     def _drop(self, u: _Utt) -> None:
         u.closed = True
-        for ext in (self.simul, self.spec):  # simul.py, speculate.py: forget it
+        for ext in (self.simul, self.spec, self.draft):  # simul.py, speculate.py, draft.py: forget it
             ext.drop(u.id)
         u.frames.clear()
         u.parts.clear()
@@ -615,6 +619,7 @@ class RoomPipeline:
         await self.emit("transcript.partial", {"speaker": u.speaker, "lang": lang_code(res.lang) or u.lang,
                                                "text": res.text.strip(), "seq": u.seq}, utt=u.id)
         await self.simul.on_partial(u, res, audio)  # simul.py: speculate, commit stable complete clauses
+        self.draft.on_partial(u, res, len(audio) / SAMPLE_RATE)  # draft.py: the stable part as a live draft
 
     async def speech_end(self, speaker: str, audio: np.ndarray | None, vad_ms: float, *,
                          asr: AsrResult | None = None, eot: Any = None) -> None:
@@ -638,6 +643,7 @@ class RoomPipeline:
             if u is None:
                 return
         u.closed = True
+        self.draft.drop(u.id)  # draft.py: the final translation replaces the draft
         if u.partial_task and not u.partial_task.done():
             u.partial_task.cancel()
         if audio is not None and len(audio):

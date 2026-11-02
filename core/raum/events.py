@@ -118,6 +118,15 @@ class TranslationFinal(_Data):
     segs: int | None = None  # extension: total segments, sent on the last segment's final
 
 
+class TranslationDraft(_Data):  # extension (raum.pipeline.draft): live draft while the speaker talks, never voiced
+    target_lang: str
+    text: str  # the whole draft: it replaces the previous one of this utterance and language in place
+    seq: int  # grows per (utt, target_lang); an older seq never replaces a newer draft
+    # simultaneous mode: the draft is the uncommitted tail, i.e. the segment of this index to come (it follows the
+    # committed segments 0 .. seg-1); a segment >= seg arriving covers it. None: the whole utterance so far
+    seg: int | None = None
+
+
 # ---------------------------------------------------------------- verification
 
 
@@ -368,6 +377,7 @@ EVENT_TYPES: dict[str, type[BaseModel]] = {
     "transcript.final": TranscriptFinal,
     "translation.delta": TranslationDelta,
     "translation.final": TranslationFinal,
+    "translation.draft": TranslationDraft,
     "verify.facts": VerifyFacts,
     "verify.result": VerifyResult,
     "flag": Flag,
@@ -398,6 +408,7 @@ EventType = Literal[
     "transcript.final",
     "translation.delta",
     "translation.final",
+    "translation.draft",
     "verify.facts",
     "verify.result",
     "flag",

@@ -6,7 +6,7 @@
 }
 .ttop {
   padding: var(--s-3) clamp(16px, 2vw, 40px);
-  border-bottom: 0;
+  margin: var(--s-3) var(--s-3) var(--s-3);
 }
 .ttop .tblock__row {
   gap: clamp(12px, 1.5vw, 28px);
@@ -20,12 +20,10 @@
   font-weight: 650;
   letter-spacing: 0.06em;
   padding-inline-start: clamp(12px, 1.5vw, 28px);
-  border-inline-start: var(--line) solid var(--brand-rule);
+  border-inline-start: var(--line) solid var(--rule);
 }
 .ttop .tblock__status {
   font-size: clamp(0.75rem, 0.55rem + 0.4vw, 1rem);
-  padding-inline-start: clamp(12px, 1.5vw, 28px);
-  border-inline-start: var(--line) solid var(--brand-rule);
 }
 
 .tgrid {
@@ -33,21 +31,32 @@
   min-height: 0;
   display: grid;
   grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr);
+  gap: var(--s-3);
+  padding: 0 var(--s-3) var(--s-3);
 }
 
 /* ---------------------------------------------------------------- conversation */
+.tconv,
+.glass {
+  background: var(--glass);
+  border: var(--line) solid var(--glass-rim);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-hi), 0 0 0 1px var(--glass-edge), var(--shadow-pane);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+  overflow: hidden;
+}
 .tconv {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  border-inline-end: var(--line-2) solid var(--ink);
 }
 .tconv__head {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: clamp(16px, 2vw, 40px);
   padding: var(--s-2) clamp(16px, 2vw, 40px);
-  border-bottom: var(--line) solid var(--ink);
+  border-bottom: var(--line) solid var(--rule);
   background: var(--paper-2);
 }
 .tconv__head .label {
@@ -73,9 +82,9 @@
   gap: var(--s-3);
 }
 .trow__who {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   letter-spacing: var(--label-track);
-  text-transform: uppercase;
+  text-transform: var(--label-case);
   font-weight: 700;
   color: var(--ink-2);
 }
@@ -199,20 +208,20 @@
   overflow-y: auto;
   display: grid;
   align-content: start;
-  background: var(--paper-2);
+  overflow-y: auto;
 }
 .glass__block {
   padding: clamp(14px, 1.5vw, 28px) clamp(16px, 1.8vw, 32px);
-  border-bottom: var(--line) solid var(--rule-strong);
+  border-bottom: var(--line) solid var(--rule);
   display: grid;
   gap: var(--s-3);
   min-width: 0;
 }
 .glass__h {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: 0.75em;
   letter-spacing: var(--label-track);
-  text-transform: uppercase;
+  text-transform: var(--label-case);
   font-weight: 700;
   color: var(--ink-3);
 }
@@ -220,7 +229,7 @@
   color: var(--ink-3);
 }
 .glass__privacy {
-  background: var(--paper);
+  background: color-mix(in oklab, var(--ok) 7%, transparent);
 }
 .glass__meter {
   display: grid;
@@ -247,10 +256,10 @@
   font-size: 0.85em;
 }
 .glass__seal {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: 0.75em;
   letter-spacing: var(--label-track);
-  text-transform: uppercase;
+  text-transform: var(--label-case);
   color: var(--ink-3);
 }
 .glass__seal.is-sealed {
@@ -273,9 +282,9 @@
   gap: var(--s-3);
   align-items: baseline;
   padding: var(--s-2) var(--s-3);
-  border: 1.5px solid var(--ink-2);
+  border: 1.5px solid var(--rule-strong);
   border-radius: var(--radius);
-  background: var(--paper);
+  background: var(--glass-strong);
 }
 .plate--tunnel {
   border-style: dashed;
@@ -307,10 +316,10 @@
   gap: var(--s-3);
 }
 .models dt {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: 0.75em;
   letter-spacing: var(--label-track);
-  text-transform: uppercase;
+  text-transform: var(--label-case);
   color: var(--ink-3);
   padding-top: 2px;
 }

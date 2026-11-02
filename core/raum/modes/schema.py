@@ -69,6 +69,14 @@ class PipelineModeConfig(_Strict):
     # speaker's own mic would hear it (echo.paused_for: a room speakerphone), then held. Both: a sentence the
     # final transcript rewrote is never voiced in its stale version (simul.py, the final-revision guard).
     loudspeaker: Literal["consecutive", "held", "live"] = "consecutive"
+    # live draft text (raum.pipeline.draft): the stable part of the partials translated while the speaker talks,
+    # shown as a draft, never voiced. false: no draft MT at all in this room (raum.yaml pipeline.draft_text too)
+    draft_text: bool = True
+    # simultaneous commits (simul.py): a clause on ONE partial when whisper's word timings show its boundary word
+    # ended >= 250 ms before the audio end (numbers, doses, negation, dates still need two partials that agree)
+    commit_once: bool = True
+    # en / ru: an SVO phrase before its comma ("I take my medicine | with water"), nothing pending (number, "not")
+    svo_phrases: bool = True
     # a sentence cut at a pause: the same speaker again within this many ms of an end of turn whose voice still
     # plays (or has none) continues it; its voice stops and both parts are transcribed, translated and spoken
     # as one (raum.pipeline.merge). 0 = off (everyday rooms: two short sentences stay two)

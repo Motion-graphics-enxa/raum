@@ -30,6 +30,8 @@ def test_plan_example_parses():
     ("transcript.partial", {"speaker": "p1", "lang": "ar", "text": "..", "seq": 1}),
     ("transcript.final", {"speaker": "p1", "lang": "ar", "text": "..", "asr_conf": 0.93}),
     ("translation.final", {"target_lang": "de", "text": ".."}),
+    ("translation.draft", {"target_lang": "de", "text": "..", "seq": 1}),
+    ("translation.draft", {"target_lang": "de", "text": "..", "seq": 3, "seg": 2}),
     ("verify.facts", {"target_lang": "de", "facts": [{"kind": "dose", "src": "500 mg", "tgt": "50 mg", "match": False}]}),
     ("verify.result", {"target_lang": "de", "similarity": 0.91, "badge": "green", "reasons": []}),
     ("flag", {"kind": "dose", "text": "Nur zur Sicherheit: 500 mg?", "needs_confirm": True}),

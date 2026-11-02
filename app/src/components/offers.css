@@ -48,10 +48,10 @@
   transform: rotate(45deg);
 }
 .offers__by {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: 0.625rem;
   letter-spacing: var(--label-track);
-  text-transform: uppercase;
+  text-transform: var(--label-case);
 }
 
 .offer-tl {
@@ -68,10 +68,10 @@
   gap: var(--s-3);
 }
 .offer-tl__who {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--label);
   letter-spacing: var(--label-track);
-  text-transform: uppercase;
+  text-transform: var(--label-case);
   color: var(--ink-3);
 }
 .offer-tl__bar {

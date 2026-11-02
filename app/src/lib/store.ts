@@ -3,6 +3,7 @@
  * Pure reducer + tiny external store for useSyncExternalStore.
  */
 import { useSyncExternalStore } from "react";
+import { applyDraft, type Draft } from "./draft.ts";
 import type { AnyEnvelope, Badge, EventData, FactCheck, FactStatus, ParticipantInfo, Role } from "./events";
 
 export type CheckState = "translating" | "pending" | Badge | "uncertain";
@@ -41,6 +42,7 @@ export interface Turn {
   // simultaneous mode: a translation arrives in segments (seg 0, 1, ...); the last final carries segs
   segs?: Record<string, { parts: Record<number, Translation>; total: number | null }>;
   segFacts?: Record<string, Record<number, FactCheck[]>>;
+  drafts?: Record<string, Draft>; // lang -> live draft while the speaker talks (draft.ts shownTranslation)
 }
 
 export interface Offer extends Omit<EventData["offer.update"], "ts"> {
@@ -240,6 +242,11 @@ export function apply(prev: RoomModel, e: AnyEnvelope): RoomModel {
         t.translations = { ...t.translations, [lang]: { text: e.data.text, final: true } };
       });
       break;
+    case "translation.draft":
+      touch((t) => {
+        t.drafts = applyDraft(t.drafts, e.data);
+      });
+      break;
     case "verify.facts":
       touch((t) => {
         const lang = e.data.target_lang;
@@ -416,6 +423,8 @@ function dedupeKey(e: AnyEnvelope): string | null {
   const extra =
     e.type === "translation.delta"
       ? `${d.target_lang}:${d.seq ?? ""}:${d.delta}`
+      : e.type === "translation.draft"
+      ? `${d.target_lang}:${d.seq}`
       : e.type === "voice.echo" // several figures of one clause can share a millisecond
         ? `${d.target_lang}:${d.clause ?? ""}:${d.kind}:${d.written}`
         : e.type === "transcript.partial"

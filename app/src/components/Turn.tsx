@@ -1,8 +1,10 @@
 /** One turn of the conversation, as one device should read it. */
 import { useState } from "react";
 import type { Role } from "../lib/events";
+import { shownTranslation } from "../lib/draft";
 import { fmtTime, isRtl, t } from "../lib/i18n";
 import { checkState, factsFor, viewLangOf, type Turn as TurnT } from "../lib/store";
+import { DraftText } from "./DraftText";
 import { FactDims, VerifyMark, fmtMs } from "./Drawing";
 import { Timeline, firstWordsMs } from "./Sheet";
 import "./turn.css";
@@ -45,6 +47,9 @@ export function TurnView({
   const v = turn.verify[viewLang];
   const finalSrc = turn.text;
   const live = !finalSrc && !!turn.partial;
+  const shown = shownTranslation(turn, viewLang); // the translation so far + the live draft after it (draft.ts)
+  // Forming: the words are still changing (partial caption, a translation not final, or a draft). See DESIGN.md.
+  const forming = live || (!!tr && !tr.final);
 
   let main: string;
   let mainLang: string;
@@ -53,10 +58,10 @@ export function TurnView({
   if (mine) {
     main = finalSrc ?? turn.partial ?? "";
     mainLang = turn.lang;
-    sub = tr?.text ?? null;
+    sub = shown.text || null;
     subLang = viewLang;
-  } else if (tr?.text) {
-    main = tr.text;
+  } else if (shown.text || shown.draft) {
+    main = shown.text;
     mainLang = myLang;
     sub = finalSrc ?? turn.partial ?? null;
   } else {
@@ -64,7 +69,8 @@ export function TurnView({
     main = finalSrc ?? turn.partial ?? "";
     mainLang = turn.lang;
   }
-  const waitingForTranslation = !mine && !tr?.text;
+  const draft = shown.draft;
+  const waitingForTranslation = !mine && !shown.text && !draft;
   const sayAgain = turn.uncertain;
   const flagText = turn.flags.find((f) => f.kind === "uncertain");
   const corrected = turn.corrected?.[viewLang];
@@ -76,7 +82,7 @@ export function TurnView({
     <article
       className={`turn turn--r${ramp} ${mine ? "turn--mine" : "turn--theirs"} ${live ? "is-live" : ""} ${
         state === "red" && !continued ? "is-red" : ""
-      }`}
+      } ${forming || draft ? "is-draft" : "is-final"}`}
       data-utt={turn.utt}
     >
       <header className="turn__gutter">
@@ -118,17 +124,19 @@ export function TurnView({
             </p>
           ) : null}
           <p
-            className={`turn__main ${waitingForTranslation ? "is-source" : ""}`}
+            className={`turn__main ${waitingForTranslation ? "is-source" : ""} ${draft ? "is-draft" : ""}`}
             lang={mainLang}
             dir={isRtl(mainLang) ? "rtl" : "ltr"}
           >
-            {main || " "}
+            {main || (!mine && draft ? null : " ")}
+            {!mine && draft ? <DraftText text={draft} ui={myLang} lead={!!main} /> : null}
             {(live || (tr && !tr.final)) && <span className="turn__caret" aria-hidden="true" />}
           </p>
-          {sub ? (
+          {sub || (mine && draft) ? (
             <p className="turn__sub" lang={subLang} dir={isRtl(subLang) ? "rtl" : "ltr"}>
               {mine ? <span className="turn__sublabel">{t(myLang, "talk.they_got")} · </span> : null}
               {sub}
+              {mine && draft ? <DraftText text={draft} ui={myLang} lead={!!sub} mark /> : null}
             </p>
           ) : null}
           {facts.length ? (

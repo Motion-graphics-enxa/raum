@@ -1,12 +1,12 @@
 /** Title block, talk control, read-back and fact notes, latency chain. */
 import type { ModeConfig } from "../lib/api";
 import type { EventData, FactStatus, Path } from "../lib/events";
-import { isRtl, pick, t } from "../lib/i18n";
+import { UI_LANG, isRtl, langName, pick, t } from "../lib/i18n";
 import type { LinkState } from "../lib/live";
 import { withinSlop } from "../lib/ptt";
 import type { FactChip } from "../lib/store";
 import { Hatch, fmtMs } from "./Drawing";
-import { Check, Cross, Menu, Mic, MicOff, Speaker } from "./Icons";
+import { ArrowRight, Check, Cross, Headphones, Menu, Mic, MicOff, Speaker } from "./Icons";
 import "./sheet.css";
 
 const PATH_KEY: Record<Path, Record<string, string>> = {
@@ -29,6 +29,8 @@ export function TitleBlock({
   link,
   offRecord,
   onMenu,
+  roles,
+  audioOut,
 }: {
   mode: ModeConfig;
   room: string;
@@ -39,28 +41,42 @@ export function TitleBlock({
   link: LinkState;
   offRecord?: boolean;
   onMenu?: () => void;
+  /** who is who on this phone: [me, the other person], e.g. ["You", "Patient"] */
+  roles?: [string, string];
+  /** how this phone hears the translation */
+  audioOut?: "headphones" | "speaker";
 }) {
   const live = link === "connected";
   const statusKey = offRecord
     ? "talk.off_record"
     : link === "connected"
-      ? "talk.listening"
+      ? "talk.live"
       : link === "reconnecting"
         ? "talk.reconnecting"
         : link === "connecting"
           ? "talk.connecting"
-          : "talk.disconnected";
+          : "talk.disconnected_short";
+  const statusClass = offRecord ? "" : live ? "is-live" : link === "disconnected" ? "is-lost" : "is-reconnecting";
+  const [you, them] = roles ?? [t(lang, "talk.you"), t(lang, "talk.other")];
   return (
     <header className={`tblock tblock--${mode.id}`} data-off={offRecord ? "1" : undefined}>
       <div className="tblock__row">
-        <Hatch mode={mode.id} size={22} className="tblock__hatch" />
+        <Hatch mode={mode.id} size={30} className="tblock__hatch" />
         <div className="tblock__title">
-          <span className="tblock__name">{mode.name.de ?? pick(mode.name, lang)}</span>
-          {lang !== "de" ? <span className="tblock__gloss">{pick(mode.name, lang)}</span> : null}
+          <span className="tblock__name">{pick(mode.name, UI_LANG)}</span>
+          <span className="tblock__gloss">
+            {mode.name.de && mode.name.de !== pick(mode.name, UI_LANG) ? `${mode.name.de} · ` : ""}
+            <span className="visually-hidden">{t(lang, "join.room")} </span>
+            <span className="mono">{room.toUpperCase()}</span>
+          </span>
         </div>
-        <span className={`tblock__status ${live ? "is-live" : ""}`} role="status">
+        <span
+          className={`tblock__status ${statusClass}`}
+          role="status"
+          title={`${pathLabel(path, lang)}${rtt != null ? ` · ${rtt} ms` : ""}`}
+        >
           <span className="tblock__dot" aria-hidden="true" />
-          <span className="tblock__status-text">{statusKey === "talk.listening" ? "Live" : t(lang, statusKey)}</span>
+          <span className="tblock__status-text">{t(lang, statusKey)}</span>
         </span>
         {onMenu ? (
           <button type="button" className="tblock__menu" onClick={onMenu} aria-label={t(lang, "talk.menu")}>
@@ -69,26 +85,20 @@ export function TitleBlock({
         ) : null}
       </div>
       <dl className="tblock__cells">
-        <div className="tblock__cell">
-          <dt>{t(lang, "join.room")}</dt>
-          <dd className="mono">{room.toUpperCase()}</dd>
+        <div className="tblock__cell tblock__cell--you">
+          <dt>{you}</dt>
+          <dd>{langName(pair[0], UI_LANG)}</dd>
         </div>
-        <div className="tblock__cell">
-          <dt className="visually-hidden">{t(lang, "join.language")}</dt>
-          <dd className="mono">
-            {pair[0].toUpperCase()}
-            <span className="tblock__arrow" aria-hidden="true">
-              {" "}
-              ⇄{" "}
-            </span>
-            {(pair[1] ?? "··").toUpperCase()}
-          </dd>
+        <ArrowRight className="icon tblock__arrow" />
+        <div className="tblock__cell tblock__cell--them">
+          <dt>{them}</dt>
+          <dd>{pair[1] ? langName(pair[1], UI_LANG) : t(lang, "talk.not_joined")}</dd>
         </div>
         <div className="tblock__cell tblock__cell--end">
-          <dt className="visually-hidden">Path</dt>
-          <dd className="mono">
-            {pathLabel(path, lang)}
-            {rtt != null ? ` ${rtt} ms` : ""}
+          <dt>{t(lang, "talk.you_hear_via")}</dt>
+          <dd>
+            {audioOut === "speaker" ? <Speaker /> : <Headphones />}
+            <span>{t(lang, audioOut === "speaker" ? "join.speaker_only" : "join.headphones")}</span>
           </dd>
         </div>
       </dl>
@@ -96,15 +106,20 @@ export function TitleBlock({
   );
 }
 
-/** Push-to-talk on the talk button (lib/ptt.ts): holders are "pointer:<id>"; the label under the button. */
-export interface TalkHold {
-  press: (holder: string) => void;
-  release: (holder: string) => void;
-  label: string;
-}
+/** Why the mic cannot be used right now (push-to-talk). */
+export type TalkBlocked = "other_speaking" | "voice_playing" | null;
+/** What the orb shows. "sending": released, the box is turning the words into text. */
+export type TalkPhase = "idle" | "live" | "sending" | "blocked";
 
-/** One dominant control. Push-to-talk (`hold`): hold to speak, let go to send. Hands-free: the open mic with
- * Silero VAD on the box; tap toggles. Level drawn as contour lines. */
+/**
+ * One dominant control: the mic orb. Two modes:
+ *  - "handsfree" (default, today's behaviour): the box listens with Silero VAD; a tap toggles the mic.
+ *  - "hold" (push-to-talk): press and hold to talk, release to send. onHoldStart / onHoldEnd fire on
+ *    pointer down / up (and cancel), and on Space down / up when the orb has focus.
+ * The behaviour lives in lib/ptt.ts + live.ts (Talk.tsx wires them); this component only draws the states and
+ * reports gestures (pointer captured; lost capture or leaving the orb by more than the slop also ends a hold).
+ * Classes for styling and tests: .talk[data-mode][data-state][data-purpose] (see DESIGN.md, Talk Control).
+ */
 export function TalkControl({
   on,
   level,
@@ -112,7 +127,13 @@ export function TalkControl({
   lang,
   onToggle,
   error,
-  hold,
+  mode = "handsfree",
+  phase,
+  blocked = null,
+  answering = false,
+  onHoldStart,
+  onHoldEnd,
+  onModeChange,
 }: {
   on: boolean;
   level: number;
@@ -120,61 +141,125 @@ export function TalkControl({
   lang: string;
   onToggle: () => void;
   error?: string | null;
-  hold?: TalkHold;
+  mode?: "handsfree" | "hold";
+  phase?: TalkPhase;
+  blocked?: TalkBlocked;
+  /** a read-back waits for this device's yes/no: "Hold to answer" */
+  answering?: boolean;
+  onHoldStart?: () => void;
+  onHoldEnd?: () => void;
+  /** shows the hands-free switch under the orb */
+  onModeChange?: (mode: "handsfree" | "hold") => void;
 }) {
   const rings = [0, 1, 2];
-  const holder = (e: React.PointerEvent) => `pointer:${e.pointerId}`;
-  // Pointer capture: a finger sliding a little keeps holding; leaving the button by more than the slop,
-  // lifting it, or the browser taking the pointer (scroll, call) lets go.
-  const input = hold
-    ? {
-        onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
-          if (disabled || (e.pointerType === "mouse" && e.button !== 0)) return;
-          try {
-            e.currentTarget.setPointerCapture(e.pointerId);
-          } catch {
-            /* capture is a nicety */
-          }
-          hold.press(holder(e));
-        },
-        onPointerUp: (e: React.PointerEvent) => hold.release(holder(e)),
-        onPointerCancel: (e: React.PointerEvent) => hold.release(holder(e)),
-        onLostPointerCapture: (e: React.PointerEvent) => hold.release(holder(e)),
-        onPointerMove: (e: React.PointerEvent<HTMLButtonElement>) => {
-          if (!withinSlop(e.clientX, e.clientY, e.currentTarget.getBoundingClientRect())) hold.release(holder(e));
-        },
-        onContextMenu: (e: React.MouseEvent) => e.preventDefault(), // iOS / Android long-press menu
-      }
-    : { onClick: onToggle };
+  const hold = mode === "hold";
+  const state: TalkPhase | "disabled" =
+    phase ?? (blocked ? "blocked" : disabled ? "disabled" : on ? "live" : "idle");
+  const live = state === "live";
+  const label = error
+    ? t(lang, "talk.mic_denied")
+    : state === "blocked"
+      ? t(lang, blocked === "voice_playing" ? "talk.mic_wait_voice" : "talk.mic_wait_other")
+      : state === "sending"
+        ? t(lang, "talk.sending")
+        : hold
+          ? live
+            ? t(lang, "talk.release_to_send")
+            : t(lang, answering ? "talk.hold_to_answer" : "talk.hold_to_talk")
+          : live
+            ? t(lang, "talk.listening")
+            : t(lang, "talk.tap_to_talk");
+  const off = disabled || state === "blocked" || state === "disabled";
+  const holdOn = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!hold || off || (e.pointerType === "mouse" && e.button !== 0)) return;
+    try {
+      e.currentTarget.setPointerCapture?.(e.pointerId); // a finger sliding a little keeps holding
+    } catch {
+      /* capture is a nicety */
+    }
+    navigator.vibrate?.(12); // Android: a short tick under the thumb (iOS has no web vibration)
+    onHoldStart?.();
+  };
+  const holdOff = () => {
+    if (!hold) return;
+    onHoldEnd?.();
+  };
+  // lib/ptt.ts: leaving the orb by more than the slop lets go (a release that is not held is a no-op)
+  const holdMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (hold && !withinSlop(e.clientX, e.clientY, e.currentTarget.getBoundingClientRect())) onHoldEnd?.();
+  };
   return (
-    <div className={`talk ${hold ? "talk--hold" : ""} ${on ? "is-on" : ""} ${disabled ? "is-disabled" : ""}`}>
+    <div
+      className={`talk ${on ? "is-on" : ""} ${off ? "is-disabled" : ""}`}
+      data-mode={mode}
+      data-state={state}
+      data-purpose={answering ? "answer" : undefined}
+    >
       <div className="talk__stage">
         <svg className="talk__contours" viewBox="0 0 200 200" aria-hidden="true">
           {rings.map((i) => {
-            const r = 54 + i * 14 + (on ? level * (18 + i * 10) : 0);
-            return <circle key={i} cx="100" cy="100" r={r} style={{ opacity: on ? 0.55 - i * 0.15 + level * 0.3 : 0.18 }} />;
+            const r = 52 + i * 13 + (live ? level * (18 + i * 10) : 0);
+            return <circle key={i} cx="100" cy="100" r={r} style={{ opacity: live ? 0.6 - i * 0.16 + level * 0.3 : 0.14 }} />;
           })}
         </svg>
         <button
           type="button"
           className="talk__btn"
-          {...input}
-          disabled={disabled}
-          aria-pressed={on}
-          aria-label={hold ? hold.label : on ? t(lang, "talk.tap_to_mute") : t(lang, "talk.tap_to_talk")}
+          onClick={hold ? undefined : onToggle}
+          onPointerDown={hold ? holdOn : undefined}
+          onPointerUp={hold ? holdOff : undefined}
+          onPointerCancel={hold ? holdOff : undefined}
+          onLostPointerCapture={hold ? holdOff : undefined}
+          onPointerMove={hold ? holdMove : undefined}
+          onContextMenu={hold ? (e) => e.preventDefault() : undefined}
+          onKeyDown={
+            hold
+              ? (e) => {
+                  if ((e.key === " " || e.key === "Enter") && !e.repeat && !off) {
+                    e.preventDefault();
+                    onHoldStart?.();
+                  }
+                }
+              : undefined
+          }
+          onKeyUp={
+            hold
+              ? (e) => {
+                  if (e.key === " " || e.key === "Enter") {
+                    e.preventDefault();
+                    onHoldEnd?.();
+                  }
+                }
+              : undefined
+          }
+          disabled={off}
+          aria-pressed={live}
+          aria-label={label}
+          aria-keyshortcuts={hold ? "Space" : undefined}
         >
-          {on ? <Mic /> : <MicOff />}
+          {live || state === "sending" ? <Mic /> : <MicOff />}
         </button>
       </div>
       <p className="talk__label" aria-live="polite">
-        {error
-          ? t(lang, "talk.mic_denied")
-          : hold
-            ? hold.label
-            : on
-              ? t(lang, "talk.listening")
-              : t(lang, "talk.tap_to_talk")}
+        {label}
       </p>
+      {hold && !off ? (
+        <p className="talk__hint talk__hint--keys" aria-hidden="true">
+          {t(lang, "talk.hold_space_pre")} <kbd>Space</kbd>
+        </p>
+      ) : null}
+      {onModeChange ? (
+        <button
+          type="button"
+          role="switch"
+          className="talk__mode"
+          aria-checked={!hold}
+          onClick={() => onModeChange(hold ? "handsfree" : "hold")}
+        >
+          <span className="talk__switch" aria-hidden="true" />
+          {t(lang, "talk.handsfree")}
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -389,7 +474,7 @@ export function Timeline({
       <div className="tl__budget">
         <span className="tl__target" style={{ width: pct(1000) }} />
         <span className="tl__tlabel mono" style={{ insetInlineStart: pct(1000) }}>
-          1,0 s
+          1.0 s
         </span>
         {first != null ? (
           <span className={`tl__mark ${over ? "is-over" : ""}`} style={{ insetInlineStart: pct(first) }}>
@@ -416,7 +501,7 @@ export function Timeline({
       {big ? (
         <figcaption className="tl__stats mono">
           <span>
-            {pick(BUDGET_LABEL, lang)} 1,0 s
+            {pick(BUDGET_LABEL, lang)} 1.0 s
           </span>
           <span>p50 {p50 != null ? fmtMs(p50) : "—"}</span>
           <span>p95 {p95 != null ? fmtMs(p95) : "—"}</span>
