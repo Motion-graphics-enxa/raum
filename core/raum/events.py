@@ -244,6 +244,9 @@ class PipelineTiming(_Data):
     # voice echo check (raum.pipeline.echo_check), when a clause with figures was heard back: the slowest
     # clause from synthesized to heard and compared, and the worst result of the utterance's clauses
     echo_ms: float | None = None
+    # speculate.py: where each played clause's audio came from: made ahead of the end of turn (spec), while the
+    # clause before played (ahead), or when its turn came (live)
+    voice_clauses: dict[str, int] | None = None
     echo_check: Literal["match", "unclear", "mismatch", "skipped"] | None = None
     # also sent as extras in simultaneous mode only: simultaneous (true), segs (number of segments)
 

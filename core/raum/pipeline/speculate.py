@@ -9,10 +9,22 @@ starts and the final transcript equals that text (whitespace and case normalised
 and glossary), the finished (or still streaming) speculative translation is replayed as the live deltas:
 MT ~ 0 ms after the endpoint. Otherwise it is discarded.
 
-The first phrase of a speculative translation (``room.take_phrase``) is also synthesised ahead; the buffered
-audio plays only when the live translation produces exactly that phrase, i.e. once the turn ended and the
-final matched. Nothing is published before the end-of-turn decision. A resume (``speech_start`` during the
-end-of-turn wait) drops both.
+The voice is made ahead too, for the whole utterance: every clause of a speculative translation, cut exactly as
+``room._translate`` cuts the live one (``take_phrase`` first, then ``take_clause``), is synthesised in order
+(at most ``SPEC_CLAUSES`` clauses / ``SPEC_AUDIO_S`` of audio) into a cache keyed by (language, clause text
+normalised); the audio plays only when a live clause is that text with the same voice args (``_same_voice``),
+i.e. once the turn ended. A final that differs only in its tail still plays its unchanged clauses from the cache.
+Nothing is published before the end-of-turn decision. A resume (``speech_start`` during the end-of-turn wait)
+drops the utterance's speculation and its audio; burn / session end drop every cached audio (the speaker's
+cloned voice).
+
+The live voice also goes through this cache: ``prepare`` (room ``_speak_stream``) starts the clause about to
+play and, as soon as its synthesis is done, the next one already queued ("ahead"), so clauses play back to back.
+Speculative synthesis never slows the live voice: it waits while a live clause is being synthesised in the
+room, stops between chunks when one starts, and asks the engine for ``background`` priority if it has one (the
+voice service then rejects it instead of queueing it before a live request). Each played clause counts as
+``spec`` (made ahead of the end of turn), ``ahead`` (made while the one before played) or ``live``:
+``pipeline.timing`` ``voice_clauses``.
 Simultaneous lanes (simul.py) are not speculated: their tail is short.
 """
 
@@ -20,6 +32,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from types import SimpleNamespace
@@ -34,7 +47,39 @@ if TYPE_CHECKING:
 
 log = logging.getLogger("raum.pipeline.speculate")
 
-_MAX_VOICES = 16
+_MAX_VOICES = 32
+SPEC_CLAUSES = 4  # clauses of one speculation synthesised ahead
+SPEC_AUDIO_S = 15.0  # ... or this much audio, whichever comes first
+_VOICE_TTL_S = 60.0  # an unclaimed cached clause older than this is dropped
+
+
+def _vkey(lang: str, text: str) -> tuple[str, str]:
+    return (lang, " ".join(text.split()).casefold())
+
+
+def _takes(fn: Any, name: str) -> bool:
+    import inspect
+
+    try:
+        params = inspect.signature(fn).parameters
+    except (TypeError, ValueError):
+        return False
+    return name in params or any(p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values())
+
+
+async def _either(a: asyncio.Event, b: asyncio.Event) -> None:
+    if a.is_set() or b.is_set():
+        return
+    waits = [asyncio.ensure_future(a.wait()), asyncio.ensure_future(b.wait())]
+    try:
+        await asyncio.wait(waits, return_when=asyncio.FIRST_COMPLETED)
+    finally:
+        for w in waits:
+            w.cancel()
+
+
+class _Yield(Exception):
+    """A speculative synthesis stops: a live one started in the room."""
 
 
 def _same_voice(a: dict[str, Any], b: dict[str, Any]) -> bool:
@@ -51,6 +96,24 @@ def _key(req: TranslateRequest) -> tuple[Any, ...]:
 
 
 @dataclass
+class _Voice:
+    kw: dict[str, Any] = field(default_factory=dict)  # voice_ref / rate it was made with
+    chunks: list[np.ndarray] = field(default_factory=list)
+    done: asyncio.Event = field(default_factory=asyncio.Event)
+    changed: asyncio.Event = field(default_factory=asyncio.Event)  # a chunk arrived (or done)
+    failed: bool = False
+    error: BaseException | None = None
+    task: asyncio.Task[None] | None = None
+    kind: str = "spec"  # spec (ahead of the end of turn) | ahead (while the clause before plays) | live
+    utt: str | None = None
+    claimed: bool = False  # the live path plays it: never stopped for another live clause
+    go: asyncio.Event = field(default_factory=asyncio.Event)  # claimed: stop waiting for the room's live voice
+    samples: int = 0
+    rate: int = 0
+    at: float = 0.0
+
+
+@dataclass
 class _Spec:
     key: tuple[Any, ...]
     parts: list[str] = field(default_factory=list)
@@ -59,20 +122,14 @@ class _Spec:
     started: bool = False
     done: bool = False
     failed: bool = False
-    voice: tuple[str, str] | None = None  # (lang, phrase) pre-synthesised
+    voices: list[_Voice] = field(default_factory=list)  # its clauses synthesised ahead, in order
+    utt: str = ""
     speaker: str = ""
     slot: str = "background"
     text: str = ""  # the source text, and how long it took to say: the pace for the pre-synthesis
     seconds: float | None = None
 
 
-@dataclass
-class _Voice:
-    kw: dict[str, Any] = field(default_factory=dict)  # voice_ref / rate it was made with
-    chunks: list[np.ndarray] = field(default_factory=list)
-    done: asyncio.Event = field(default_factory=asyncio.Event)
-    failed: bool = False
-    task: asyncio.Task[None] | None = None
 
 
 class Speculator:
@@ -81,8 +138,12 @@ class Speculator:
     def __init__(self, p: RoomPipeline) -> None:
         self.p = p
         self._specs: dict[tuple[str, str], _Spec] = {}  # (utt, target lang) -> speculation
-        self._voices: dict[tuple[str, str], _Voice] = {}  # (lang, clause) -> pre-synthesised audio
+        self._voices: dict[tuple[str, str], _Voice] = {}  # (lang, clause normalised) -> audio, made or being made
         self.hits = 0  # replayed speculations (glass box / tests)
+        self.voice_hits = 0  # clauses played from speculative audio (glass box / tests)
+        self._live = 0  # live syntheses running in this room: speculative ones wait / stop for them
+        self._live_idle = asyncio.Event()
+        self._live_idle.set()
 
     @property
     def enabled(self) -> bool:
@@ -111,7 +172,7 @@ class Speculator:
                 continue  # the same text is being translated already
             if old is not None:
                 self._cancel(old)
-            spec = _Spec(key=_key(req), speaker=u.speaker, slot=slot, text=text.strip(), seconds=seconds)
+            spec = _Spec(key=_key(req), utt=u.id, speaker=u.speaker, slot=slot, text=text.strip(), seconds=seconds)
             spec.task = self.p._spawn(self._run(spec, req, slot))
             self._specs[(u.id, tgt)] = spec
 
@@ -125,24 +186,70 @@ class Speculator:
             self._cancel(spec)
         return self.p.engines.translate.stream(req)
 
-    async def synthesize(self, tts: Any, text: str, lang: str, **kw: Any) -> AsyncIterator[np.ndarray]:
-        """The voice of one clause: pre-synthesised audio if this exact clause was made ahead with the same
-        voice args (``voice_ref`` / ``rate``, see room.py ``_voice_kwargs``), else the engine."""
-        v = self._voices.pop((lang, text), None)
-        if v is not None and _same_voice(v.kw, kw):
-            await v.done.wait()
-            if not v.failed:
-                for c in v.chunks:
+    async def synthesize(self, tts: Any, text: str, lang: str, *, marks: dict[str, Any] | None = None,
+                         **kw: Any) -> AsyncIterator[np.ndarray]:
+        """The voice of one live clause: its cached audio (made ahead, or being made) if it was made for this text
+        with the same voice args, streamed as it comes; else synthesised now. ``marks`` counts where it came from
+        (``voice_spec`` / ``voice_ahead`` / ``voice_live``)."""
+        key = _vkey(lang, text)
+        v = self._voices.pop(key, None)
+        if v is not None and (not _same_voice(v.kw, kw) or (v.done.is_set() and v.failed)):
+            self._stop(v)
+            v = None
+        if v is None:
+            v = self._start(tts, text, lang, kw, kind="live")
+        v.claimed = True
+        v.go.set()
+        if marks is not None:
+            marks[f"voice_{v.kind}"] = marks.get(f"voice_{v.kind}", 0) + 1
+        if v.kind == "spec":
+            self.voice_hits += 1
+        i = 0
+        while True:
+            v.changed.clear()
+            while i < len(v.chunks):
+                yield v.chunks[i]
+                i += 1
+            if v.done.is_set():
+                if not v.failed:
+                    return
+                if v.kind == "live":
+                    raise v.error or RuntimeError("voice failed")
+                # made ahead and failed (stopped, rejected): the clause live after all (from its start if some of
+                # it played: a repeated beginning is better than a lost dose)
+                async for c in self._live_now(tts, text, lang, kw):
                     yield c
                 return
-        elif v is not None and v.task is not None and not v.task.done():
-            v.task.cancel()
-        async for c in tts.synthesize(text, lang, **kw):
-            yield c
+            await v.changed.wait()
+
+    def prepare(self, tts: Any, lang: str, text: str, nxt: str | None, kw: dict[str, Any], *,
+                utt: str | None = None) -> None:
+        """The live voice lane is about to play ``text``: start it now unless it is cached, and the clause
+        queued after it (``nxt``) as soon as this one is made, so the second plays right after the first."""
+        if tts is None:
+            return
+        cur = self._cached(lang, text, kw)
+        if cur is None:
+            cur = self._start(tts, text, lang, kw, kind="live", utt=utt)
+            self._voices[_vkey(lang, text)] = cur
+        if nxt and nxt.strip() and self._cached(lang, nxt, kw) is None:
+            self._voices[_vkey(lang, nxt)] = self._start(tts, nxt, lang, kw, kind="ahead", utt=utt, after=cur)
+        self._evict()
 
     def drop(self, utt: str) -> None:
         for key in [k for k in self._specs if k[0] == utt]:
             self._cancel(self._specs.pop(key))
+        for key in [k for k, v in self._voices.items() if v.utt == utt and not v.claimed]:
+            self._stop(self._voices.pop(key))
+
+    def clear(self) -> None:
+        """Burn / session end / close: every cached audio goes (it may be the speaker's cloned voice)."""
+        for spec in self._specs.values():
+            self._cancel(spec)
+        self._specs.clear()
+        for v in self._voices.values():
+            self._stop(v)
+        self._voices.clear()
 
     # ------------------------------------------------------------ internals
 
@@ -150,14 +257,103 @@ class Speculator:
         spec.failed = True
         if spec.task is not None and not spec.task.done():
             spec.task.cancel()
-        v = self._voices.pop(spec.voice, None) if spec.voice else None
-        if v is not None and v.task is not None and not v.task.done():
+        for v in spec.voices:  # what was made stays cached (a newer text may say the same clause); unfinished stops
+            if not v.done.is_set() and not v.claimed:
+                self._stop(v)
+
+    @staticmethod
+    def _stop(v: _Voice) -> None:
+        if v.task is not None and not v.task.done() and not v.claimed:
             v.task.cancel()
 
+    def _cached(self, lang: str, text: str, kw: dict[str, Any]) -> _Voice | None:
+        v = self._voices.get(_vkey(lang, text))
+        if v is None or not _same_voice(v.kw, kw) or (v.done.is_set() and v.failed):
+            return None
+        return v
+
+    def _evict(self) -> None:
+        now = time.monotonic()
+        for key in [k for k, v in self._voices.items() if not v.claimed and now - v.at > _VOICE_TTL_S]:
+            self._stop(self._voices.pop(key))
+        while len(self._voices) > _MAX_VOICES:
+            self._stop(self._voices.pop(next(iter(self._voices))))
+
+    def _start(self, tts: Any, text: str, lang: str, kw: dict[str, Any], *, kind: str, utt: str | None = None,
+               after: _Voice | None = None, budget: _Spec | None = None) -> _Voice:
+        v = _Voice(kw=dict(kw), kind=kind, utt=utt, rate=int(getattr(tts, "sample_rate", 0) or 0),
+                   at=time.monotonic())
+        v.task = self.p._spawn(self._synth(v, tts, text, lang, after, budget))
+        return v
+
+    async def _synth(self, v: _Voice, tts: Any, text: str, lang: str, after: _Voice | None,
+                     budget: _Spec | None) -> None:
+        background = v.kind == "spec"
+        live = False
+        try:
+            if after is not None:
+                await after.done.wait()  # one clause after the other on a lane: no two requests at once
+                if after.failed and v.kind == "ahead":
+                    raise _Yield("the clause before failed")  # the live call tries again, once, in its turn
+            if background:
+                await _either(self._live_idle, v.go)  # never beside a live clause, unless a listener waits for it
+                if not v.claimed and budget is not None and self._audio_s(budget) >= SPEC_AUDIO_S:
+                    raise _Yield("enough audio ahead")
+            else:
+                live = True
+                self._live += 1
+                self._live_idle.clear()
+            kw = dict(v.kw)
+            if background and _takes(tts.synthesize, "background"):
+                kw["background"] = True  # the voice service: rejected, never queued before a live request
+            async for c in tts.synthesize(text, lang, **kw):
+                v.chunks.append(c)
+                v.samples += len(c)
+                v.changed.set()
+                if background and self._live and not v.claimed:
+                    raise _Yield("a live clause started")
+        except asyncio.CancelledError:
+            v.failed = True
+            raise
+        except Exception as e:  # noqa: BLE001  ahead: the live call makes it; live: _speak reports it
+            v.failed, v.error = True, e
+            if not isinstance(e, _Yield):
+                log.debug("voice %s %s failed: %s: %s", v.kind, lang, e.__class__.__name__, e)
+        finally:
+            if live:
+                self._live -= 1
+                if not self._live:
+                    self._live_idle.set()
+            v.done.set()
+            v.changed.set()
+
+    @staticmethod
+    def _audio_s(spec: _Spec) -> float:
+        return sum(v.samples / v.rate for v in spec.voices if v.rate)
+
+    async def _live_now(self, tts: Any, text: str, lang: str, kw: dict[str, Any]) -> AsyncIterator[np.ndarray]:
+        v = self._start(tts, text, lang, kw, kind="live")
+        v.claimed = True
+        v.go.set()
+        i = 0
+        while True:
+            v.changed.clear()
+            while i < len(v.chunks):
+                yield v.chunks[i]
+                i += 1
+            if v.done.is_set():
+                if v.failed:
+                    raise v.error or RuntimeError("voice failed")
+                return
+            await v.changed.wait()
+
     async def _run(self, spec: _Spec, req: TranslateRequest, slot: str = "background") -> None:
-        from raum.pipeline.room import MT_TIMEOUT_S, take_phrase
+        from raum.pipeline.room import MT_TIMEOUT_S, _words, take_clause, take_phrase
 
         pending = ""
+        # the voice's clauses, cut exactly as _translate cuts the live ones (same floor for a cloned voice)
+        floor = self.p.min_voice_words(spec.speaker)
+        expect = _words(spec.text) if floor else None
 
         async def run() -> None:
             nonlocal pending
@@ -166,11 +362,10 @@ class Speculator:
                     continue
                 spec.parts.append(d)
                 spec.changed.set()
-                if spec.voice is None and self.p._tts_enabled():
+                if self.p._tts_enabled() and len(spec.voices) < SPEC_CLAUSES:
                     pending += d
-                    # the voice's first phrase, cut as _translate cuts it (same floor for a cloned voice)
-                    floor = self.p.min_voice_words(spec.speaker)
-                    clause, pending = take_phrase(pending, floor, len(spec.text.split()) if floor else None)
+                    clause, pending = (take_clause(pending, floor, expect) if spec.voices
+                                       else take_phrase(pending, floor, expect))
                     if clause:
                         self._presynth(spec, req.tgt_lang, clause)
 
@@ -178,8 +373,8 @@ class Speculator:
             async with self.p.sched.slot(slot):
                 spec.started = True
                 await asyncio.wait_for(run(), MT_TIMEOUT_S)
-            if spec.voice is None and pending.strip() and self.p._tts_enabled():
-                self._presynth(spec, req.tgt_lang, pending.strip())  # one clause only: the whole text
+            if pending.strip() and self.p._tts_enabled() and len(spec.voices) < SPEC_CLAUSES:
+                self._presynth(spec, req.tgt_lang, pending.strip())  # the tail, as _translate says it last
         except asyncio.CancelledError:
             spec.failed = True
             raise
@@ -222,29 +417,17 @@ class Speculator:
                 yield seen[len(sent):]
 
     def _presynth(self, spec: _Spec, lang: str, clause: str) -> None:
+        """The next clause of a speculation, made after the one before it (background, waits for live ones)."""
         tts = self.p.engines.tts
         if tts is None:
             return
         from raum.pipeline.simul import speaker_voice
 
-        spec.voice = (lang, clause)
-        v = _Voice(kw=self.p._voice_kwargs(tts, speaker_voice(self.p, spec.speaker, spec.text, spec.seconds)))
-        self._voices[spec.voice] = v
-        while len(self._voices) > _MAX_VOICES:
-            old = self._voices.pop(next(iter(self._voices)))
-            if old.task is not None and not old.task.done():
-                old.task.cancel()
-
-        async def synth() -> None:
-            try:
-                async for c in tts.synthesize(clause, lang, **v.kw):
-                    v.chunks.append(c)
-            except asyncio.CancelledError:
-                v.failed = True
-                raise
-            except Exception:  # noqa: BLE001  the live call reports it
-                v.failed = True
-            finally:
-                v.done.set()
-
-        v.task = self.p._spawn(synth())
+        kw = self.p._voice_kwargs(tts, speaker_voice(self.p, spec.speaker, spec.text, spec.seconds))
+        v = self._cached(lang, clause, kw)
+        if v is None:
+            prev = spec.voices[-1] if spec.voices else None
+            v = self._start(tts, clause, lang, kw, kind="spec", utt=spec.utt, after=prev, budget=spec)
+            self._voices[_vkey(lang, clause)] = v
+            self._evict()
+        spec.voices.append(v)

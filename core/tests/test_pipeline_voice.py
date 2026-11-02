@@ -171,9 +171,11 @@ async def test_voice_sample_dropped_on_burn_and_close_and_skips_echoed_speech():
     h.p.set_state(state("live", "s-1"))
     await speak(h, DOC.id, tone(4.0))
     assert h.p.voice_ref(DOC.id) is not None
+    await h.p.drain()  # its voice played out: the doctor's mic is open again (C-14)
     h.p.set_state(state("live", "s-2"))  # a new session in the same room: new people, no old voices
     assert h.p._voice_refs == {}
     await speak(h, DOC.id, tone(4.0))
+    await h.p.drain()
     h.p.set_state(state("ended", "s-2"))  # session end
     assert h.p._voice_refs == {}
     await speak(h, DOC.id, tone(4.0))

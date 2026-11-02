@@ -863,6 +863,9 @@ class RoomPipeline:
             timing.update(target_lang=tgt, check_ms=check_ms, tts_first_ms=tts_first)
             if marks is not None:  # stop -> first PCM from the engine / first frame the worker's AudioSource took
                 timing.update(tts_synth_first_ms=marks.get("synth"), tts_publish_first_ms=marks.get("publish"))
+                if any(k in marks for k in ("voice_spec", "voice_ahead", "voice_live")):  # speculate.py: where each
+                    timing["voice_clauses"] = {k: int(marks.get(f"voice_{k}", 0))  # clause's audio came from
+                                               for k in ("spec", "ahead", "live")}
                 timing.update(await self.echo_check.settle(marks))  # echo_check.py: echo_ms, echo_check
             await self.emit("pipeline.timing", timing, utt=rec.utt)
 
@@ -952,18 +955,28 @@ class RoomPipeline:
         audio track at the same time (the GX10 phone test: "InvalidState - failed to capture frame")."""
         lane = self._voice_lanes.setdefault(tgt, asyncio.Lock())
         first: float | None = None
+        ahead: list[str | None] = []  # clauses already queued behind the one playing
         async with lane:
             while True:
-                try:
-                    clause = await asyncio.wait_for(q.get(), VOICE_IDLE_S)
-                except TimeoutError:
-                    log.warning("voice %s: no clause for %.0f s, releasing the lane", tgt, VOICE_IDLE_S)
-                    return first
+                if ahead:
+                    clause = ahead.pop(0)
+                else:
+                    try:
+                        clause = await asyncio.wait_for(q.get(), VOICE_IDLE_S)
+                    except TimeoutError:
+                        log.warning("voice %s: no clause for %.0f s, releasing the lane", tgt, VOICE_IDLE_S)
+                        return first
                 if clause is None:
                     await self.echo_check.flush(tgt, marks)  # echo_check.py: a repeat already due, before the lane frees
                     return first
                 if self._voice_paused(tgt) or self._closed:
                     continue
+                while not q.empty():  # speculate.py: the next clause is made while this one plays (no gap)
+                    ahead.append(q.get_nowait())
+                tts = self.engines.tts
+                if tts is not None:
+                    nxt = ahead[0] if ahead else None
+                    self.spec.prepare(tts, tgt, clause, nxt, self._voice_kwargs(tts, voice), utt=utt)
                 f = await self._speak(tgt, clause, t0, voice, marks, utt=utt)
                 if first is None:
                     first = f
@@ -978,7 +991,7 @@ class RoomPipeline:
         first: float | None = None
         try:
             # speculate.py: a pre-synthesised clause if it was made with these voice args
-            async for chunk in self.spec.synthesize(tts, text, tgt, **self._voice_kwargs(tts, voice)):
+            async for chunk in self.spec.synthesize(tts, text, tgt, marks=marks, **self._voice_kwargs(tts, voice)):
                 if first is None:
                     first = round((time.monotonic() - t0) * 1000.0, 1)
                     if marks is not None:
@@ -1055,6 +1068,7 @@ class RoomPipeline:
         self._rates.clear()
         self.voicelock.clear()  # F-10: the owners' voices go with the session
         self.merge.clear()  # merge.py: the audio held for a continuation, too
+        self.spec.clear()  # speculate.py: audio made ahead (the cloned voice), too
         self._forget_in_service(ids)
 
     def forget_speaker(self, speaker: str) -> None:
