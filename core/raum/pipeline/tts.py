@@ -49,7 +49,7 @@ class PiperTTS:
         self.options = options or {}
         self.name = f"piper:{model}" if model else "piper"
         self.sample_rate = int(self.options.get("sample_rate", 22050))
-        self.voices_dir = Path(self.options.get("voices_dir", "/opt/raum/voices"))
+        self.voices_dir = Path(self.options.get("voices_dir", "/opt/raum/voices")).expanduser()
         self._voices: dict[str, Any] = {}
         try:
             import piper  # type: ignore[import-not-found]
@@ -66,7 +66,7 @@ class PiperTTS:
     def _voice_files(self) -> dict[str, Path]:
         out: dict[str, Path] = {}
         for lang, v in (self.options.get("voices") or {}).items():
-            p = Path(v)
+            p = Path(v).expanduser()
             if not p.suffix:
                 p = self.voices_dir / f"{v}.onnx"
             if p.is_file():
