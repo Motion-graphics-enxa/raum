@@ -185,3 +185,36 @@ async def test_mic_frames_of_a_paused_device_reach_the_vad_as_silence():
     assert agent._mic_frame("a-doc1", frame) is frame  # the doctor is heard
     quiet = agent._mic_frame("b-k3x9", frame)  # the patient's phone hears its own speaker: silence
     assert quiet.samples_per_channel == 320 and not np.frombuffer(quiet.data, dtype=np.int16).any()
+
+
+async def test_link_close_leaves_no_loop_on_a_dead_socket():
+    """Room end: aclose cancels the link while core drops the socket (1011). Neither the send nor the
+    receive loop may outlive it ("Task exception was never retrieved ... ConnectionClosedError")."""
+    from websockets.asyncio.server import serve
+
+    connected = asyncio.Event()
+    closing = asyncio.Event()
+
+    async def core(ws):
+        connected.set()
+        await closing.wait()
+        await ws.close(code=1011)
+
+    def loops():
+        return [t for t in asyncio.all_tasks()
+                if getattr(t.get_coro(), "__name__", "") in ("_send_loop", "_recv_loop") and not t.done()]
+
+    port = free_port()
+    async with serve(core, "127.0.0.1", port):
+        link = LinkClient("sz-4821", core_url=f"http://127.0.0.1:{port}", key="k", agent_id="w/j", min_backoff=0.01)
+        link.start()
+        await asyncio.wait_for(connected.wait(), 2)
+        for _ in range(100):
+            if loops():
+                break
+            await asyncio.sleep(0.01)
+        assert len(loops()) == 2
+        closing.set()
+        await link.aclose()
+        await asyncio.sleep(0.05)
+        assert loops() == []

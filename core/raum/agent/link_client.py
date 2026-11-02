@@ -101,13 +101,15 @@ class LinkClient:
                     await ws.send(Hello(room=self.room, agent=self.agent_id).model_dump_json())
                     sender = asyncio.create_task(self._send_loop(ws))
                     receiver = asyncio.create_task(self._recv_loop(ws))
-                    done, pending = await asyncio.wait({sender, receiver}, return_when=asyncio.FIRST_COMPLETED)
-                    for t in pending:
-                        t.cancel()
-                    await asyncio.gather(*pending, return_exceptions=True)
-                    for t in done:
-                        if t.exception():
-                            raise t.exception()  # type: ignore[misc]
+                    try:
+                        await asyncio.wait({sender, receiver}, return_when=asyncio.FIRST_COMPLETED)
+                    finally:  # also on cancel (room closing): never leave a loop running on a dead socket
+                        for t in (sender, receiver):
+                            t.cancel()
+                        results = await asyncio.gather(sender, receiver, return_exceptions=True)
+                    errors = [r for r in results if isinstance(r, Exception)]  # every exception retrieved
+                    if errors:
+                        raise errors[0]
             except asyncio.CancelledError:
                 raise
             except Exception as e:  # noqa: BLE001  core down / restarting: retry, never crash the agent
