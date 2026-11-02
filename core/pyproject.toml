@@ -24,6 +24,9 @@ dependencies = [
 dates = ["dateparser>=1.2"]
 # C-05 noise cleaning (DeepFilterNet3 on CPU). `uv sync --extra denoise`; set RAUM_UV_EXTRAS on the box.
 denoise = ["deepfilternet>=0.5.6", "torch>=2.2", "torchaudio>=2.2"]
+# A-03 speakerphone on the box (`raum speakerphone`): PortAudio via sounddevice. `uv sync --extra
+# speakerphone`; Linux also needs the system library (apt: libportaudio2). The macOS wheel bundles it.
+speakerphone = ["sounddevice>=0.5"]
 
 [project.scripts]
 raum = "raum.cli:main"

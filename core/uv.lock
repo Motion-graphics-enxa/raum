@@ -1307,6 +1307,9 @@ denoise = [
     { name = "torchaudio", version = "2.11.1", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux'" },
     { name = "torchaudio", version = "2.11.1+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "sys_platform == 'linux'" },
 ]
+speakerphone = [
+    { name = "sounddevice" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -1329,6 +1332,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=1.26" },
     { name = "pydantic", specifier = ">=2.8" },
     { name = "pyyaml", specifier = ">=6.0" },
+    { name = "sounddevice", marker = "extra == 'speakerphone'", specifier = ">=0.5" },
     { name = "soxr", specifier = ">=0.4" },
     { name = "torch", marker = "sys_platform == 'linux' and extra == 'denoise'", specifier = ">=2.2", index = "https://download.pytorch.org/whl/cpu" },
     { name = "torch", marker = "sys_platform != 'linux' and extra == 'denoise'", specifier = ">=2.2" },
@@ -1337,7 +1341,7 @@ requires-dist = [
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.30" },
     { name = "websockets", specifier = ">=13" },
 ]
-provides-extras = ["dates", "denoise"]
+provides-extras = ["dates", "denoise", "speakerphone"]
 
 [package.metadata.requires-dev]
 dev = [
