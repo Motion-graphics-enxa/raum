@@ -398,6 +398,22 @@ def test_events_ws_meter_and_gpu_ticks(client):
     assert e.value.code == 4404
 
 
+def test_events_ws_answers_the_app_heartbeat(client):
+    """The app's liveness check: "ping" gets "pong" between the envelopes; other text is ignored."""
+    with client.websocket_connect(f"/api/events/{ROOM}") as sub:
+        sub.send_text("hello")  # ignored, the socket stays up
+        sub.send_text("ping")
+        for _ in range(200):
+            msg = sub.receive_text()
+            if msg == "pong":
+                break
+            assert json.loads(msg)["v"] == 1  # everything else is an envelope
+        else:
+            pytest.fail("no pong")
+        sub.send_text("ping")
+        assert any(sub.receive_text() == "pong" for _ in range(200))
+
+
 def test_health_reports_voice_clone_only_for_a_cloning_engine(client, core):
     from raum.config import EngineConfig
 

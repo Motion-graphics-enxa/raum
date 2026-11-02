@@ -18,6 +18,24 @@ const core = process.env.RAUM_CORE ?? "http://127.0.0.1:8000";
 const livekit = process.env.RAUM_LIVEKIT ?? "http://127.0.0.1:7880";
 const port = Number(process.env.RAUM_APP_PORT ?? 5180);
 
+// Long-lived WebSockets (/api/events, /rtc) have no idle timeout here: http-proxy sets
+// setTimeout(0) + TCP keep-alive on both sockets, and Node's request timeouts end at the upgrade.
+// Core ticks /api/events every second and answers the app's "ping". A phone that sleeps or changes
+// network resets its socket (vite: "ws proxy socket error: read ECONNRESET"); the app reconnects with
+// ?since= (src/lib/link.ts). Log which socket it was: /api/events (text) or /rtc (LiveKit signalling).
+type WsProxy = { on(ev: "proxyReqWs", fn: (proxyReq: unknown, req: { url?: string }, socket: NodeSocket) => void): void };
+type NodeSocket = { on(ev: "error", fn: (err: Error) => void): void; remoteAddress?: string };
+const logResets = (proxy: unknown) =>
+  (proxy as WsProxy).on("proxyReqWs", (_proxyReq, req, socket) => {
+    socket.on("error", (err) => {
+      console.warn(`[raum] ws ${req.url?.split("?")[0] ?? "?"} from ${socket.remoteAddress ?? "?"}: ${err.message}`);
+    });
+  });
+const proxy = {
+  "/api": { target: core, changeOrigin: true, ws: true, xfwd: true, configure: logResets },
+  "/rtc": { target: livekit, changeOrigin: true, ws: true, configure: logResets },
+};
+
 export default defineConfig({
   plugins: [react(), ...(https ? [basicSsl()] : [])],
   build: { chunkSizeWarningLimit: 900 }, // livekit-client is one large chunk
@@ -26,18 +44,13 @@ export default defineConfig({
     host: true,
     port,
     strictPort: true,
-    proxy: {
-      "/api": { target: core, changeOrigin: true, ws: true, xfwd: true },
-      "/rtc": { target: livekit, changeOrigin: true, ws: true },
-    },
+    proxy,
   },
+  // deploy/box.sh serves the built app with `vite preview`: the same proxy, the same WebSockets
   preview: {
     https: tls,
     host: true,
     port: 4173,
-    proxy: {
-      "/api": { target: core, changeOrigin: true, ws: true, xfwd: true },
-      "/rtc": { target: livekit, changeOrigin: true, ws: true },
-    },
+    proxy,
   },
 });

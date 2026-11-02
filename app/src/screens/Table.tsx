@@ -41,8 +41,12 @@ export default function Table() {
   }, [m.version]);
 
   const people = Object.values(m.participants).filter((p) => p.role === "a" || p.role === "b");
-  const langA = people.find((p) => p.role === "a")?.lang ?? mode?.roles.a.default_lang ?? "de";
-  const langB = people.find((p) => p.role === "b")?.lang ?? null;
+  // The participants' real languages; two people who both joined as "b" still show as a pair.
+  const pa = people.find((p) => p.role === "a") ?? (people.length >= 2 ? people[0] : undefined);
+  const pb = people.find((p) => p.role === "b" && p !== pa);
+  const heard = m.turns.find((tu) => tu.lang && tu.lang !== pb?.lang)?.lang;
+  const langA = pa?.lang ?? heard ?? mode?.roles.a.default_lang ?? "de";
+  const langB = pb?.lang ?? null;
   const turns = m.turns.filter((tu) => tu.text || tu.partial || tu.uncertain);
   const last = [...turns].reverse().find((tu) => Object.keys(tu.timing).length) ?? null;
   const lastLang = last ? Object.keys(last.timing)[0] : null;

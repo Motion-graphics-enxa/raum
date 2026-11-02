@@ -26,7 +26,8 @@ export default function Listen() {
           <span className="tblock__name">RAUM</span>
           <span className="tblock__gloss mono">{room.toUpperCase()}</span>
           <span className={`tblock__status ${link === "connected" ? "is-live" : ""}`}>
-            <span className="tblock__dot" aria-hidden="true" /> {link === "connected" ? "Live" : t(lang, "talk.connecting")}
+            <span className="tblock__dot" aria-hidden="true" />{" "}
+            {link === "connected" ? "Live" : t(lang, link === "reconnecting" ? "talk.reconnecting" : "talk.connecting")}
           </span>
         </div>
       </header>
