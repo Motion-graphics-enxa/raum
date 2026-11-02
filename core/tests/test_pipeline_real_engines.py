@@ -343,3 +343,48 @@ async def test_whisper_finals_go_to_their_own_server_and_partials_stay():
     assert (await down.transcribe(audio, lang_hint="de", partial=False, turn=TURN)).text == "Ja."
     await down.transcribe(audio, lang_hint="de", partial=False, turn=TURN)
     assert hosts == [("w", 8083), ("w", 8081), ("w", 8081)]
+
+
+async def test_a_code_switch_seed_goes_before_the_glossary_terms_and_its_echo_is_removed():
+    # box (mix2-ru.wav): with only the all-Cyrillic term list as prompt whisper dropped "but I think it is not
+    # working" said inside Russian speech, or spelt it "Батайсинк и Тейснотворкинг"; the seed sentence first keeps it
+    from raum.pipeline.asr import code_switch_seed, strip_seed, whisper_prompt
+
+    seen: list[dict] = []
+    reply = {"text": "Доктор, я принимаю этот препарат каждый день, but I think it is not working, поэтому мне "
+                     "нужна новая дозировка."}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(form_fields(request))
+        return httpx.Response(200, json=reply)
+
+    asr = WhisperCppASR("http://w:8081", client=client(handler))
+    ru = TurnContext(room="sz-1", mode="sprechzimmer", speaker="b-1", role="b", utt="u-0002",
+                     asr_prompt="Омепразол, Метформин.")
+    res = await asr.transcribe(np.zeros(16000, dtype=np.float32), lang_hint="ru", partial=False, turn=ru)
+    assert seen[0]["prompt"] == "Доктор, I think it is not working. Омепразол, Метформин."  # the terms last
+    assert "but I think it is not working" in res.text  # said by the speaker: kept
+    de = TurnContext(room="sz-1", mode="sprechzimmer", speaker="a-1", role="a", utt="u-0003", asr_prompt="Metformin.")
+    await asr.transcribe(np.zeros(16000, dtype=np.float32), lang_hint="de", partial=True, turn=de)
+    assert seen[1]["prompt"] == "Herr Doktor, I think it is not working. Metformin."
+    await asr.transcribe(np.zeros(16000, dtype=np.float32), lang_hint="en", partial=True, turn=de)
+    assert seen[2]["prompt"] == "Metformin."  # an English speaker: no seed
+
+    assert whisper_prompt(None, None, seed=code_switch_seed("ru")) == ""  # no terms: no prompt at all
+    assert code_switch_seed("ru", {"ru": ""}) == "" and code_switch_seed("ru", False) == ""  # off per profile
+    reply["text"] = "Доктор, I think it is not working."  # whisper echoing its prompt on near-silence
+    echo = await asr.transcribe(np.zeros(16000, dtype=np.float32), lang_hint="ru", partial=False, turn=ru)
+    assert echo.text == ""
+    assert strip_seed("Herr Doktor, das nehme ich jeden Tag, but I think it is not working.",
+                      code_switch_seed("de")) == "Herr Doktor, das nehme ich jeden Tag, but I think it is not working."
+
+
+def test_the_translator_is_told_that_a_mixed_in_phrase_is_not_a_name():
+    from raum.pipeline._util import load_prompt
+    from raum.pipeline.translate import translate_system_prompt
+
+    req = TranslateRequest(text="…каждый день, Батайсинк и Тейснотворкинг, поэтому…", src_lang="ru", tgt_lang="en",
+                           room_name="Consultation room", role_a="Doctor", role_b="Patient", lang_a="de",
+                           lang_b="ru", register="formal")
+    system = translate_system_prompt(load_prompt("prompts/translate.md"), req)
+    assert "spelled in Russian letters by the transcript. They are not names" in system

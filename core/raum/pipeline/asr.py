@@ -140,7 +140,8 @@ class WhisperCppASR:
             # reads them (box: de1 0.16 s without). Also the server flag -nlp (deploy/box.sh); older servers ignore it
             "no_language_probabilities": "true",
         }
-        prompt = whisper_prompt(self.options.get("prompt"), getattr(turn, "asr_prompt", None))
+        seed = code_switch_seed(hint, self.options.get("code_switch_seed"))
+        prompt = whisper_prompt(self.options.get("prompt"), getattr(turn, "asr_prompt", None), seed=seed)
         if prompt:
             data["prompt"] = prompt
         files = {"file": ("audio.wav", float_to_wav(audio, ASR_SAMPLE_RATE), "audio/wav")}
@@ -169,7 +170,7 @@ class WhisperCppASR:
                        audio_ms=len(audio) / ASR_SAMPLE_RATE * 1000.0, error=failed or None)
         if isinstance(j, dict) and j.get("error"):
             raise RuntimeError(f"whisper.cpp: {j['error']}")
-        text = _whisper_text(j)
+        text = strip_seed(_whisper_text(j), seed) if prompt and seed and seed in prompt else _whisper_text(j)
         lang = lang_code(j.get("language") or j.get("detected_language")) or hint or ""
         conf, words = _confidence(j)
         return AsrResult(text=text, lang=lang, conf=conf, ms=(time.perf_counter() - t0) * 1000.0, words=words,
@@ -180,12 +181,47 @@ class WhisperCppASR:
             await self._client.aclose()
 
 
-def whisper_prompt(configured: Any, glossary: str | None) -> str:
-    """whisper's ``prompt``: the configured one (``models.asr.options.prompt``), then the room glossary's
-    terms (``TurnContext.asr_prompt``). The glossary goes last because whisper.cpp keeps only the last
-    n_text_ctx / 2 (224) prompt tokens, dropping from the front, and the text nearest the audio conditions the
-    decoder most: the spelling hints survive a long configured prompt and weigh the most."""
-    return " ".join(s for s in (str(configured or "").strip(), (glossary or "").strip()) if s)
+# A speaker's sentence with an English phrase in it, before the glossary terms. An all-Cyrillic (or all-German)
+# term list made whisper drop an English phrase said inside Russian speech, or spell it in Cyrillic
+# ("Батайсинк и Тейснотворкинг"); with this sentence first it keeps it in Latin (box, mix-ru / mix2-ru, ru + auto).
+# Only with glossary terms (no prompt: whisper keeps the English anyway). English speakers: none.
+CODE_SWITCH_SEEDS: dict[str, str] = {
+    "ru": "Доктор, I think it is not working.",
+    "de": "Herr Doktor, I think it is not working.",
+    "uk": "Лікарю, I think it is not working.",
+    "tr": "Doktor bey, I think it is not working.",
+    "ar": "دكتور، I think it is not working.",
+}
+
+
+def code_switch_seed(lang: str | None, configured: Any = None) -> str:
+    """The seed sentence for a speaker of ``lang``: ``asr.options.code_switch_seed`` ({lang: text}, "" = none;
+    ``false`` = off) over the built-in ones."""
+    if configured is False:
+        return ""
+    code = (lang or "").split("-")[0].lower()
+    if isinstance(configured, dict) and code in configured:
+        return str(configured[code] or "").strip()
+    return CODE_SWITCH_SEEDS.get(code, "")
+
+
+def whisper_prompt(configured: Any, glossary: str | None, *, seed: str = "") -> str:
+    """whisper's ``prompt``: the configured one (``models.asr.options.prompt``), the code-switch seed (only with
+    glossary terms), then the room glossary's terms (``TurnContext.asr_prompt``). The glossary goes last because
+    whisper.cpp keeps only the last n_text_ctx / 2 (224) prompt tokens, dropping from the front, and the text
+    nearest the audio conditions the decoder most: the spelling hints survive a long configured prompt and weigh
+    the most."""
+    terms = (glossary or "").strip()
+    return " ".join(s for s in (str(configured or "").strip(), seed.strip() if terms else "", terms) if s)
+
+
+def strip_seed(text: str, seed: str) -> str:
+    """``text`` without an echo of the seed sentence (whisper can repeat its prompt on near-silent audio)."""
+    if not seed or not text:
+        return text
+    pat = re.compile(r"\s*".join(re.escape(w) for w in seed.split()), re.IGNORECASE)
+    out = pat.sub(" ", text)
+    return text if out == text else _SPACES.sub(" ", out).strip()
 
 
 _SPACES = re.compile(r"\s+")
