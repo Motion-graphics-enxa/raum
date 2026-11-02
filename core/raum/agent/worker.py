@@ -387,6 +387,9 @@ def run(argv: list[str] | None = None) -> int:
 
     cfg = get_config()
     url, key, secret = livekit_credentials(cfg)
+    if args.executor == "thread":
+        # plugins must register on the main thread; all room threads then share one Silero session
+        load_vad(cfg)
     server = AgentServer(
         ws_url=url, api_key=key, api_secret=secret, setup_fnc=prewarm,
         job_executor_type=JobExecutorType.THREAD if args.executor == "thread" else JobExecutorType.PROCESS,
