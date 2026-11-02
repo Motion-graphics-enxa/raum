@@ -118,7 +118,8 @@ class Bot:
         a = self.args
         self.room.on("data_received", self.on_data)
         self.room.on("disconnected", lambda *_: self.done.set())
-        await self.room.connect(a.url, mint_token(a, self.identity))
+        await self.room.connect(a.url, a.token or mint_token(a, self.identity))
+        self.identity = self.room.local_participant.identity
         print(f"{self.stamp()} joined {a.room} as {self.identity} (role {a.role}, lang {a.lang})", flush=True)
         tasks = []
         if a.wav:
@@ -206,6 +207,7 @@ def main() -> None:
     ap.add_argument("--duration", type=float, help="leave after N seconds")
     ap.add_argument("--csv", help="write pipeline.timing rows to this CSV")
     ap.add_argument("--identity")
+    ap.add_argument("--token", help="join with this token (e.g. from POST /api/join) instead of minting one")
     ap.add_argument("--name")
     ap.add_argument("--device", default="bot")
     ap.add_argument("--dispatch", help="explicitly dispatch this agent name (worker run with --agent-name)")

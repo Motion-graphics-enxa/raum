@@ -89,6 +89,19 @@ class NetworkConfig(_Open):
     core_url: str = "http://127.0.0.1:8000"  # how the agent reaches raum-core
     internal_key: str = "dev-internal"  # shared secret agent <-> core
     tunnel: str | None = "tailscale"
+    # C-12: LiveKit room settings carried in every token RAUM mints (they apply when that join
+    # creates the room). An agent does not keep a room open, so departure_timeout is how long the
+    # agent (and its conversation memory) survives an empty room: phones that all drop at once.
+    departure_timeout_s: int = 120
+    empty_timeout_s: int = 300
+    # Explicit dispatch: tokens name this agent (worker run with --agent-name / RAUM_AGENT_NAME).
+    # Empty = auto-dispatch to every RAUM room. Env RAUM_AGENT_NAME wins.
+    agent_name: str = ""
+
+    def dispatch_name(self) -> str:
+        import os
+
+        return os.environ.get("RAUM_AGENT_NAME", self.agent_name or "")
 
 
 class VerifyThresholds(_Open):
@@ -140,7 +153,7 @@ def _read_yaml(path: Path) -> dict[str, Any]:
     with path.open(encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
     if not isinstance(data, dict):
-        raise ValueError(f"{path}: expected a mapping")
+        raise ValueError(f"{path}: expected a mapping")  # noqa: TRY004  (callers catch ValueError)
     return data
 
 

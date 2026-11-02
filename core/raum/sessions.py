@@ -255,9 +255,15 @@ class Session:
     # only and dropped on burn; the uploads are re-sent to an agent that (re)links.
     glossary: Glossary | None = None
     glossary_uploads: Glossary = field(default_factory=Glossary)  # every upload of this session, merged
+    utt_seq: int = 0  # highest utterance number seen (``u-0007`` -> 7); a restarted agent continues after it
 
     def touch(self) -> None:
         self.last_activity = time.monotonic()
+
+    def saw_utt(self, utt: str | None) -> None:
+        if utt and utt.startswith("u-"):
+            with contextlib.suppress(ValueError):
+                self.utt_seq = max(self.utt_seq, int(utt[2:]))
 
 
 @dataclass(eq=False)
@@ -392,8 +398,12 @@ class SessionManager:
             "off_record": bool(s and s.off_record),
             "participants": [p.model_dump(mode="json") for p in room.participants.values()],
             "agent_connected": room.agent is not None,
+            "agent_id": room.agent.agent_id if room.agent else None,
+            "agent_since": room.agent.connected_at if room.agent else None,
             "subscribers": len(room.subscribers),
             "created_at": room.created_at,
+            "idle_s": round(time.monotonic() - s.last_activity, 1) if s else None,
+            "auto_burn_minutes": room.mode.retention.auto_burn_minutes,
         }
 
     # ------------------------------------------------------------ fan-out
@@ -435,8 +445,12 @@ class SessionManager:
         st = self.state(room)
         self.emit(room, "session.state", st, publish=publish)
         if room.agent is not None:
-            await room.agent.send(StateMsg(state=st))
+            await room.agent.send(self._state_msg(room, st))
         return st
+
+    def _state_msg(self, room: Room, st: SessionState | None = None) -> StateMsg:
+        s = room.session
+        return StateMsg(state=st or self.state(room), utt_seq=s.utt_seq if s and s.utt_seq else None)
 
     async def forward(self, room: Room, ctl: Control) -> bool:
         if room.agent is None:
@@ -541,7 +555,7 @@ class SessionManager:
             old.closed = True
         if room.session is None:
             self._start_session(room, reason="agent")
-        await conn.send(StateMsg(state=self.state(room)))
+        await conn.send(self._state_msg(room))
         s = room.session
         if s is not None and s.status != "burned" and s.glossary_uploads.terms:  # N-02: a fresh agent has the file only
             terms = [term_to_dict(t) for t in s.glossary_uploads.terms]
@@ -571,6 +585,7 @@ class SessionManager:
             return
         if room.session is not None:
             room.session.touch()
+            room.session.saw_utt(env.utt)
         self._persist(room, env)
         self._fanout(room, env)
         if changed:

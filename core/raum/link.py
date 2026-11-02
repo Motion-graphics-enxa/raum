@@ -11,7 +11,8 @@ agent -> core  (JSON, one object per message)
                                                     participants, fans out to /api/events/{room})
 
 core -> agent
-    {"kind": "state", "state": <SessionState>}      on connect and whenever it changes
+    {"kind": "state", "state": <SessionState>,      on connect and whenever it changes; utt_seq = the
+     "utt_seq": 7}                                  session's highest utterance number (C-12 resume)
     {"kind": "control", "control": <Control>}       device actions the pipeline must act on:
                                                     off_record, repeat_back, explain_simply,
                                                     explain_approve, correct_term, end, burn
@@ -51,6 +52,9 @@ class EventMsg(_Msg):
 class StateMsg(_Msg):
     kind: Literal["state"] = "state"
     state: SessionState
+    # C-12: highest utterance number core holds for this session (``u-0007`` -> 7). A restarted agent
+    # (room emptied past its departure timeout, crash) continues after it, so ids never repeat.
+    utt_seq: int | None = None
 
 
 class ControlMsg(_Msg):

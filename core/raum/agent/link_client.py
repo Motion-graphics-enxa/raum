@@ -27,6 +27,7 @@ log = logging.getLogger("raum.agent.link")
 
 OnState = Callable[[SessionState], Awaitable[None] | None]
 OnControl = Callable[[Control], Awaitable[None] | None]
+OnUttSeq = Callable[[int], None]
 
 
 def link_url(core_url: str, room: str) -> str:
@@ -40,14 +41,15 @@ def link_url(core_url: str, room: str) -> str:
 
 class LinkClient:
     def __init__(self, room: str, *, core_url: str, key: str, agent_id: str, on_state: OnState | None = None,
-                 on_control: OnControl | None = None, max_buffer: int = 500, min_backoff: float = 0.5,
-                 max_backoff: float = 10.0) -> None:
+                 on_control: OnControl | None = None, on_utt_seq: OnUttSeq | None = None, max_buffer: int = 500,
+                 min_backoff: float = 0.5, max_backoff: float = 10.0) -> None:
         self.room = room
         self.url = link_url(core_url, room)
         self.key = key
         self.agent_id = agent_id
         self.on_state = on_state
         self.on_control = on_control
+        self.on_utt_seq = on_utt_seq
         self.min_backoff = min_backoff
         self.max_backoff = max_backoff
         self._buf: deque[Envelope] = deque(maxlen=max_buffer)
@@ -141,8 +143,11 @@ class LinkClient:
                 log.warning("bad link message from core: %s", e)
                 continue
             try:
-                if isinstance(msg, StateMsg) and self.on_state:
-                    await _maybe_await(self.on_state(msg.state))
+                if isinstance(msg, StateMsg):
+                    if msg.utt_seq and self.on_utt_seq:
+                        self.on_utt_seq(msg.utt_seq)
+                    if self.on_state:
+                        await _maybe_await(self.on_state(msg.state))
                 elif isinstance(msg, ControlMsg) and self.on_control:
                     await _maybe_await(self.on_control(msg.control))
             except Exception:
