@@ -178,10 +178,10 @@ class RoomAgent:
                 if pub.track is not None and pub.subscribed:
                     self._on_track_subscribed(pub.track, pub, p)
         self._prepare_voices()
-        for e in (self.engines.verify, self.engines.embed):
+        for e in (self.engines.verify, self.engines.embed, self.engines.tts):
             if e is not None and hasattr(e, "gate"):
-                e.gate = True  # live checks answer "warming up" until the model is resident
-        for e in (self.engines.translate, self.engines.verify, self.engines.embed):
+                e.gate = True  # live checks answer "warming up" (voice: the fallback) until the model is resident
+        for e in (self.engines.translate, self.engines.verify, self.engines.embed, self.engines.tts):
             warm = getattr(e, "warmup", None)
             if callable(warm):
                 asyncio.create_task(self._warm(warm, getattr(e, "name", "engine")))

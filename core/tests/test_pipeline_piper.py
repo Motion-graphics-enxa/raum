@@ -217,7 +217,8 @@ async def test_resident_off_spawns_per_clause(fake_piper):
     tts = make_tts("piper", {**opts, "resident": False})
     assert tts.prepare(["de"]) == []
     assert len(await collect(tts, "eins zwei")) == 320
-    assert len(await collect(tts, "drei")) == 160
+    ignored = [c async for c in tts.synthesize("drei", "de", voice_ref=b"RIFF....", rate=1.3)]  # accepted, ignored
+    assert sum(len(c) for c in ignored) == 160
     assert starts(log, "dir") == [] and len(starts(log, "raw")) == 2
 
 

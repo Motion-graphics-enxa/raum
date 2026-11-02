@@ -31,6 +31,12 @@ Additions beyond the contract (all optional):
   worker passes that device's mic audio on (else it feeds silence to the VAD). While the voice for a
   language plays (+300 ms) the devices that would hear it are paused, ``speech_start`` refuses them
   (echo, not speech), and ``voice.state`` announces start (with the paused identities) and end.
+- Voice like the speaker's (C-13, ``raum.pipeline.voice``): if the voice engine uses a voice sample
+  (``tts.uses_voice_ref``), the first ~8 s of each speaker's clean speech are kept in memory only and
+  passed with that speaker's translated words (``synthesize(..., voice_ref=wav, rate=pace)``); dropped
+  on burn, session end / a new session (``set_state``) and ``aclose``. ``rate`` (the speaker's words
+  per second / 2.5) is passed to every engine
+  that accepts it. Never in events, logs, the store or the audit log.
 
 Timing (``pipeline.timing``, one per utterance and target language, after the check): ``vad_ms``
 is the endpoint delay; ``asr_ms`` the final transcription; ``mt_first_ms``, ``mt_full_ms`` and
@@ -41,6 +47,7 @@ numbers of the §3 table; ``check_ms`` is translation.final -> verify.result.
 from __future__ import annotations
 
 import asyncio
+import inspect
 import logging
 import re
 import time
@@ -67,6 +74,7 @@ from raum.pipeline import texts as T
 from raum.pipeline._util import int16_to_float, lang_code, lang_name, load_prompt, render_prompt
 from raum.pipeline.base import Engines, TranslateRequest, TurnContext
 from raum.pipeline.echo import EchoControl
+from raum.pipeline.voice import SpeakingRate, VoiceArgs, VoiceRef, speech_seconds
 from raum.scheduler import Scheduler
 from raum.verify import guard
 from raum.verify.backtranslate import CheckResult, second_check
@@ -121,6 +129,14 @@ def _guard_call(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> tuple[Any,
         return None, False
 
 
+def _takes_voice_args(fn: Any) -> bool:
+    try:
+        params = inspect.signature(fn).parameters
+    except (TypeError, ValueError):
+        return False
+    return any(p.kind is p.VAR_KEYWORD for p in params.values()) or {"voice_ref", "rate"} <= set(params)
+
+
 def _role_from_identity(identity: str) -> str:
     head = identity.split("-", 1)[0]
     return head if head in ("a", "b") else "b"
@@ -140,6 +156,7 @@ class _Utt:
     next_partial_ms: float = 0.0
     partial_task: asyncio.Task[None] | None = None
     closed: bool = False
+    echoed: bool = False  # a voice this device hears played during it: not a clean voice sample
 
     def audio(self) -> np.ndarray:
         return np.concatenate(self.frames) if self.frames else np.zeros(0, dtype=np.float32)
@@ -204,6 +221,14 @@ class RoomPipeline:
         self.tts_sink: TtsSink | None = None
         self.denoise_ms: dict[str, float] = {}
         self.echo = EchoControl()  # C-14: whose mic pauses while which voice plays
+        tts_opts = config.models.tts.options or {}
+        self.voice_ref_s = float(tts_opts.get("voice_ref_s", 8.0))  # voice sample per speaker (memory only)
+        self.voice_ref_min_s = float(tts_opts.get("voice_ref_min_s", 3.0))  # used from this length on
+        self.voice_ref_on = bool(tts_opts.get("voice_ref", True))
+        self.base_wps = float(tts_opts.get("base_wps", 2.5))
+        self.vad_pad_s = float((config.models.vad.options or {}).get("prefix_padding_duration", 0.5))
+        self._voice_refs: dict[str, VoiceRef] = {}
+        self._rates: dict[str, SpeakingRate] = {}
         self.scheduler: Scheduler | None = None
         self._utt_n = 0
         self._turn_index = 0
@@ -270,7 +295,10 @@ class RoomPipeline:
             self._spawn(self.emit("voice.state", {"target_lang": pb.lang, "playing": True, "paused": pb.paused}))
 
     def set_state(self, state: SessionState) -> None:
-        self.state = state
+        prev, self.state = self.state, state
+        new_session = prev is not None and prev.session_id is not None and state.session_id != prev.session_id
+        if state.status != "live" or new_session:  # session over: its voice samples go with it
+            self._forget_voices()
         self._set_off_record(bool(state.off_record))
 
     def _set_off_record(self, on: bool) -> None:
@@ -345,6 +373,8 @@ class RoomPipeline:
             return
         f = np.asarray(frame)
         f = int16_to_float(f) if f.dtype == np.int16 else f.astype(np.float32, copy=False).reshape(-1)
+        if not u.echoed and self.echo.is_paused(speaker):
+            u.echoed = True
         u.frames.append(f)
         u.samples += len(f)
         speech_ms = u.samples * 1000.0 / SAMPLE_RATE
@@ -441,8 +471,9 @@ class RoomPipeline:
         if rec.role == "a":
             self._last_instruction = rec
 
+        voice = self._voice_args(u, audio, vad_ms, res.words, text)
         targets = self._targets(rec)
-        await asyncio.gather(*(self._translate(u, rec, tgt, t0, dict(timing), context) for tgt in targets))
+        await asyncio.gather(*(self._translate(u, rec, tgt, t0, dict(timing), context, voice) for tgt in targets))
         if "offer_tracker" in self.mode.buttons:
             await self._offers(rec)
 
@@ -481,13 +512,13 @@ class RoomPipeline:
         )
 
     async def _translate(self, u: _Utt, rec: _Turn, tgt: str, t0: float, timing: dict[str, Any],
-                         context: str) -> None:
+                         context: str, voice: VoiceArgs | None = None) -> None:
         req = self._request(rec, tgt, context)
         parts: list[str] = []
         first_ms: float | None = None
         # C-13: voice starts on the first clause while the rest of the sentence still streams
         voice_q: asyncio.Queue[str | None] | None = asyncio.Queue() if self._tts_enabled() else None
-        tts_task = self._spawn(self._speak_stream(tgt, voice_q, t0)) if voice_q is not None else None
+        tts_task = self._spawn(self._speak_stream(tgt, voice_q, t0, voice)) if voice_q is not None else None
         pending = ""
 
         async def run() -> None:
@@ -583,7 +614,8 @@ class RoomPipeline:
     def _tts_enabled(self) -> bool:
         return self.engines.tts is not None and not self._tts_disabled
 
-    async def _speak_stream(self, tgt: str, q: asyncio.Queue[str | None], t0: float) -> float | None:
+    async def _speak_stream(self, tgt: str, q: asyncio.Queue[str | None], t0: float,
+                            voice: VoiceArgs | None = None) -> float | None:
         """Speak clauses in order as they arrive; returns ms from the speaker's stop to the first audio."""
         first: float | None = None
         while True:
@@ -592,17 +624,17 @@ class RoomPipeline:
                 return first
             if self._tts_disabled:
                 continue
-            f = await self._speak(tgt, clause, t0)
+            f = await self._speak(tgt, clause, t0, voice)
             if first is None:
                 first = f
 
-    async def _speak(self, tgt: str, text: str, t0: float) -> float | None:
+    async def _speak(self, tgt: str, text: str, t0: float, voice: VoiceArgs | None = None) -> float | None:
         tts = self.engines.tts
         if tts is None or not text:
             return None
         first: float | None = None
         try:
-            async for chunk in tts.synthesize(text, tgt):
+            async for chunk in tts.synthesize(text, tgt, **self._voice_kwargs(tts, voice)):
                 if first is None:
                     first = round((time.monotonic() - t0) * 1000.0, 1)
                 if self.tts_sink is not None and not self.off_record:
@@ -617,6 +649,45 @@ class RoomPipeline:
         if first is None and getattr(tts, "simulated", False):
             first = round((time.monotonic() - t0) * 1000.0, 1)
         return first
+
+    # ---------------------------------------------------------------- the speaker's voice (C-13)
+
+    def _uses_voice_ref(self) -> bool:
+        return self.voice_ref_on and self._tts_enabled() and bool(getattr(self.engines.tts, "uses_voice_ref", False))
+
+    def _voice_args(self, u: _Utt, audio: np.ndarray, vad_ms: float, words: list[dict[str, Any]],
+                    text: str) -> VoiceArgs:
+        """The speaker's pace, and their voice sample (grown from clean utterances up to ``voice_ref_s``)."""
+        seconds = speech_seconds(len(audio) / SAMPLE_RATE, vad_ms, words, self.vad_pad_s)
+        rate = self._rates.setdefault(u.speaker, SpeakingRate(self.base_wps)).update(text, seconds)
+        if not self._uses_voice_ref():
+            return VoiceArgs(rate=rate)
+        ref = self._voice_refs.get(u.speaker)
+        if ref is None:
+            ref = self._voice_refs[u.speaker] = VoiceRef(max_s=self.voice_ref_s)
+        if not u.echoed and not ref.full:
+            tail = int(max(0.0, vad_ms) / 1000.0 * SAMPLE_RATE)  # the endpoint silence
+            ref.add(audio[: max(0, len(audio) - tail)])
+        return VoiceArgs(ref=ref, rate=rate)
+
+    def voice_ref(self, speaker: str) -> bytes | None:
+        """The speaker's voice sample as WAV bytes once long enough (memory only), else None."""
+        ref = self._voice_refs.get(speaker)
+        return ref.wav() if ref is not None and ref.seconds >= self.voice_ref_min_s else None
+
+    def _forget_voices(self) -> None:
+        for ref in self._voice_refs.values():
+            ref.clear()
+        self._voice_refs.clear()
+        self._rates.clear()
+
+    def _voice_kwargs(self, tts: Any, voice: VoiceArgs | None) -> dict[str, Any]:
+        """``voice_ref`` / ``rate`` for engines that take them (older ones get the plain call)."""
+        if voice is None or not _takes_voice_args(tts.synthesize):
+            return {}
+        ref = voice.ref
+        wav = ref.wav() if ref is not None and ref.seconds >= self.voice_ref_min_s else None  # cleared on burn
+        return {"voice_ref": wav, "rate": voice.rate}
 
     # ---------------------------------------------------------------- echo control (C-14)
 
@@ -897,7 +968,7 @@ class RoomPipeline:
         log.info("session glossary: %d terms added, %d updated", added, updated)
 
     def _burn(self) -> None:
-        """Forget the conversation: memory, names, drafts, session glossary corrections."""
+        """Forget the conversation: memory, names, drafts, voice samples, session glossary corrections."""
         for u in list(self._active.values()):
             self._drop(u)
         self._active.clear()
@@ -906,6 +977,7 @@ class RoomPipeline:
         self._last_instruction = None
         self._repeat_back = False
         self._drafts.clear()
+        self._forget_voices()
         self.glossary = self._load_glossary()
         reset = getattr(self.engines.asr, "reset", None)
         if callable(reset):
@@ -931,6 +1003,7 @@ class RoomPipeline:
             self._drop(u)
         self._active.clear()
         self.echo.clear()
+        self._forget_voices()
         tasks = list(self._tasks)
         for t in tasks:
             t.cancel()

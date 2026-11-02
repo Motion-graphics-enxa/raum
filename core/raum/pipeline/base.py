@@ -106,8 +106,13 @@ class TTS(Protocol):
     name: str
     sample_rate: int
 
-    def synthesize(self, text: str, lang: str) -> AsyncIterator[np.ndarray]:
-        """Yield int16 PCM chunks at ``sample_rate``. May yield nothing (mock / off)."""
+    def synthesize(self, text: str, lang: str, *, voice_ref: bytes | None = None,
+                   rate: float | None = None) -> AsyncIterator[np.ndarray]:
+        """Yield int16 PCM chunks at ``sample_rate``. May yield nothing (mock / off).
+
+        ``voice_ref``: WAV bytes of the speaker's voice (memory only, never logged) for engines that
+        clone voices; ``rate``: the speaker's pace relative to 2.5 words/s. Engines that cannot use them
+        accept and ignore them (the pipeline also calls older two-argument engines without them)."""
         ...
 
 

@@ -1,7 +1,10 @@
-"""Voice output (plan §6.3, C-13): ``mock``, ``piper`` (the ``piper`` binary), ``off``.
+"""Voice output (plan §6.3, C-13): ``mock``, ``piper`` (the ``piper`` binary), ``http`` (a streaming TTS
+service, ``raum.pipeline.tts_http``, with Piper as its fallback), ``off``.
 
-``synthesize`` yields int16 PCM chunks at ``sample_rate``. The mock yields nothing after the
-simulated first-audio delay, so the glass box still shows a ``tts_first_ms``.
+``synthesize(text, lang, *, voice_ref=None, rate=None)`` yields int16 PCM chunks at ``sample_rate``.
+``voice_ref`` (WAV bytes of the speaker, memory only) and ``rate`` (the speaker's pace, 1.0 = 2.5 words/s)
+are for engines that clone voices; mock and Piper accept and ignore them. The mock yields nothing after
+the simulated first-audio delay, so the glass box still shows a ``tts_first_ms``.
 
 Piper is the MIT-licensed binary (``options.binary``, else ``piper`` on PATH). The ``piper-tts`` PyPI
 package (1.3.x is GPL) is not a dependency; it is used only if it happens to be importable and no
@@ -56,7 +59,8 @@ class MockTTS:
         self.name = model or "mock-piper"
         self.sample_rate = int(self.options.get("sample_rate", 22050))
 
-    async def synthesize(self, text: str, lang: str) -> AsyncIterator[np.ndarray]:
+    async def synthesize(self, text: str, lang: str, *, voice_ref: bytes | None = None,
+                         rate: float | None = None) -> AsyncIterator[np.ndarray]:
         await sleep_ms(sample_ms(self.options.get("first_audio_ms")))
         return
         yield  # pragma: no cover  (makes this an async generator)
@@ -404,7 +408,8 @@ class PiperTTS:
         y = soxr.resample(pcm.astype(np.float32) / 32768.0, rate, self.sample_rate)
         return (np.clip(y, -1, 1) * 32767).astype(np.int16)
 
-    async def synthesize(self, text: str, lang: str) -> AsyncIterator[np.ndarray]:
+    async def synthesize(self, text: str, lang: str, *, voice_ref: bytes | None = None,
+                         rate: float | None = None) -> AsyncIterator[np.ndarray]:
         path = self.voice_for(lang)
         if path is None or not text.strip():
             return
@@ -506,8 +511,11 @@ class PiperTTS:
             await proc.wait()
 
 
-def make_tts(engine: str, options: dict[str, Any] | None = None, model: str | None = None) -> MockTTS | PiperTTS | None:
-    if engine in ("off", "none"):
+def make_tts(engine: Any, options: dict[str, Any] | None = None, model: str | None = None, *,
+             url: str | None = None, fallback: Any = "piper") -> Any:
+    """``fallback`` (``http`` only): ``piper`` (default; same options), ``none``, or
+    ``{engine, model, options}``. It always speaks at the service's ``sample_rate``."""
+    if engine in ("off", "none", False, None):
         return None
     if engine == "mock":
         return MockTTS(options, model=model)
@@ -517,4 +525,21 @@ def make_tts(engine: str, options: dict[str, Any] | None = None, model: str | No
         except Exception as e:  # noqa: BLE001
             log.warning("tts disabled: %s", e)
             return None
+    if engine == "http":
+        from raum.pipeline.tts_http import DEFAULT_URL, HttpTTS
+
+        opts = dict(options or {})
+        rate = int(opts.get("sample_rate", 24000))
+        opts["sample_rate"] = rate
+        fb: Any
+        if isinstance(fallback, dict):
+            fb_opts = {**(fallback.get("options") or {}), "sample_rate": rate}
+            fb = make_tts(fallback.get("engine", "piper"), fb_opts, fallback.get("model"), fallback=None)
+        elif fallback in ("off", "none", False, None, "http"):
+            fb = None
+        else:
+            fb = make_tts(str(fallback), opts, None, fallback=None)
+        if fb is None:
+            log.info("tts http: no fallback voice (text only if the service fails)")
+        return HttpTTS(url or DEFAULT_URL, model=model, options=opts, fallback=fb)
     raise ValueError(f"unknown tts engine: {engine!r}")

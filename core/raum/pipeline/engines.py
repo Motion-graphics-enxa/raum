@@ -75,7 +75,8 @@ def build_engines(cfg: RaumConfig, *, seed: int | None = None) -> Engines:
     else:
         raise ValueError(f"unknown embed engine: {m.embed.engine!r}")
 
-    tts = make_tts(m.tts.engine, m.tts.options, m.tts.model) if m.tts.enabled else None
+    tts = make_tts(m.tts.engine, m.tts.options, m.tts.model, url=m.tts.url,
+                   fallback=(m.tts.model_extra or {}).get("fallback", "piper")) if m.tts.enabled else None
 
     names = cfg.engine_names()
     names["denoise"] = denoise.name
