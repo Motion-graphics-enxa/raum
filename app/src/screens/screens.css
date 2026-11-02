@@ -176,6 +176,12 @@
   background: var(--paper);
   border-top: var(--line) solid var(--rule);
 }
+.join__app {
+  justify-self: center;
+  font-size: 0.875rem;
+  color: var(--link);
+  text-underline-offset: 0.2em;
+}
 .join__note {
   font-size: 0.875rem;
   color: var(--ink-3);

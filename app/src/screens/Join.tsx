@@ -134,8 +134,20 @@ export default function Join() {
             {busy ? t(lang, "join.joining") : t(lang, "join.continue")}
           </button>
           <p className="join__note">{t(lang, "join.mic_note")}</p>
+          {inAndroidBrowser() ? (
+            // F-09: on Android 12+ a QR code opens the browser; this hands the same join to the RAUM app
+            <a className="join__app" href={`raum://j/${encodeURIComponent(room)}?role=${role}&lang=${encodeURIComponent(lang)}`}>
+              {t(lang, "join.open_app")}
+            </a>
+          ) : null}
         </div>
       </main>
     </div>
   );
+}
+
+/** An Android phone in a browser (the RAUM app adds "RAUM-Android" to its user agent). */
+function inAndroidBrowser(): boolean {
+  const ua = typeof navigator === "undefined" ? "" : navigator.userAgent;
+  return /Android/i.test(ua) && !/RAUM-Android/.test(ua);
 }
