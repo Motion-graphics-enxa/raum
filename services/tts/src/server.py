@@ -3,7 +3,8 @@
 Listens on 127.0.0.1:8090 only. Speaker voices live in process memory only (never written to disk).
 See API.md next to this file.
 
-Concurrency model (v1.2 after the 2 Nov hangs; v1.3 adds request priorities, admission.py):
+Concurrency model (v1.2 after the 2 Nov hangs; v1.3 adds request priorities, admission.py; v1.4 trims the silence
+at both edges of a clause, edges.py):
 - One GPU job at a time. A job runs in its own worker thread and pushes PCM into an in-memory buffer; it
   releases the GPU as soon as synthesis ends, whatever pace the client reads at. (Before, the GPU lock was
   held by a generator suspended at ``yield`` while RAUM played or paused the audio, so a paused or vanished
@@ -19,6 +20,9 @@ Concurrency model (v1.2 after the 2 Nov hangs; v1.3 adds request priorities, adm
 - Caps per request: audio <= min(2.5 s + 0.12 s/char x script factor, 20 s); wall clock <= 2 s + 1.5 x the
   audio produced so far (and <= 2 s + 1.5 x the audio cap). On a cap the stream ends cleanly ("cap hit").
 - A client that goes away cancels its job within one token step (~20 ms).
+- Edges (v1.4): Chatterbox opens a clause with 20-130 ms and closes it with 360-640 ms of silence; RAUM plays clauses
+  back to back, so each join was a ~0.5 s gap. Kept: ``LEAD_S`` before the first sound, ``TAIL_S`` after the last
+  one (``TAIL_SENTENCE_S`` after . ! ? ...), with short fades. Only silence is ever held back, never sound.
 """
 import asyncio, base64, binascii, collections, hashlib, io, logging, os, re, sys, threading, time, uuid
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -35,6 +39,7 @@ from typing import Literal
 
 from admission import BACKGROUND, LIVE, Gate, QuietCuts, StreamCut, priority_of
 from cb_engine import CBEngine, SR
+from edges import EdgeTrim
 from textnorm import normalize_text
 
 log = logging.getLogger("raum-tts")
@@ -59,6 +64,13 @@ SCRIPT = {"ar": 1.4, "ru": 1.15, "tr": 1.15, "he": 1.3, "zh": 3.0, "ja": 2.5, "k
 RATE_MIN, RATE_MAX = 0.8, 1.3   # RAUM sends the speaker's pace (0.7-1.5); beyond this the stretch sounds bad
 # background text longer than this -> 409: bounds the one vocode a preempted job may still finish
 BG_MAX_CHARS = int(os.environ.get("RAUM_TTS_BG_MAX_CHARS", "400"))
+# v1.4, the silence kept at a clause's edges (edges.py). RAUM_TTS_TRIM_EDGES=0: both edges as the engine made them
+TRIM_EDGES = os.environ.get("RAUM_TTS_TRIM_EDGES", "1") != "0"
+LEAD_S = float(os.environ.get("RAUM_TTS_LEAD_S", "0.03"))                    # before the first sound
+TAIL_S = float(os.environ.get("RAUM_TTS_TAIL_S", "0.08"))                    # after a comma, or a cut mid-sentence
+TAIL_SENTENCE_S = float(os.environ.get("RAUM_TTS_TAIL_SENTENCE_S", "0.20"))  # after . ! ? ...
+_SENT_END = tuple(".!?…。！？؟")
+_CLOSERS = "\"'»«”“’)]"
 
 t_start = time.time()
 engine = CBEngine()
@@ -117,6 +129,18 @@ def max_audio_s(text, lang, cap):
     return min(AUDIO_BASE_S + AUDIO_PER_CHAR_S * len(text) * SCRIPT.get(lang, 1.0), cap)
 
 
+def tail_keep_s(part):
+    """Silence kept after this part: a sentence end pauses longer than a comma or a clause cut mid-sentence. RAUM
+    sends each clause with its own punctuation (core room.take_clause / take_phrase); Chatterbox's punc_norm adds a
+    full stop to a bare cut, which is why T3 ends every clause with a sentence-length pause."""
+    return TAIL_SENTENCE_S if part.rstrip().rstrip(_CLOSERS).endswith(_SENT_END) else TAIL_S
+
+
+def edge_trim(part):
+    """The edge trimmer for one part, or None when trimming is off (read per job: a test can flip it)."""
+    return EdgeTrim(LEAD_S, tail_keep_s(part), sr=SR) if TRIM_EDGES else None
+
+
 def expected_job_s(text, lang):
     """Rough synthesis time, for admission: ~0.065 s of speech per char at RTF ~0.6, plus overhead."""
     return 0.3 + 0.6 * (0.4 + 0.065 * len(text) * SCRIPT.get(lang, 1.0))
@@ -141,7 +165,7 @@ def _warm():
 
 _warm()
 _load_default_voices()
-app = FastAPI(title="raum-tts", version="1.3")
+app = FastAPI(title="raum-tts", version="1.4")
 
 
 # ---------------- helpers ----------------
@@ -240,12 +264,17 @@ class Job:
         self.cancel = threading.Event()
         self.t0 = time.perf_counter()
         ticket.expected_end = self.t0 + expected_job_s(" ".join(parts), lang)
-        self.audio_s = 0.0
+        self.audio_s = 0.0      # the engine's audio, edges included: the caps count it as before v1.4
+        self.trimmed_s = 0.0    # silence cut at the edges (edges.py)
         self.reason = None
         self.first_at = None
 
     def _put(self, item):
         self.loop.call_soon_threadsafe(self.q.put_nowait, item)
+
+    def _pcm(self, chunk):
+        if len(chunk):
+            self._put((np.clip(chunk, -1.0, 1.0) * 32767.0).astype("<i2").tobytes())
 
     @property
     def preempted(self):
@@ -276,13 +305,18 @@ class Job:
                     self.reason = self.reason or f"cap hit: audio {self.audio_cap_s:.1f}s"
                     break
                 st = {}
+                trim = edge_trim(s)
                 for chunk in engine.stream(s, self.lang, voice, cfg_weight=self.cfg, exaggeration=self.exaggeration,
                                            temperature=self.temperature, speed=self.speed,
                                            max_new_tokens=budget, stats=st, should_stop=self.should_stop):
                     if self.first_at is None:
                         self.first_at = time.perf_counter()
                     self.audio_s += len(chunk) / SR
-                    self._put((np.clip(chunk, -1.0, 1.0) * 32767.0).astype("<i2").tobytes())
+                    self._pcm(chunk if trim is None else trim.push(chunk))
+                if trim is not None:
+                    if not st.get("stopped"):  # a stopped part ends where it was cut; its held silence is dropped
+                        self._pcm(trim.end())
+                    self.trimmed_s += trim.trimmed / SR
                 budget -= st.get("tokens", 0)
                 if st.get("stopped"):
                     break
@@ -299,6 +333,7 @@ class Job:
             current["job"] = None
             gate.release(self.ticket)
             self._put(None)
+            stats["edge_trimmed_ms"] += round(self.trimmed_s * 1000)
             el = time.perf_counter() - self.t0
             if self.reason and self.reason.startswith("cap hit"):
                 stats["cap_hit"] += 1
@@ -313,7 +348,8 @@ class Job:
                 log.warning("%s %s", self.tag, self.reason)
             else:
                 stats["done"] += 1
-                log.info("%s gpu released after %.0fms, %.2fs audio", self.tag, el * 1000, self.audio_s)
+                log.info("%s gpu released after %.0fms, %.2fs audio, %.2fs edge silence cut", self.tag, el * 1000,
+                         self.audio_s, self.trimmed_s)
 
 
 async def _serve(request: Request, job: Job, headers: dict):
@@ -395,6 +431,8 @@ async def health():
             "busy_limit_s": round(job.wall_cap_s, 1) if job else 0.0,
             "busy_priority": holder.priority if holder else None, "bg_max_chars": BG_MAX_CHARS,
             "waiting": gate.live_waiting, "counters": dict(stats), "uptime_s": round(time.time() - t_start),
+            "trim_edges": ({"lead_s": LEAD_S, "tail_s": TAIL_S, "tail_sentence_s": TAIL_SENTENCE_S}
+                           if TRIM_EDGES else None),
             "gpu_allocated_mb": torch.cuda.memory_allocated() >> 20,
             "gpu_reserved_mb": torch.cuda.memory_reserved() >> 20, "host_mem_available_mb": free}
 

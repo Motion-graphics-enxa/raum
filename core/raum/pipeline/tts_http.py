@@ -22,12 +22,24 @@ fails, a background call never puts the service aside (``retry_s``) and never us
 synthesises that clause. A service that answers without ``X-Priority`` (older than v1.3) would serve a
 background request as live, so once a response shows that, background calls raise VoiceBusy unsent.
 
+Several instances (``options.urls: [http://127.0.0.1:8090, http://127.0.0.1:8091]``; unset: ``url`` alone, exactly
+as before). The service makes one clause at a time, for every room; with several rooms live, one room's clause was
+refused behind another's and spoken by Piper, so voices mixed mid-utterance. Each request picks an instance: one
+that ``/health`` says is idle (a quick probe, ``options.probe_s``, only when there is a choice; rooms run in their
+own processes, so this client cannot count the other rooms' requests), then the one with the fewest requests of
+this client open, then the order of ``urls``. A busy refusal (503/429) or any other failure before audio tries
+the next instance first; only when every instance failed does the clause go to the fallback and the service as a
+whole is put aside for ``retry_s``. "Down" is per instance: one instance down never puts the others aside. A
+background clause tries the instances the same way and raises VoiceBusy only when all refuse. ``forget`` and
+``warmup`` go to every instance (a voice may have been registered on any of them).
+
 PRIVACY: the voice reference goes to this local service only. Errors carry status codes, never
 request or response bodies.
 """
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import contextlib
 import contextvars
@@ -37,6 +49,7 @@ import logging
 import struct
 import time
 from collections.abc import AsyncIterator, Iterable
+from dataclasses import dataclass
 from typing import Any
 
 import httpx
@@ -50,10 +63,14 @@ DEFAULT_URL = "http://127.0.0.1:8090"
 WARMUP_TIMEOUT_S = 300.0
 FORGET_TIMEOUT_S = 2.0  # per DELETE; burn never waits longer than this per voice
 WARMUP_TEXT = "Hello."
+PROBE_S = 0.1  # GET /health per instance before a live clause, when there are several to choose from
+BUSY_S = 1.0  # an instance that refused as busy comes after the others for this long (it is not put aside)
 
 
 class TtsServiceError(RuntimeError):
-    pass
+    def __init__(self, message: str = "", status: int | None = None) -> None:
+        super().__init__(message)
+        self.status = status  # the HTTP status, if the service answered with one
 
 
 class VoiceBusy(TtsServiceError):
@@ -68,6 +85,40 @@ class VoiceBusy(TtsServiceError):
 
 
 BUSY_STATUSES = frozenset({409, 429, 503})  # a background request refused for live speech (503: an older service)
+LIVE_BUSY_STATUSES = frozenset({429, 503})  # a live request refused at admission (queue too long, predicted wait)
+
+
+@dataclass
+class _Instance:
+    """One instance of the voice service (``options.urls``) as this client sees it."""
+
+    url: str
+    index: int
+    inflight: int = 0  # this client's requests open on it (live and background)
+    down_until: float = 0.0  # put aside after a failure, for retry_s: per instance
+    busy_until: float = 0.0  # refused as busy: the others first until then
+    priorities: bool | None = None  # honours request priorities (sends X-Priority, v1.3+)? None until it answers
+    load: int = 0  # the last /health probe: 0 idle, 1 a background job (live preempts it), 2 unknown, 3 busy
+    probe_after: float = 0.0  # a probe failed: not probed again (load unknown) until then
+
+
+def _urls(value: Any) -> list[str]:
+    """``options.urls``: a list, or a comma/space separated string; [] when unset."""
+    if not value:
+        return []
+    items = value.replace(",", " ").split() if isinstance(value, str) else list(value)
+    return [str(u).strip().rstrip("/") for u in items if str(u).strip()]
+
+
+def _health_load(h: Any) -> int:
+    """How busy ``GET /health`` says an instance is (lower is better; see :class:`_Instance`)."""
+    if not isinstance(h, dict) or "busy" not in h:
+        return 2
+    if h.get("waiting"):
+        return 3
+    if not h.get("busy"):
+        return 0
+    return 1 if h.get("busy_priority") == "background" else 3
 
 
 def voice_id(voice_ref: bytes) -> str:
@@ -189,9 +240,13 @@ class HttpTTS:
 
     def __init__(self, url: str = DEFAULT_URL, *, model: str | None = None, options: dict[str, Any] | None = None,
                  fallback: Any = None, client: httpx.AsyncClient | None = None) -> None:
-        self.url = url.rstrip("/")
         self.model = model
         self.options = dict(options or {})
+        # options.urls: several instances of the service (module docstring); unset: url alone, as before
+        urls = list(dict.fromkeys(_urls(self.options.get("urls")) or [url.rstrip("/")]))
+        self._inst = [_Instance(u, i) for i, u in enumerate(urls)]
+        self.url = urls[0]
+        self.probe_s = float(self.options.get("probe_s", PROBE_S))
         self.name = f"http:{model}" if model else "http"
         self.sample_rate = int(self.options.get("sample_rate", 24000))
         self.options["sample_rate"] = self.sample_rate
@@ -205,12 +260,35 @@ class HttpTTS:
                                 connect=float(self.options.get("connect_s", 1.0)))
         self._own = client is None
         self._client = client or httpx.AsyncClient(timeout=timeout)
-        self.ready = False  # warm (warm-up or a clause went through)
+        self.ready = False  # warm (warm-up or a clause went through, on any instance)
         self.gate = False  # set by the agent: until warm, clauses go to the fallback
-        self._down_until = 0.0
-        # does the service honour request priorities (it sends X-Priority, v1.3+)? None until a response tells.
-        # An older one would treat a background request as live and make live clauses wait behind it.
-        self.priorities: bool | None = None
+
+    @property
+    def urls(self) -> list[str]:
+        return [i.url for i in self._inst]
+
+    @property
+    def _down_until(self) -> float:
+        """Until when the service as a whole is put aside: the earliest instance back (0.0: one never failed)."""
+        return min(i.down_until for i in self._inst)
+
+    @_down_until.setter
+    def _down_until(self, value: float) -> None:
+        for i in self._inst:
+            i.down_until = value
+
+    @property
+    def priorities(self) -> bool | None:
+        """Does the service honour request priorities (it sends X-Priority, v1.3+)? None until a response tells.
+        An older one would treat a background request as live and make live clauses wait behind it. Per instance;
+        this is True if any instance does."""
+        seen = {i.priorities for i in self._inst}
+        return True if True in seen else False if False in seen else None
+
+    @priorities.setter
+    def priorities(self, value: bool | None) -> None:
+        for i in self._inst:
+            i.priorities = value
 
     # ------------------------------------------------------------ lifecycle
 
@@ -220,33 +298,53 @@ class HttpTTS:
         return list(prepare(langs)) if callable(prepare) else []
 
     async def warmup(self) -> None:
+        """Warm every instance. Ready as soon as one is; raises only if every instance failed (one that failed
+        while another is warm is put aside for ``retry_s``)."""
+        if len(self._inst) == 1:
+            await self._warm(self._inst[0])
+            return
+        res = await asyncio.gather(*(self._warm(i) for i in self._inst), return_exceptions=True)
+        failed = [(i, r) for i, r in zip(self._inst, res) if isinstance(r, BaseException)]
+        if len(failed) == len(res):
+            raise failed[0][1]
+        for i, e in failed:
+            i.down_until = time.monotonic() + self.retry_s
+            log.warning("tts service %s: warm-up failed (%s); the other instances speak", i.url, _reason(e))
+
+    async def _warm(self, inst: _Instance) -> None:
         req = tts_request(WARMUP_TEXT, self.warmup_lang, voice_ref=None, rate=None, model=self.model,
                           options=self.options)
-        async with self._client.stream("POST", self.url + self.path, timeout=httpx.Timeout(WARMUP_TIMEOUT_S, connect=5.0),
+        async with self._client.stream("POST", inst.url + self.path, timeout=httpx.Timeout(WARMUP_TIMEOUT_S, connect=5.0),
                                        **req) as r:
             if r.status_code >= 400:
-                raise TtsServiceError(f"tts warm-up: HTTP {r.status_code}")
-            self.priorities = "x-priority" in r.headers
+                raise TtsServiceError(f"tts warm-up: HTTP {r.status_code}", r.status_code)
+            inst.priorities = "x-priority" in r.headers
             async for _ in r.aiter_bytes():
                 pass
         self.ready = True
 
     async def forget(self, voice_ids: Iterable[str]) -> int:
-        """Make the service drop these speakers' samples (session end, burn, a device gone for good).
-        204 and 404 both mean gone. Fail-soft: logs the id prefix and the error class, never a body."""
+        """Make the service drop these speakers' samples (session end, burn, a device gone for good), on every
+        instance: a sample may have been registered on any of them. 204 and 404 both mean gone; a voice counts as
+        gone when every instance said so. Fail-soft: logs the id prefix and the error class, never a body."""
         gone = 0
         for vid in dict.fromkeys(voice_ids):
-            try:
-                r = await self._client.delete(f"{self.url}{self.path}/voices/{vid}",
-                                              timeout=httpx.Timeout(FORGET_TIMEOUT_S, connect=1.0))
-            except Exception as e:  # noqa: BLE001
-                log.warning("tts: could not delete voice %s… (%s)", vid[:4], _reason(e))
-                continue
-            if r.status_code in (200, 204, 404):
-                gone += 1
-            else:
-                log.warning("tts: deleting voice %s… returned HTTP %d", vid[:4], r.status_code)
+            done = await asyncio.gather(*(self._forget(i, vid) for i in self._inst))
+            gone += all(done)
         return gone
+
+    async def _forget(self, inst: _Instance, vid: str) -> bool:
+        where = f" on {inst.url}" if len(self._inst) > 1 else ""
+        try:
+            r = await self._client.delete(f"{inst.url}{self.path}/voices/{vid}",
+                                          timeout=httpx.Timeout(FORGET_TIMEOUT_S, connect=1.0))
+        except Exception as e:  # noqa: BLE001
+            log.warning("tts: could not delete voice %s…%s (%s)", vid[:4], where, _reason(e))
+            return False
+        if r.status_code in (200, 204, 404):
+            return True
+        log.warning("tts: deleting voice %s…%s returned HTTP %d", vid[:4], where, r.status_code)
+        return False
 
     async def aclose(self) -> None:
         if self._own:
@@ -273,45 +371,120 @@ class HttpTTS:
                 yield chunk
             return
         if not self._skip_service():
-            spoke = False
-            try:
-                # aclosing: a listener that stops (barge-in) closes the request now, not when GC finds it
-                async with contextlib.aclosing(self._stream(text, lang, voice_ref, rate)) as stream:
-                    async for chunk in stream:
-                        spoke = True
-                        yield chunk
-                self.ready = True
-                return
-            except (httpx.HTTPError, TtsServiceError, OSError, ValueError) as e:
-                self._down_until = time.monotonic() + self.retry_s
-                log.warning("tts service %s failed (%s)%s", self.url, _reason(e),
+            order = await self._order(background=False)
+            err: BaseException | None = None
+            for k, inst in enumerate(order):
+                spoke = False
+                more = k + 1 < len(order)
+                try:
+                    # aclosing: a listener that stops (barge-in) closes the request now, not when GC finds it
+                    async with contextlib.aclosing(self._stream(text, lang, voice_ref, rate, inst=inst,
+                                                                more=more)) as stream:
+                        async for chunk in stream:
+                            spoke = True
+                            yield chunk
+                    self.ready = True
+                    return
+                except (httpx.HTTPError, TtsServiceError, OSError, ValueError) as e:
+                    err = e
+                    now = time.monotonic()
+                    if not spoke and isinstance(e, TtsServiceError) and e.status in LIVE_BUSY_STATUSES:
+                        inst.busy_until = now + BUSY_S  # busy, not broken: the others first for a moment
+                    else:
+                        inst.down_until = now + self.retry_s  # this instance only
+                    if spoke:
+                        log.warning("tts service %s failed mid-clause (%s)", inst.url, _reason(e))
+                        if self.fallback is None:
+                            raise  # the pipeline continues text only (§6.15)
+                        return  # half the clause was said: do not repeat it in another voice
+                    if more:
+                        log.info("tts service %s failed (%s); trying %s", inst.url, _reason(e), order[k + 1].url)
+            if order:  # every instance failed: the service as a whole is put aside
+                until = time.monotonic() + self.retry_s
+                for inst in order:
+                    inst.down_until = max(inst.down_until, until)
+                log.warning("tts service %s failed (%s)%s", order[-1].url if len(order) > 1 else self.url,
+                            _reason(err) if err else "?",
                             "" if self.fallback is None else f"; fallback voice for {self.retry_s:.0f} s")
-                if self.fallback is None:
-                    raise  # the pipeline continues text only (§6.15)
-                if spoke:
-                    return  # half the clause was said: do not repeat it in another voice
+                if self.fallback is None and err is not None:
+                    raise err  # the pipeline continues text only (§6.15)
         async for chunk in self._fallback(text, lang, voice_ref, rate):
             yield chunk
 
+    async def _order(self, *, background: bool) -> list[_Instance]:
+        """The instances to try for one request, best first (module docstring). Put-aside instances are left out
+        unless there is no fallback (then they come last: nothing else to try)."""
+        now = time.monotonic()
+        up = [i for i in self._inst if now >= i.down_until]
+        if self.fallback is None:
+            up += sorted((i for i in self._inst if now < i.down_until), key=lambda i: i.down_until)
+        if background:  # an instance without priorities would serve it as live, ahead of the next live clause
+            up = [i for i in up if i.priorities is not False]
+        probe = not background and len(up) > 1 and self.probe_s > 0
+        if probe:
+            await self._probe(up)
+        lead = len([i for i in up if now >= i.down_until])  # the put-aside tail keeps its place
+        head = sorted(up[:lead], key=lambda i: (i.load if probe else 0, now < i.busy_until, i.inflight, i.index))
+        return head + up[lead:]
+
+    async def _probe(self, insts: list[_Instance]) -> None:
+        """``GET /health`` on each (concurrently, ``probe_s`` at most): busy with another room's live clause?"""
+        now = time.monotonic()
+
+        async def one(inst: _Instance) -> None:
+            if now < inst.probe_after:
+                inst.load = 2
+                return
+            try:
+                r = await self._client.get(inst.url + "/health",
+                                           timeout=httpx.Timeout(self.probe_s, connect=self.probe_s))
+                inst.load = _health_load(r.json() if r.status_code == 200 else None)
+            except Exception:  # noqa: BLE001 -- unknown load: the request itself finds out
+                inst.load, inst.probe_after = 2, time.monotonic() + BUSY_S
+
+        await asyncio.gather(*(one(i) for i in insts))
+
     async def _background(self, text: str, lang: str, voice_ref: bytes | None,
                           rate: float | None) -> AsyncIterator[np.ndarray]:
-        """A speculative clause: the service only, no fallback, ``_down_until`` untouched. Errors other than
-        :class:`VoiceBusy` (connection refused, HTTP 500, ...) reach the caller as they are."""
+        """A speculative clause: the service only, no fallback, ``_down_until`` untouched. Tries each instance
+        before any audio; raises :class:`VoiceBusy` if one refused as busy, else the last error as it is
+        (connection refused, HTTP 500, ...)."""
         if self._skip_service():  # live clauses are on the fallback voice now: do not mix voices ahead of them
             raise VoiceBusy("service put aside" if time.monotonic() < self._down_until else "service not warm")
-        if self.priorities is False:
+        order = await self._order(background=True)
+        if not order:
             raise VoiceBusy("service without priorities")
-        async with contextlib.aclosing(self._stream(text, lang, voice_ref, rate, background=True)) as stream:
-            async for chunk in stream:
-                yield chunk
-        self.ready = True
+        busy: VoiceBusy | None = None
+        err: BaseException | None = None
+        for k, inst in enumerate(order):
+            sent = False
+            try:
+                async with contextlib.aclosing(self._stream(text, lang, voice_ref, rate, background=True,
+                                                            inst=inst)) as stream:
+                    async for chunk in stream:
+                        sent = True
+                        yield chunk
+                self.ready = True
+                return
+            except VoiceBusy as e:
+                if sent:
+                    raise  # a cut stream: its chunks are out (the caller discards them), no other try
+                busy = e
+                inst.busy_until = time.monotonic() + BUSY_S
+            except (httpx.HTTPError, TtsServiceError, OSError, ValueError) as e:
+                if sent:
+                    raise
+                err = e
+        raise busy if busy is not None else err  # type: ignore[misc]
 
     async def _stream(self, text: str, lang: str, voice_ref: bytes | None, rate: float | None,
-                      background: bool = False) -> AsyncIterator[np.ndarray]:
+                      background: bool = False, *, inst: _Instance | None = None,
+                      more: bool = False) -> AsyncIterator[np.ndarray]:
         """Stage ``tts`` / ``tts.bg`` (pipeline/stats.py): ``ttfb_ms`` (request to the first audio chunk),
-        ``wall_ms``, ``audio_ms``, ``queue_ms`` (the service's GPU wait, ``X-Queue-Ms``); a refusal (409 etc.)
-        notes ``refused=1`` only; a cut background stream ``cut=1``, a consumer that stopped ``cancelled=1``,
-        another failure ``error=1``."""
+        ``wall_ms``, ``audio_ms``, ``queue_ms`` (the service's GPU wait, ``X-Queue-Ms``); a refusal (409 etc.;
+        a live 503/429 when another instance is tried next, ``more``) notes ``refused=1`` only; a cut background
+        stream ``cut=1``, a consumer that stopped ``cancelled=1``, another failure ``error=1``."""
+        inst = inst or self._inst[0]
         req = tts_request(text, lang, voice_ref=voice_ref, rate=rate, model=self.model, options=self.options,
                           background=background)
         ctx = contextvars.copy_context()  # a generator closed late (by GC) still notes into this utterance
@@ -319,16 +492,19 @@ class HttpTTS:
         m: dict[str, float | None] = {}
         n = 0
         done = False
+        inst.inflight += 1
         try:
             # voice in flight (voicegate.py): deferrable GPU work in every room waits while a live clause synthesises
             async with (contextlib.nullcontext() if background else voicegate.speaking()) as mark, \
-                    self._client.stream("POST", self.url + self.path, **req) as r:
+                    self._client.stream("POST", inst.url + self.path, **req) as r:
                 if r.status_code >= 400:
                     if background and r.status_code in BUSY_STATUSES:
                         m["refused"] = 1
                         raise VoiceBusy(f"HTTP {r.status_code}")
-                    raise TtsServiceError(f"HTTP {r.status_code}")  # no body: it could echo the request
-                self.priorities = "x-priority" in r.headers
+                    if more and r.status_code in LIVE_BUSY_STATUSES:
+                        m["refused"] = 1
+                    raise TtsServiceError(f"HTTP {r.status_code}", r.status_code)  # no body: it could echo it
+                inst.priorities = "x-priority" in r.headers
                 q = r.headers.get("x-queue-ms", "")
                 m["queue_ms"] = float(q) if q.replace(".", "", 1).isdigit() else None
                 pcm = PcmStream(stream_rate(r.headers), self.sample_rate)
@@ -357,6 +533,7 @@ class HttpTTS:
                 m["error"] = 1
             raise
         finally:
+            inst.inflight -= 1
             if m.get("refused"):
                 m = {"refused": 1}  # a refusal is no work: its round trip stays out of the sums
             else:

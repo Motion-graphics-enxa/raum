@@ -29,6 +29,9 @@ from transformers.generation.logits_process import (
 SR = S3GEN_SR            # 24000
 SAMPLES_PER_TOKEN = SR // 25   # 960 (25 speech tokens / s)
 LOOKAHEAD = 3            # tokens the flow drops when finalize=False
+# tokens before the first vocode. 10 (v1.4, was 14): first audio 192 -> 153 ms on a quiet GPU, 395 -> 262 ms under
+# load (box, 2 Nov, chunk_tokens 12 unchanged)
+FIRST_TOKENS = int(os.environ.get("RAUM_TTS_FIRST_TOKENS", "10"))
 
 
 @torch.inference_mode()
@@ -241,7 +244,7 @@ class CBEngine:
 
     @torch.inference_mode()
     def stream(self, text, lang, voice=None, *, cfg_weight=0.5, exaggeration=0.5, temperature=0.8,
-               repetition_penalty=1.2, min_p=0.05, top_p=1.0, first_tokens=14, chunk_tokens=12,
+               repetition_penalty=1.2, min_p=0.05, top_p=1.0, first_tokens=FIRST_TOKENS, chunk_tokens=12,
                grow=1.6, max_chunk_tokens=80, n_cfm=None, speed=1.0, max_new_tokens=600, stats=None,
                should_stop=None):
         """Yield float32 numpy chunks at 24 kHz. ``should_stop()`` is polled every token: True ends the
