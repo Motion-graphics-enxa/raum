@@ -91,7 +91,7 @@ class OllamaTranslator:
             "keep_alive": -1,
             "options": engine_options(self.options, OLLAMA_OPTIONS),
         }
-        if "think" in self.options:
+        if "think" in self.options and not getattr(self, "_no_think", False):
             body["think"] = self.options["think"]
         return body
 
@@ -100,6 +100,12 @@ class OllamaTranslator:
         async with self._client.stream("POST", f"{self.url}/api/chat", json=self.body(req)) as r:
             if r.status_code >= 400:
                 await r.aread()
+                if "think" in r.text and not getattr(self, "_no_think", False):
+                    # the model has no thinking switch: drop the field and retry once
+                    self._no_think = True
+                    async for d in self.stream(req):
+                        yield d
+                    return
                 raise RuntimeError(f"ollama {r.status_code}: {r.text[:200]}")
             async for line in r.aiter_lines():
                 if not line.strip():

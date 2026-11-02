@@ -182,3 +182,23 @@ async def test_ollama_embedder():
 
     with pytest.raises(RuntimeError):
         await OllamaEmbedder("http://o:1", model="bge-m3", client=client(bad)).embed(["a", "b"])
+
+
+async def test_ollama_translator_think_false_and_fallback():
+    bodies = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        b = json.loads(request.content)
+        bodies.append(b)
+        if "think" in b:
+            return httpx.Response(400, json={"error": '"gemma4:26b" does not support thinking'})
+        line = {"message": {"role": "assistant", "content": "خذ 500 ملغ."}, "done": True}
+        return httpx.Response(200, content=json.dumps(line).encode() + b"\n")
+
+    tr = OllamaTranslator("http://o:1", model="gemma4:26b",
+                          options={"temperature": 0.1, "think": False}, client=client(handler))
+    assert [d async for d in tr.stream(_req())] == ["خذ 500 ملغ."]
+    assert bodies[0]["think"] is False and "think" not in bodies[0]["options"]
+    assert "think" not in bodies[1]  # retried without the field
+    [d async for d in tr.stream(_req())]
+    assert "think" not in bodies[2]  # remembered
