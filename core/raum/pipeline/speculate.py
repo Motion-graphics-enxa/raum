@@ -167,7 +167,9 @@ class Speculator:
                 spec.changed.set()
                 if spec.voice is None and self.p._tts_enabled():
                     pending += d
-                    clause, pending = take_phrase(pending)  # the voice's first phrase, as _translate cuts it
+                    # the voice's first phrase, cut as _translate cuts it (same floor for a cloned voice)
+                    floor = self.p.min_voice_words(spec.speaker)
+                    clause, pending = take_phrase(pending, floor, len(spec.text.split()) if floor else None)
                     if clause:
                         self._presynth(spec, req.tgt_lang, clause)
 

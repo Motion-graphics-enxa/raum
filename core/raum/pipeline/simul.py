@@ -647,6 +647,7 @@ class Simultaneous:
 
         assert lane.voice_q is not None
         p = self.p
+        carry = ""  # a segment too short for the cloned voice waits and goes with the next one
         try:
             async with p._voice_lanes.setdefault(lane.tgt, asyncio.Lock()):
                 while True:
@@ -656,6 +657,8 @@ class Simultaneous:
                         log.warning("voice %s: no segment for %.0f s, releasing the lane", lane.tgt, VOICE_IDLE_S)
                         return
                     if seg is None:
+                        if carry and not p._voice_paused(lane.tgt) and not p._closed:
+                            await self._say(lane, carry)
                         return
                     if seg.hold is not None:
                         try:
@@ -670,8 +673,17 @@ class Simultaneous:
                             continue
                     if not seg.text or p._voice_paused(lane.tgt) or p._closed:
                         continue
-                    first = await p._speak(lane.tgt, seg.text, 0.0, lane.voice_args, lane.marks)  # t0 0: monotonic ms
-                    if lane.first_voice_ms is None and first is not None:
-                        lane.first_voice_ms = first
+                    text = f"{carry} {seg.text}".strip() if carry else seg.text
+                    floor = p.min_voice_words(lane.speaker)
+                    if floor and len(text.split()) < floor:
+                        carry = text
+                        continue
+                    carry = ""
+                    await self._say(lane, text)
         finally:
             lane.voice_done.set()
+
+    async def _say(self, lane: _Lane, text: str) -> None:
+        first = await self.p._speak(lane.tgt, text, 0.0, lane.voice_args, lane.marks)  # t0 0: monotonic ms
+        if lane.first_voice_ms is None and first is not None:
+            lane.first_voice_ms = first

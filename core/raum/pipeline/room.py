@@ -219,14 +219,28 @@ def _is_question(text: str) -> bool:
     return bool(_QUESTION_END.search(text or ""))
 
 
-def take_clause(buf: str) -> tuple[str, str]:
+def _words(s: str) -> int:
+    return len(s.split())
+
+
+def _tail_ok(head: str, min_words: int, expect_words: int | None) -> bool:
+    """With a word floor and the expected length of the whole translation: cut only if what is left
+    can still make a clause of ``min_words`` (else the voice waits and says the rest in one piece)."""
+    return not min_words or expect_words is None or expect_words - _words(head) >= min_words
+
+
+def take_clause(buf: str, min_words: int = 0, expect_words: int | None = None) -> tuple[str, str]:
     """Split off the longest speakable prefix that ends at a clause boundary (sentence end, or a comma
-    once the clause is long enough). Ordinals and abbreviations ("12.", "Dr.") never end a clause."""
+    once the clause is long enough). Ordinals and abbreviations ("12.", "Dr.") never end a clause.
+    ``min_words``: no cut before that many words (a cloned voice is clean only from ~5 words); the
+    short clause waits and goes with the next one."""
     cut = -1
     for m in _CLAUSE_END.finditer(buf):
         end = m.end()
         head = buf[:end]
-        if len(head.strip()) < MIN_CLAUSE_CHARS:
+        if len(head.strip()) < MIN_CLAUSE_CHARS or _words(head) < min_words:
+            continue
+        if not _tail_ok(head, min_words, expect_words):
             continue
         if m.group(0) == "," and len(head.strip()) < 2 * MIN_CLAUSE_CHARS:
             continue
@@ -243,18 +257,22 @@ _WORD = re.compile(r"\S+(?=\s)")  # a complete word: the next one has begun
 _CLOSE = "\"'»«”’)"
 
 
-def take_phrase(buf: str) -> tuple[str, str]:
+def take_phrase(buf: str, min_words: int = 0, expect_words: int | None = None) -> tuple[str, str]:
     """The voice's FIRST phrase, so it starts sooner: up to the first clause boundary (from the 2nd word; a
     sentence end at once) or after ``PHRASE_WORDS`` complete words, whichever comes first; never right after
     a number ("500 | mg"). Later clauses use ``take_clause``. Only where the voice starts changes: the fact
-    guard still checks the whole translation."""
+    guard still checks the whole translation. ``min_words`` (a cloned voice): the phrase has at least that
+    many words; a shorter sentence is spoken whole once the translation ends."""
+    words = max(PHRASE_WORDS, min_words)
     for i, m in enumerate(_WORD.finditer(buf)):
         head = buf[:m.end()].rstrip(_CLOSE)
         c = head[-1:]
         boundary = bool(c) and c in ".!?;:…。！？،؛؟," and not (c == "." and _ABBREV.search(head))
-        if boundary and (i >= 1 or c in ".!?…。！？؟"):
+        if not _tail_ok(head, min_words, expect_words):
+            continue
+        if boundary and (i >= 1 or c in ".!?…。！？؟") and i + 1 >= min_words:
             return buf[:m.end()].strip(), buf[m.end():]
-        if i + 1 >= PHRASE_WORDS and (not any(ch.isdigit() for ch in m.group(0)) or i + 1 >= PHRASE_WORDS + 2):
+        if i + 1 >= words and (not any(ch.isdigit() for ch in m.group(0)) or i + 1 >= words + 2):
             return buf[:m.end()].strip(), buf[m.end():]
     return "", buf
 
@@ -678,6 +696,8 @@ class RoomPipeline:
         marks: dict[str, float] = {}  # tts_synth_first_ms / tts_publish_first_ms
         tts_task = self._spawn(self._speak_stream(tgt, voice_q, t0, voice, marks)) if voice_q is not None else None
         pending = ""
+        min_words = self.min_voice_words(u.speaker)  # a cloned voice: no clause under ~5 words
+        expect = _words(rec.text) if min_words else None  # the translation's length, roughly the source's
         spoke = False
 
         async def run() -> None:
@@ -692,7 +712,8 @@ class RoomPipeline:
                                 utt=u.id)
                 if voice_q is not None:
                     pending += delta
-                    clause, pending = take_clause(pending) if spoke else take_phrase(pending)
+                    clause, pending = (take_clause(pending, min_words, expect) if spoke
+                                       else take_phrase(pending, min_words, expect))
                     if clause:
                         spoke = True
                         voice_q.put_nowait(clause)
@@ -808,6 +829,18 @@ class RoomPipeline:
 
     def _tts_enabled(self) -> bool:
         return self.engines.tts is not None
+
+    def min_voice_words(self, speaker: str | None) -> int:
+        """Shortest clause the voice may speak alone: cross-lingual clones are clean only from ~5 words
+        ("Danke. Danke.", dropped words), so with the speaker's own cloned voice short clauses go with the
+        next one (``tts.options.min_clause_words``, default 5). 0 for stock voices."""
+        tts = self.engines.tts
+        if speaker is None or tts is None or not self._uses_voice_ref():
+            return 0
+        ref = self._voice_refs.get(speaker)
+        if ref is None or ref.seconds < self.voice_ref_min_s:
+            return 0  # no sample yet: the service speaks its stock voice
+        return int((getattr(tts, "options", None) or {}).get("min_clause_words", 5))
 
     def _voice_paused(self, tgt: str) -> bool:
         return time.monotonic() < self._voice_paused_until.get(tgt, 0.0)

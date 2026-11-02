@@ -534,3 +534,39 @@ async def test_a_failing_delete_never_blocks_the_burn(caplog):
         await asyncio.sleep(0.05)
     assert h.p._voice_refs == {} and svc.deleted
     assert all("RIFF" not in r.message and "voice_ref" not in r.message for r in caplog.records)
+
+
+# ---------------------------------------------------------------- a cloned voice speaks no clause under 5 words
+
+
+def test_clause_and_phrase_floor_for_a_cloned_voice():
+    from raum.pipeline.room import take_clause, take_phrase
+
+    buf = "Danke. Danke. Ich komme morgen um neun Uhr wieder. Und"
+    assert take_clause(buf)[0] == "Danke. Danke. Ich komme morgen um neun Uhr wieder."  # stock voice: as before
+    assert take_phrase("Danke. Haben Sie ")[0] == "Danke."
+    assert take_phrase("Danke. Haben Sie ", 5) == ("", "Danke. Haben Sie ")  # waits for more words
+    head, rest = take_phrase("Danke. Haben Sie heute noch Zeit für ", 5)
+    assert head == "Danke. Haben Sie heute noch" and rest.strip() == "Zeit für"
+    assert take_clause("Ja, gut. Und", 5) == ("", "Ja, gut. Und")
+    assert take_clause("Ja, gut. Wir sehen uns am Montag. Und", 5)[0] == "Ja, gut. Wir sehen uns am Montag."
+    # expected 8 words in all: cutting after 7 would leave 1, so the voice waits and says it in one piece
+    buf2 = "Ja, gut. Wir sehen uns am Montag. Danke."
+    assert take_clause(buf2, 5, expect_words=8) == ("", buf2)  # no cut: the end of the translation says it all
+    assert take_phrase("Wir sehen uns am Montag wieder ", 5, expect_words=7) == ("", "Wir sehen uns am Montag wieder ")
+
+
+async def test_cloned_voice_gets_no_clause_under_five_words():
+    svc = Service()
+    h = on_headphones(voiced(http_tts(svc)))
+    await speak(h, DOC.id, tone(4.0))  # long enough: the doctor's own voice is cloned from now on
+    await h.p.drain()
+    assert h.p.min_voice_words(DOC.id) == 5 and h.p.min_voice_words(PAT.id) == 0
+    svc.requests.clear()
+    for _ in range(3):
+        utt = await speak(h, DOC.id, tone(2.0))
+        await h.p.drain()
+        final = h.one("translation.final", utt)["text"]
+        said = [svc.body(r)["text"] for r in svc.requests if r.method == "POST" and "voice_id" in svc.body(r)]
+        assert said and all(len(t.split()) >= 5 or t == final.strip() for t in said), said  # or the whole sentence
+        svc.requests.clear()
