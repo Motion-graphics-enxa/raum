@@ -553,6 +553,7 @@ class _SpyTranslator:
 
 async def test_speculation_on_a_complete_sentence_is_reused_when_the_final_matches(no_guard):
     h = room([DOC_DE, PAT_AR_SPK], complete_clauses=False)
+    h.p.cfg.pipeline.draft_text = False  # draft.py translates partials too: this test counts the speculation's calls
     spy = h.engines.translate = _SpyTranslator()  # type: ignore[assignment]
     utt = await say(h, DOC_DE.id, 2.0)  # stable full sentence at 1.5 s and 2.0 s
     await h.p.drain()
@@ -564,6 +565,7 @@ async def test_speculation_on_a_complete_sentence_is_reused_when_the_final_match
 
 async def test_speculation_is_discarded_when_the_final_differs(no_guard):
     h = room([DOC_DE, PAT_AR_SPK], complete_clauses=False)
+    h.p.cfg.pipeline.draft_text = False  # draft.py translates partials too: this test counts the speculation's calls
     spy = h.engines.translate = _SpyTranslator()  # type: ignore[assignment]
     h.engines.asr = _CountingASR(h.engines.asr, final_text="Guten Tag, Frau Demir.")  # type: ignore[assignment]
     utt = await say(h, DOC_DE.id, 2.4)  # final ASR runs (gap 400 ms) and hears something else
