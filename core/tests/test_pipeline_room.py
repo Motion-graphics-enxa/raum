@@ -157,24 +157,28 @@ async def test_red_path_dose_mismatch(fake_guard):
     flag = flags[0].data
     assert flag["kind"] == "mismatch" and flag["needs_confirm"] is True and flag["confirm_by"] == "b"
     assert "400 mg" in flag["text"] and flag["id"] == f"{utt}-ar-mismatch"
-    assert "400 mg" in flag["texts"]["de"]
+    # read back what was SAID, as a clarification: "Nur zur Sicherheit: 400 mg?"
+    assert flag["texts"]["de"] == "Nur zur Sicherheit: 400 mg?" and flag["text"] == "للتأكد فقط: 400 mg؟"
+    assert flag["status"] == "unconfirmed" and flag["why"] == ["guard"] and flag["spoken"] is True
     res = h.one("verify.result", utt)
     assert res["badge"] == "red"  # fact-guard red wins over a high similarity
     assert any("fact mismatch" in r for r in res["reasons"])
     assert "40 mg" in res["back_translation"]  # the back-translation keeps the mistranslation
 
 
-async def test_confirm_prompt_for_correct_dose(fake_guard):
+async def test_correct_dose_is_noted_not_asked(fake_guard):
     h = Harness()
     h.set_next_line("a", 2)  # sz-05: 500 mg Metformin (correct)
     utt = await h.say(DOC.id)
     await h.p.drain()
     assert h.one("verify.facts", utt)["red"] is False
-    flag = h.one("flag", utt)
-    assert flag["kind"] == "dose" and flag["needs_confirm"] is True and flag["confirm_by"] == "b"
-    assert flag["text"] == f"500 mg. {T.CORRECT['ar']}"
-    assert flag["texts"]["de"] == "500 mg. Stimmt das?"
     assert h.one("verify.result", utt)["badge"] == "green"
+    flag = h.one("flag", utt)  # guard and checker green: nobody is asked, the doctor's screen notes it
+    assert flag["kind"] == "noted" and flag["needs_confirm"] is False and flag["status"] == "noted"
+    assert flag["show_to"] == "a" and flag["confirm_by"] is None and flag["id"] == f"{utt}-ar-noted"
+    assert flag["text"] == flag["texts"]["de"] == "500 mg"
+    assert [f["texts"]["de"] for f in flag["facts"]] == ["500 mg"]
+    assert "Stimmt das?" not in str(flag)
 
 
 async def test_verify_engine_off_uses_guard_only(fake_guard):
@@ -422,7 +426,7 @@ def test_take_clause_splits_speakable_prefixes():
     assert head.endswith("يوميًا،")
 
 
-async def test_confirm_prompt_skips_questions_and_valueless_facts(no_guard):
+async def test_facts_skip_questions_and_valueless_facts(no_guard):
     from types import SimpleNamespace
 
     from raum.events import FactCheck
@@ -430,12 +434,17 @@ async def test_confirm_prompt_skips_questions_and_valueless_facts(no_guard):
 
     h = Harness()
     allergy_q = GuardResult(facts=[], confirm=[FactCheck(kind="allergy", src="present", tgt="present", match=True)])
-    rec = SimpleNamespace(text="Sind Sie gegen irgendwelche Medikamente allergisch?", utt="u-0009", role="a")
-    assert await h.p._fact_flags(rec, "ar", allergy_q) is False  # a question: nothing to confirm
+    rec = SimpleNamespace(text="Sind Sie gegen irgendwelche Medikamente allergisch?", utt="u-0009", role="a",
+                          lang="de", conf=0.93)
+    assert await h.p._settle_facts(rec, "ar", allergy_q, "amber") is False  # a question: nothing to confirm
     rec.text = "Ich bin allergisch."
-    assert await h.p._fact_flags(rec, "de", allergy_q) is False  # no concrete allergen: no interruption
-    real = GuardResult(facts=[], confirm=[FactCheck(kind="allergy", src="Penicillin", tgt="Penicillin", match=True)])
+    assert await h.p._settle_facts(rec, "ar", allergy_q, "amber") is False  # no concrete allergen: nothing
+    assert not h.of("flag")
+    real = GuardResult(facts=[], confirm=[FactCheck(kind="allergy", src="Penicillin", tgt="البنسلين", match=True)])
     rec.text = "Ich bin allergisch gegen Penicillin."
-    assert await h.p._fact_flags(rec, "ar", real) is True
-    flag = [e for e in h.events if e.type == "flag"][-1].data
-    assert flag["kind"] == "allergy" and flag["needs_confirm"] and "Penicillin" in flag["text"]
+    assert await h.p._settle_facts(rec, "ar", real, "amber") is True  # the checker unsure: read back once
+    flag = h.of("flag")[-1].data
+    assert flag["kind"] == "allergy" and flag["needs_confirm"] and flag["status"] == "unconfirmed"
+    assert flag["texts"]["de"] == "Nur zur Sicherheit: Allergie gegen Penicillin?"
+    assert flag["text"] == "للتأكد فقط: حساسية من البنسلين؟" and flag["why"] == ["check:amber"]
+    assert await h.p._settle_facts(rec, "ar", real, "amber") is True and len(h.of("flag")) == 1  # never twice

@@ -213,53 +213,198 @@
   }
 }
 
-/* ---------------------------------------------------------------- confirm sheet */
-.confirm {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
+/* ---------------------------------------------------------------- read-back (a drawing note on the turn) */
+/* Not a sheet over the conversation: a note in it. Recessed film, a hairline, corner ticks in the pen
+   (ochre unsure, red mismatch). Colour stays on the ticks and the answer marks, never on the panel. */
+.rb {
+  --c: var(--unsure);
+  position: relative;
   display: grid;
-  align-items: end;
-  background: rgb(6 20 34 / 0.38);
-  animation: fade-in 180ms var(--ease-out) both;
+  gap: var(--s-3);
+  margin-top: var(--s-2);
+  padding: var(--s-3) var(--s-4) var(--s-4);
+  background: var(--paper-2);
+  border: var(--line) solid var(--rule);
+  border-radius: var(--radius);
+  animation: turn-in 240ms var(--ease-out) both;
 }
-.confirm__sheet {
-  grid-template-columns: minmax(0, 1fr);
-  background: var(--paper);
-  border-top: 3px solid var(--unsure);
-  padding: var(--s-5) var(--s-5) calc(env(safe-area-inset-bottom, 0px) + var(--s-5));
-  display: grid;
-  gap: var(--s-4);
-  box-shadow: 0 -12px 32px rgb(6 20 34 / 0.18);
-  animation: sheet-up 280ms var(--ease-out) both;
-  max-width: 640px;
-  width: 100%;
-  margin: 0 auto;
+.rb--bad {
+  --c: var(--bad);
 }
-.confirm__sheet.is-red {
-  border-top-color: var(--bad);
+.rb::before,
+.rb::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-color: var(--c);
+  border-style: solid;
+  pointer-events: none;
 }
-.confirm__kind {
-  justify-self: start;
+.rb::before {
+  top: -1px;
+  inset-inline-start: -1px;
+  border-width: 2px 0 0 2px;
 }
-.confirm__kind {
-  max-width: 100%;
+.rb::after {
+  bottom: -1px;
+  inset-inline-end: -1px;
+  border-width: 0 2px 2px 0;
 }
-.confirm__kind .facts .cloud__pair {
-  font-size: 1.125rem;
-  white-space: normal;
-  flex-wrap: wrap;
+/* the question: a clarification, read like a sentence (title step of the ramp, under the hero) */
+.rb__q {
+  font-size: var(--ramp-1);
+  line-height: 1.35;
+  font-weight: 600;
+  color: var(--ink);
+  max-width: 34ch;
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
 }
-.confirm__q bdi {
+.rb__q[lang="ar"],
+.rb__q[lang="fa"] {
+  line-height: 1.6;
+}
+.rb__q bdi {
   unicode-bidi: isolate;
   white-space: nowrap;
 }
-.confirm__q {
-  font-size: 1.625rem;
-  line-height: 1.3;
-  font-weight: 650;
-  letter-spacing: -0.01em;
+.rb__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3) var(--s-4);
 }
+.rb__answers {
+  display: flex;
+  gap: var(--s-2);
+}
+.rb__hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+}
+.rb__hint .icon {
+  color: var(--ink-3);
+}
+/* answered: one line, the mark carries the pen */
+.rb.is-done {
+  gap: var(--s-2);
+  padding-bottom: var(--s-3);
+}
+.rb.is-done .rb__q {
+  font-size: var(--ramp-3);
+  font-weight: 520;
+  color: var(--ink-2);
+}
+.rb__done {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: var(--label);
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+  font-weight: 650;
+}
+.rb__done .icon {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2.25;
+}
+.rb__done--confirmed {
+  color: var(--ok);
+}
+.rb__done--rejected {
+  color: var(--bad);
+}
+.rb__via {
+  color: var(--ink-3);
+  font-weight: 560;
+}
+.rb__via::before {
+  content: "· ";
+}
+/* the read-back answered: its ticks turn to the ink of a settled note */
+.rb.is-done::before,
+.rb.is-done::after {
+  border-color: var(--rule-strong);
+}
+
+/* ---------------------------------------------------------------- fact notes (the professional's list) */
+.fnotes {
+  list-style: none;
+  margin: var(--s-1) 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px var(--s-2);
+}
+.fnote {
+  --c: var(--ok);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  max-width: 100%;
+  padding: 3px 10px 3px 6px;
+  border: var(--line) solid var(--rule-strong);
+  border-radius: var(--radius);
+  font-size: 0.9375rem;
+  line-height: 1.3;
+  color: var(--ink-2);
+  animation: turn-in 240ms var(--ease-out) both;
+}
+/* line type first: a fact read back and not answered is drawn dotted, like every unsure line */
+.fnote--unconfirmed {
+  --c: var(--unsure);
+  border-style: dotted;
+  border-width: 2px;
+  padding: 2px 9px 2px 5px;
+}
+.fnote--rejected {
+  --c: var(--bad);
+  border-width: 1.5px;
+}
+.fnote__glyph {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  color: var(--c);
+}
+.fnote__glyph .icon {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2.25;
+}
+.fnote__ring {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 2px dotted currentColor;
+}
+.fnote__text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.fnote__text bdi {
+  unicode-bidi: isolate;
+}
+.fnote__status {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+  font-weight: 650;
+  color: var(--c);
+}
+
+/* the burn question on the summary keeps the answer pair */
 .confirm__actions {
   display: grid;
   grid-template-columns: 1fr 1fr;

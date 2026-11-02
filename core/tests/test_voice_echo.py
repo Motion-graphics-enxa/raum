@@ -250,6 +250,8 @@ async def test_mismatch_marks_the_card_repeats_once_in_the_standard_voice_and_ti
     utt = await h.say(DOC.id)
     await h.p.drain()
 
+    assert h.of("voice.echo", utt), ([e.data for e in h.of("pipeline.timing")], asr.echo, voice.calls,
+                                     [e.data for e in h.of("translation.final")])
     echo = h.one("voice.echo", utt)
     assert echo == {"target_lang": "ru", "kind": "dose", "spoken": "50 мг", "written": "500 мг", "clause": 0,
                     "text": CLAUSE_RU}

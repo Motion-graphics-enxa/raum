@@ -11,6 +11,9 @@ Two paths:
   item into ``lang_b`` with ``engines.translate``. Any failure or timeout falls back to the mock path.
 
 Rule for all: only what was said; anything uncertain is marked; no advice.
+
+Both paths: the checked facts (``raum.pipeline.readback``: flags with ``facts``) go into ``SummaryReady.facts``
+with what became of them (noted / unconfirmed / confirmed / rejected), and into the file note.
 """
 
 from __future__ import annotations
@@ -25,7 +28,7 @@ from datetime import datetime
 from typing import Any
 
 from raum.config import repo_root
-from raum.events import SummaryItem, SummaryReady, SummarySection
+from raum.events import SummaryFact, SummaryItem, SummaryReady, SummarySection
 from raum.glossary import Glossary
 from raum.modes.schema import ModeConfig
 from raum.pipeline.base import Engines, TranslateRequest
@@ -108,6 +111,7 @@ class Utterance:
     red: bool = False
     rejected: bool = False
     confirmed: bool = False
+    fact_status: str | None = None  # its checked facts (readback.py): noted | unconfirmed | confirmed | rejected
 
     def text_in(self, lang: str) -> str | None:
         if lang == self.lang:
@@ -130,8 +134,8 @@ class Utterance:
         return "?" in self.text or "؟" in self.text
 
     @property
-    def uncertain(self) -> bool:
-        return self.red or self.rejected or self.conf < ASR_MIN_CONF
+    def uncertain(self) -> bool:  # a fact read back and never answered stays unsure
+        return self.red or self.rejected or self.conf < ASR_MIN_CONF or self.fact_status == "unconfirmed"
 
 
 def _role_of(speaker: str, data: dict[str, Any]) -> str:
@@ -208,12 +212,69 @@ def collect(records: list[dict[str, Any]]) -> tuple[list[Utterance], list[dict[s
                 by_utt[utt].rejected = True
             elif c.get("accepted"):
                 by_utt[utt].confirmed = True
+    for utt, status in fact_statuses(records).values():
+        u = by_utt.get(str(utt))
+        if u is not None and (u.fact_status is None or _RANK[status] > _RANK[u.fact_status]):
+            u.fact_status = status
 
     utts = [by_utt[k] for k in order if by_utt[k].text and k not in continued]
     offers = [o for o in offers if o.get("utt") not in continued]
     utts = [u for u in utts if u.conf >= ASR_MIN_CONF or u.translations]
     utts.sort(key=lambda u: (u.ts, order.index(u.utt)))
     return utts, offers
+
+
+# ---------------------------------------------------------------- checked facts (raum.pipeline.readback)
+
+_RANK = {"noted": 0, "confirmed": 1, "unconfirmed": 2, "rejected": 3}  # the least sure wins a tie of one fact
+STATUS_DE = {"noted": "notiert", "unconfirmed": "unbestätigt", "confirmed": "bestätigt", "rejected": "verneint"}
+
+
+def fact_statuses(records: list[dict[str, Any]]) -> dict[str, tuple[str | None, str]]:
+    """Flag id -> (utt, status) for every flag that carries checked facts: ``noted`` stays noted; an asked one
+    (``unconfirmed``) becomes ``confirmed`` / ``rejected`` with the asked person's answer (a tap or aloud)."""
+    flags: dict[str, tuple[str | None, str]] = {}
+    answers: dict[str, bool] = {}
+    for r in records:
+        if not isinstance(r, dict):
+            continue
+        d = r.get("data") or {}
+        if r.get("type") == "flag" and d.get("status") in ("noted", "unconfirmed") and d.get("id"):
+            flags.setdefault(str(d["id"]), (r.get("utt"), str(d["status"])))
+        elif r.get("type") == "confirm" and d.get("flag_id") and d.get("accepted") is not None:
+            answers[str(d["flag_id"])] = bool(d["accepted"])
+    out = {}
+    for fid, (utt, status) in flags.items():
+        if status == "unconfirmed" and fid in answers:
+            status = "confirmed" if answers[fid] else "rejected"
+        out[fid] = (utt, status)
+    return out
+
+
+def collect_facts(records: list[dict[str, Any]], lang_a: str, lang_b: str) -> list[SummaryFact]:
+    """The conversation's checked facts in order, one row per fact (the same chip twice is one row; the least
+    sure status wins: rejected > unconfirmed > confirmed > noted)."""
+    statuses = fact_statuses(records)
+    rows: dict[tuple[str, str], SummaryFact] = {}
+    seen: set[str] = set()
+    for r in records:
+        d = (r.get("data") or {}) if isinstance(r, dict) else {}
+        fid = str(d.get("id") or "")
+        if r.get("type") != "flag" or fid not in statuses or fid in seen:
+            continue
+        seen.add(fid)
+        utt, status = statuses[fid]
+        for f in d.get("facts") or []:
+            texts = {str(k): str(v) for k, v in (f.get("texts") or {}).items() if v}
+            if not texts:
+                continue
+            text = {lang: texts.get(lang) or texts.get("en") or next(iter(texts.values()))
+                    for lang in dict.fromkeys((lang_a, lang_b))}
+            key = (str(f.get("kind") or ""), text[lang_a].casefold())
+            old = rows.get(key)
+            if old is None or _RANK[status] > _RANK[old.status]:
+                rows[key] = SummaryFact(kind=key[0], text=text, status=status, utt=utt)  # type: ignore[arg-type]
+    return list(rows.values())
 
 
 # ---------------------------------------------------------------- facts (guard, regex fallback)
@@ -347,6 +408,8 @@ class _Ctx:
         self.used.add(u.utt)
         if u.confirmed:
             extra["confirmed"] = True
+        if u.fact_status:
+            extra["status"] = u.fact_status
         return SummaryItem(text=u.bilingual(self.lang_a, self.lang_b), uncertain=u.uncertain, utt=u.utt, **extra)
 
 
@@ -483,8 +546,8 @@ def _fmt_time(ts: int) -> str:
 
 
 def file_note_de(mode: ModeConfig, sections: list[SummarySection], utts: list[Utterance], lang_a: str,
-                 lang_b: str) -> dict[str, str]:
-    """German note for the professional's file (S-04 / K-03)."""
+                 lang_b: str, checked: list[SummaryFact] | None = None) -> dict[str, str]:
+    """German note for the professional's file (S-04 / K-03); the checked facts with their status."""
     note_lang = "de" if "de" in (lang_a, lang_b) else lang_a
     kind = NOTE_NAMES_DE.get(mode.id, "Gesprächsnotiz")
     start = utts[0].ts if utts else 0
@@ -512,6 +575,10 @@ def file_note_de(mode: ModeConfig, sections: list[SummarySection], utts: list[Ut
         lines.append(f"{title}: {body}" + ("" if body.endswith(("?", "!", "؟")) else "."))
     if not any_items:
         lines.append("Keine Einträge.")
+    if checked:
+        rows = [f"{(f.text.get(note_lang) or next(iter(f.text.values()), '')).rstrip('.')} "
+                f"({STATUS_DE.get(f.status, f.status)})" for f in checked]
+        lines.append("Geprüfte Fakten: " + "; ".join(rows) + ".")
     lines.append("Gedolmetscht mit RAUM (lokale KI, kein beeidigter Dolmetscher). Nur Aussagen aus dem Gespräch.")
     return {note_lang: " ".join(lines)}
 
@@ -533,9 +600,10 @@ def mock_summary(mode: ModeConfig, records: list[dict[str, Any]], lang_a: str, l
         rule = RULES.get(key)
         built[key] = (rule(ctx) if rule else [])[:MAX_ITEMS]
     sections = [SummarySection(key=k, title=section_title(k, (lang_a, lang_b)), items=built[k]) for k in keys]
-    note = file_note_de(mode, sections, utts, lang_a, lang_b) if mode.summary.file_note_for else None
+    checked = collect_facts(records, lang_a, lang_b)
+    note = file_note_de(mode, sections, utts, lang_a, lang_b, checked) if mode.summary.file_note_for else None
     return SummaryReady(template=mode.id, lang_a=lang_a, lang_b=lang_b, sections=sections, file_note=note,
-                        source="records")
+                        facts=checked, source="records")
 
 
 # ---------------------------------------------------------------- real (model) path
@@ -658,12 +726,13 @@ async def model_summary(mode: ModeConfig, records: list[dict[str, Any]], engines
         sections.append(SummarySection(key=key, title=section_title(key, (lang_a, lang_b)), items=items))
 
     note = None
+    checked = collect_facts(records, lang_a, lang_b)
     if mode.summary.file_note_for:
         raw = data.get("file_note_de") or data.get("case_note_de") or data.get("file_note")
         note = ({"de" if lang_a == "de" else lang_a: _s(raw)} if _s(raw)
-                else file_note_de(mode, sections, utts, lang_a, lang_b))
+                else file_note_de(mode, sections, utts, lang_a, lang_b, checked))
     return SummaryReady(template=mode.id, lang_a=lang_a, lang_b=lang_b, sections=sections, file_note=note,
-                        source="model")
+                        facts=checked, source="model")
 
 
 async def build_summary(mode: ModeConfig, records: list[dict[str, Any]], engines: Engines | None, lang_a: str,

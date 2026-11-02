@@ -376,7 +376,9 @@ def test_cli_show_compliance_export(tmp_path, capsys):
     log.append("consent", "s-other", {"role": "a", "lang": "de"})
     log.append("off_record_on", "s-77", {"by": "a"})
     log.append("off_record_off", "s-77", {"by": "a"})
-    log.append("confirm", "s-77", {"by": "b", "accepted": True, "flag_id": "f-1"})
+    log.append("fact_noted", "s-77", {"flag_id": "f-0", "kinds": ["allergy"], "spoken": False, "why": []})
+    log.append("fact_asked", "s-77", {"flag_id": "f-1", "kinds": ["dose"], "spoken": True, "why": ["check:amber"]})
+    log.append("confirm", "s-77", {"by": "b", "accepted": True, "flag_id": "f-1", "via": "voice"})
     log.append("session_end", "s-77", {"reason": "end", "duration_ms": 1234})
     store.append({"type": "transcript.final"})
     burn_session(store, log)
@@ -389,11 +391,14 @@ def test_cli_show_compliance_export(tmp_path, capsys):
     assert doc["consents"][0]["lang"] == "ar" and len(doc["consents"]) == 1
     assert doc["off_record"][0]["on"] and doc["off_record"][0]["off"]
     assert doc["confirmations"] == [{"ts": doc["confirmations"][0]["ts"], "by": "b", "accepted": True,
-                                     "flag_id": "f-1"}]
+                                     "flag_id": "f-1", "via": "voice"}]
+    # checked facts (raum.pipeline.readback): no content, only how each was handled
+    assert [(f["flag_id"], f["kinds"], f["status"], f["spoken"]) for f in doc["checked_facts"]] == [
+        ("f-0", ["allergy"], "noted", False), ("f-1", ["dose"], "confirmed", True)]
     assert doc["ended"]["duration_ms"] == 1234
     assert doc["burn"]["records"] == 1 and doc["burn"]["file_deleted"] is True
     assert doc["audit"]["chain_ok"] is True and doc["audit"]["head_hash"] == log.head_hash()
-    assert all(e["session"] == "s-77" for e in doc["entries"]) and len(doc["entries"]) == 8
+    assert all(e["session"] == "s-77" for e in doc["entries"]) and len(doc["entries"]) == 10
     assert "Penicillin" not in json.dumps(doc)
 
     assert raum.cli.main(["audit", "show", "--session", "nope", "--path", str(log.path)]) == 1

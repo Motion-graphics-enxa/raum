@@ -57,20 +57,17 @@ const rp = spawn("uv", ["run", "python", "../scripts/replay.py", "--room", room,
 });
 rp.on("error", (e) => console.log("replay error", e));
 
-// mid-stream shot of the patient's second turn on the doctor's phone
-await A.waitForSelector(".confirm .confirm__sheet", { timeout: 30000 });
-await sleep(700); // sheet-up animation + dimension draw settle
-await A.screenshot({ path: path.join(out, "talk-a-confirm.png") });
-// answer the dose/allergy confirm on the doctor phone
-for (let i = 0; i < 3; i++) {
-  const yes = await A.$(".confirm .btn--ok");
-  if (yes) { await yes.click(); await sleep(400); }
-}
+// the patient's dose and allergy, green: noted on the doctor's phone, nobody asked
+await A.waitForSelector(".fnote--noted", { timeout: 30000 });
+await sleep(500);
+await A.screenshot({ path: path.join(out, "talk-a-noted.png") });
+// the checker unsure: read back to the patient (inline, never modal)
+await B.waitForSelector(".rb:not(.is-done)", { timeout: 30000 });
+await sleep(500);
+await B.screenshot({ path: path.join(out, "talk-b-readback.png") });
 await new Promise((r) => rp.on("exit", r));
 await sleep(800);
 await B.screenshot({ path: path.join(out, "talk-b-red.png") });
-const noBtn = await B.$(".confirm .btn--bad");
-if (noBtn) { await noBtn.click(); await sleep(300); }
 await A.screenshot({ path: path.join(out, "talk-a-end.png") });
 await B.screenshot({ path: path.join(out, "talk-b-end.png") });
 await T.screenshot({ path: path.join(out, "table.png") });

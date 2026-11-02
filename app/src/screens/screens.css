@@ -506,6 +506,87 @@
   font-size: 1rem;
   color: var(--ink-2);
 }
+/* checked facts: the drawing's revision schedule, right above the title block */
+.checks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+.check {
+  --c: var(--ok);
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--s-3);
+  padding: var(--s-2) 0;
+  border-bottom: var(--line) dashed var(--rule);
+}
+.check:last-child {
+  border-bottom: 0;
+}
+.check--unconfirmed {
+  --c: var(--unsure);
+}
+.check--rejected {
+  --c: var(--bad);
+}
+.check__mark {
+  display: grid;
+  place-items: center;
+  height: 1.5rem;
+  color: var(--c);
+}
+.check__mark .icon {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.25;
+}
+.check__ring {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px dotted currentColor;
+}
+.check__fact {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.check__main {
+  font-size: 1.0625rem;
+  line-height: 1.4;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+/* read back and never answered: underlined dotted, like every unsure item on the sheet */
+.check--unconfirmed .check__main {
+  text-decoration: underline dotted var(--unsure);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.25em;
+}
+.check__other {
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+.check__other:lang(ar),
+.check__main:lang(ar) {
+  line-height: 1.6;
+}
+.check__status {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+  font-weight: 650;
+  line-height: 1.5rem;
+  color: var(--c);
+  white-space: nowrap;
+}
+.check--noted .check__status {
+  color: var(--ink-3);
+}
 .sheet__tb {
   margin: var(--s-2) calc(var(--s-5) * -1 + 6px) 6px;
   border-top: var(--line-2) solid var(--ink);

@@ -1,11 +1,11 @@
-/** Title block, talk control, confirm sheet, latency chain. */
-import { useEffect, useRef } from "react";
+/** Title block, talk control, read-back and fact notes, latency chain. */
 import type { ModeConfig } from "../lib/api";
-import type { EventData, FactCheck, Path } from "../lib/events";
+import type { EventData, FactStatus, Path } from "../lib/events";
 import { isRtl, pick, t } from "../lib/i18n";
 import type { LinkState } from "../lib/live";
-import { Dimension, FactDims, Hatch, fmtMs } from "./Drawing";
-import { Menu, Mic, MicOff } from "./Icons";
+import type { FactChip } from "../lib/store";
+import { Hatch, fmtMs } from "./Drawing";
+import { Check, Cross, Menu, Mic, MicOff, Speaker } from "./Icons";
 import "./sheet.css";
 
 const PATH_KEY: Record<Path, Record<string, string>> = {
@@ -139,54 +139,84 @@ export function TalkControl({
   );
 }
 
-export function ConfirmSheet({
+/**
+ * The read-back, like a human interpreter (core/raum/pipeline/readback.py): one short question on the turn it
+ * is about ("Nur zur Sicherheit: 400 mg?"), spoken by the box and answered aloud; the two small buttons are
+ * the quiet second way. Never modal, never in the way: the conversation goes on around it. A drawing note
+ * (corner ticks in the pen: ochre unsure, red mismatch); answered, it settles to one line.
+ */
+export function ReadBack({
   flag,
   lang,
+  status,
+  answer,
+  canSpeak,
   onAnswer,
-  mismatches = [],
 }: {
   flag: EventData["flag"];
   lang: string;
+  status: FactStatus | null;
+  answer?: EventData["confirm"];
+  canSpeak: boolean; // the box still takes a spoken yes/no (this device has not spoken since)
   onAnswer: (accepted: boolean) => void;
-  mismatches?: FactCheck[];
 }) {
-  const yes = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    yes.current?.focus();
-    if ("vibrate" in navigator && flag.kind !== "uncertain") {
-      try {
-        navigator.vibrate?.([30, 60, 30]);
-      } catch {
-        /* iOS has no vibration */
-      }
-    }
-  }, [flag.id, flag.kind]);
   const text = flag.texts?.[lang] ?? flag.text;
-  const red = flag.kind === "mismatch";
   const rtl = isRtl(lang);
+  const id = `rb-${flag.id ?? "x"}`;
+  const done = status === "confirmed" || status === "rejected";
+  const tone = flag.kind === "mismatch" ? "bad" : "unsure";
   return (
-    <div className="confirm" role="alertdialog" aria-modal="true" aria-labelledby="confirm-q">
-      <div className={`confirm__sheet ${red ? "is-red" : ""}`} dir={rtl ? "rtl" : "ltr"}>
-        <div className="confirm__kind">
-          {red && mismatches.length ? (
-            <FactDims facts={mismatches} lang={lang} state="red" />
-          ) : (
-            <Dimension value={t(lang, `kind.${flag.kind}`)} state="pending" lang={lang} />
-          )}
-        </div>
-        <p id="confirm-q" className="confirm__q">
-          {rtl ? isolateLtr(text) : text}
+    <section className={`rb rb--${tone} ${done ? "is-done" : ""}`} aria-labelledby={id} aria-live="polite" dir={rtl ? "rtl" : "ltr"}>
+      <p id={id} className="rb__q" lang={lang}>
+        {rtl ? isolateLtr(text) : text}
+      </p>
+      {done ? (
+        <p className={`rb__done rb__done--${status}`}>
+          {status === "confirmed" ? <Check /> : <Cross />}
+          <span>{t(lang, status === "confirmed" ? "talk.confirmed" : "talk.rejected")}</span>
+          {answer?.via === "voice" ? <span className="rb__via">{t(lang, "talk.via_voice")}</span> : null}
         </p>
-        <div className="confirm__actions">
-          <button ref={yes} type="button" className="btn btn--lg btn--ok" onClick={() => onAnswer(true)}>
-            {t(lang, "talk.confirm_yes")}
-          </button>
-          <button type="button" className="btn btn--lg btn--bad" onClick={() => onAnswer(false)}>
-            {t(lang, "talk.confirm_no")}
-          </button>
+      ) : (
+        <div className="rb__row">
+          <div className="rb__answers" role="group" aria-label={t(lang, "talk.read_back")}>
+            <button type="button" className="btn btn--sm btn--ok-line" onClick={() => onAnswer(true)}>
+              {t(lang, "talk.confirm_yes")}
+            </button>
+            <button type="button" className="btn btn--sm btn--bad" onClick={() => onAnswer(false)}>
+              {t(lang, "talk.confirm_no")}
+            </button>
+          </div>
+          {flag.spoken && canSpeak ? (
+            <p className="rb__hint">
+              <Speaker />
+              <span>{t(lang, "talk.say_yes_no")}</span>
+            </p>
+          ) : null}
         </div>
-      </div>
-    </div>
+      )}
+    </section>
+  );
+}
+
+/** The professional's fact list on a turn: quiet notes ("✓ Allergie: Penicillin"), and what became of the
+ * facts that were read back. State is the glyph and the line type (solid noted / confirmed, dotted unconfirmed),
+ * named in words when it is not plain "noted"; the pen colours the glyph only. */
+export function FactNotes({ chips, lang }: { chips: FactChip[]; lang: string }) {
+  if (!chips.length) return null;
+  return (
+    <ul className="fnotes" aria-label={t(lang, "talk.facts_noted")} dir={isRtl(lang) ? "rtl" : "ltr"}>
+      {chips.map((c) => (
+        <li key={c.key} className={`fnote fnote--${c.status}`}>
+          <span className="fnote__glyph" aria-hidden="true">
+            {c.status === "unconfirmed" ? <span className="fnote__ring" /> : c.status === "rejected" ? <Cross /> : <Check />}
+          </span>
+          <span className="fnote__text" dir="auto">
+            {isRtl(lang) ? isolateLtr(c.text) : c.text}
+          </span>
+          <span className={c.status === "noted" ? "visually-hidden" : "fnote__status"}>{t(lang, `fact.${c.status}`)}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
 

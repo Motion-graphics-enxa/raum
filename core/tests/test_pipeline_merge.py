@@ -108,7 +108,7 @@ class Eot:
     async def text_p(self, text):
         return 0.0
 
-    async def verdict(self, text, lang, audio=None):
+    async def verdict(self, text, lang, audio=None, **kw):
         return SimpleNamespace(wait_s=0.0, timing=lambda: {"why": "test"})
 
     async def aclose(self):
@@ -352,3 +352,27 @@ async def test_burn_forgets_the_held_audio():
     await say(h, DOC.id, REST_S)
     await h.p.drain()
     assert h.of("utterance.continued") == [] and asr.finals[-1] == int(REST_S * SR)
+
+
+async def test_a_cut_halfs_read_back_is_forgotten_and_cancelled():
+    """readback: the cut half's "Just to be sure: ...?" was never heard: no answer is taken for it, and its facts
+    may be asked (once) for the merged sentence; a read-back still waiting for the lane is cancelled."""
+    h, _, voice, _, _ = room(voice=Voice(0.2))
+    h.p._asked[("en", (("dose", "500 mg"),))] = "u-0001-en-confirm"
+    h.p._asked[("en", (("dose", "20 mg"),))] = "u-0003-en-confirm"
+    h.p._asks[("b", "en")] = SimpleNamespace(utt="u-0001")
+    h.p.forget_asks("u-0001")
+    assert list(h.p._asked.values()) == ["u-0003-en-confirm"] and h.p._asks == {}
+
+    await speak(h, DOC.id, FIRST_S)
+    await h.p.speech_end(DOC.id, None, 300.0)
+    lane = h.p._voice_lanes.setdefault("en", asyncio.Lock())
+    await lane.acquire()  # the cut half's own voice still holds the lane
+    read_back = h.p.merge.track("u-0001", h.p._spawn(h.p.speak_line("en", "Just to be sure: 500 mg?")))
+    await asyncio.sleep(0.01)
+    assert not read_back.done()  # waiting for the lane
+    await speak(h, DOC.id, REST_S)  # the continuation: merged
+    lane.release()
+    await h.p.drain()
+    assert read_back.cancelled()
+    assert not any("Just to be sure" in text for _, text in voice.said)

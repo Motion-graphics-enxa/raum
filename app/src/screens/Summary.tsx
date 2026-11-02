@@ -8,7 +8,7 @@ import { useEventSocket } from "../lib/live";
 import { deviceLang, loadJoin } from "../lib/session";
 import { RoomStore, useRoomModel } from "../lib/store";
 import { Hatch } from "../components/Drawing";
-import { Key, Printer } from "../components/Icons";
+import { Check, Cross, Key, Printer } from "../components/Icons";
 import { QR } from "../components/QR";
 import { resolveMode } from "./Join";
 import "./screens.css";
@@ -151,6 +151,8 @@ export default function SummaryScreen() {
               </section>
             ) : null}
 
+            {summary.facts?.length ? <CheckedFacts facts={summary.facts} lang={lang} other={other} /> : null}
+
             {/* Schriftfeld: the sheet's title block, bottom right as on every drawing */}
             <footer className="sheet__tb">
               <dl>
@@ -265,6 +267,47 @@ export default function SummaryScreen() {
         ) : null}
       </main>
     </div>
+  );
+}
+
+/**
+ * The checked facts and what became of them, as a drawing's revision schedule: one row per fact, the mark in
+ * its pen (tick noted / confirmed, dotted ring unconfirmed, cross said no), the fact in both languages and the
+ * status in words. Sits right above the title block, where a drawing keeps its revisions.
+ */
+function CheckedFacts({ facts, lang, other }: { facts: NonNullable<Summary["facts"]>; lang: string; other: string | null }) {
+  const gloss = other ? t(other, "summary.facts") : null;
+  return (
+    <section className="sheet__sec sheet__checks">
+      <h2 className="sheet__h">
+        <span>{t(lang, "summary.facts")}</span>
+        {other && gloss && gloss !== t(lang, "summary.facts") ? (
+          <span className="sheet__h2" lang={other} dir={isRtl(other) ? "rtl" : "ltr"}>
+            {gloss}
+          </span>
+        ) : null}
+      </h2>
+      <ul className="checks">
+        {facts.map((f, i) => (
+          <li key={`${f.kind}-${i}`} className={`check check--${f.status}`}>
+            <span className="check__mark" aria-hidden="true">
+              {f.status === "unconfirmed" ? <span className="check__ring" /> : f.status === "rejected" ? <Cross /> : <Check />}
+            </span>
+            <span className="check__fact">
+              <span className="check__main" lang={lang} dir="auto">
+                {f.text[lang] ?? pick(f.text, lang)}
+              </span>
+              {other && f.text[other] && f.text[other] !== f.text[lang] ? (
+                <span className="check__other" lang={other} dir={isRtl(other) ? "rtl" : "ltr"}>
+                  {f.text[other]}
+                </span>
+              ) : null}
+            </span>
+            <span className="check__status">{t(lang, `fact.${f.status}`)}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

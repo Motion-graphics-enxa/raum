@@ -198,16 +198,28 @@ class Speculator:
                 yield spec.parts[i]
                 i += 1
             if spec.done:
-                if spec.failed:
-                    if i == 0:  # nothing came: the live engine after all
-                        async for d in self.p.engines.translate.stream(req):
-                            yield d
-                        return
-                    raise RuntimeError("speculative translation stopped midway")
+                if spec.failed:  # cancelled or failed midway: the live engine after all, from where it stopped
+                    async for d in self._rest(req, "".join(spec.parts[:i])):
+                        yield d
                 return
             if i < len(spec.parts):
                 continue
             await spec.changed.wait()
+
+    async def _rest(self, req: TranslateRequest, sent: str) -> AsyncIterator[str]:
+        """The live translation of ``req`` without its first ``len(sent)`` characters (already streamed from the
+        speculation; the same request at temperature 0 gives the same start). Before: a speculation stopped
+        midway ended the turn's translation there ("... Метформин по")."""
+        seen = ""
+        async for d in self.p.engines.translate.stream(req):
+            if len(seen) >= len(sent):
+                yield d
+                continue
+            seen += d
+            if len(seen) > len(sent):
+                if not seen.startswith(sent):
+                    log.info("speculation stopped midway and the live translation starts otherwise: continued")
+                yield seen[len(sent):]
 
     def _presynth(self, spec: _Spec, lang: str, clause: str) -> None:
         tts = self.p.engines.tts

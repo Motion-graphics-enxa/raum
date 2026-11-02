@@ -256,9 +256,10 @@ def test_control_confirm_and_human_interpreter(client, core, pub):
                     json={"action": "confirm", "by": "b", "flag_id": "f-1", "accepted": True, "utt": "u-0001"})
     assert r.status_code == 200
     c = pub.of("confirm")[-1]
-    assert c.data == {"by": "b", "accepted": True, "flag_id": "f-1"} and c.utt == "u-0001"
+    assert c.data == {"by": "b", "accepted": True, "flag_id": "f-1", "via": "button", "answer_utt": None}
+    assert c.utt == "u-0001"
     entry = core.sessions.audit.entries(session=sid)[-1]
-    assert entry["event"] == "confirm" and entry["meta"]["accepted"] is True
+    assert entry["event"] == "confirm" and entry["meta"]["accepted"] is True and entry["meta"]["via"] == "button"
     stored = core.sessions.rooms[ROOM].session.store.read_all()
     assert [x["type"] for x in stored] == ["confirm"]
 

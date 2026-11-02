@@ -36,7 +36,7 @@ def compliance_export(path: str | Path, session_id: str) -> dict[str, Any] | Non
     entries = read_entries(path, session=session_id)
     if not entries:
         return None
-    consents, off_record, interp, confirms, approvals = [], [], [], [], []
+    consents, off_record, interp, confirms, approvals, facts = [], [], [], [], [], []
     models: dict[str, Any] = {}
     started = ended = burn = None
     for e in entries:
@@ -60,7 +60,10 @@ def compliance_export(path: str | Path, session_id: str) -> dict[str, Any] | Non
             interp.append({"ts": ts, "by": m.get("by"), "requested": m.get("requested", True)})
         elif ev == "confirm":
             confirms.append({"ts": ts, "by": m.get("by"), "accepted": m.get("accepted"),
-                             "flag_id": m.get("flag_id")})
+                             "flag_id": m.get("flag_id"), "via": m.get("via")})
+        elif ev in ("fact_noted", "fact_asked"):  # raum.pipeline.readback: checked facts, no content
+            facts.append({"ts": ts, "flag_id": m.get("flag_id"), "kinds": m.get("kinds") or [],
+                          "status": "noted" if ev == "fact_noted" else "unconfirmed", "spoken": m.get("spoken")})
         elif ev == "summary_approved":
             approvals.append({"ts": ts, "by": m.get("by")})
         elif ev == "session_end":
@@ -70,6 +73,10 @@ def compliance_export(path: str | Path, session_id: str) -> dict[str, Any] | Non
                     "file_deleted": m.get("file_deleted")}
     report = verify_chain(path)
     all_entries = read_entries(path)
+    answers = {c["flag_id"]: c["accepted"] for c in confirms if c.get("flag_id") and c.get("accepted") is not None}
+    for f in facts:
+        if f["status"] == "unconfirmed" and f["flag_id"] in answers:
+            f["status"] = "confirmed" if answers[f["flag_id"]] else "rejected"
     return {
         "kind": "raum.compliance.v1",
         "generated_at": now_ms(),
@@ -84,6 +91,7 @@ def compliance_export(path: str | Path, session_id: str) -> dict[str, Any] | Non
         "off_record": off_record,
         "human_interpreter": interp,
         "confirmations": confirms,
+        "checked_facts": facts,
         "summary_approvals": approvals,
         "ended": ended,
         "burn": burn,

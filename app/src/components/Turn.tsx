@@ -19,6 +19,7 @@ export function TurnView({
   checkerOff = false,
   onApproveExplain,
   myRole,
+  extra,
 }: {
   turn: TurnT;
   myLang: string;
@@ -31,6 +32,7 @@ export function TurnView({
   onRelearn?: () => void; // F-10: learn this device's voice again
   checkerOff?: boolean; // the room runs no second check: show the mark only when the guard finds a mismatch
   onApproveExplain?: (utt: string, text: string) => void;
+  extra?: React.ReactNode; // read-back and fact notes for this device (Talk.tsx)
 }) {
   const [open, setOpen] = useState(false);
   // What this device should read: the other person's words in my language, or my own words.
@@ -160,6 +162,8 @@ export function TurnView({
           ) : null}
         </>
       )}
+
+      {extra}
 
       {turn.repeatBack && !continued ? <RepeatBack r={turn.repeatBack} lang={myLang} /> : null}
 
