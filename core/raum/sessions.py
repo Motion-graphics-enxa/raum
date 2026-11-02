@@ -591,6 +591,9 @@ class SessionManager:
         if room.session is not None:
             room.session.touch()
             room.session.saw_utt(env.utt)
+            if env.type == "voice.echo":  # the voice said another figure than the text: the kind only, no content
+                self._audit("voice.echo_mismatch", room.session.id, kind=str(env.data.get("kind") or ""),
+                            target_lang=env.data.get("target_lang"))
         self._persist(room, env)
         self._fanout(room, env)
         if changed:

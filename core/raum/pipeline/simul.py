@@ -512,6 +512,7 @@ class Simultaneous:
         check_ms = await self._check(lane) if any(s.text for s in lane.segs) else None
         if lane.voice is not None:
             await asyncio.gather(lane.voice, return_exceptions=True)
+        echo = await self.p.echo_check.settle(lane.marks)  # echo_check.py: echo_ms, echo_check
         if t0 is None:
             return
 
@@ -522,7 +523,7 @@ class Simultaneous:
                       tts_first_ms=round(lane.first_voice_ms - t0 * 1000.0, 1) if lane.first_voice_ms else None,
                       check_ms=check_ms, simultaneous=True, segs=len(lane.segs),
                       tts_synth_first_ms=_since(lane.marks.get("synth"), t0),
-                      tts_publish_first_ms=_since(lane.marks.get("publish"), t0))
+                      tts_publish_first_ms=_since(lane.marks.get("publish"), t0), **echo)
         await self.p.emit("pipeline.timing", timing, utt=lane.utt)
 
     # ------------------------------------------------------------ translation, guard, check
@@ -656,6 +657,7 @@ class Simultaneous:
 
         assert lane.voice_q is not None
         p = self.p
+        p.echo_check.track(lane.marks, lane.utt, lane.tgt)  # echo_check.py: segments with figures are heard back
         carry = ""  # a segment too short for the cloned voice waits and goes with the next one
         try:
             async with p._voice_lanes.setdefault(lane.tgt, asyncio.Lock()):
@@ -668,6 +670,7 @@ class Simultaneous:
                     if seg is None:
                         if carry and not p._voice_paused(lane.tgt) and not p._closed:
                             await self._say(lane, carry)
+                        await p.echo_check.flush(lane.tgt, lane.marks)  # echo_check.py: a repeat already due
                         return
                     if seg.hold is not None:
                         try:

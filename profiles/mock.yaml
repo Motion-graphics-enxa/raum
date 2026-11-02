@@ -10,7 +10,7 @@ models:
   verify:    { engine: mock, model: mock-gpt-oss, options: { latency_ms: [700, 1100] } }
   embed:     { engine: mock, model: mock-bge-m3 }
   vision:    { engine: mock, model: mock-gemma-vision, options: { latency_ms: [900, 1400] } }
-  tts:       { engine: mock, model: mock-piper, options: { first_audio_ms: [120, 200] } }
+  tts:       { engine: mock, model: mock-piper, options: { first_audio_ms: [120, 200], echo_check: off } }   # echo_check: a mock voice has no audio to hear back
   # F-10 voice lock: off | mock (spectral fingerprint, for tests) | ecapa (SpeechBrain; needs --extra voicelock)
   voicelock: { engine: off }
 scheduler: { live_slots: 4, check_slots: 2, background_slots: 2 }

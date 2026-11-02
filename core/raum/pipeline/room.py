@@ -50,6 +50,9 @@ Additions beyond the contract (all optional):
   that is not the owner's voice is dropped before ``transcript.final`` (not translated, spoken, stored or
   summarized). ``voice.lock`` carries the verdict and score. The voices are memory only and go with the voice
   samples (burn, session end, ``aclose``); control ``voice_lock_reset`` learns a device's voice again.
+- Voice echo check (``raum.pipeline.echo_check``, ``tts.options.echo_check: facts``, off by default): a spoken clause
+  with a dose / number / date / time is transcribed back at background priority beside the playback; a figure the
+  voice said with another value -> ``voice.echo`` + the clause once more in the standard voice ("I repeat: ...").
 - Simultaneous mode (simul.py) and speculative translation (speculate.py) hook in at marked lines.
 - A sentence cut at a pause, merged again (merge.py, mode ``pipeline.merge_continuation_ms``, 0 = off): the same
   speaker again within that window of an end of turn whose voice still plays continues it in a new utterance
@@ -62,7 +65,8 @@ is the endpoint delay; ``asr_ms`` the final transcription; ``mt_first_ms``, ``mt
 numbers of the §3 table; ``check_ms`` is translation.final -> verify.result. Also: ``asr_from``
 (``partial`` = the stable last partial, ``early`` = the pause's early final, ``final`` = a final pass),
 ``tts_synth_first_ms`` (stop -> first PCM from the voice engine) and ``tts_publish_first_ms`` (stop -> the
-first frame the worker's AudioSource accepted; the sink returns that moment).
+first frame the worker's AudioSource accepted; the sink returns that moment); with the echo check, ``echo_ms``
+(clause synthesized -> heard back and compared, the slowest clause) and ``echo_check`` (the worst result).
 """
 
 from __future__ import annotations
@@ -95,6 +99,7 @@ from raum.pipeline import texts as T
 from raum.pipeline._util import int16_to_float, lang_code, lang_name, load_prompt, render_prompt
 from raum.pipeline.base import AsrResult, Engines, TranslateRequest, TurnContext
 from raum.pipeline.echo import EchoControl
+from raum.pipeline.echo_check import EchoCheck
 from raum.pipeline.incomplete import join_fragments
 from raum.pipeline.merge import Continuations
 from raum.pipeline.simul import Simultaneous
@@ -338,6 +343,7 @@ class RoomPipeline:
         self.simul = Simultaneous(self)  # simultaneous mode + stable partial as final (simul.py)
         self.spec = Speculator(self)  # speculative translation (speculate.py)
         self.merge = Continuations(self)  # a sentence cut at a pause, merged again (merge.py)
+        self.echo_check = EchoCheck(self)  # the voice heard back for its figures (echo_check.py)
 
     # ---------------------------------------------------------------- setup
 
@@ -740,6 +746,7 @@ class RoomPipeline:
         # C-13: voice starts on the first phrase while the rest of the sentence still streams
         voice_q: asyncio.Queue[str | None] | None = asyncio.Queue() if self._tts_enabled() else None
         marks: dict[str, float] = {}  # tts_synth_first_ms / tts_publish_first_ms
+        self.echo_check.track(marks, u.id, tgt)  # echo_check.py: this voice's clauses are heard back
         tts_task: asyncio.Task[float | None] | None = None
         if voice_q is not None:  # merge.py: the utterance's voice, stopped if the speaker goes on
             tts_task = self.merge.track(u.id, self._spawn(self._speak_stream(tgt, voice_q, t0, voice, marks, utt=u.id)))
@@ -818,6 +825,7 @@ class RoomPipeline:
             timing.update(target_lang=tgt, check_ms=check_ms, tts_first_ms=tts_first)
             if marks is not None:  # stop -> first PCM from the engine / first frame the worker's AudioSource took
                 timing.update(tts_synth_first_ms=marks.get("synth"), tts_publish_first_ms=marks.get("publish"))
+                timing.update(await self.echo_check.settle(marks))  # echo_check.py: echo_ms, echo_check
             await self.emit("pipeline.timing", timing, utt=rec.utt)
 
     def checker_for(self, role: str | None, src_lang: str, tgt: str) -> tuple[Any, str | None]:
@@ -912,6 +920,7 @@ class RoomPipeline:
                     log.warning("voice %s: no clause for %.0f s, releasing the lane", tgt, VOICE_IDLE_S)
                     return first
                 if clause is None:
+                    await self.echo_check.flush(tgt, marks)  # echo_check.py: a repeat already due, before the lane frees
                     return first
                 if self._voice_paused(tgt) or self._closed:
                     continue
@@ -924,6 +933,8 @@ class RoomPipeline:
         tts = self.engines.tts
         if tts is None or not text:
             return None
+        await self.echo_check.flush(tgt, marks)  # echo_check.py: an earlier clause said a figure wrong: repeat first
+        probe = self.echo_check.probe(tgt, text, marks)  # echo_check.py: a clause with figures is heard back
         first: float | None = None
         try:
             # speculate.py: a pre-synthesised clause if it was made with these voice args
@@ -935,6 +946,8 @@ class RoomPipeline:
                 if self.tts_sink is not None and not self.off_record and len(chunk):
                     self._voice_out(tgt, len(chunk), tts.sample_rate)
                     self.merge.played(utt, tgt, len(chunk) / tts.sample_rate)  # merge.py: until when it plays
+                    if probe is not None:
+                        probe.add(chunk)
                     took = await self.tts_sink(tgt, chunk, tts.sample_rate)
                     if marks is not None and "publish" not in marks:  # the sink says when its 1st frame went in
                         at = took if isinstance(took, float) else time.monotonic()
@@ -952,6 +965,8 @@ class RoomPipeline:
                 log.warning("voice %s: clause dropped (%s: %s)", tgt, e.__class__.__name__, e)
             return None
         self._voice_fails[tgt] = 0
+        if probe is not None:
+            probe.done(tts.sample_rate)  # echo_check.py: transcribed in the background, beside the playback
         if first is None and getattr(tts, "simulated", False):
             first = round((time.monotonic() - t0) * 1000.0, 1)
             if marks is not None:
@@ -1331,6 +1346,7 @@ class RoomPipeline:
         self._repeat_back = False
         self._drafts.clear()
         self._forget_voices()
+        self.echo_check.clear()  # echo_check.py: no repeat of burned words
         self.glossary = self._load_glossary()
         reset = getattr(self.engines.asr, "reset", None)
         if callable(reset):

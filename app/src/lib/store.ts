@@ -37,6 +37,7 @@ export interface Turn {
   corrected?: Record<string, string>; // lang -> previous text (struck and replaced)
   ignored?: EventData["voice.lock"]; // F-10: not the device owner's voice, dropped by the box
   continuedIn?: string; // a sentence cut at a pause: it goes on in this utterance (voice stopped, no check)
+  echo?: Record<string, EventData["voice.echo"][]>; // lang -> figures the voice said otherwise than written
   // simultaneous mode: a translation arrives in segments (seg 0, 1, ...); the last final carries segs
   segs?: Record<string, { parts: Record<number, Translation>; total: number | null }>;
   segFacts?: Record<string, Record<number, FactCheck[]>>;
@@ -328,6 +329,16 @@ export function apply(prev: RoomModel, e: AnyEnvelope): RoomModel {
         if (!t.speaker) t.speaker = e.data.speaker;
       }, { speaker: e.data.speaker, lang: "" });
       break;
+    case "voice.echo":
+      touch((t) => {
+        const lang = e.data.target_lang;
+        const same = (n: EventData["voice.echo"]) =>
+          n.clause === e.data.clause && n.kind === e.data.kind && n.written === e.data.written;
+        const notes = t.echo?.[lang] ?? [];
+        if (notes.some(same)) return;
+        t.echo = { ...(t.echo ?? {}), [lang]: [...notes, e.data] };
+      });
+      break;
     case "voice.state":
       m.voicePaused = e.data.playing ? e.data.paused ?? [] : [];
       break;
@@ -405,7 +416,9 @@ function dedupeKey(e: AnyEnvelope): string | null {
   const extra =
     e.type === "translation.delta"
       ? `${d.target_lang}:${d.seq ?? ""}:${d.delta}`
-      : e.type === "transcript.partial"
+      : e.type === "voice.echo" // several figures of one clause can share a millisecond
+        ? `${d.target_lang}:${d.clause ?? ""}:${d.kind}:${d.written}`
+        : e.type === "transcript.partial"
         ? String(d.seq)
         : "target_lang" in d
           ? String(d.target_lang)

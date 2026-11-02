@@ -121,6 +121,86 @@
   margin-top: var(--s-2);
 }
 
+/* voice echo check: the voice said a figure otherwise than written. A drawing note (corner ticks, no box,
+   no wash); the spoken figure struck through in the mismatch pen, the written one in ink. */
+.turn__echo {
+  position: relative;
+  justify-self: start;
+  display: grid;
+  gap: var(--s-1);
+  margin: var(--s-1) 0 0;
+  padding: var(--s-2) var(--s-3);
+  list-style: none;
+  animation: turn-in 200ms var(--ease-out) both;
+}
+.turn__echo::before,
+.turn__echo::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-color: var(--ink-2);
+  border-style: solid;
+}
+.turn__echo::before {
+  top: 0;
+  inset-inline-start: 0;
+  border-width: 2px 0 0 2px;
+}
+.turn__echo::after {
+  bottom: 0;
+  inset-inline-end: 0;
+  border-width: 0 2px 2px 0;
+}
+/* each label stays with its figure; a pair that starts a line hides its separator (clipped at the start) */
+.turn__echo-row {
+  overflow: hidden;
+  padding-block: 1px;
+}
+.turn__echo-pairs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  row-gap: var(--s-1);
+  margin-inline-start: -1.5rem;
+}
+.turn__echo-pair {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  white-space: nowrap;
+}
+.turn__echo-label {
+  font-family: var(--font-mono);
+  font-size: var(--label);
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+.turn__echo-spoken,
+.turn__echo-written {
+  unicode-bidi: isolate;
+  font-size: 1rem;
+  font-weight: 640;
+  white-space: nowrap;
+}
+.turn__echo-spoken {
+  color: var(--bad);
+  text-decoration-color: var(--bad);
+  text-decoration-thickness: 1.5px;
+}
+.turn__echo-written {
+  color: var(--ink);
+}
+.turn__echo-sep {
+  flex: none;
+  width: 1.5rem;
+  margin-inline-end: calc(var(--s-2) * -1); /* the pair's gap is part of the separator's 1.5rem */
+  text-align: center;
+  color: var(--ink-3);
+}
+
 .turn__again {
   font-size: var(--ramp-1);
   font-weight: 620;
