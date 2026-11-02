@@ -25,6 +25,7 @@ export interface ParticipantInfo {
   path: Path;
   rtt_ms?: number | null;
   audio_out?: "headphones" | "speaker" | "room";
+  voice?: "own" | "standard"; // C-13: an AI copy of the speaker's voice, or the standard voice
 }
 
 export interface FactCheck {

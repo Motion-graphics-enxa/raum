@@ -194,7 +194,9 @@ def test_token_metadata_room_config_and_dispatch(monkeypatch):
     cfg = load_config()
     a = SimpleNamespace(role="b", lang="tr", identity="b-spk", room="sz-4821", api_key="devkey", api_secret="secret")
     claims = api.TokenVerifier("devkey", "secret").verify(sp.mint_token(cfg, a, "Patient (speakerphone)"))
-    meta = {"role": "b", "lang": "tr", "device": "speakerphone", "path": "direct", "audio_out": "room"}
+    # no consent screen at a speakerphone: the standard voice, never a voice sample
+    meta = {"role": "b", "lang": "tr", "device": "speakerphone", "path": "direct", "audio_out": "room",
+            "voice": "standard"}
     assert claims.identity == "b-spk" and json.loads(claims.metadata) == meta and claims.attributes == meta
     assert claims.video.room == "sz-4821" and claims.video.can_publish and claims.video.can_subscribe
     assert claims.room_config.departure_timeout == cfg.network.departure_timeout_s

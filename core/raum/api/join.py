@@ -31,6 +31,10 @@ class JoinRequest(BaseModel):
     device: str = Field("phone", max_length=32)
     audio_out: Literal["headphones", "speaker", "room"] = Field(
         "speaker", description="How the voice plays on this device (C-14 echo control)")
+    voice: Literal["own", "standard"] = Field(
+        "own", description="Whose voice speaks this device's words (C-13): 'own' = an AI copy of the "
+                           "speaker's voice if the voice engine clones voices; 'standard' = its built-in "
+                           "voice, no voice sample")
     consent: bool = Field(False, description="Must be true: 'This is an AI interpreter' (EU AI Act Art. 50)")
     consent_version: str = Field(CONSENT_VERSION, max_length=64)
 
@@ -150,7 +154,8 @@ def room_configuration(cfg: RaumConfig) -> Any:
 def mint_token(cfg: RaumConfig, room: str, p: ParticipantInfo, name: str | None = None) -> str:
     from livekit import api
 
-    meta = {"role": p.role, "lang": p.lang, "device": p.device, "path": p.path, "audio_out": p.audio_out}
+    meta = {"role": p.role, "lang": p.lang, "device": p.device, "path": p.path, "audio_out": p.audio_out,
+            "voice": p.voice}
     grants = api.VideoGrants(room_join=True, room=room, can_publish=p.role != "observer", can_subscribe=True,
                              can_publish_data=True)
     tok = (api.AccessToken(cfg.network.livekit_api_key, cfg.network.livekit_api_secret)
@@ -169,7 +174,7 @@ def mint_token(cfg: RaumConfig, room: str, p: ParticipantInfo, name: str | None 
                                                                404: {"description": "unknown room / mode"}})
 async def join(body: JoinRequest, request: Request, core: CoreDep) -> JoinResponse:
     """Join a room: requires consent; returns a LiveKit token whose metadata and attributes carry
-    ``{role, lang, device, path}`` for the agent."""
+    ``{role, lang, device, path, audio_out, voice}`` for the agent."""
     if body.consent is not True:
         raise HTTPException(400, "consent required: this is an AI interpreter (EU AI Act Art. 50)")
     try:
@@ -179,7 +184,8 @@ async def join(body: JoinRequest, request: Request, core: CoreDep) -> JoinRespon
     lang = normalize_lang(body.lang, mode, body.role)
     path = detect_path(request)
     room, session, p = await core.sessions.join(body.room, role=body.role, lang=lang, device=body.device,
-                                                path=path, consent_version=body.consent_version, audio_out=body.audio_out)
+                                                path=path, consent_version=body.consent_version,
+                                                audio_out=body.audio_out, voice=body.voice)
     name = mode.label(body.role, lang) if body.role in ("a", "b") else "Observer"
     return JoinResponse(
         token=mint_token(core.cfg, room.id, p, name=name),

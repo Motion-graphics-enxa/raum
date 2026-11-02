@@ -80,14 +80,17 @@ class ParticipantUpdate(BaseModel):
     identity: str
     lang: str | None = None
     audio_out: Literal["headphones", "speaker", "room"] | None = None
+    voice: Literal["own", "standard"] | None = None
 
 
 @router.post("/rooms/{room}/participant")
 async def participant(room: str, body: ParticipantUpdate, core: CoreDep) -> dict[str, Any]:
-    """Change a joined device's language or voice output (C-02 one tap, C-14). The agent picks it up
-    from the next utterance via the participant's LiveKit metadata."""
+    """Change a joined device's language, voice output or voice (C-02 one tap, C-14, C-13). The agent picks
+    it up from the next utterance via the participant's LiveKit metadata; ``voice: standard`` drops the
+    device's voice sample at once."""
     lang = body.lang.lower().split("-")[0] if body.lang else None
-    p = await core.sessions.update_participant(room, body.identity, lang=lang, audio_out=body.audio_out)
+    p = await core.sessions.update_participant(room, body.identity, lang=lang, audio_out=body.audio_out,
+                                               voice=body.voice)
     return p.model_dump(mode="json")
 
 

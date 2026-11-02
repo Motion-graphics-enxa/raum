@@ -49,6 +49,10 @@ class ParticipantInfo(_Data):
     # its mic is never paused); "speaker" = the device's own mic pauses while its voice plays;
     # "room" = a shared speaker the whole room hears (all mics pause). Default: speaker.
     audio_out: Literal["headphones", "speaker", "room"] = "speaker"
+    # extension (C-13): whose voice speaks this device's words when the voice engine clones voices.
+    # "own" = an AI copy of the speaker's voice (a voice sample kept in memory only); "standard" = the
+    # engine's built-in voice, no sample is ever taken. Default: own.
+    voice: Literal["own", "standard"] = "own"
 
 
 class ParticipantJoined(ParticipantInfo):

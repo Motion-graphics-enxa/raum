@@ -570,3 +570,69 @@ async def test_cloned_voice_gets_no_clause_under_five_words():
         said = [svc.body(r)["text"] for r in svc.requests if r.method == "POST" and "voice_id" in svc.body(r)]
         assert said and all(len(t.split()) >= 5 or t == final.strip() for t in said), said  # or the whole sentence
         svc.requests.clear()
+
+
+# ---------------------------------------------------------------- per device: my own voice or the standard voice
+
+
+def with_voices(h: Harness, **voices: str) -> Harness:
+    """Both devices on headphones (both sampled, C-14) with their voice choice per role (default: own)."""
+    h.p.set_participants([p.model_copy(update={"audio_out": "headphones", "voice": voices.get(p.role, "own")})
+                          for p in (DOC, PAT)])
+    return h
+
+
+def posts(svc: Service, lang: str) -> list[dict]:
+    """The clauses the service was asked to speak in ``lang`` (the patient's words go to de, the doctor's to ar)."""
+    return [svc.body(r) for r in svc.requests if r.method == "POST" and svc.body(r).get("lang") == lang]
+
+
+async def test_standard_voice_speaker_never_has_a_sample_taken_or_sent():
+    svc = ForgetfulService()
+    h = with_voices(voiced(http_tts(svc)), b="standard")
+    for _ in range(3):
+        await speak(h, DOC.id, tone(3.0))
+        await speak(h, PAT.id, tone(3.0, freq=311.0))
+        await h.p.drain()
+    pat, doc = posts(svc, "de"), posts(svc, "ar")
+    assert pat and all("voice_ref" not in b and "voice_id" not in b for b in pat)  # the service's own voice
+    assert doc and any("voice_ref" in b for b in doc)  # the default, own, as before
+    assert PAT.id not in h.p._voice_refs and h.p.voice_ref(PAT.id) is None
+    assert h.p.min_voice_words(PAT.id) == 0 and h.p.min_voice_words(DOC.id) == 5
+    await h.p.handle_control(Control(action="burn"))
+    await asyncio.sleep(0.05)
+    assert set(svc.deleted) == svc.sent_ids()  # only the doctor's voice was ever there to delete
+
+
+async def test_switching_to_the_standard_voice_deletes_the_sample_at_once_and_back_starts_fresh():
+    svc = ForgetfulService()
+    h = with_voices(voiced(http_tts(svc)))
+    await speak(h, DOC.id, tone(4.0))
+    await speak(h, PAT.id, tone(4.0, freq=311.0))
+    await h.p.drain()
+    pat_ids = set(h.p._voice_refs[PAT.id].sent_ids)
+    assert pat_ids and pat_ids < svc.sent_ids()
+    assert h.p.min_voice_words(PAT.id) == 5
+
+    with_voices(h, b="standard")  # POST /api/rooms/{room}/participant {voice: standard}, via the agent
+    await asyncio.sleep(0.05)
+    assert set(svc.deleted) == pat_ids  # the patient's voice, at once, and nobody else's
+    assert PAT.id not in h.p._voice_refs and DOC.id in h.p._voice_refs
+    assert h.p.min_voice_words(PAT.id) == 0
+    svc.requests.clear()
+    await speak(h, PAT.id, tone(4.0, freq=311.0))
+    await h.p.drain()
+    assert posts(svc, "de") and all("voice_id" not in b for b in posts(svc, "de"))
+    assert PAT.id not in h.p._voice_refs
+
+    with_voices(h)  # back to my own voice: a fresh sample from the next utterance on
+    assert len(svc.deleted) == len(pat_ids)
+    svc.requests.clear()
+    await speak(h, PAT.id, tone(4.0, freq=330.0))
+    await h.p.drain()
+    pcm, _ = wav_pcm(h.p.voice_ref(PAT.id))
+    expected = (np.clip(tone(4.0, freq=330.0)[:59200], -1, 1) * 32767).astype(np.int16)
+    assert len(pcm) == 59200 and np.array_equal(pcm, expected)  # only the new utterance, trailing silence cut
+    new_ids = set(h.p._voice_refs[PAT.id].sent_ids)
+    assert new_ids and not new_ids & pat_ids
+    assert {b["voice_id"] for b in posts(svc, "de") if "voice_id" in b} == new_ids

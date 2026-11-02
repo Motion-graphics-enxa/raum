@@ -40,9 +40,11 @@ Additions beyond the contract (all optional):
 - Voice like the speaker's (C-13, ``raum.pipeline.voice``): if the voice engine uses a voice sample
   (``tts.uses_voice_ref``), the first ~8 s of each speaker's clean speech are kept in memory only and
   passed with that speaker's translated words (``synthesize(..., voice_ref=wav, rate=pace)``); dropped
-  on burn, session end / a new session (``set_state``) and ``aclose``. ``rate`` (the speaker's words
-  per second / 2.5) is passed to every engine
-  that accepts it. Never in events, logs, the store or the audit log.
+  on burn, session end / a new session (``set_state``) and ``aclose``. Per device
+  (``ParticipantInfo.voice``): ``standard`` means no sample is ever taken or sent for that speaker (the
+  service's built-in voice); a switch to it drops the sample at once (``forget_speaker``). ``rate`` (the
+  speaker's words per second / 2.5) is passed to every engine that accepts it. Never in events, logs, the
+  store or the audit log.
 - Voice lock (F-10, ``raum.pipeline.voicelock``, ``models.voicelock``, off by default): each device's mic only
   produces its owner's utterances. The speaker embedding runs beside the final ASR; after the ASR, an utterance
   that is not the owner's voice is dropped before ``transcript.final`` (not translated, spoken, stored or
@@ -365,8 +367,11 @@ class RoomPipeline:
 
     def set_participants(self, participants: list[ParticipantInfo]) -> None:
         """Membership or a device's language / voice output changed: used from the next utterance (ASR hint,
-        target languages) and at once by echo control."""
+        target languages) and at once by echo control. A device that switched to the standard voice has its
+        voice sample dropped at once, here and in the voice service (C-13)."""
         self.participants = {p.id: p for p in participants}
+        for speaker in [i for i, p in self.participants.items() if p.voice == "standard" and i in self._voice_refs]:
+            self.forget_speaker(speaker)
         changed = self.echo.refresh(self.participants.values())
         try:
             asyncio.get_running_loop()
@@ -834,9 +839,9 @@ class RoomPipeline:
     def min_voice_words(self, speaker: str | None) -> int:
         """Shortest clause the voice may speak alone: cross-lingual clones are clean only from ~5 words
         ("Danke. Danke.", dropped words), so with the speaker's own cloned voice short clauses go with the
-        next one (``tts.options.min_clause_words``, default 5). 0 for stock voices."""
+        next one (``tts.options.min_clause_words``, default 5). 0 for stock voices and the standard voice."""
         tts = self.engines.tts
-        if speaker is None or tts is None or not self._uses_voice_ref():
+        if speaker is None or tts is None or not self._own_voice(speaker):
             return 0
         ref = self._voice_refs.get(speaker)
         if ref is None or ref.seconds < self.voice_ref_min_s:
@@ -913,12 +918,20 @@ class RoomPipeline:
     def _uses_voice_ref(self) -> bool:
         return self.voice_ref_on and self._tts_enabled() and bool(getattr(self.engines.tts, "uses_voice_ref", False))
 
+    def _own_voice(self, speaker: str | None) -> bool:
+        """Are this speaker's words spoken in a copy of their own voice? Only with an engine that clones and
+        only while their device keeps ``voice: own`` (the default); with ``standard`` no voice sample is ever
+        taken and none is sent: the service speaks its built-in voice."""
+        if speaker is None or not self._uses_voice_ref():
+            return False
+        return getattr(self.participants.get(speaker), "voice", "own") != "standard"
+
     def _voice_args(self, u: _Utt, audio: np.ndarray, vad_ms: float, words: list[dict[str, Any]],
                     text: str) -> VoiceArgs:
         """The speaker's pace, and their voice sample (grown from clean utterances up to ``voice_ref_s``)."""
         seconds = speech_seconds(len(audio) / SAMPLE_RATE, vad_ms, words, self.vad_pad_s)
         rate = self._rates.setdefault(u.speaker, SpeakingRate(self.base_wps)).update(text, seconds)
-        if not self._uses_voice_ref():
+        if not self._own_voice(u.speaker):
             return VoiceArgs(rate=rate)
         ref = self._voice_refs.get(u.speaker)
         if ref is None:
@@ -944,7 +957,8 @@ class RoomPipeline:
         self._forget_in_service(ids)
 
     def forget_speaker(self, speaker: str) -> None:
-        """A device left for good (after the rejoin grace): its voice sample goes, here and in the service."""
+        """A device left for good (after the rejoin grace) or switched to the standard voice: its voice sample
+        goes, here and in the service. Back to its own voice, a fresh sample starts."""
         ref = self._voice_refs.pop(speaker, None)
         self._rates.pop(speaker, None)
         if ref is not None:

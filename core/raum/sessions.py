@@ -492,22 +492,24 @@ class SessionManager:
 
     async def join(self, room_id: str, *, role: str, lang: str, device: str, path: str,
                    consent_version: str = CONSENT_VERSION,
-                   audio_out: str = "speaker") -> tuple[Room, Session, ParticipantInfo]:
+                   audio_out: str = "speaker", voice: str = "own") -> tuple[Room, Session, ParticipantInfo]:
         room = self.room(room_id)
         s, new = self.ensure_session(room)
         p = ParticipantInfo(id=self._new_identity(room, role), role=role, lang=lang, device=device, path=path,
-                            audio_out=audio_out)
+                            audio_out=audio_out, voice=voice)
         room.issued[p.id] = p
         s.touch()
-        self._audit("consent", s.id, role=role, lang=lang, device=device, consent_version=consent_version)
+        self._audit("consent", s.id, role=role, lang=lang, device=device, consent_version=consent_version,
+                    voice=p.voice)
         if new:
             await self.state_changed(room)
         return room, s, p
 
     async def update_participant(self, room_id: str, identity: str, *, lang: str | None = None,
-                                 audio_out: str | None = None) -> ParticipantInfo:
-        """C-02 after joining: change language / voice output. Pushes new metadata to LiveKit so the
-        agent re-reads the participant from the next utterance."""
+                                 audio_out: str | None = None, voice: str | None = None) -> ParticipantInfo:
+        """C-02 after joining: change language / voice output / whose voice (C-13). Pushes new metadata to
+        LiveKit so the agent re-reads the participant from the next utterance (a switch to the standard
+        voice drops the device's voice sample at once)."""
         room = self.find_room(room_id)
         p = room.participants.get(identity) or room.issued.get(identity)
         if p is None:
@@ -517,15 +519,18 @@ class SessionManager:
             changes["lang"] = lang
         if audio_out:
             changes["audio_out"] = audio_out
+        if voice:
+            changes["voice"] = voice
         p = _participant({**p.model_dump(), **changes})
         if identity in room.participants:
             room.participants[identity] = p
         room.issued[identity] = p
         if room.session is not None:
-            self._audit("participant_update", room.session.id, role=p.role, lang=p.lang)
+            self._audit("participant_update", room.session.id, role=p.role, lang=p.lang, voice=p.voice)
         upd = getattr(self.publisher, "update_participant", None)
         if upd is not None:
-            meta = {"role": p.role, "lang": p.lang, "device": p.device, "path": p.path, "audio_out": p.audio_out}
+            meta = {"role": p.role, "lang": p.lang, "device": p.device, "path": p.path, "audio_out": p.audio_out,
+                    "voice": p.voice}
             await upd(room_id, identity, meta)
         await self.state_changed(room, publish=True)
         return p
@@ -946,7 +951,8 @@ class SessionManager:
             if ev == "session_start":
                 started = {"ts": ts, **{k: m.get(k) for k in ("room", "mode", "profile", "reason")}}
             elif ev == "consent":
-                consents.append({"ts": ts, **{k: m.get(k) for k in ("role", "lang", "device", "consent_version")}})
+                consents.append({"ts": ts, **{k: m.get(k) for k in ("role", "lang", "device", "consent_version",
+                                                                     "voice")}})
             elif ev == "models":
                 models = m.get("models") or {k: v for k, v in m.items()}
             elif ev == "off_record_on":

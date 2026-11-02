@@ -80,7 +80,7 @@ def test_join_token_metadata_and_grants(client):
     uuid.UUID(j["session_id"])
     claims = api.TokenVerifier("devkey", "secret").verify(j["token"])
     assert claims.identity == j["identity"]
-    meta = {"role": "b", "lang": "ar", "device": "phone", "path": "direct", "audio_out": "speaker"}
+    meta = {"role": "b", "lang": "ar", "device": "phone", "path": "direct", "audio_out": "speaker", "voice": "own"}
     assert json.loads(claims.metadata) == meta
     assert claims.attributes == meta
     v = claims.video
@@ -89,6 +89,17 @@ def test_join_token_metadata_and_grants(client):
     obs = join(client, role="observer", lang="de")
     oc = api.TokenVerifier("devkey", "secret").verify(obs["token"])
     assert oc.video.can_publish is False and oc.video.can_subscribe and oc.video.can_publish_data
+
+
+def test_join_voice_choice_reaches_token_and_consent_audit(client, core):
+    j = join(client, voice="standard")
+    claims = api.TokenVerifier("devkey", "secret").verify(j["token"])
+    assert json.loads(claims.metadata)["voice"] == "standard" and claims.attributes["voice"] == "standard"
+    consent = [e["meta"] for e in core.sessions.audit.entries(session=j["session_id"]) if e["event"] == "consent"]
+    assert consent[-1]["voice"] == "standard"
+    assert client.get(f"/api/rooms/{ROOM}/compliance").json()["consents"][-1]["voice"] == "standard"
+    r = client.post("/api/join", json={"room": ROOM, "role": "b", "lang": "ar", "consent": True, "voice": "clone"})
+    assert r.status_code == 422
 
 
 def test_join_lang_defaults_from_mode(client):
@@ -365,6 +376,37 @@ def test_events_ws_meter_and_gpu_ticks(client):
     assert e.value.code == 4404
 
 
+def test_health_reports_voice_clone_only_for_a_cloning_engine(client, core):
+    from raum.config import EngineConfig
+
+    assert client.get("/api/health").json()["features"]["voice_clone"] is False  # mock profile
+    core.cfg.models.tts = EngineConfig(engine="http", url="http://127.0.0.1:8090")
+    assert client.get("/api/health").json()["features"]["voice_clone"] is True
+    core.cfg.models.tts = EngineConfig(engine="http", options={"voice_ref": False})  # sample capture off
+    assert client.get("/api/health").json()["features"]["voice_clone"] is False
+    for engine in ("piper", "mock", "off"):
+        core.cfg.models.tts = EngineConfig(engine=engine)
+        assert client.get("/api/health").json()["features"]["voice_clone"] is False, engine
+
+
+def test_voice_switch_pushes_metadata_and_is_audited(client, core, pub):
+    pushed: list[dict] = []
+
+    async def update_participant(room, identity, meta):
+        pushed.append(meta)
+        return True
+
+    pub.update_participant = update_participant
+    j = join(client)
+    r = client.post(f"/api/rooms/{ROOM}/participant", json={"identity": j["identity"], "voice": "standard"})
+    assert r.status_code == 200 and r.json()["voice"] == "standard"
+    assert pushed == [{"role": "b", "lang": "ar", "device": "phone", "path": "direct", "audio_out": "speaker",
+                       "voice": "standard"}]
+    upd = [e["meta"] for e in core.sessions.audit.entries(session=j["session_id"])
+           if e["event"] == "participant_update"]
+    assert upd == [{"role": "b", "lang": "ar", "voice": "standard"}]
+
+
 def test_participant_update_changes_lang_and_audio_out(tmp_path):
     from fastapi.testclient import TestClient
 
@@ -378,4 +420,10 @@ def test_participant_update_changes_lang_and_audio_out(tmp_path):
         assert r.status_code == 200 and r.json()["lang"] == "ar" and r.json()["audio_out"] == "headphones"
         r = c.post("/api/rooms/sz-7001/participant", json={"identity": j["identity"], "audio_out": "speaker"})
         assert r.json()["audio_out"] == "speaker" and r.json()["lang"] == "ar"
+        assert r.json()["voice"] == "own"  # the default
+        r = c.post("/api/rooms/sz-7001/participant", json={"identity": j["identity"], "voice": "standard"})
+        assert r.json()["voice"] == "standard" and r.json()["lang"] == "ar" and r.json()["audio_out"] == "speaker"
+        r = c.post("/api/rooms/sz-7001/participant", json={"identity": j["identity"], "lang": "tr"})
+        assert r.json()["voice"] == "standard"  # kept
+        assert c.post("/api/rooms/sz-7001/participant", json={"identity": j["identity"], "voice": "x"}).status_code == 422
         assert c.post("/api/rooms/sz-7001/participant", json={"identity": "b-nope"}).status_code == 404

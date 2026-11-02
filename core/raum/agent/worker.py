@@ -7,10 +7,11 @@ rooms are rejected. LiveKit URL / key / secret from ``LIVEKIT_URL`` / ``LIVEKIT_
 ``LIVEKIT_API_SECRET``, else ``raum.yaml`` ``network``.
 
 Per room: subscribe to every remote participant's mic (agents skipped). Participant metadata is
-JSON ``{"role", "lang", "device", "path", "audio_out"}`` (attributes carry the same keys). Core changes a
-device's language / voice output live (``POST /api/rooms/{room}/participant`` updates both): the
-change events re-read it, the pipeline uses it from the next utterance, and ``participant.joined`` is
-sent again with the new info. Per track: ``rtc.AudioStream`` (16 kHz mono; or 48 kHz -> soxr to
+JSON ``{"role", "lang", "device", "path", "audio_out", "voice"}`` (attributes carry the same keys). Core
+changes a device's language / voice output / voice live (``POST /api/rooms/{room}/participant`` updates
+both): the change events re-read it, the pipeline uses it from the next utterance (a switch to the
+standard voice drops that device's voice sample at once), and ``participant.joined`` is sent again with
+the new info. Per track: ``rtc.AudioStream`` (16 kHz mono; or 48 kHz -> soxr to
 16 kHz when DeepFilterNet is on) -> Silero VAD stream; START_OF_SPEECH / INFERENCE_DONE /
 END_OF_SPEECH drive ``RoomPipeline.speech_start / speech_audio / speech_end`` (the end-of-speech frames
 are the final audio; ``vad_ms`` is the endpoint delay). With DeepFilterNet the 48 kHz audio is also
@@ -53,6 +54,7 @@ log = logging.getLogger("raum.agent")
 AGENT_IDENTITY = "raum-agent"
 AGENT_NAME = "RAUM"
 AUDIO_OUTS = ("headphones", "speaker", "room")
+VOICES = ("own", "standard")  # C-13: an AI copy of the speaker's voice, or the engine's standard voice
 # C-12: a phone that left (Wi-Fi gone, page reloaded) stays a translation target this long, so the
 # turns spoken while it was away are translated into its language and reach it through the backlog.
 REJOIN_GRACE_S = float(os.environ.get("RAUM_REJOIN_GRACE_S", "120"))
@@ -131,7 +133,7 @@ def is_agent(p: Any) -> bool:
 
 
 def participant_info(p: Any, *, prefer: str = "metadata") -> ParticipantInfo:
-    """Metadata JSON ``{"role","lang","device","path","audio_out"}`` and attributes (same keys, strings);
+    """Metadata JSON ``{"role","lang","device","path","audio_out","voice"}`` and attributes (same keys, strings);
     identity ``b-k3x9`` as the role fallback. Core sets both to the same JSON; ``prefer`` names the one
     that just changed, so whichever change event arrives first already reads the new values."""
     meta: dict[str, Any] = {}
@@ -157,8 +159,11 @@ def participant_info(p: Any, *, prefer: str = "metadata") -> ParticipantInfo:
     audio_out = get("audio_out", "speaker")
     if audio_out not in AUDIO_OUTS:
         audio_out = "speaker"
+    voice = get("voice", "own")
+    if voice not in VOICES:
+        voice = "own"
     return ParticipantInfo(id=p.identity, role=role, lang=get("lang", "auto"), device=get("device", "phone"),
-                           path=path, audio_out=audio_out)
+                           path=path, audio_out=audio_out, voice=voice)
 
 
 class RoomAgent:
@@ -315,7 +320,7 @@ class RoomAgent:
         asyncio.create_task(self._emit_new("participant.joined", info))
 
     def _on_participant_changed(self, p: Any, prefer: str = "metadata") -> None:
-        """Metadata or attributes changed (core: language / voice output). Both carry the same JSON, so
+        """Metadata or attributes changed (core: language / voice output / voice). Both carry the same JSON, so
         the second event of a pair finds nothing new and announces nothing."""
         if is_agent(p) or p.identity not in self.infos:
             return
@@ -324,8 +329,9 @@ class RoomAgent:
         if info != old:
             self.infos[p.identity] = info
             self._sync_participants()
-            log.info("participant %s changed: lang %s -> %s, audio_out %s -> %s", p.identity,
-                     old.lang if old else None, info.lang, old.audio_out if old else None, info.audio_out)
+            log.info("participant %s changed: lang %s -> %s, audio_out %s -> %s, voice %s -> %s", p.identity,
+                     old.lang if old else None, info.lang, old.audio_out if old else None, info.audio_out,
+                     old.voice if old else None, info.voice)
             asyncio.create_task(self._emit_new("participant.joined", info))
 
     def _on_participant_disconnected(self, p: Any) -> None:

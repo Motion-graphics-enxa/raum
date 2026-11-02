@@ -5,10 +5,12 @@
     raum speakerphone --room sz-4821 --wav x.wav --out-wav voice.wav      # no audio hardware (tests)
 
 It joins with participant metadata ``{"role", "lang", "device": "speakerphone", "path": "direct",
-"audio_out": "room"}`` (token minted with the box's LiveKit keys like ``scripts/bot.py``, with the same
-room settings and agent dispatch as core's tokens), publishes the system microphone as its mic track
-and plays the agent's ``tts-<lang>`` voice track on the device. ``audio_out: room`` tells the agent that
-everyone in the room hears this speaker, so every mic pauses while it plays (C-14).
+"audio_out": "room", "voice": "standard"}`` (token minted with the box's LiveKit keys like
+``scripts/bot.py``, with the same room settings and agent dispatch as core's tokens), publishes the
+system microphone as its mic track and plays the agent's ``tts-<lang>`` voice track on the device.
+``audio_out: room`` tells the agent that everyone in the room hears this speaker, so every mic pauses
+while it plays (C-14). ``voice: standard``: a speakerphone has no consent screen to choose a cloned
+voice on, so its speakers' words are spoken in the standard voice and no voice sample is taken (C-13).
 
 Audio goes through PortAudio (``sounddevice``, extra ``speakerphone``): on Linux that is ALSA, and
 with PipeWire the ``pipewire`` / ``default`` devices route to PipeWire's default source and sink
@@ -401,8 +403,10 @@ def mint_token(cfg: Any, a: argparse.Namespace, name: str) -> str:
 
     from raum.api.join import room_configuration
 
-    meta = {"role": a.role, "lang": a.lang, "device": "speakerphone", "path": "direct", "audio_out": "room"}
-    tok = (api.AccessToken(a.api_key, a.api_secret)
+    # voice "standard": nobody at a speakerphone saw the consent screen's voice choice, so no voice sample
+    meta = {"role": a.role, "lang": a.lang, "device": "speakerphone", "path": "direct", "audio_out": "room",
+            "voice": "standard"}
+    tok =(api.AccessToken(a.api_key, a.api_secret)
            .with_identity(a.identity)
            .with_name(name)
            .with_metadata(json.dumps(meta))

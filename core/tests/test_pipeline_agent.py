@@ -122,6 +122,15 @@ def test_participant_info_reads_audio_out_and_prefers_the_changed_source():
     assert (via_attrs.lang, via_attrs.audio_out) == ("tr", "room")
 
 
+def test_participant_info_reads_the_voice_choice():
+    meta = {"role": "b", "lang": "ar", "voice": "standard"}
+    assert participant_info(_p("b-k3x9", json.dumps(meta), _attrs(meta))).voice == "standard"
+    assert participant_info(_p("b-1", json.dumps({"role": "b", "lang": "ar"}))).voice == "own"  # default
+    assert participant_info(_p("b-1", json.dumps({"voice": "clone-me"}))).voice == "own"
+    half = _p("b-k3x9", json.dumps({**meta, "voice": "own"}), _attrs(meta))
+    assert participant_info(half).voice == "own" and participant_info(half, prefer="attributes").voice == "standard"
+
+
 def _agent():
     from pipeline_helpers import fast_config
 
@@ -172,6 +181,33 @@ async def test_live_participant_change_reaches_the_pipeline_and_the_devices():
 
     agent._on_participant_changed(_p("b-unknown", json.dumps(back)))  # never connected: ignored
     assert "b-unknown" not in agent.pipeline.participants
+
+
+async def test_a_switch_to_the_standard_voice_drops_the_devices_voice_sample():
+    from raum.pipeline.voice import VoiceRef
+
+    agent, events = _agent()
+    forgotten: list[list[str]] = []
+
+    async def forget(ids):
+        forgotten.append(sorted(ids))
+
+    agent.engines.tts = SimpleNamespace(uses_voice_ref=True, forget=forget)
+    meta = {"role": "b", "lang": "ar", "device": "phone", "path": "direct", "audio_out": "headphones", "voice": "own"}
+    p = _p("b-k3x9", json.dumps(meta), _attrs(meta))
+    agent._on_participant_connected(p)
+    ref = agent.pipeline._voice_refs["b-k3x9"] = VoiceRef()
+    ref.add(np.ones(16000 * 4, dtype=np.float32) * 0.1)
+    ref.sent_ids.add("abc123")
+
+    new = {**meta, "voice": "standard"}
+    p.metadata = json.dumps(new)
+    agent._on_participant_changed(p)
+    await asyncio.sleep(0.01)
+    assert "b-k3x9" not in agent.pipeline._voice_refs and ref.seconds == 0
+    assert forgotten == [["abc123"]]  # the voice service is told too
+    assert agent.pipeline.participants["b-k3x9"].voice == "standard"
+    assert [e.data["voice"] for e in events if e.type == "participant.joined"] == ["own", "standard"]
 
 
 async def test_mic_frames_of_a_paused_device_reach_the_vad_as_silence():

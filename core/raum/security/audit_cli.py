@@ -45,7 +45,8 @@ def compliance_export(path: str | Path, session_id: str) -> dict[str, Any] | Non
         if ev == "session_start":
             started = {"ts": ts, **{k: m.get(k) for k in ("room", "mode", "profile", "reason")}}
         elif ev == "consent":
-            consents.append({"ts": ts, **{k: m.get(k) for k in ("role", "lang", "device", "consent_version")}})
+            consents.append({"ts": ts, **{k: m.get(k) for k in ("role", "lang", "device", "consent_version",
+                                                                 "voice")}})
         elif ev == "models":
             models = m.get("models") or dict(m)
         elif ev == "off_record_on":

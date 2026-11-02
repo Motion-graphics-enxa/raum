@@ -123,6 +123,12 @@ async def burn_all(core: CoreDep) -> dict[str, Any]:
 
 @router.get("/health")
 async def health(core: CoreDep) -> dict[str, Any]:
+    """``features.voice_clone``: the voice engine speaks in a copy of the speaker's voice, so the app shows the
+    "my own voice / standard voice" choice and its disclosure (C-13)."""
+    from raum.pipeline.tts import clones_voice
+
+    tts = core.cfg.models.tts
     return {"ok": True, "service": "raum-core", "profile": core.cfg.profile, "version": _version(),
             "rooms": len(core.sessions.rooms), "uptime_s": round(time.time() - core.started_at, 1),
-            "features": {"document_camera": core.cfg.models.vision.enabled}}
+            "features": {"document_camera": core.cfg.models.vision.enabled,
+                         "voice_clone": clones_voice(tts.engine, tts.options)}}

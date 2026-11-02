@@ -305,7 +305,7 @@ def test_document_endpoint_when_vision_is_off_or_fails(client, core):
     core.sessions._vision = Broken()
     r = post_doc(client, img)
     assert r.status_code == 502 and "could not be read" in r.json()["detail"]
-    assert client.get("/api/health").json()["features"] == {"document_camera": True}
+    assert client.get("/api/health").json()["features"] == {"document_camera": True, "voice_clone": False}
 
 
 def test_document_off_the_record_is_shown_but_not_stored(client, core):

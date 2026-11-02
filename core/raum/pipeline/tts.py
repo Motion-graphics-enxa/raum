@@ -511,6 +511,13 @@ class PiperTTS:
             await proc.wait()
 
 
+def clones_voice(engine: Any, options: dict[str, Any] | None = None) -> bool:
+    """Does this voice engine speak in an AI copy of the speaker's voice? Only ``http`` does
+    (``HttpTTS.uses_voice_ref``), unless ``options.voice_ref`` is false (the pipeline then takes no
+    sample). ``GET /api/health`` reports it as ``features.voice_clone``: the app offers the voice choice."""
+    return engine == "http" and bool((options or {}).get("voice_ref", True))
+
+
 def make_tts(engine: Any, options: dict[str, Any] | None = None, model: str | None = None, *,
              url: str | None = None, fallback: Any = "piper") -> Any:
     """``fallback`` (``http`` only): ``piper`` (default; same options), ``none``, or
