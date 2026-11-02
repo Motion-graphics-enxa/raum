@@ -98,6 +98,7 @@ class Speculator:
         ``speech_seconds``), so the pre-synthesised phrase gets the pace the live call will use."""
         if not self.enabled or not text.strip() or u.closed:
             return
+        text = self.p.fix_terms(text, lang)  # as room._turn will correct the final, or the key never matches
         lanes = self.p.simul.lanes(u.id)
         rec = SimpleNamespace(utt=u.id, speaker=u.speaker, role=u.role, lang=lang, text=text.strip(), turn=u.turn)
         context = self.p._context()

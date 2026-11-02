@@ -130,8 +130,9 @@ class WhisperCppASR:
             "temperature": str(self.options.get("temperature", 0.0)),
             "language": hint or "auto",
         }
-        if self.options.get("prompt"):
-            data["prompt"] = str(self.options["prompt"])
+        prompt = whisper_prompt(self.options.get("prompt"), getattr(turn, "asr_prompt", None))
+        if prompt:
+            data["prompt"] = prompt
         files = {"file": ("audio.wav", float_to_wav(audio, ASR_SAMPLE_RATE), "audio/wav")}
         r = await self._client.post(f"{self.url}/inference", data=data, files=files)
         r.raise_for_status()
@@ -147,6 +148,14 @@ class WhisperCppASR:
     async def aclose(self) -> None:
         if self._own:
             await self._client.aclose()
+
+
+def whisper_prompt(configured: Any, glossary: str | None) -> str:
+    """whisper's ``prompt``: the configured one (``models.asr.options.prompt``), then the room glossary's
+    terms (``TurnContext.asr_prompt``). The glossary goes last because whisper.cpp keeps only the last
+    n_text_ctx / 2 (224) prompt tokens, dropping from the front, and the text nearest the audio conditions the
+    decoder most: the spelling hints survive a long configured prompt and weigh the most."""
+    return " ".join(s for s in (str(configured or "").strip(), (glossary or "").strip()) if s)
 
 
 def _confidence(j: dict[str, Any]) -> tuple[float, list[dict[str, Any]]]:

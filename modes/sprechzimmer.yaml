@@ -13,6 +13,7 @@ guard:
   kinds: [dose, frequency, allergy, date, time, number, medication, negation]
   confirm_on: [dose, allergy]
 glossary: glossaries/medical-de.yaml
+asr: { glossary_prompt: true }   # the glossary's terms as whisper's prompt: "Metformin", not "Medformin"
 prompts:
   translate: prompts/translate.md
   summary: prompts/summary-sprechzimmer.md

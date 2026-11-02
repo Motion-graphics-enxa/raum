@@ -332,6 +332,20 @@ class RoomPipeline:
             log.exception("glossary %s failed to load", self.mode.glossary)
             return Glossary()
 
+    def _asr_prompt(self, lang: str | None) -> str | None:
+        """Spelling hints for every ASR call of an utterance (rooms with ``asr.glossary_prompt``): the current
+        glossary, session uploads and corrections included, in the speaker's language (``Glossary.asr_prompt``;
+        "und": the language-neutral German forms). Rebuilt only when the glossary changed."""
+        if not self.mode.asr.glossary_prompt:
+            return None
+        return self.glossary.asr_prompt(lang) or None
+
+    def fix_terms(self, text: str, lang: str | None) -> str:
+        """A misheard glossary medication in the glossary's spelling ("Medformin" -> "Metformin", guard.py
+        ``correct_medications``): what the card shows, the translator reads and the fact guard checks."""
+        fixed, _ok = _guard_call(guard.correct_medications, text, lang or "", self.glossary)
+        return fixed if isinstance(fixed, str) else text
+
     @property
     def sched(self) -> Scheduler:
         if self.scheduler is None:
@@ -450,7 +464,7 @@ class RoomPipeline:
         self._utt_n += 1
         uid = f"u-{self._utt_n:04d}"
         turn = TurnContext(room=self.room, mode=self.mode.id, speaker=speaker, role=role, utt=uid,
-                           speech_ms=0.0, turn_index=self._turn_index)
+                           speech_ms=0.0, turn_index=self._turn_index, asr_prompt=self._asr_prompt(lang))
         self._turn_index += 1
         u = _Utt(id=uid, speaker=speaker, role=role, lang=lang, hint=hint, turn=turn,
                  next_partial_ms=self.partial_every_ms)
@@ -621,7 +635,7 @@ class RoomPipeline:
         # which transcript this is: the stable partial (simul.py), the early final of the pause, or a final pass
         timing["asr_from"] = "partial" if res.from_partial else ("early" if asr is not None else "final")
         src_lang = lang_code(res.lang) or u.hint or self._default_lang(u.role)
-        text = res.text.strip()
+        text = self.fix_terms(res.text.strip(), src_lang)  # the glossary's spelling, before anyone sees it
         # F-10 voice lock: not the device owner's voice -> dropped here, before anything of it is published
         clean = bool(text) and res.conf >= self.cfg.asr_min_conf and not u.echoed  # may teach the owner's voice
         if not await self.voicelock.admit(lock, clean=clean):

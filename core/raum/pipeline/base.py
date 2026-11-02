@@ -27,6 +27,9 @@ class TurnContext:
     utt: str  # utterance id, e.g. "u-0007"
     speech_ms: float = 0.0  # speech duration so far
     turn_index: int = 0  # utterances so far in this room
+    # spelling hints for the recogniser (whisper ``prompt``): the room glossary's terms in the speaker's
+    # language, for rooms with ``asr.glossary_prompt`` (room.py ``_asr_prompt``); None = no hints
+    asr_prompt: str | None = None
 
 
 @dataclass
