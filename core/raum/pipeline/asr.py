@@ -83,8 +83,8 @@ class MockASR:
         line = self.line_for(turn)
         lang = line.lang_for(lang_code(lang_hint))
         text = line.source(lang)
+        speech_ms = turn.speech_ms or (len(audio) / ASR_SAMPLE_RATE * 1000.0 if audio is not None else 0.0)
         if partial or self.options.get("final_reveal"):  # final_reveal: the final has only what was said
-            speech_ms = turn.speech_ms or (len(audio) / ASR_SAMPLE_RATE * 1000.0 if audio is not None else 0.0)
             words = text.split()
             expected = max(1.0, len(words) * self.word_ms)
             n = max(1, math.ceil(min(1.0, speech_ms / expected) * len(words)))
@@ -92,6 +92,10 @@ class MockASR:
             if n < len(words):  # the last word is still being heard: its punctuation is not known yet
                 shown[-1] = _TRAILING_PUNCT.sub("", shown[-1]) or shown[-1]
             text = " ".join(shown)
+        timed: list[dict[str, Any]] = []
+        if self.options.get("word_times"):  # like whisper.cpp verbose_json: word i said from i * word_ms
+            timed = [{"word": f" {w}", "start": i * self.word_ms / 1000.0, "end": (i + 1) * self.word_ms / 1000.0,
+                      "probability": line.conf} for i, w in enumerate(text.split())]
         if partial:
             spec = self.options.get("partial_latency_ms")
             delay = sample_ms(spec, rng=self._rng) if spec is not None else \
@@ -100,7 +104,7 @@ class MockASR:
             delay = sample_ms(self.options.get("latency_ms"), rng=self._rng)
         await sleep_ms(delay)
         return AsrResult(text=text, lang=lang, conf=line.conf, ms=(time.perf_counter() - t0) * 1000.0,
-                         has_conf=True)
+                         has_conf=True, words=timed)
 
 
 class WhisperCppASR:
