@@ -8,6 +8,8 @@ _Read by the ops session. Updated at every milestone. Last update: Mon 2 Nov, ~1
 - **raum-core:** join (LiveKit token, metadata role/lang/device/path/audio_out), rooms, control, presence, **participant update** (`POST /api/rooms/{room}/participant {identity, lang?, audio_out?}`), end -> summary, approve, burn, compliance, events WS + backlog, privacy meter/seal, admin, agent link.
 - **raum-agent:** Silero VAD, RoomPipeline (§6.4 events), clause-by-clause voice, cold-load-safe warm-ups (checker answers amber "warming up" until resident), room-based capacity, questions/`present` facts don't interrupt.
 - **Echo control per device (C-14):** only mics that hear the voice pause (playback + 300 ms, `voice.state`); live lang/audio_out changes from participant metadata apply from the next utterance.
+- **Voice lanes (P0 fix, e0f806b):** one writer per `tts-<lang>` source; utterances into one language speak in turn; a failed clause is dropped (3 in a row: that language pauses 20 s), never off for the session; a failed source is replaced.
+- **Semantic end of turn (ops, 47ed350):** VAD 0.25 s pause -> early final ASR + smart-turn + LiveKit text turn model -> end now / 1.0 s / 1.6 s; speech in the wait continues the utterance. Extra `turn`; off in mock.
 - **Voice:** resident Piper process per voice (restart on hang/death); TTS interface `synthesize(text, lang, voice_ref, rate)`; `http` engine for a voice-cloning service (:8090, fallback piper), voice sample in memory only (`pipeline/voice.py`, privacy test).
 - **F-07 document camera:** `POST /api/rooms/{room}/document` -> `document.ready` (photo never stored); camera in the Sprechzimmer/Kanzlei menu, cards in the transcript (frame in the viewer's language, reading in its own).
 - **N-02 deal glossary:** `POST|GET /api/rooms/{room}/glossary` (YAML/CSV); compact row in the Verhandlungsraum menu. **K-02** explain simply hardened (background, falls back to the plain translation).
@@ -17,18 +19,20 @@ _Read by the ops session. Updated at every milestone. Last update: Mon 2 Nov, ~1
 - **Design:** impeccable only. PRODUCT.md, direction contract `.impeccable/surfaces/`, finish review (fix -> verdict -> final batch), **DESIGN.md** + `.impeccable/design.json`.
 - **No third-party bytes:** LiveKit gets LAN-only STUN/TURN (box's own :3478; compose, livekit.yaml, dev.sh), onnxruntime telemetry off (ops 739e8a1); privacy meter reads 0 B on the GX10.
 - **Deploy:** `deploy/push.sh` -> `gx10:~/Desktop/HackathonRaum/raum`; `deploy/box.sh` (sources `runtime/raum.env`; process groups); `RAUM_UV_EXTRAS="--extra denoise"` for DeepFilterNet.
-- **Tests:** `cd core && uv run pytest -q` -> 651 passed.
+- **Tests:** `cd core && uv run pytest -q` -> 680 passed.
 
 ## In flight (parallel agents, worktree branches; the integrator merges)
-1. Simultaneous mode (segments committed while speaking; `seg`/`segs`; headphones listeners only) + pluggable EOU endpointing + utterance merging + complete clauses + speculative MT.
+1. Simultaneous mode + speculative MT, rebasing onto ops' end-of-turn (its own endpointing dropped).
 2. A-03 speakerphone participant (`raum speakerphone`), C-12 reconnect, F-05 admin completeness, F-03 install.sh dry-run proof + `--user-space`.
+3. F-08 Tauri desktop + F-09 Android (CI builds on workflow_dispatch / tags).
+4. F-10 voice lock (ECAPA, off by default).
 
 ## Integrator TODO
 - `GlossaryUpload` panel in Admin (after agent 2 above merges; it reworks Admin).
 - App store: concatenate `seg` segments per language; merged-utterance re-final (after simultaneous mode merges).
 - DeepFilterNet redesign landed (raum.pipeline.clean); ops to re-enable on spark with `denoise: {engine: deepfilternet}` + `RAUM_UV_EXTRAS="--extra denoise"` and check the "noise cleaning ready" log line.
 - Consent copy for AI voice cloning ("AI voice" disclosure) when the cloning service lands.
-- Known: two people speaking at once into the same language interleave on that language's track.
+- 3-language rooms: 2 translations + 2 gpt-oss checks per utterance (check_ms 11-16 s under load): gate the second check to the professional's pair or batch targets (after simultaneous mode merges).
 - Then P2: F-11 three people / three languages, F-08 Tauri, F-09 Android TWA, F-10 voice lock.
 
 ## How to run on a laptop
