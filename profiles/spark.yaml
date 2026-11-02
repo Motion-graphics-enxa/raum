@@ -1,7 +1,7 @@
 # ASUS Ascent GX10 (NVIDIA GB10, 128 GB unified memory). Reference box. ~88-90 GB loaded at once.
 profile: spark
 models:
-  vad:       { engine: silero, options: { min_silence_duration: 0.3, activation_threshold: 0.5 } }
+  vad:       { engine: silero, options: { min_silence_duration: 0.6, activation_threshold: 0.5 } }
   denoise:   { engine: passthrough }   # DeepFilterNet blocks the agent loop per frame: redesign pending (threaded 200 ms blocks)
   asr:       { engine: whisper.cpp, url: http://127.0.0.1:8081, model: large-v3-turbo, options: { partial_every_ms: 500 } }
   translate: { engine: ollama, url: http://127.0.0.1:11434, model: gemma4:26b, options: { think: false, temperature: 0.1, num_predict: 256, num_ctx: 8192 } }
