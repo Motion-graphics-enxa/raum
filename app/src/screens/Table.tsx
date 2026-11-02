@@ -208,16 +208,16 @@ function TableRow({
   const target = turn.lang === langA ? langB : langA;
   const state = target ? checkState(turn, target) : "translating";
   return (
-    <article className={`trow ${hero ? "is-hero" : ""} ${state === "red" ? "is-red" : ""}`}>
+    <article className={`trow ${hero ? "is-hero" : ""} ${state === "red" && !turn.continuedIn ? "is-red" : ""}`}>
       <header className="trow__gutter">
         <span className="trow__who">{label}</span>
-        {turn.uncertain ? <VerifyMark state="uncertain" lang={UI} /> : target ? <VerifyMark state={state} lang={UI} ms={firstWordsMs(turn.timing[target])} /> : null}
+        {turn.continuedIn ? null : turn.uncertain ? <VerifyMark state="uncertain" lang={UI} /> : target ? <VerifyMark state={state} lang={UI} ms={firstWordsMs(turn.timing[target])} /> : null}
       </header>
       <div className="trow__cols">
         {cell(langA)}
         {cell(langB)}
       </div>
-      {target && turn.facts[target]?.length ? (
+      {target && !turn.continuedIn && turn.facts[target]?.length ? (
         <div className="trow__facts">
           <FactDims facts={turn.facts[target]} lang={UI} state={state} />
         </div>

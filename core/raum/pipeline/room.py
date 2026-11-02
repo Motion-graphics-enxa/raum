@@ -51,6 +51,10 @@ Additions beyond the contract (all optional):
   summarized). ``voice.lock`` carries the verdict and score. The voices are memory only and go with the voice
   samples (burn, session end, ``aclose``); control ``voice_lock_reset`` learns a device's voice again.
 - Simultaneous mode (simul.py) and speculative translation (speculate.py) hook in at marked lines.
+- A sentence cut at a pause, merged again (merge.py, mode ``pipeline.merge_continuation_ms``, 0 = off): the same
+  speaker again within that window of an end of turn whose voice still plays continues it in a new utterance
+  (``utterance.continued`` for the old one); ``p.tts_stop = fn(lang)`` (the worker) drops what the voice track
+  of that language still holds.
 
 Timing (``pipeline.timing``, one per utterance and target language, after the check): ``vad_ms``
 is the endpoint delay; ``asr_ms`` the final transcription; ``mt_first_ms``, ``mt_full_ms`` and
@@ -91,6 +95,7 @@ from raum.pipeline import texts as T
 from raum.pipeline._util import int16_to_float, lang_code, lang_name, load_prompt, render_prompt
 from raum.pipeline.base import AsrResult, Engines, TranslateRequest, TurnContext
 from raum.pipeline.echo import EchoControl
+from raum.pipeline.merge import Continuations
 from raum.pipeline.simul import Simultaneous
 from raum.pipeline.speculate import Speculator
 from raum.pipeline.tts_http import voice_id
@@ -102,6 +107,7 @@ from raum.verify.backtranslate import CheckResult, second_check
 
 Emit = Callable[[Envelope], Awaitable[None]]
 TtsSink = Callable[[str, np.ndarray, int], Awaitable[float | None]]  # -> monotonic time the 1st frame was accepted
+TtsStop = Callable[[str], None]  # drop what the voice track of a language still holds (merge.py)
 
 log = logging.getLogger("raum.pipeline.room")
 
@@ -188,12 +194,17 @@ class _Utt:
     echoed: bool = False  # a voice this device hears played during it: not a clean voice sample
     parts: list[np.ndarray] = field(default_factory=list)  # END_OF_SPEECH audio of each pause (held turns)
     hold: asyncio.Task[None] | None = None  # end-of-turn wait after a pause (speech_pause)
+    prefix: np.ndarray | None = None  # merge.py: the audio of the cut utterance this one continues
+
+    def _with_prefix(self, chunks: list[np.ndarray]) -> np.ndarray:
+        chunks = [self.prefix, *chunks] if self.prefix is not None and len(self.prefix) else chunks
+        return np.concatenate(chunks) if chunks else np.zeros(0, dtype=np.float32)
 
     def audio(self) -> np.ndarray:
-        return np.concatenate(self.frames) if self.frames else np.zeros(0, dtype=np.float32)
+        return self._with_prefix(self.frames)
 
     def final_audio(self) -> np.ndarray:
-        return np.concatenate(self.parts) if self.parts else self.audio()
+        return self._with_prefix(self.parts) if self.parts else self.audio()
 
 
 @dataclass
@@ -292,6 +303,7 @@ class RoomPipeline:
         self.off_record = False
         self.partial_every_ms = float(config.models.asr.options.get("partial_every_ms", 1000))
         self.tts_sink: TtsSink | None = None
+        self.tts_stop: TtsStop | None = None  # merge.py: the worker drops a language's queued voice
         self.eot: Any = None  # raum.pipeline.turn.TurnDetector (set by the worker); None: a VAD pause ends the turn
         self.denoise_ms: dict[str, float] = {}
         self.echo = EchoControl()  # C-14: whose mic pauses while which voice plays
@@ -324,6 +336,7 @@ class RoomPipeline:
         self._closed = False
         self.simul = Simultaneous(self)  # simultaneous mode + stable partial as final (simul.py)
         self.spec = Speculator(self)  # speculative translation (speculate.py)
+        self.merge = Continuations(self)  # a sentence cut at a pause, merged again (merge.py)
 
     # ---------------------------------------------------------------- setup
 
@@ -366,6 +379,8 @@ class RoomPipeline:
             log.error("pipeline task failed", exc_info=task.exception())
 
     async def emit(self, type: str, data: Any, utt: str | None = None) -> Envelope | None:
+        if self.merge.silenced(utt) and type != "utterance.continued":
+            return None  # merge.py: continued in a later utterance, nothing more of it goes out
         try:
             env = make_event(type, self.room, data, utt=utt)
         except Exception:
@@ -403,6 +418,7 @@ class RoomPipeline:
 
     def _set_off_record(self, on: bool) -> None:
         if on and not self.off_record:
+            self.merge.clear()  # merge.py: no audio held across the off-the-record part
             try:
                 asyncio.get_running_loop()
                 running = True
@@ -421,6 +437,7 @@ class RoomPipeline:
             ext.drop(u.id)
         u.frames.clear()
         u.parts.clear()
+        u.prefix = None
         if u.partial_task and not u.partial_task.done():
             u.partial_task.cancel()
         self._cancel_hold(u)
@@ -473,7 +490,10 @@ class RoomPipeline:
         self._turn_index += 1
         u = _Utt(id=uid, speaker=speaker, role=role, lang=lang, hint=hint, turn=turn,
                  next_partial_ms=self.partial_every_ms)
+        cut = self.merge.take(u)  # merge.py: right after a cut turn whose voice still plays: u carries both parts
         self._active[speaker] = u
+        if cut is not None:
+            await self.emit("utterance.continued", {"speaker": speaker, "into": uid}, utt=cut)
         await self.emit("utterance.start", {"speaker": speaker, "lang": lang}, utt=uid)
         return uid
 
@@ -542,9 +562,11 @@ class RoomPipeline:
         final_audio = u.final_audio()
         u.frames.clear()
         u.parts.clear()
+        u.prefix = None
         t0 = t_detect - max(0.0, float(vad_ms)) / 1000.0  # the moment the speaker stopped
-        try:
-            await self._turn(u, final_audio, float(vad_ms), t0, asr=asr, eot=eot)
+        self.merge.ended(u, final_audio, t_detect)  # merge.py: the speaker may still go on
+        try:  # merge.py: if they do, the turn stops and speech_end just returns
+            await self.merge.run(u.id, self._turn(u, final_audio, float(vad_ms), t0, asr=asr, eot=eot))
         finally:
             self.simul.release(u.id)  # simul.py: close segments of a turn that ended without a final
 
@@ -714,7 +736,9 @@ class RoomPipeline:
         # C-13: voice starts on the first phrase while the rest of the sentence still streams
         voice_q: asyncio.Queue[str | None] | None = asyncio.Queue() if self._tts_enabled() else None
         marks: dict[str, float] = {}  # tts_synth_first_ms / tts_publish_first_ms
-        tts_task = self._spawn(self._speak_stream(tgt, voice_q, t0, voice, marks)) if voice_q is not None else None
+        tts_task: asyncio.Task[float | None] | None = None
+        if voice_q is not None:  # merge.py: the utterance's voice, stopped if the speaker goes on
+            tts_task = self.merge.track(u.id, self._spawn(self._speak_stream(tgt, voice_q, t0, voice, marks, utt=u.id)))
         pending = ""
         min_words = self.min_voice_words(u.speaker)  # a cloned voice: no clause under ~5 words
         expect = _words(rec.text) if min_words else None  # the translation's length, roughly the source's
@@ -775,7 +799,8 @@ class RoomPipeline:
         flagged = await self._fact_flags(rec, tgt, res)
 
         # never blocks the live path: second check + voice, then the timing line
-        self._spawn(self._after_final(rec, tgt, text, res, ok, flagged, t0, t_final, timing, tts_task, marks))
+        self.merge.track(u.id, self._spawn(self._after_final(rec, tgt, text, res, ok, flagged, t0, t_final, timing,
+                                                             tts_task, marks)))
 
     async def _after_final(self, rec: _Turn, tgt: str, text: str, gres: guard.GuardResult | None, guard_ok: bool,
                            flagged: bool, t0: float, t_final: float, timing: dict[str, Any],
@@ -866,7 +891,8 @@ class RoomPipeline:
         return time.monotonic() < self._voice_paused_until.get(tgt, 0.0)
 
     async def _speak_stream(self, tgt: str, q: asyncio.Queue[str | None], t0: float,
-                            voice: VoiceArgs | None = None, marks: dict[str, float] | None = None) -> float | None:
+                            voice: VoiceArgs | None = None, marks: dict[str, float] | None = None,
+                            utt: str | None = None) -> float | None:
         """Speak clauses in order as they arrive; returns ms from the speaker's stop to the first audio.
 
         Holds ``tgt``'s voice lane for the whole utterance: a second utterance into the same language
@@ -885,12 +911,12 @@ class RoomPipeline:
                     return first
                 if self._voice_paused(tgt) or self._closed:
                     continue
-                f = await self._speak(tgt, clause, t0, voice, marks)
+                f = await self._speak(tgt, clause, t0, voice, marks, utt=utt)
                 if first is None:
                     first = f
 
     async def _speak(self, tgt: str, text: str, t0: float, voice: VoiceArgs | None = None,
-                     marks: dict[str, float] | None = None) -> float | None:
+                     marks: dict[str, float] | None = None, utt: str | None = None) -> float | None:
         tts = self.engines.tts
         if tts is None or not text:
             return None
@@ -904,6 +930,7 @@ class RoomPipeline:
                         marks.setdefault("synth", first)
                 if self.tts_sink is not None and not self.off_record and len(chunk):
                     self._voice_out(tgt, len(chunk), tts.sample_rate)
+                    self.merge.played(utt, tgt, len(chunk) / tts.sample_rate)  # merge.py: until when it plays
                     took = await self.tts_sink(tgt, chunk, tts.sample_rate)
                     if marks is not None and "publish" not in marks:  # the sink says when its 1st frame went in
                         at = took if isinstance(took, float) else time.monotonic()
@@ -968,6 +995,7 @@ class RoomPipeline:
         self._voice_refs.clear()
         self._rates.clear()
         self.voicelock.clear()  # F-10: the owners' voices go with the session
+        self.merge.clear()  # merge.py: the audio held for a continuation, too
         self._forget_in_service(ids)
 
     def forget_speaker(self, speaker: str) -> None:

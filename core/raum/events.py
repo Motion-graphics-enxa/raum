@@ -76,6 +76,14 @@ class UtteranceEnd(_Data):
     lang: str
 
 
+class UtteranceContinued(_Data):  # extension (raum.pipeline.merge): a sentence cut at a pause, merged again
+    """Sent for the cut utterance (``utt``) when its speaker went on right after its end of turn: its voice was
+    stopped, nothing more of it comes, and it is no statement of its own (the summary skips it)."""
+
+    speaker: str
+    into: str  # the utterance that carries the whole sentence now (this one's audio + the new speech)
+
+
 class TranscriptPartial(_Data):
     speaker: str
     lang: str
@@ -299,6 +307,7 @@ EVENT_TYPES: dict[str, type[BaseModel]] = {
     "participant.left": ParticipantLeft,
     "utterance.start": UtteranceStart,
     "utterance.end": UtteranceEnd,
+    "utterance.continued": UtteranceContinued,
     "transcript.partial": TranscriptPartial,
     "transcript.final": TranscriptFinal,
     "translation.delta": TranslationDelta,
@@ -327,6 +336,7 @@ EventType = Literal[
     "participant.left",
     "utterance.start",
     "utterance.end",
+    "utterance.continued",
     "transcript.partial",
     "transcript.final",
     "translation.delta",
@@ -353,6 +363,7 @@ EventType = Literal[
 # Events that carry conversation content. Only these are written (encrypted) to the session store.
 CONTENT_EVENTS = frozenset(
     {
+        "utterance.continued",  # the summary must know which utterances were merged into a later one
         "transcript.final",
         "translation.final",
         "verify.facts",

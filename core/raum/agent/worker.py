@@ -23,8 +23,9 @@ in ``run`` before the server starts); speech again before that continues the utt
 published on the data channel (topic ``raum.events``, reliable) and forwarded to core over the link.
 Voice output is published as one track per language, ``tts-<lang>``. Echo control is per device
 (C-14, ``raum.pipeline.echo``): while a voice plays (+300 ms) only the mics that hear it are fed silence
-(``RoomPipeline.mic_open``); an utterance already under way runs to its end. Resident Piper voices
-start at room join for the room's languages (``PiperTTS.prepare``).
+(``RoomPipeline.mic_open``); an utterance already under way runs to its end. ``RoomPipeline.tts_stop`` cuts a
+language's voice track at once (``AudioSource.clear_queue``) when a cut sentence is merged again
+(raum.pipeline.merge). Resident Piper voices start at room join for the room's languages (``PiperTTS.prepare``).
 """
 
 from __future__ import annotations
@@ -178,6 +179,7 @@ class RoomAgent:
         self.engines = build_engines(cfg)
         self.pipeline = RoomPipeline(self.room_name, mode, self.engines, self.emit, cfg)
         self.pipeline.tts_sink = self._tts_sink
+        self.pipeline.tts_stop = self._tts_stop  # merge.py: a cut sentence goes on, its voice stops at once
         if cfg.models.turn.enabled:  # semantic end of turn (raum.pipeline.turn); None: VAD pauses end turns
             from raum.pipeline.turn import build_turn_detector
 
@@ -527,8 +529,8 @@ class RoomAgent:
             try:
                 for i in range(0, pcm.size, step):
                     chunk = pcm[i:i + step]
-                    await v.source.capture_frame(rtc.AudioFrame(data=chunk.tobytes(), sample_rate=rate,
-                                                                num_channels=1, samples_per_channel=chunk.size))
+                    await _capture(v.source, rtc.AudioFrame(data=chunk.tobytes(), sample_rate=rate,
+                                                            num_channels=1, samples_per_channel=chunk.size))
                     if accepted is None:
                         accepted = time.monotonic()
             except asyncio.CancelledError:
@@ -538,6 +540,33 @@ class RoomAgent:
                 await self._drop_tts_source(lang)
                 raise
         return accepted
+
+    def _tts_stop(self, lang: str) -> None:
+        """Cut ``tts-<lang>`` at once (raum.pipeline.merge: the speaker went on after a cut turn): what the
+        AudioSource still holds (up to its 2 s queue) is dropped. The pipeline cancels that voice's writer just
+        before; clearing is no capture, so the source keeps its single writer (livekit-agents interrupts its
+        own output the same way, ``AudioSource.clear_queue``). The next clause plays into the same track."""
+        v = self.tts.get(lang)
+        if v is None:
+            return
+        try:
+            v.source.clear_queue()
+        except Exception as e:  # noqa: BLE001  a closed source holds nothing
+            log.debug("clear tts-%s: %s", lang, e)
+
+
+async def _capture(source: Any, frame: Any) -> None:
+    """One frame into a voice source. If the writer is cancelled meanwhile (its voice was stopped:
+    raum.pipeline.merge, off the record), the frame is already with the source: let it land before the lock
+    admits the next writer, since a second capture while one is pending fails ("InvalidState - failed to capture
+    frame"). After ``tts_stop`` cleared the queue that is at once."""
+    fut = asyncio.ensure_future(source.capture_frame(frame))
+    try:
+        await asyncio.shield(fut)
+    except asyncio.CancelledError:
+        fut.add_done_callback(lambda f: f.cancelled() or f.exception())  # retrieved: no "never retrieved" log
+        await asyncio.wait({fut}, timeout=1.0)
+        raise
 
 
 class _VoiceTrack:

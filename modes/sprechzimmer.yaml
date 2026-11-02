@@ -25,5 +25,6 @@ summary:
 buttons: [off_record, repeat_back, human_interpreter, end]
 retention: { auto_burn_minutes: 30 }
 # Consecutive with smart endpointing; simultaneous (headphone listeners) only for long turns, at complete
-# sentence ends: a German clause never goes out before its finite verb or particle.
-pipeline: { simultaneous: auto, simultaneous_after_ms: 4000 }
+# sentence ends: a German clause never goes out before its finite verb or particle. A sentence cut at a pause
+# ("... ab morgen | nicht mehr nehmen.") is merged again if the doctor goes on within 1.2 s (its voice stops).
+pipeline: { simultaneous: auto, simultaneous_after_ms: 4000, merge_continuation_ms: 1200 }

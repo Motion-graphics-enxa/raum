@@ -121,7 +121,7 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
   // Signature tick when the other person's sentence is verified in my language.
   useEffect(() => {
     for (const tu of turns) {
-      if (tu.speaker === join.identity || ticked.current.has(tu.utt)) continue;
+      if (tu.speaker === join.identity || tu.continuedIn || ticked.current.has(tu.utt)) continue;
       if (checkState(tu, myLang) === "green") {
         ticked.current.add(tu.utt);
         if (Date.now() - (tu.endedAt ?? tu.startedAt) < 15000) tick();

@@ -151,7 +151,11 @@ class FakeSource:
         self.frames: list[int] = []
         self.busy = False
         self.closed = False
+        self.cleared = 0
         FakeSource.made.append(self)
+
+    def clear_queue(self):
+        self.cleared += 1
 
     async def capture_frame(self, f):
         if self.busy:
@@ -223,3 +227,21 @@ async def test_sink_replaces_a_failed_source_and_the_next_clause_plays(agent):
 async def test_sink_ignores_empty_chunks(agent):
     await agent._tts_sink("de", np.zeros(0, dtype=np.int16), 22050)
     assert agent._pub == [] and FakeSource.made == []
+
+
+async def test_stop_cuts_a_voice_mid_write_and_keeps_one_writer(agent):
+    """merge.py: the writer of a cut sentence's voice is cancelled mid-clause and the track's queue cleared; the
+    frame in flight lands first, so the next clause (another writer) never captures beside it."""
+    assert agent.pipeline.tts_stop == agent._tts_stop
+    writer = asyncio.create_task(agent._tts_sink("en", np.ones(22050, dtype=np.int16), 22050))  # 1 s: 50 frames
+    await asyncio.sleep(0.004)
+    src = agent.tts["en"].source
+    writer.cancel()  # what merge.py does: cancel the writer, then cut the track
+    agent._tts_stop("en")
+    nxt = asyncio.create_task(agent._tts_sink("en", np.ones(4410, dtype=np.int16), 22050))  # waits for the lock
+    with pytest.raises(asyncio.CancelledError):
+        await writer
+    await nxt  # FakeSource raises "failed to capture frame" if two captures overlap
+    assert src.cleared == 1 and FakeSource.made == [src] and agent._unpub == []
+    assert 4410 < sum(src.frames) < 22050 + 4410  # the cut clause stopped early, the next one played whole
+    agent._tts_stop("ru")  # no voice in that language yet: nothing to cut

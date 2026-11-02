@@ -143,9 +143,12 @@ def _role_of(speaker: str, data: dict[str, Any]) -> str:
 
 
 def collect(records: list[dict[str, Any]]) -> tuple[list[Utterance], list[dict[str, Any]]]:
-    """Group the session's records by utterance. Returns (utterances in order, offer updates)."""
+    """Group the session's records by utterance. Returns (utterances in order, offer updates). An utterance
+    continued in a later one (``utterance.continued``: a sentence cut at a pause, merged) is no statement of
+    its own: the later one holds the whole sentence."""
     by_utt: dict[str, Utterance] = {}
     order: list[str] = []
+    continued: set[str] = set()
     flag_utt: dict[str, str] = {}
     confirms: list[dict[str, Any]] = []
     offers: list[dict[str, Any]] = []
@@ -195,6 +198,8 @@ def collect(records: list[dict[str, Any]]) -> tuple[list[Utterance], list[dict[s
             confirms.append({**d, "_utt": r.get("utt")})
         elif t == "offer.update":
             offers.append({**d, "utt": r.get("utt"), "_ts": r.get("ts")})
+        elif t == "utterance.continued":
+            continued.add(utt)
 
     for c in confirms:
         utt = flag_utt.get(str(c.get("flag_id"))) or c.get("_utt")
@@ -204,7 +209,8 @@ def collect(records: list[dict[str, Any]]) -> tuple[list[Utterance], list[dict[s
             elif c.get("accepted"):
                 by_utt[utt].confirmed = True
 
-    utts = [by_utt[k] for k in order if by_utt[k].text]
+    utts = [by_utt[k] for k in order if by_utt[k].text and k not in continued]
+    offers = [o for o in offers if o.get("utt") not in continued]
     utts = [u for u in utts if u.conf >= ASR_MIN_CONF or u.translations]
     utts.sort(key=lambda u: (u.ts, order.index(u.utt)))
     return utts, offers

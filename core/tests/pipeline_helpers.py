@@ -36,8 +36,12 @@ PAT = ParticipantInfo(id="b-k3x9", role="b", lang="ar")
 
 
 class Harness:
+    """``merge``: keep the mode's ``pipeline.merge_continuation_ms`` (raum.pipeline.merge). Off by default: most
+    tests have one speaker say two sentences back to back, which a professional room would merge into one."""
+
     def __init__(self, mode: str = "sprechzimmer", room: str = "sz-1000",
-                 participants: list[ParticipantInfo] | None = None, cfg: RaumConfig | None = None) -> None:
+                 participants: list[ParticipantInfo] | None = None, cfg: RaumConfig | None = None,
+                 merge: bool = False) -> None:
         self.cfg = cfg or fast_config()
         self.engines = build_engines(self.cfg, seed=0)
         self.events: list[Envelope] = []
@@ -45,7 +49,10 @@ class Harness:
         async def emit(env: Envelope) -> None:
             self.events.append(env)
 
-        self.p = RoomPipeline(room, get_mode(mode), self.engines, emit, self.cfg)
+        m = get_mode(mode)
+        if not merge and m.pipeline.merge_continuation_ms:
+            m = m.model_copy(update={"pipeline": m.pipeline.model_copy(update={"merge_continuation_ms": 0.0})})
+        self.p = RoomPipeline(room, m, self.engines, emit, self.cfg)
         self.p.set_participants(participants if participants is not None else [DOC, PAT])
 
     async def say(self, speaker: str, seconds: float = 1.0, vad_ms: float = 350.0) -> str | None:

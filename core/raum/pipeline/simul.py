@@ -78,7 +78,7 @@ from raum.verify import guard
 from raum.verify.backtranslate import second_check
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable
+    from collections.abc import Awaitable, Iterable
 
     from raum.pipeline.room import RoomPipeline, _Turn, _Utt
 
@@ -273,7 +273,8 @@ class _UttState:
 
 class Simultaneous:
     """Owned by ``RoomPipeline`` (``self.simul``). Hooks: ``on_partial``, ``reuse_final``, ``finish_turn``,
-    ``release``, ``drop``, ``confirm``, ``settle`` (before the early final ASR); ``lanes`` for speculate.py."""
+    ``release``, ``drop``, ``confirm``, ``settle`` (before the early final ASR); ``lanes`` for speculate.py and
+    merge.py, ``stop_lanes`` for merge.py."""
 
     def __init__(self, p: RoomPipeline) -> None:
         self.p = p
@@ -423,7 +424,11 @@ class Simultaneous:
     def drop(self, utt: str) -> None:
         """Off the record / burn / close mid-utterance: stop its segments at once."""
         st = self._utts.pop(utt, None)
-        for lane in st.lanes.values() if st else ():
+        self.stop_lanes(st.lanes.values() if st else ())
+
+    def stop_lanes(self, lanes: Iterable[_Lane]) -> None:
+        """Stop these lanes at once, also after their turn ended (merge.py: the speaker went on)."""
+        for lane in lanes:
             lane.closed = True
             for task in (lane.worker, lane.voice, lane.done):
                 if task is not None and not task.done():
@@ -688,6 +693,7 @@ class Simultaneous:
             lane.voice_done.set()
 
     async def _say(self, lane: _Lane, text: str) -> None:
-        first = await self.p._speak(lane.tgt, text, 0.0, lane.voice_args, lane.marks)  # t0 0: monotonic ms
+        first = await self.p._speak(lane.tgt, text, 0.0, lane.voice_args, lane.marks,  # t0 0: monotonic ms
+                                    utt=lane.utt)
         if lane.first_voice_ms is None and first is not None:
             lane.first_voice_ms = first

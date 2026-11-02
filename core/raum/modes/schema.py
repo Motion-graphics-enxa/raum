@@ -58,11 +58,15 @@ class RetentionConfig(_Strict):
 
 
 class PipelineModeConfig(_Strict):
-    """Per-room defaults for the live pipeline (raum.pipeline.simul). ``raum.yaml`` ``pipeline.simultaneous:
-    off`` still switches simultaneous mode off everywhere."""
+    """Per-room defaults for the live pipeline (raum.pipeline.simul, raum.pipeline.merge). ``raum.yaml``
+    ``pipeline.simultaneous: off`` still switches simultaneous mode off everywhere."""
 
     simultaneous: Literal["auto", "off"] = "auto"
     simultaneous_after_ms: float = 0.0  # simultaneous only once the turn has this much speech (long turns)
+    # a sentence cut at a pause: the same speaker again within this many ms of an end of turn whose voice still
+    # plays (or has none) continues it; its voice stops and both parts are transcribed, translated and spoken
+    # as one (raum.pipeline.merge). 0 = off (everyday rooms: two short sentences stay two)
+    merge_continuation_ms: float = Field(default=0.0, ge=0.0)
 
     @field_validator("simultaneous", mode="before")
     @classmethod

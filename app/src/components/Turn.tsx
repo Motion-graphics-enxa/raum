@@ -66,11 +66,12 @@ export function TurnView({
   const sayAgain = turn.uncertain;
   const flagText = turn.flags.find((f) => f.kind === "uncertain");
   const corrected = turn.corrected?.[viewLang];
+  const continued = !!turn.continuedIn; // cut at a pause, merged into the next turn: its voice was stopped
 
   return (
     <article
       className={`turn turn--r${ramp} ${mine ? "turn--mine" : "turn--theirs"} ${live ? "is-live" : ""} ${
-        state === "red" ? "is-red" : ""
+        state === "red" && !continued ? "is-red" : ""
       }`}
       data-utt={turn.utt}
     >
@@ -78,12 +79,21 @@ export function TurnView({
         <span className="turn__who">{speakerLabel}</span>
         <span className="turn__time mono">{fmtTime(turn.startedAt, myLang)}</span>
         <span className="turn__spacer" />
-        {!sayAgain && !turn.ignored && (tr || mine) && (!checkerOff || state === "red") ? (
+        {!sayAgain && !turn.ignored && !continued && (tr || mine) && (!checkerOff || state === "red") ? (
           <VerifyMark state={state} lang={myLang} ms={state === "translating" ? null : firstMs} onClick={() => setOpen((o) => !o)} />
         ) : null}
       </header>
 
-      {turn.ignored ? (
+      {continued ? (
+        <>
+          <p className="turn__main is-source" lang={mainLang} dir={isRtl(mainLang) ? "rtl" : "ltr"}>
+            {main || " "}
+          </p>
+          <div className="turn__ignored">
+            <p dir="auto">{t(myLang, "talk.continued")}</p>
+          </div>
+        </>
+      ) : turn.ignored ? (
         <div className="turn__ignored">
           <p dir="auto">{t(myLang, "talk.not_your_voice")}</p>
           {onRelearn ? (
@@ -125,7 +135,7 @@ export function TurnView({
         </>
       )}
 
-      {turn.repeatBack ? <RepeatBack r={turn.repeatBack} lang={myLang} /> : null}
+      {turn.repeatBack && !continued ? <RepeatBack r={turn.repeatBack} lang={myLang} /> : null}
 
       {turn.explainDraft && myRole === "a" && !turn.explainSent ? (
         <div className="turn__explain">
@@ -144,7 +154,7 @@ export function TurnView({
           </p>
         </div>
       ) : null}
-      {mine && myRole === "a" && onExplain && finalSrc && !turn.explainDraft ? (
+      {mine && myRole === "a" && onExplain && finalSrc && !turn.explainDraft && !continued ? (
         <button type="button" className="turn__action" onClick={() => onExplain(turn.utt)}>
           {t(myLang, "talk.explain_simply")}
         </button>

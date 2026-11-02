@@ -24,3 +24,5 @@ summary:
   file_note_for: a
 buttons: [off_record, explain_simply, human_interpreter, end]
 retention: { auto_burn_minutes: 30 }
+# a sentence cut at a pause is merged again if the speaker goes on within 1.2 s (its voice stops)
+pipeline: { merge_continuation_ms: 1200 }

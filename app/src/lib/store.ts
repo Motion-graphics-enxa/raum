@@ -36,6 +36,7 @@ export interface Turn {
   explainSent?: EventData["explain.sent"];
   corrected?: Record<string, string>; // lang -> previous text (struck and replaced)
   ignored?: EventData["voice.lock"]; // F-10: not the device owner's voice, dropped by the box
+  continuedIn?: string; // a sentence cut at a pause: it goes on in this utterance (voice stopped, no check)
   // simultaneous mode: a translation arrives in segments (seg 0, 1, ...); the last final carries segs
   segs?: Record<string, { parts: Record<number, Translation>; total: number | null }>;
   segFacts?: Record<string, Record<number, FactCheck[]>>;
@@ -171,6 +172,14 @@ export function apply(prev: RoomModel, e: AnyEnvelope): RoomModel {
       }, { speaker: e.data.speaker, lang: e.data.lang });
       break;
     }
+    case "utterance.continued":
+      touch((t) => {
+        t.continuedIn = e.data.into;
+        t.endedAt = t.endedAt ?? e.ts; // it may have been stopped before its utterance.end
+        if (!t.speaker) t.speaker = e.data.speaker;
+      }, { speaker: e.data.speaker, lang: "" });
+      if (utt) m.offers = m.offers.filter((o) => o.utt !== utt); // the merged sentence states them again
+      break;
     case "transcript.partial":
       touch((t) => {
         if (e.data.seq >= t.partialSeq) {
@@ -428,6 +437,7 @@ export function factsFor(t: Turn, lang: string): FactCheck[] {
 }
 
 export function openFlag(t: Turn, myRole: Role | null): EventData["flag"] | null {
+  if (t.continuedIn) return null; // merged into a later turn: that one asks, if anything
   for (const f of t.flags) {
     if (!f.needs_confirm) continue;
     if (f.confirm_by && myRole && f.confirm_by !== myRole) continue;
