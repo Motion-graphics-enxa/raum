@@ -1,0 +1,322 @@
+{
+ "chatterbox-v3-cfm10/ar-clone": {
+  "asr": "تناول 50 ملالجرام من الميت فورمين مرتين يوميا دائما بعد الوجبات",
+  "cer": 0.079
+ },
+ "chatterbox-v3-cfm10/ar-xclone-de-cfg0": {
+  "asr": "تناول 500 ملالجرام من الميت فورمين مرتين يوميا دائما بعد الوجبات",
+  "cer": 0.063
+ },
+ "chatterbox-v3-cfm10/ar-xclone-de": {
+  "asr": "تناول 50 مليل جرام من الميت فورمين مرتين يوميا دائما بعد الوجبات",
+  "cer": 0.079
+ },
+ "chatterbox-v3-cfm10/ar": {
+  "asr": "تناول 500 ماليجرام من الميتوفورمين مرتين يومياً\n دائماً بعد الوجبات",
+  "cer": 0.048
+ },
+ "chatterbox-v3-cfm10/de-clone": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Metformin, immer nach dem Essen.",
+  "cer": 0.111
+ },
+ "chatterbox-v3-cfm10/de-xclone-en-cfg0": {
+  "asr": "Nehmen Sie zweimal täglich 500 Milligramm Metformin, immer nach dem Essen.",
+  "cer": 0.0
+ },
+ "chatterbox-v3-cfm10/de-xclone-en": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Metformin, immer nach dem Essen.",
+  "cer": 0.111
+ },
+ "chatterbox-v3-cfm10/de": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Metformin immer nach dem Essen.",
+  "cer": 0.111
+ },
+ "chatterbox-v3-cfm10/en-clone": {
+  "asr": "Take 500 mg of metformin twice a day, always after meals.",
+  "cer": 0.127
+ },
+ "chatterbox-v3-cfm10/en-xclone-de-cfg0": {
+  "asr": "Take 500 mg of metformin twice a day, always after meals.",
+  "cer": 0.127
+ },
+ "chatterbox-v3-cfm10/en-xclone-de": {
+  "asr": "Take 500 mg of metformin twice a day, always after meals.",
+  "cer": 0.127
+ },
+ "chatterbox-v3-cfm10/en": {
+  "asr": "Pick 500 mg of metformin twice a day, always after meals.",
+  "cer": 0.19
+ },
+ "chatterbox-v3-cfm10/ru-clone": {
+  "asr": "Принимайте метформин по хамсантаз миллиграммов два раза в день, всегда после еды.",
+  "cer": 0.123
+ },
+ "chatterbox-v3-cfm10/ru-xclone-de-cfg0": {
+  "asr": "Принимайте метформин по ха-чентос миллиграммов, два раза в день, всегда после еды.",
+  "cer": 0.123
+ },
+ "chatterbox-v3-cfm10/ru-xclone-de": {
+  "asr": "Принимайте медформин, пока мясо на миллиграммов два раза в день, всегда после еды.",
+  "cer": 0.137
+ },
+ "chatterbox-v3-cfm10/ru": {
+  "asr": "Принимайте медформин по комменты с миллиграммов два раза в день, всегда после еды.",
+  "cer": 0.151
+ },
+ "chatterbox-v3-cfm10/tr-clone": {
+  "asr": "Günde 2 kez ingüs miligram metformin alın her zaman yemeklerden sonra.",
+  "cer": 0.116
+ },
+ "chatterbox-v3-cfm10/tr-xclone-de-cfg0": {
+  "asr": "Günde 2 kez 2 üçü miligram metformin alın, her zaman yemeklerden sonra.",
+  "cer": 0.116
+ },
+ "chatterbox-v3-cfm10/tr-xclone-de": {
+  "asr": "Günde 2 kez, VKM metformin alın, her zaman yemeklerden sonra.",
+  "cer": 0.203
+ },
+ "chatterbox-v3-cfm10/tr": {
+  "asr": "Günde 2 kez ammek kaydış milikram metformin alın.\n Her zaman yemeklerden sonra.",
+  "cer": 0.217
+ },
+ "chatterbox-v3-nonorm/ar-clone": {
+  "asr": "تناول 500 مليلجرام من الميتفورمين مرتين يومياً دائماً بعد الوجبات",
+  "cer": 0.048
+ },
+ "chatterbox-v3-nonorm/ar-xclone-de-cfg0": {
+  "asr": "تناول 500 ملالجرام من الميتفورمين مرلتين يوميا دائما بعد الوجبات",
+  "cer": 0.063
+ },
+ "chatterbox-v3-nonorm/ar-xclone-de": {
+  "asr": "تناول 50 مليل جرام من الميت فورمين مرتين يوميا دائما بعد الوجبات",
+  "cer": 0.079
+ },
+ "chatterbox-v3-nonorm/ar": {
+  "asr": "تناول 500 ميل جرام من الميتفورمين مرتين يومياً دائماً بعد الوجبات",
+  "cer": 0.048
+ },
+ "chatterbox-v3-nonorm/de-clone": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Metformin, immer nach dem Essen.",
+  "cer": 0.111
+ },
+ "chatterbox-v3-nonorm/de-xclone-en-cfg0": {
+  "asr": "Nehmen Sie zweimal täglich 500 Milligramm-Metformen, immer nach dem Essen.",
+  "cer": 0.014
+ },
+ "chatterbox-v3-nonorm/de-xclone-en": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Metformen, immer nach dem Essen.",
+  "cer": 0.125
+ },
+ "chatterbox-v3-nonorm/de": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg MET-Formen, immer nach dem Essen.",
+  "cer": 0.139
+ },
+ "chatterbox-v3-nonorm/en-clone": {
+  "asr": "Take 500 mg of metformin twice a day, always after meals.",
+  "cer": 0.127
+ },
+ "chatterbox-v3-nonorm/en-xclone-de-cfg0": {
+  "asr": "Take 500 mg of metformin twice a day, always after meals.",
+  "cer": 0.127
+ },
+ "chatterbox-v3-nonorm/en-xclone-de": {
+  "asr": "Take 500 mg of metformin twice a day, always after meals.",
+  "cer": 0.127
+ },
+ "chatterbox-v3-nonorm/en": {
+  "asr": "Pick 500 mg of metformin twice a day, always after meals.",
+  "cer": 0.19
+ },
+ "chatterbox-v3-nonorm/ru-clone": {
+  "asr": "Принимайте метформин по хамсантаз миллиграммов два раза в день, всегда после еды.",
+  "cer": 0.123
+ },
+ "chatterbox-v3-nonorm/ru-xclone-de-cfg0": {
+  "asr": "Принимайте метформин по ха-чентесмиллиграммов, два раза в день, всегда после еды.",
+  "cer": 0.123
+ },
+ "chatterbox-v3-nonorm/ru-xclone-de": {
+  "asr": "Принимайте медформин, пока мясо на миллиграммов два раза в день, всегда после еды.",
+  "cer": 0.137
+ },
+ "chatterbox-v3-nonorm/ru": {
+  "asr": "Принимайте медформин по комменты с миллиграммов два раза в день, всегда после еды.",
+  "cer": 0.151
+ },
+ "chatterbox-v3-nonorm/tr-clone": {
+  "asr": "Günde 2 kez ingüs miligram metformin alın her zaman yemeklerden sonra.",
+  "cer": 0.116
+ },
+ "chatterbox-v3-nonorm/tr-xclone-de-cfg0": {
+  "asr": "Günde 2 kez 2.30 mg metformin alın, her zaman yemeklerden sonra...",
+  "cer": 0.174
+ },
+ "chatterbox-v3-nonorm/tr-xclone-de": {
+  "asr": "Günde 2 kez V90 mg metformin alın her zaman yemeklerden sonra.",
+  "cer": 0.159
+ },
+ "chatterbox-v3-nonorm/tr": {
+  "asr": "Günde 2 kez onmek kaydış milikram metformin alın.\n Her zaman yemeklerden sonra.",
+  "cer": 0.217
+ },
+ "chatterbox-v3/ar-clone": {
+  "asr": "تناول 500 مالاليجرام من الميتفورمين مرتين يومياً دائماً بعد الوجبات.",
+  "cer": 0.048
+ },
+ "chatterbox-v3/ar-xclone-de": {
+  "asr": "تناول 500 ملي درام من المت فور مين مرتين يوميا دائما با ذا الوجبات",
+  "cer": 0.159
+ },
+ "chatterbox-v3/ar": {
+  "asr": "تناول 500 ملالي كرام من الميت فورمين مرتين يومياً\n دائماً بعد الوجبات",
+  "cer": 0.063
+ },
+ "chatterbox-v3/de-clone-speed1.2": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Mitformin, immer nach dem Essen.",
+  "cer": 0.125
+ },
+ "chatterbox-v3/de-clone": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Metformin, immer nach dem Essen.",
+  "cer": 0.111
+ },
+ "chatterbox-v3/de-long-xclone-ar": {
+  "asr": "Guten Tag. Ihre Blutwerte sind insgesamt gut. Nur der Langzeitzucker ist mit 7,8% etwas erhöht.\n Deshalb beginnen wir mit Metformin. Nehmen Sie zweimal täglich 500 Milligramm.\n Immer nach dem Essen. Wenn Sie Bauchschmerzen bekommen, rufen Sie mich bitte an.",
+  "cer": 2.597
+ },
+ "chatterbox-v3/de-xclone-ar-cfg05": {
+  "asr": "Nehmen Sie zweimal täglich 500 Milligramm Metformin. Immer nach dem Essen.",
+  "cer": 0.0
+ },
+ "chatterbox-v3/de-xclone-ar": {
+  "asr": "Nehmen Sie zweimal täglich 500 Milligramm Mekformin, immer nach dem Essen.",
+  "cer": 0.014
+ },
+ "chatterbox-v3/de-xclone-en": {
+  "asr": "Nehmen Sie zweimal täglich 500 Milligramm Metformin, immer nach dem Essen.",
+  "cer": 0.0
+ },
+ "chatterbox-v3/de-xclone-ru": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Metformin, immer nach dem Essen.",
+  "cer": 0.111
+ },
+ "chatterbox-v3/de-xclone-tr": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Metformin, immer nach dem Essen.",
+  "cer": 0.111
+ },
+ "chatterbox-v3/de": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Metformin, immer nach dem Essen.",
+  "cer": 0.111
+ },
+ "chatterbox-v3/en-clone": {
+  "asr": "Take 500 mg of metformin twice a day, always after meals.",
+  "cer": 0.127
+ },
+ "chatterbox-v3/en-xclone-ar": {
+  "asr": "Take 500 mg of metformin twice a day, always after meals.",
+  "cer": 0.127
+ },
+ "chatterbox-v3/en-xclone-de-cfg05": {
+  "asr": "Take 500 mg of metformin twice a day, always after meals.",
+  "cer": 0.127
+ },
+ "chatterbox-v3/en-xclone-de": {
+  "asr": "Take 500 mg of metformin twice a day, always after meals.",
+  "cer": 0.127
+ },
+ "chatterbox-v3/en": {
+  "asr": "Take 500mg of metformin twice a day, always after meals.",
+  "cer": 0.143
+ },
+ "chatterbox-v3/ru-clone": {
+  "asr": "Принимайте медформин по 500 мг 2 раза в день, всегда после еды.",
+  "cer": 0.192
+ },
+ "chatterbox-v3/ru-xclone-de": {
+  "asr": "Принимайте метфолмин по 500 мг 2 раза в день, всегда после еды.",
+  "cer": 0.192
+ },
+ "chatterbox-v3/ru": {
+  "asr": "Принимайте метформин по 500 мг 2 раза в день, всегда после еды.",
+  "cer": 0.178
+ },
+ "chatterbox-v3/tr-clone": {
+  "asr": "Günde 2 kez 500 mg metformin alın her zaman yemeklerden sonra.",
+  "cer": 0.13
+ },
+ "chatterbox-v3/tr-xclone-de": {
+  "asr": "Günde 2 kez 500 mg metformin alın, her zaman yemeklerden sonra.",
+  "cer": 0.13
+ },
+ "chatterbox-v3/tr": {
+  "asr": "Günde 2 kez 500 mg metformin alın, her zaman yemeklerden sonra.",
+  "cer": 0.13
+ },
+ "piper/ar": {
+  "asr": "تناول فمس مئم ليغرام من المتفورمين مرتين يوميا دائما بعد الوجبات،",
+  "cer": 0.111
+ },
+ "piper/de": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Metformin, immer nach dem Essen.",
+  "cer": 0.111
+ },
+ "piper/en": {
+  "asr": "Take 500 mg of metformin twice a day, always after meals.",
+  "cer": 0.127
+ },
+ "piper/ru": {
+  "asr": "Принимайте метформин по 500 мг два раза в день, всегда после еды.",
+  "cer": 0.137
+ },
+ "piper/tr": {
+  "asr": "Günde 2 kez 500 mg metformin alın.\n Her zaman yemeklerden sonra.",
+  "cer": 0.13
+ },
+ "qwen3-tts-0.6b/de-clone-xvec": {
+  "asr": "Nehmen Sie zweimal täglich 500 Milligramm Metformin, immer nach dem Essen.",
+  "cer": 0.0
+ },
+ "qwen3-tts-0.6b/de-clone": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Metformen, immer nach dem Essen.",
+  "cer": 0.125
+ },
+ "qwen3-tts-0.6b/de-xclone-en-icl": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Metformin, immer nach dem Essen.",
+  "cer": 0.111
+ },
+ "qwen3-tts-0.6b/de-xclone-en": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Metformin, immer nach dem Essen.",
+  "cer": 0.111
+ },
+ "qwen3-tts-0.6b/en-clone-xvec": {
+  "asr": "Take 50 hundred milligrams of metformin twice a day, always after meals.",
+  "cer": 0.127
+ },
+ "qwen3-tts-0.6b/en-clone": {
+  "asr": "Take 500 mg of metformin twice a day, always after meals.",
+  "cer": 0.127
+ },
+ "qwen3-tts-0.6b/en-xclone-de-icl": {
+  "asr": "Take 500 mg of metformin twice a day, always after meals.",
+  "cer": 0.127
+ },
+ "qwen3-tts-0.6b/en-xclone-de": {
+  "asr": "Take 500 mg of metformin twice a day, always after meals.",
+  "cer": 0.127
+ },
+ "qwen3-tts-0.6b/ru-clone-xvec": {
+  "asr": "Принимайте метформин по 500 мг 2 раза в день, всегда после еды.",
+  "cer": 0.178
+ },
+ "qwen3-tts-0.6b/ru-clone": {
+  "asr": "Принимайте метформин по 500 мг 2 раза в день, всегда после еды.",
+  "cer": 0.178
+ },
+ "qwen3-tts-0.6b/ru-xclone-de-icl": {
+  "asr": "Принимайте метформин по 500 мг 2 раза в день, всегда после еды.",
+  "cer": 0.178
+ },
+ "qwen3-tts-0.6b/ru-xclone-de": {
+  "asr": "Принимайте метформин по 500 мг 2 раза в день, всегда после еды.",
+  "cer": 0.178
+ }
+}

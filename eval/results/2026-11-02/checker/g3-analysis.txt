@@ -1,0 +1,221 @@
+
+===== ar (30 records)
+MT errors: 0
+MT guard pass: 28/30 (93%)
+MT first ms: p50 198 p95 310 max 385 (n=30) | full ms: p50 394 p95 624 max 754 (n=30)
+MT checker badge g/a/r: [29, 1, 0, 0]
+check ms (all): p50 2684 p95 4201 max 4892 (n=70) | bt: p50 2664 p95 4178 max 4828 (n=70) | embed: p50 21 p95 30 max 63 (n=70)
+check ms (MT only): p50 2698 p95 4038 max 4413 (n=30)
+check errors: 0 empty backs: 0
+type             n  guard  chk-red  chk-red/amb  combined
+wrong_number      3     3        0            0         3
+wrong_unit        2     2        0            0         2
+negation          2     2        1            2         2
+allergy_omitted   2     2        2            2         2
+date_shifted      1     1        0            0         1
+SEMANTIC          4     4        3            4         4
+clean refs: guard red 0/30 (0%) | checker red 1/30 (3%) | checker amber 0/30 (0%) | combined red 1/30 (3%)
+sim clean ref : n=30 min 0.762 p5 0.906 p50 0.963 p95 0.997
+sim perturbed : n=10 min 0.694 p5 0.709 p50 0.911 p95 0.956
+sim semantic  : n=4 min 0.694 p5 0.699 p50 0.743 p95 0.813
+sim numbers   : n=6 min 0.906 p5 0.908 p50 0.925 p95 0.961
+sim live MT   : n=30 min 0.810 p5 0.867 p50 0.967 p95 0.996
+delta ref-pert (same record): n=10 min 0.006 p5 0.011 p50 0.037 p95 0.236
+
+===== ru (30 records)
+MT errors: 0
+MT guard pass: 27/30 (90%)
+MT first ms: p50 194 p95 220 max 222 (n=30) | full ms: p50 368 p95 475 max 491 (n=30)
+MT checker badge g/a/r: [30, 0, 0, 0]
+check ms (all): p50 2189 p95 4024 max 7094 (n=70) | bt: p50 2138 p95 3564 max 4227 (n=70) | embed: p50 19 p95 964 max 3848 (n=70)
+check ms (MT only): p50 2122 p95 3457 max 3870 (n=30)
+check errors: 0 empty backs: 0
+type             n  guard  chk-red  chk-red/amb  combined
+wrong_number      3     3        0            0         3
+wrong_unit        2     2        0            0         2
+negation          2     2        1            1         2
+allergy_omitted   2     2        2            2         2
+date_shifted      1     1        0            0         1
+SEMANTIC          4     4        3            3         4
+clean refs: guard red 0/30 (0%) | checker red 0/30 (0%) | checker amber 1/30 (3%) | combined red 0/30 (0%)
+sim clean ref : n=30 min 0.843 p5 0.908 p50 0.977 p95 1.000
+sim perturbed : n=10 min 0.669 p5 0.702 p50 0.902 p95 0.957
+sim semantic  : n=4 min 0.669 p5 0.680 p50 0.744 p95 0.862
+sim numbers   : n=6 min 0.896 p5 0.899 p50 0.917 p95 0.958
+sim live MT   : n=30 min 0.906 p5 0.910 p50 0.992 p95 1.000
+delta ref-pert (same record): n=10 min 0.013 p5 0.017 p50 0.035 p95 0.273
+
+===== tr (30 records)
+MT errors: 0
+MT guard pass: 30/30 (100%)
+MT first ms: p50 194 p95 230 max 431 (n=30) | full ms: p50 406 p95 548 max 706 (n=30)
+MT checker badge g/a/r: [28, 1, 1, 0]
+check ms (all): p50 3231 p95 4325 max 5360 (n=70) | bt: p50 3172 p95 4137 max 5295 (n=70) | embed: p50 20 p95 37 max 1995 (n=70)
+check ms (MT only): p50 3163 p95 4115 max 4428 (n=30)
+check errors: 0 empty backs: 0
+type             n  guard  chk-red  chk-red/amb  combined
+wrong_number      3     3        0            0         3
+wrong_unit        2     2        0            0         2
+negation          2     2        1            2         2
+allergy_omitted   2     2        2            2         2
+date_shifted      1     1        0            0         1
+SEMANTIC          4     4        3            4         4
+clean refs: guard red 0/30 (0%) | checker red 1/30 (3%) | checker amber 1/30 (3%) | combined red 1/30 (3%)
+sim clean ref : n=30 min 0.743 p5 0.851 p50 0.953 p95 0.998
+sim perturbed : n=10 min 0.669 p5 0.671 p50 0.900 p95 0.959
+sim semantic  : n=4 min 0.669 p5 0.670 p50 0.717 p95 0.813
+sim numbers   : n=6 min 0.886 p5 0.893 p50 0.931 p95 0.963
+sim live MT   : n=30 min 0.529 p5 0.854 p50 0.958 p95 0.998
+delta ref-pert (same record): n=10 min 0.009 p5 0.017 p50 0.039 p95 0.240
+
+===== ALL (90 records)
+MT errors: 0
+MT guard pass: 85/90 (94%)
+MT first ms: p50 196 p95 236 max 431 (n=90) | full ms: p50 390 p95 544 max 754 (n=90)
+MT checker badge g/a/r: [87, 2, 1, 0]
+check ms (all): p50 2684 p95 4204 max 7094 (n=210) | bt: p50 2624 p95 4137 max 5295 (n=210) | embed: p50 20 p95 32 max 3848 (n=210)
+check ms (MT only): p50 2512 p95 4069 max 4428 (n=90)
+check errors: 0 empty backs: 0
+type             n  guard  chk-red  chk-red/amb  combined
+wrong_number      9     9        0            0         9
+wrong_unit        6     6        0            0         6
+negation          6     6        3            5         6
+allergy_omitted   6     6        6            6         6
+date_shifted      3     3        0            0         3
+SEMANTIC         12    12        9           11        12
+clean refs: guard red 0/90 (0%) | checker red 2/90 (2%) | checker amber 2/90 (2%) | combined red 2/90 (2%)
+sim clean ref : n=90 min 0.743 p5 0.878 p50 0.962 p95 1.000
+sim perturbed : n=30 min 0.669 p5 0.671 p50 0.907 p95 0.963
+sim semantic  : n=12 min 0.669 p5 0.669 p50 0.744 p95 0.849
+sim numbers   : n=18 min 0.886 p5 0.895 p50 0.922 p95 0.967
+sim live MT   : n=90 min 0.529 p5 0.867 p50 0.966 p95 1.000
+delta ref-pert (same record): n=30 min 0.006 p5 0.011 p50 0.035 p95 0.268
+
+===== sweep: flag if s < t  (semantic catch | clean-ref FA | live-MT FA)
+t=0.70  sem 4/12  33%   ref-FA 0/90   0%   live-FA 1/90   1%
+t=0.71  sem 4/12  33%   ref-FA 0/90   0%   live-FA 1/90   1%
+t=0.72  sem 4/12  33%   ref-FA 0/90   0%   live-FA 1/90   1%
+t=0.73  sem 5/12  42%   ref-FA 0/90   0%   live-FA 1/90   1%
+t=0.74  sem 5/12  42%   ref-FA 0/90   0%   live-FA 1/90   1%
+t=0.75  sem 7/12  58%   ref-FA 1/90   1%   live-FA 1/90   1%
+t=0.76  sem 9/12  75%   ref-FA 1/90   1%   live-FA 1/90   1%
+t=0.77  sem 9/12  75%   ref-FA 2/90   2%   live-FA 1/90   1%
+t=0.78  sem 9/12  75%   ref-FA 2/90   2%   live-FA 1/90   1%
+t=0.79  sem 9/12  75%   ref-FA 2/90   2%   live-FA 1/90   1%
+t=0.80  sem 9/12  75%   ref-FA 2/90   2%   live-FA 1/90   1%
+t=0.81  sem 9/12  75%   ref-FA 2/90   2%   live-FA 1/90   1%
+t=0.82  sem 9/12  75%   ref-FA 2/90   2%   live-FA 2/90   2%
+t=0.83  sem 11/12  92%   ref-FA 2/90   2%   live-FA 2/90   2%
+t=0.84  sem 11/12  92%   ref-FA 3/90   3%   live-FA 2/90   2%
+t=0.85  sem 11/12  92%   ref-FA 4/90   4%   live-FA 3/90   3%
+t=0.86  sem 11/12  92%   ref-FA 4/90   4%   live-FA 3/90   3%
+t=0.87  sem 11/12  92%   ref-FA 4/90   4%   live-FA 5/90   6%
+t=0.88  sem 11/12  92%   ref-FA 5/90   6%   live-FA 7/90   8%
+t=0.89  sem 12/12 100%   ref-FA 6/90   7%   live-FA 9/90  10%
+t=0.90  sem 12/12 100%   ref-FA 7/90   8%   live-FA 9/90  10%
+t=0.91  sem 12/12 100%   ref-FA 9/90  10%   live-FA 11/90  12%
+t=0.92  sem 12/12 100%   ref-FA 12/90  13%   live-FA 14/90  16%
+t=0.93  sem 12/12 100%   ref-FA 19/90  21%   live-FA 18/90  20%
+t=0.94  sem 12/12 100%   ref-FA 26/90  29%   live-FA 25/90  28%
+t=0.95  sem 12/12 100%   ref-FA 30/90  33%   live-FA 28/90  31%
+t=0.96  sem 12/12 100%   ref-FA 44/90  49%   live-FA 37/90  41%
+t=0.97  sem 12/12 100%   ref-FA 51/90  57%   live-FA 48/90  53%
+t=0.98  sem 12/12 100%   ref-FA 61/90  68%   live-FA 51/90  57%
+t=0.99  sem 12/12 100%   ref-FA 68/90  76%   live-FA 61/90  68%
+
+===== semantic rows
+kz-08-ru   negation        ref 0.8428 pert 0.747 guard=True | note: 
+     src : Мой начальник не выносил мне предупреждения.
+     back: Мой начальник дал мне выговор.
+kz-08-tr   negation        ref 0.7428 pert 0.6735 guard=True | note: 
+     src : Patronum bana ihtarname vermedi.
+     back: Patronum bana bir uyarı verdi.
+kz-08-ar   negation        ref 0.9235 pert 0.6944 guard=True | note: 
+     src : لم يوجّه لي مديري أي إنذار.
+     back: رئيسي أعطاني إنذارًا.
+sz-05-ru   negation        ref 0.9065 pert 0.8819 guard=True | note: 
+     src : Nehmen Sie die Tabletten nicht nüchtern ein.
+     back: Nehmen Sie die Tabletten nüchtern ein.
+sz-06-ru   allergy_omitted ref 0.9717 pert 0.6694 guard=True | note: 
+     src : Я принимаю ибупрофен, но у меня аллергия на пенициллин.
+     back: Я принимаю ибупрофен.
+sz-09-ru   allergy_omitted ref 0.9782 pert 0.7417 guard=True | note: 
+     src : Sie sind allergisch gegen Penicillin, deshalb bekommen Sie kein Amoxicillin.
+     back: Sie werden Amoxicillin nicht erhalten.
+sz-05-tr   negation        ref 0.9315 pert 0.8221 guard=True | note: 
+     src : Nehmen Sie die Tabletten nicht nüchtern ein.
+     back: Nehmen Sie die Tabletten auf nüchternen Magen.
+sz-06-tr   allergy_omitted ref 0.9594 pert 0.6694 guard=True | note: 
+     src : Ben ibuprofen kullanıyorum ama penisiline alerjim var.
+     back: Ibuprofen alıyorum.
+sz-09-tr   allergy_omitted ref 0.9394 pert 0.7597 guard=True | note: 
+     src : Sie sind allergisch gegen Penicillin, deshalb bekommen Sie kein Amoxicillin.
+     back: Ihnen wird Amoxicillin nicht verabreicht werden.
+sz-05-ar   negation        ref 0.9336 pert 0.8221 guard=True | note: 
+     src : Nehmen Sie die Tabletten nicht nüchtern ein.
+     back: Nehmen Sie die Tabletten auf nüchternen Magen.
+sz-06-ar   allergy_omitted ref 0.9672 pert 0.7263 guard=True | note: 
+     src : أتناول الإيبوبروفين، لكن لدي حساسية من البنسلين.
+     back: أنا أتناول الإيبوبروفين.
+sz-09-ar   allergy_omitted ref 0.9641 pert 0.7593 guard=True | note: 
+     src : Sie sind allergisch gegen Penicillin, deshalb bekommen Sie kein Amoxicillin.
+     back: Du wirst das Amoxicillin nicht erhalten.
+
+===== lowest clean refs / live MT
+kz-08-tr   ref s=0.7428 src: Patronum bana ihtarname vermedi.
+     back: Patronum bana uyarı vermedi.
+kz-04-ar   ref s=0.7624 src: استلمت إشعار الفصل في 3 نوفمبر.
+     back: لقد تلقيت الإلغاء في 3 نوفمبر.
+vr-06-tr   ref s=0.8354 src: Die Vertragsstrafe beträgt 5 % des Auftragswerts.
+     back: Die Strafklausel beträgt %5 des Bestellwertes.
+kz-08-ru   ref s=0.8428 src: Мой начальник не выносил мне предупреждения.
+     back: Мой начальник не дал мне выговор.
+kz-06-tr   ref s=0.8704 src: Die Frist für die Kündigungsschutzklage beträgt drei Wochen ab Zugang der Kündigung.
+     back: Die Frist zur Eröffnung einer Rückkehrklage beträgt drei Wochen ab Zustellung der Kündigungsmitteilung.
+kz-04-tr   ref s=0.8873 src: Fesih bildirimini 3 Kasım'da aldım.
+     back: 3 Kasım'da fesih belgesini aldım.
+kz-03-ar   ref s=0.8913 src: Unterschreiben Sie die Aufhebungsvereinbarung nicht, bevor wir sie geprüft haben.
+     back: Unterschreibe die Vereinbarung zur Vertragsbeendigung nicht, bevor wir sie überprüfen.
+sz-05-ru   ref s=0.9065 src: Nehmen Sie die Tabletten nicht nüchtern ein.
+     back: Nehmen Sie keine Tabletten auf nüchternen Magen.
+kz-08-tr   MT s=0.5291 guard_red=False src: Patronum bana ihtarname vermedi.
+     mt  : Mein Arbeitgeber hat mir keine Abmahnung erteilt.
+     back: İşverenim bana herhangi bir uyarı vermedi.
+sz-04-ar   MT s=0.8101 guard_red=False src: Kommen Sie am Donnerstag, dem 12. November, um 9 Uhr wieder.
+     mt  : عُد يوم الخميس، 12 نوفمبر، في تمام الساعة 9 صباحًا.
+     back: Kehre zurück am Donnerstag, 12 November, um genau 9 Uhr morgens.
+vr-06-tr   MT s=0.8469 guard_red=False src: Die Vertragsstrafe beträgt 5 % des Auftragswerts.
+     mt  : Cezai şart, sipariş tutarının %5'idir.
+     back: Die Strafbedingung beträgt %5 des Bestellwertes.
+kz-04-ar   MT s=0.8615 guard_red=False src: استلمت إشعار الفصل في 3 نوفمبر.
+     mt  : Ich habe die Kündigung am 3. November erhalten.
+     back: لقد تلقيت الإخطار في 3 نوفمبر.
+kz-04-tr   MT s=0.8634 guard_red=False src: Fesih bildirimini 3 Kasım'da aldım.
+     mt  : Ich habe die Kündigung am 3. November erhalten.
+     back: 3. November tarihinde fesih belgesini aldım.
+kz-06-tr   MT s=0.8704 guard_red=False src: Die Frist für die Kündigungsschutzklage beträgt drei Wochen ab Zugang der Kündigung.
+     mt  : İşe iade davası açma süresi, fesih bildiriminin tebliğinden itibaren üç haftadır.
+     back: Die Frist zur Eröffnung einer Rückkehrklage beträgt drei Wochen ab Zustellung der Kündigungsmitteilung.
+sz-05-ar   MT s=0.8732 guard_red=False src: Nehmen Sie die Tabletten nicht nüchtern ein.
+     mt  : لا تتناول الحبوب على معدة فارغة.
+     back: Nimm die Pillen nicht auf nüchternen Magen.
+sz-03-tr   MT s=0.8852 guard_red=False src: Penisiline alerjim var.
+     mt  : Ich habe eine Penicillin-Allergie.
+     back: Benim bir penisilin alerjim var.
+
+===== MT guard failures / guard false alarms / guard misses
+kz-05-ru   MT guard red: [{'kind': 'amount', 'src': '3 200 евро', 'tgt': '3', 'match': False}, {'kind': 'amount', 'src': None, 'tgt': '200 Euro', 'match': False}]
+     src: Я работаю там шесть лет и получаю 3 200 евро брутто в месяц.
+     mt : Ich arbeite dort seit sechs Jahren und erhalte 3 200 Euro brutto im Monat.
+vr-04-ru   MT guard red: [{'kind': 'amount', 'src': '950 000 евро', 'tgt': '950', 'match': False}, {'kind': 'number', 'src': None, 'tgt': '000', 'match': False}]
+     src: Мы предлагаем 950 000 евро при оплате в течение 30 дней.
+     mt : Wir bieten 950 000 Euro bei einem Zahlungsziel von 30 Tagen an.
+vr-05-ru   MT guard red: [{'kind': 'number', 'src': '10.000', 'tgt': None, 'match': False}]
+     src: Wir gewähren 3 % Rabatt bei einer Mindestabnahme von 10.000 Stück.
+     mt : Мы предоставляем скидку 3 % при минимальном объёме заказа в 10.000 Stück.
+vr-04-ar   MT guard red: [{'kind': 'amount', 'src': '950,000 يورو', 'tgt': '950,000 Euro', 'match': False}]
+     src: نعرض 950,000 يورو مقابل الدفع خلال 30 يومًا.
+     mt : Wir bieten 950,000 Euro gegen ein Zahlungsziel von 30 Tagen an.
+vr-05-ar   MT guard red: [{'kind': 'number', 'src': '10.000', 'tgt': '10.000', 'match': False}]
+     src: Wir gewähren 3 % Rabatt bei einer Mindestabnahme von 10.000 Stück.
+     mt : نحن نمنح خصمًا بنسبة 3% عند الحد الأدنى للطلب البالغ 10.000 قطعة.

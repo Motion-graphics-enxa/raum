@@ -1,0 +1,324 @@
+{
+ "fish-audio/ar-clone": {
+  "lang": "ar",
+  "ref": "ar",
+  "sim": 0.972,
+  "sim_all": {
+   "de": 0.59,
+   "en": 0.316,
+   "ru": 0.55,
+   "tr": 0.564,
+   "ar": 0.972
+  },
+  "dur": 5.85,
+  "peak": 0.73
+ },
+ "fish-audio/ar-xclone-de": {
+  "lang": "ar",
+  "ref": "de",
+  "sim": 0.957,
+  "sim_all": {
+   "de": 0.957,
+   "en": 0.745,
+   "ru": 0.929,
+   "tr": 0.946,
+   "ar": 0.505
+  },
+  "dur": 5.62,
+  "peak": 0.856
+ },
+ "fish-audio/ar": {
+  "lang": "ar",
+  "ref": null,
+  "sim": null,
+  "sim_all": {
+   "de": 0.758,
+   "en": 0.772,
+   "ru": 0.91,
+   "tr": 0.844,
+   "ar": 0.588
+  },
+  "dur": 5.71,
+  "peak": 0.583
+ },
+ "fish-audio/de-clone-empathetic": {
+  "lang": "de",
+  "ref": "de",
+  "sim": 0.985,
+  "sim_all": {
+   "de": 0.985,
+   "en": 0.694,
+   "ru": 0.892,
+   "tr": 0.959,
+   "ar": 0.488
+  },
+  "dur": 4.64,
+  "peak": 0.851
+ },
+ "fish-audio/de-clone": {
+  "lang": "de",
+  "ref": "de",
+  "sim": 0.984,
+  "sim_all": {
+   "de": 0.984,
+   "en": 0.661,
+   "ru": 0.866,
+   "tr": 0.949,
+   "ar": 0.495
+  },
+  "dur": 4.55,
+  "peak": 0.885
+ },
+ "fish-audio/de-xclone-ar": {
+  "lang": "de",
+  "ref": "ar",
+  "sim": 0.947,
+  "sim_all": {
+   "de": 0.692,
+   "en": 0.42,
+   "ru": 0.662,
+   "tr": 0.694,
+   "ar": 0.947
+  },
+  "dur": 5.76,
+  "peak": 0.743
+ },
+ "fish-audio/de-xclone-en": {
+  "lang": "de",
+  "ref": "en",
+  "sim": 0.905,
+  "sim_all": {
+   "de": 0.835,
+   "en": 0.905,
+   "ru": 0.886,
+   "tr": 0.881,
+   "ar": 0.418
+  },
+  "dur": 4.5,
+  "peak": 0.831
+ },
+ "fish-audio/de-xclone-ru": {
+  "lang": "de",
+  "ref": "ru",
+  "sim": 0.973,
+  "sim_all": {
+   "de": 0.908,
+   "en": 0.735,
+   "ru": 0.973,
+   "tr": 0.958,
+   "ar": 0.519
+  },
+  "dur": 4.41,
+  "peak": 0.705
+ },
+ "fish-audio/de-xclone-tr": {
+  "lang": "de",
+  "ref": "tr",
+  "sim": 0.982,
+  "sim_all": {
+   "de": 0.93,
+   "en": 0.731,
+   "ru": 0.95,
+   "tr": 0.982,
+   "ar": 0.52
+  },
+  "dur": 5.48,
+  "peak": 0.707
+ },
+ "fish-audio/de": {
+  "lang": "de",
+  "ref": null,
+  "sim": null,
+  "sim_all": {
+   "de": 0.837,
+   "en": 0.605,
+   "ru": 0.78,
+   "tr": 0.841,
+   "ar": 0.681
+  },
+  "dur": 3.58,
+  "peak": 0.653
+ },
+ "fish-audio/en-clone-whispering": {
+  "lang": "en",
+  "ref": "en",
+  "sim": 0.98,
+  "sim_all": {
+   "de": 0.55,
+   "en": 0.98,
+   "ru": 0.685,
+   "tr": 0.643,
+   "ar": 0.309
+  },
+  "dur": 4.37,
+  "peak": 0.831
+ },
+ "fish-audio/en-clone": {
+  "lang": "en",
+  "ref": "en",
+  "sim": 0.985,
+  "sim_all": {
+   "de": 0.589,
+   "en": 0.985,
+   "ru": 0.703,
+   "tr": 0.672,
+   "ar": 0.322
+  },
+  "dur": 4.27,
+  "peak": 0.78
+ },
+ "fish-audio/en-xclone-ar": {
+  "lang": "en",
+  "ref": "ar",
+  "sim": 0.956,
+  "sim_all": {
+   "de": 0.505,
+   "en": 0.386,
+   "ru": 0.525,
+   "tr": 0.509,
+   "ar": 0.956
+  },
+  "dur": 5.29,
+  "peak": 0.689
+ },
+ "fish-audio/en-xclone-de": {
+  "lang": "en",
+  "ref": "de",
+  "sim": 0.965,
+  "sim_all": {
+   "de": 0.965,
+   "en": 0.743,
+   "ru": 0.878,
+   "tr": 0.952,
+   "ar": 0.497
+  },
+  "dur": 4.46,
+  "peak": 0.834
+ },
+ "fish-audio/en": {
+  "lang": "en",
+  "ref": null,
+  "sim": null,
+  "sim_all": {
+   "de": 0.343,
+   "en": 0.869,
+   "ru": 0.513,
+   "tr": 0.417,
+   "ar": 0.24
+  },
+  "dur": 3.9,
+  "peak": 0.663
+ },
+ "fish-audio/ru-clone-digits": {
+  "lang": "ru",
+  "ref": "ru",
+  "sim": 0.988,
+  "sim_all": {
+   "de": 0.862,
+   "en": 0.728,
+   "ru": 0.988,
+   "tr": 0.929,
+   "ar": 0.509
+  },
+  "dur": 4.78,
+  "peak": 0.649
+ },
+ "fish-audio/ru-clone": {
+  "lang": "ru",
+  "ref": "ru",
+  "sim": 0.987,
+  "sim_all": {
+   "de": 0.823,
+   "en": 0.73,
+   "ru": 0.987,
+   "tr": 0.904,
+   "ar": 0.504
+  },
+  "dur": 4.92,
+  "peak": 0.687
+ },
+ "fish-audio/ru-xclone-de": {
+  "lang": "ru",
+  "ref": "de",
+  "sim": 0.96,
+  "sim_all": {
+   "de": 0.96,
+   "en": 0.712,
+   "ru": 0.936,
+   "tr": 0.974,
+   "ar": 0.488
+  },
+  "dur": 5.06,
+  "peak": 0.865
+ },
+ "fish-audio/ru": {
+  "lang": "ru",
+  "ref": null,
+  "sim": null,
+  "sim_all": {
+   "de": 0.749,
+   "en": 0.618,
+   "ru": 0.725,
+   "tr": 0.77,
+   "ar": 0.645
+  },
+  "dur": 4.32,
+  "peak": 0.979
+ },
+ "fish-audio/tr-clone-digits": {
+  "lang": "tr",
+  "ref": "tr",
+  "sim": 0.987,
+  "sim_all": {
+   "de": 0.933,
+   "en": 0.749,
+   "ru": 0.95,
+   "tr": 0.987,
+   "ar": 0.515
+  },
+  "dur": 5.48,
+  "peak": 0.675
+ },
+ "fish-audio/tr-clone": {
+  "lang": "tr",
+  "ref": "tr",
+  "sim": 0.98,
+  "sim_all": {
+   "de": 0.91,
+   "en": 0.758,
+   "ru": 0.961,
+   "tr": 0.98,
+   "ar": 0.515
+  },
+  "dur": 5.2,
+  "peak": 0.72
+ },
+ "fish-audio/tr-xclone-de": {
+  "lang": "tr",
+  "ref": "de",
+  "sim": 0.977,
+  "sim_all": {
+   "de": 0.977,
+   "en": 0.726,
+   "ru": 0.87,
+   "tr": 0.946,
+   "ar": 0.459
+  },
+  "dur": 4.88,
+  "peak": 0.842
+ },
+ "fish-audio/tr": {
+  "lang": "tr",
+  "ref": null,
+  "sim": null,
+  "sim_all": {
+   "de": 0.701,
+   "en": 0.539,
+   "ru": 0.62,
+   "tr": 0.702,
+   "ar": 0.684
+  },
+  "dur": 4.55,
+  "peak": 0.529
+ }
+}

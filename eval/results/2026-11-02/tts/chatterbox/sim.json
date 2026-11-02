@@ -1,0 +1,1042 @@
+{
+ "chatterbox-v3-cfm10/ar-clone": {
+  "lang": "ar",
+  "ref": "ar",
+  "sim": 0.961,
+  "sim_all": {
+   "de": 0.585,
+   "en": 0.341,
+   "ru": 0.536,
+   "tr": 0.57,
+   "ar": 0.961
+  },
+  "dur": 6.56
+ },
+ "chatterbox-v3-cfm10/ar-xclone-de-cfg0": {
+  "lang": "ar",
+  "ref": "de",
+  "sim": 0.964,
+  "sim_all": {
+   "de": 0.964,
+   "en": 0.701,
+   "ru": 0.883,
+   "tr": 0.94,
+   "ar": 0.527
+  },
+  "dur": 6.72
+ },
+ "chatterbox-v3-cfm10/ar-xclone-de": {
+  "lang": "ar",
+  "ref": "de",
+  "sim": 0.954,
+  "sim_all": {
+   "de": 0.954,
+   "en": 0.722,
+   "ru": 0.862,
+   "tr": 0.934,
+   "ar": 0.503
+  },
+  "dur": 5.28
+ },
+ "chatterbox-v3-cfm10/ar": {
+  "lang": "ar",
+  "ref": null,
+  "sim": null,
+  "sim_all": {
+   "de": 0.623,
+   "en": 0.542,
+   "ru": 0.623,
+   "tr": 0.655,
+   "ar": 0.828
+  },
+  "dur": 5.0
+ },
+ "chatterbox-v3-cfm10/de-clone": {
+  "lang": "de",
+  "ref": "de",
+  "sim": 0.979,
+  "sim_all": {
+   "de": 0.979,
+   "en": 0.691,
+   "ru": 0.858,
+   "tr": 0.945,
+   "ar": 0.49
+  },
+  "dur": 4.0
+ },
+ "chatterbox-v3-cfm10/de-xclone-en-cfg0": {
+  "lang": "de",
+  "ref": "en",
+  "sim": 0.823,
+  "sim_all": {
+   "de": 0.903,
+   "en": 0.823,
+   "ru": 0.857,
+   "tr": 0.903,
+   "ar": 0.436
+  },
+  "dur": 5.36
+ },
+ "chatterbox-v3-cfm10/de-xclone-en": {
+  "lang": "de",
+  "ref": "en",
+  "sim": 0.822,
+  "sim_all": {
+   "de": 0.871,
+   "en": 0.822,
+   "ru": 0.872,
+   "tr": 0.882,
+   "ar": 0.424
+  },
+  "dur": 5.36
+ },
+ "chatterbox-v3-cfm10/de": {
+  "lang": "de",
+  "ref": null,
+  "sim": null,
+  "sim_all": {
+   "de": 0.729,
+   "en": 0.491,
+   "ru": 0.644,
+   "tr": 0.726,
+   "ar": 0.878
+  },
+  "dur": 4.2
+ },
+ "chatterbox-v3-cfm10/en-clone": {
+  "lang": "en",
+  "ref": "en",
+  "sim": 0.964,
+  "sim_all": {
+   "de": 0.476,
+   "en": 0.964,
+   "ru": 0.603,
+   "tr": 0.556,
+   "ar": 0.246
+  },
+  "dur": 5.36
+ },
+ "chatterbox-v3-cfm10/en-xclone-de-cfg0": {
+  "lang": "en",
+  "ref": "de",
+  "sim": 0.938,
+  "sim_all": {
+   "de": 0.938,
+   "en": 0.727,
+   "ru": 0.819,
+   "tr": 0.9,
+   "ar": 0.474
+  },
+  "dur": 4.92
+ },
+ "chatterbox-v3-cfm10/en-xclone-de": {
+  "lang": "en",
+  "ref": "de",
+  "sim": 0.861,
+  "sim_all": {
+   "de": 0.861,
+   "en": 0.845,
+   "ru": 0.793,
+   "tr": 0.858,
+   "ar": 0.395
+  },
+  "dur": 3.96
+ },
+ "chatterbox-v3-cfm10/en": {
+  "lang": "en",
+  "ref": null,
+  "sim": null,
+  "sim_all": {
+   "de": 0.303,
+   "en": 0.666,
+   "ru": 0.359,
+   "tr": 0.385,
+   "ar": 0.498
+  },
+  "dur": 4.12
+ },
+ "chatterbox-v3-cfm10/ru-clone": {
+  "lang": "ru",
+  "ref": "ru",
+  "sim": 0.98,
+  "sim_all": {
+   "de": 0.861,
+   "en": 0.782,
+   "ru": 0.98,
+   "tr": 0.935,
+   "ar": 0.477
+  },
+  "dur": 5.44
+ },
+ "chatterbox-v3-cfm10/ru-xclone-de-cfg0": {
+  "lang": "ru",
+  "ref": "de",
+  "sim": 0.954,
+  "sim_all": {
+   "de": 0.954,
+   "en": 0.672,
+   "ru": 0.877,
+   "tr": 0.928,
+   "ar": 0.543
+  },
+  "dur": 5.8
+ },
+ "chatterbox-v3-cfm10/ru-xclone-de": {
+  "lang": "ru",
+  "ref": "de",
+  "sim": 0.956,
+  "sim_all": {
+   "de": 0.956,
+   "en": 0.716,
+   "ru": 0.907,
+   "tr": 0.946,
+   "ar": 0.529
+  },
+  "dur": 5.0
+ },
+ "chatterbox-v3-cfm10/ru": {
+  "lang": "ru",
+  "ref": null,
+  "sim": null,
+  "sim_all": {
+   "de": 0.645,
+   "en": 0.505,
+   "ru": 0.644,
+   "tr": 0.669,
+   "ar": 0.893
+  },
+  "dur": 4.52
+ },
+ "chatterbox-v3-cfm10/tr-clone": {
+  "lang": "tr",
+  "ref": "tr",
+  "sim": 0.976,
+  "sim_all": {
+   "de": 0.919,
+   "en": 0.755,
+   "ru": 0.94,
+   "tr": 0.976,
+   "ar": 0.503
+  },
+  "dur": 5.32
+ },
+ "chatterbox-v3-cfm10/tr-xclone-de-cfg0": {
+  "lang": "tr",
+  "ref": "de",
+  "sim": 0.959,
+  "sim_all": {
+   "de": 0.959,
+   "en": 0.748,
+   "ru": 0.874,
+   "tr": 0.944,
+   "ar": 0.492
+  },
+  "dur": 5.6
+ },
+ "chatterbox-v3-cfm10/tr-xclone-de": {
+  "lang": "tr",
+  "ref": "de",
+  "sim": 0.956,
+  "sim_all": {
+   "de": 0.956,
+   "en": 0.698,
+   "ru": 0.858,
+   "tr": 0.935,
+   "ar": 0.506
+  },
+  "dur": 5.44
+ },
+ "chatterbox-v3-cfm10/tr": {
+  "lang": "tr",
+  "ref": null,
+  "sim": null,
+  "sim_all": {
+   "de": 0.66,
+   "en": 0.629,
+   "ru": 0.631,
+   "tr": 0.699,
+   "ar": 0.753
+  },
+  "dur": 5.4
+ },
+ "chatterbox-v3-nonorm/ar-clone": {
+  "lang": "ar",
+  "ref": "ar",
+  "sim": 0.962,
+  "sim_all": {
+   "de": 0.61,
+   "en": 0.354,
+   "ru": 0.565,
+   "tr": 0.598,
+   "ar": 0.962
+  },
+  "dur": 6.88
+ },
+ "chatterbox-v3-nonorm/ar-xclone-de-cfg0": {
+  "lang": "ar",
+  "ref": "de",
+  "sim": 0.954,
+  "sim_all": {
+   "de": 0.954,
+   "en": 0.727,
+   "ru": 0.875,
+   "tr": 0.938,
+   "ar": 0.508
+  },
+  "dur": 6.64
+ },
+ "chatterbox-v3-nonorm/ar-xclone-de": {
+  "lang": "ar",
+  "ref": "de",
+  "sim": 0.949,
+  "sim_all": {
+   "de": 0.949,
+   "en": 0.738,
+   "ru": 0.865,
+   "tr": 0.934,
+   "ar": 0.502
+  },
+  "dur": 5.28
+ },
+ "chatterbox-v3-nonorm/ar": {
+  "lang": "ar",
+  "ref": null,
+  "sim": null,
+  "sim_all": {
+   "de": 0.573,
+   "en": 0.535,
+   "ru": 0.574,
+   "tr": 0.603,
+   "ar": 0.836
+  },
+  "dur": 4.68
+ },
+ "chatterbox-v3-nonorm/de-clone": {
+  "lang": "de",
+  "ref": "de",
+  "sim": 0.986,
+  "sim_all": {
+   "de": 0.986,
+   "en": 0.659,
+   "ru": 0.867,
+   "tr": 0.95,
+   "ar": 0.504
+  },
+  "dur": 4.04
+ },
+ "chatterbox-v3-nonorm/de-xclone-en-cfg0": {
+  "lang": "de",
+  "ref": "en",
+  "sim": 0.835,
+  "sim_all": {
+   "de": 0.892,
+   "en": 0.835,
+   "ru": 0.907,
+   "tr": 0.91,
+   "ar": 0.439
+  },
+  "dur": 5.6
+ },
+ "chatterbox-v3-nonorm/de-xclone-en": {
+  "lang": "de",
+  "ref": "en",
+  "sim": 0.865,
+  "sim_all": {
+   "de": 0.843,
+   "en": 0.865,
+   "ru": 0.836,
+   "tr": 0.854,
+   "ar": 0.385
+  },
+  "dur": 5.12
+ },
+ "chatterbox-v3-nonorm/de": {
+  "lang": "de",
+  "ref": null,
+  "sim": null,
+  "sim_all": {
+   "de": 0.729,
+   "en": 0.496,
+   "ru": 0.669,
+   "tr": 0.734,
+   "ar": 0.876
+  },
+  "dur": 4.08
+ },
+ "chatterbox-v3-nonorm/en-clone": {
+  "lang": "en",
+  "ref": "en",
+  "sim": 0.964,
+  "sim_all": {
+   "de": 0.469,
+   "en": 0.964,
+   "ru": 0.602,
+   "tr": 0.552,
+   "ar": 0.266
+  },
+  "dur": 5.36
+ },
+ "chatterbox-v3-nonorm/en-xclone-de-cfg0": {
+  "lang": "en",
+  "ref": "de",
+  "sim": 0.937,
+  "sim_all": {
+   "de": 0.937,
+   "en": 0.754,
+   "ru": 0.83,
+   "tr": 0.913,
+   "ar": 0.49
+  },
+  "dur": 4.8
+ },
+ "chatterbox-v3-nonorm/en-xclone-de": {
+  "lang": "en",
+  "ref": "de",
+  "sim": 0.919,
+  "sim_all": {
+   "de": 0.919,
+   "en": 0.781,
+   "ru": 0.821,
+   "tr": 0.904,
+   "ar": 0.481
+  },
+  "dur": 4.2
+ },
+ "chatterbox-v3-nonorm/en": {
+  "lang": "en",
+  "ref": null,
+  "sim": null,
+  "sim_all": {
+   "de": 0.303,
+   "en": 0.65,
+   "ru": 0.36,
+   "tr": 0.386,
+   "ar": 0.494
+  },
+  "dur": 4.12
+ },
+ "chatterbox-v3-nonorm/ru-clone": {
+  "lang": "ru",
+  "ref": "ru",
+  "sim": 0.979,
+  "sim_all": {
+   "de": 0.862,
+   "en": 0.783,
+   "ru": 0.979,
+   "tr": 0.936,
+   "ar": 0.497
+  },
+  "dur": 5.44
+ },
+ "chatterbox-v3-nonorm/ru-xclone-de-cfg0": {
+  "lang": "ru",
+  "ref": "de",
+  "sim": 0.944,
+  "sim_all": {
+   "de": 0.944,
+   "en": 0.682,
+   "ru": 0.879,
+   "tr": 0.925,
+   "ar": 0.545
+  },
+  "dur": 5.8
+ },
+ "chatterbox-v3-nonorm/ru-xclone-de": {
+  "lang": "ru",
+  "ref": "de",
+  "sim": 0.955,
+  "sim_all": {
+   "de": 0.955,
+   "en": 0.711,
+   "ru": 0.906,
+   "tr": 0.952,
+   "ar": 0.545
+  },
+  "dur": 5.04
+ },
+ "chatterbox-v3-nonorm/ru": {
+  "lang": "ru",
+  "ref": null,
+  "sim": null,
+  "sim_all": {
+   "de": 0.667,
+   "en": 0.531,
+   "ru": 0.669,
+   "tr": 0.69,
+   "ar": 0.89
+  },
+  "dur": 4.52
+ },
+ "chatterbox-v3-nonorm/tr-clone": {
+  "lang": "tr",
+  "ref": "tr",
+  "sim": 0.975,
+  "sim_all": {
+   "de": 0.911,
+   "en": 0.772,
+   "ru": 0.939,
+   "tr": 0.975,
+   "ar": 0.512
+  },
+  "dur": 5.48
+ },
+ "chatterbox-v3-nonorm/tr-xclone-de-cfg0": {
+  "lang": "tr",
+  "ref": "de",
+  "sim": 0.962,
+  "sim_all": {
+   "de": 0.962,
+   "en": 0.727,
+   "ru": 0.885,
+   "tr": 0.952,
+   "ar": 0.501
+  },
+  "dur": 5.64
+ },
+ "chatterbox-v3-nonorm/tr-xclone-de": {
+  "lang": "tr",
+  "ref": "de",
+  "sim": 0.948,
+  "sim_all": {
+   "de": 0.948,
+   "en": 0.71,
+   "ru": 0.863,
+   "tr": 0.931,
+   "ar": 0.511
+  },
+  "dur": 5.44
+ },
+ "chatterbox-v3-nonorm/tr": {
+  "lang": "tr",
+  "ref": null,
+  "sim": null,
+  "sim_all": {
+   "de": 0.64,
+   "en": 0.646,
+   "ru": 0.629,
+   "tr": 0.685,
+   "ar": 0.772
+  },
+  "dur": 5.4
+ },
+ "chatterbox-v3/ar-clone": {
+  "lang": "ar",
+  "ref": "ar",
+  "sim": 0.96,
+  "sim_all": {
+   "de": 0.599,
+   "en": 0.363,
+   "ru": 0.548,
+   "tr": 0.59,
+   "ar": 0.96
+  },
+  "dur": 6.96
+ },
+ "chatterbox-v3/ar-xclone-de": {
+  "lang": "ar",
+  "ref": "de",
+  "sim": 0.96,
+  "sim_all": {
+   "de": 0.96,
+   "en": 0.733,
+   "ru": 0.862,
+   "tr": 0.934,
+   "ar": 0.484
+  },
+  "dur": 6.6
+ },
+ "chatterbox-v3/ar": {
+  "lang": "ar",
+  "ref": null,
+  "sim": null,
+  "sim_all": {
+   "de": 0.671,
+   "en": 0.585,
+   "ru": 0.672,
+   "tr": 0.718,
+   "ar": 0.795
+  },
+  "dur": 5.6
+ },
+ "chatterbox-v3/de-clone-speed1.2": {
+  "lang": "de",
+  "ref": "de",
+  "sim": 0.971,
+  "sim_all": {
+   "de": 0.971,
+   "en": 0.646,
+   "ru": 0.859,
+   "tr": 0.938,
+   "ar": 0.524
+  },
+  "dur": 3.8
+ },
+ "chatterbox-v3/de-clone": {
+  "lang": "de",
+  "ref": "de",
+  "sim": 0.98,
+  "sim_all": {
+   "de": 0.98,
+   "en": 0.645,
+   "ru": 0.856,
+   "tr": 0.934,
+   "ar": 0.565
+  },
+  "dur": 4.76
+ },
+ "chatterbox-v3/de-long-xclone-ar": {
+  "lang": "de",
+  "ref": null,
+  "sim": null,
+  "sim_all": {
+   "de": 0.657,
+   "en": 0.381,
+   "ru": 0.611,
+   "tr": 0.653,
+   "ar": 0.939
+  },
+  "dur": 23.44
+ },
+ "chatterbox-v3/de-xclone-ar-cfg05": {
+  "lang": "de",
+  "ref": "ar",
+  "sim": 0.939,
+  "sim_all": {
+   "de": 0.645,
+   "en": 0.41,
+   "ru": 0.611,
+   "tr": 0.65,
+   "ar": 0.939
+  },
+  "dur": 6.04
+ },
+ "chatterbox-v3/de-xclone-ar": {
+  "lang": "de",
+  "ref": "ar",
+  "sim": 0.926,
+  "sim_all": {
+   "de": 0.628,
+   "en": 0.385,
+   "ru": 0.605,
+   "tr": 0.64,
+   "ar": 0.926
+  },
+  "dur": 5.92
+ },
+ "chatterbox-v3/de-xclone-en": {
+  "lang": "de",
+  "ref": "en",
+  "sim": 0.806,
+  "sim_all": {
+   "de": 0.912,
+   "en": 0.806,
+   "ru": 0.888,
+   "tr": 0.92,
+   "ar": 0.452
+  },
+  "dur": 5.6
+ },
+ "chatterbox-v3/de-xclone-ru": {
+  "lang": "de",
+  "ref": "ru",
+  "sim": 0.985,
+  "sim_all": {
+   "de": 0.885,
+   "en": 0.767,
+   "ru": 0.985,
+   "tr": 0.943,
+   "ar": 0.513
+  },
+  "dur": 5.32
+ },
+ "chatterbox-v3/de-xclone-tr": {
+  "lang": "de",
+  "ref": "tr",
+  "sim": 0.973,
+  "sim_all": {
+   "de": 0.918,
+   "en": 0.743,
+   "ru": 0.933,
+   "tr": 0.973,
+   "ar": 0.553
+  },
+  "dur": 5.12
+ },
+ "chatterbox-v3/de": {
+  "lang": "de",
+  "ref": null,
+  "sim": null,
+  "sim_all": {
+   "de": 0.727,
+   "en": 0.594,
+   "ru": 0.686,
+   "tr": 0.76,
+   "ar": 0.823
+  },
+  "dur": 4.04
+ },
+ "chatterbox-v3/en-clone": {
+  "lang": "en",
+  "ref": "en",
+  "sim": 0.969,
+  "sim_all": {
+   "de": 0.506,
+   "en": 0.969,
+   "ru": 0.615,
+   "tr": 0.586,
+   "ar": 0.248
+  },
+  "dur": 4.76
+ },
+ "chatterbox-v3/en-xclone-ar": {
+  "lang": "en",
+  "ref": "ar",
+  "sim": 0.949,
+  "sim_all": {
+   "de": 0.618,
+   "en": 0.383,
+   "ru": 0.604,
+   "tr": 0.629,
+   "ar": 0.949
+  },
+  "dur": 5.68
+ },
+ "chatterbox-v3/en-xclone-de-cfg05": {
+  "lang": "en",
+  "ref": "de",
+  "sim": 0.85,
+  "sim_all": {
+   "de": 0.85,
+   "en": 0.862,
+   "ru": 0.799,
+   "tr": 0.865,
+   "ar": 0.414
+  },
+  "dur": 4.32
+ },
+ "chatterbox-v3/en-xclone-de": {
+  "lang": "en",
+  "ref": "de",
+  "sim": 0.949,
+  "sim_all": {
+   "de": 0.949,
+   "en": 0.715,
+   "ru": 0.824,
+   "tr": 0.921,
+   "ar": 0.514
+  },
+  "dur": 4.52
+ },
+ "chatterbox-v3/en": {
+  "lang": "en",
+  "ref": null,
+  "sim": null,
+  "sim_all": {
+   "de": 0.307,
+   "en": 0.694,
+   "ru": 0.341,
+   "tr": 0.379,
+   "ar": 0.461
+  },
+  "dur": 4.4
+ },
+ "chatterbox-v3/ru-clone": {
+  "lang": "ru",
+  "ref": "ru",
+  "sim": 0.975,
+  "sim_all": {
+   "de": 0.865,
+   "en": 0.77,
+   "ru": 0.975,
+   "tr": 0.935,
+   "ar": 0.547
+  },
+  "dur": 5.32
+ },
+ "chatterbox-v3/ru-xclone-de": {
+  "lang": "ru",
+  "ref": "de",
+  "sim": 0.958,
+  "sim_all": {
+   "de": 0.958,
+   "en": 0.737,
+   "ru": 0.912,
+   "tr": 0.949,
+   "ar": 0.516
+  },
+  "dur": 5.52
+ },
+ "chatterbox-v3/ru": {
+  "lang": "ru",
+  "ref": null,
+  "sim": null,
+  "sim_all": {
+   "de": 0.634,
+   "en": 0.527,
+   "ru": 0.612,
+   "tr": 0.665,
+   "ar": 0.881
+  },
+  "dur": 4.64
+ },
+ "chatterbox-v3/tr-clone": {
+  "lang": "tr",
+  "ref": "tr",
+  "sim": 0.951,
+  "sim_all": {
+   "de": 0.891,
+   "en": 0.77,
+   "ru": 0.928,
+   "tr": 0.951,
+   "ar": 0.576
+  },
+  "dur": 4.52
+ },
+ "chatterbox-v3/tr-xclone-de": {
+  "lang": "tr",
+  "ref": "de",
+  "sim": 0.946,
+  "sim_all": {
+   "de": 0.946,
+   "en": 0.759,
+   "ru": 0.902,
+   "tr": 0.945,
+   "ar": 0.477
+  },
+  "dur": 5.72
+ },
+ "chatterbox-v3/tr": {
+  "lang": "tr",
+  "ref": null,
+  "sim": null,
+  "sim_all": {
+   "de": 0.64,
+   "en": 0.655,
+   "ru": 0.625,
+   "tr": 0.676,
+   "ar": 0.723
+  },
+  "dur": 5.12
+ },
+ "piper/ar": {
+  "lang": "ar",
+  "ref": null,
+  "sim": null,
+  "sim_all": {
+   "de": 0.593,
+   "en": 0.4,
+   "ru": 0.56,
+   "tr": 0.571,
+   "ar": 0.821
+  },
+  "dur": 8.69
+ },
+ "piper/de": {
+  "lang": "de",
+  "ref": null,
+  "sim": null,
+  "sim_all": {
+   "de": 0.404,
+   "en": 0.237,
+   "ru": 0.373,
+   "tr": 0.386,
+   "ar": 0.943
+  },
+  "dur": 4.75
+ },
+ "piper/en": {
+  "lang": "en",
+  "ref": null,
+  "sim": null,
+  "sim_all": {
+   "de": 0.799,
+   "en": 0.688,
+   "ru": 0.843,
+   "tr": 0.838,
+   "ar": 0.445
+  },
+  "dur": 5.03
+ },
+ "piper/ru": {
+  "lang": "ru",
+  "ref": null,
+  "sim": null,
+  "sim_all": {
+   "de": 0.818,
+   "en": 0.771,
+   "ru": 0.926,
+   "tr": 0.889,
+   "ar": 0.578
+  },
+  "dur": 5.74
+ },
+ "piper/tr": {
+  "lang": "tr",
+  "ref": null,
+  "sim": null,
+  "sim_all": {
+   "de": 0.577,
+   "en": 0.323,
+   "ru": 0.494,
+   "tr": 0.556,
+   "ar": 0.857
+  },
+  "dur": 5.78
+ },
+ "qwen3-tts-0.6b/de-clone-xvec": {
+  "lang": "de",
+  "ref": "de",
+  "sim": 0.988,
+  "sim_all": {
+   "de": 0.988,
+   "en": 0.592,
+   "ru": 0.848,
+   "tr": 0.941,
+   "ar": 0.558
+  },
+  "dur": 5.04
+ },
+ "qwen3-tts-0.6b/de-clone": {
+  "lang": "de",
+  "ref": "de",
+  "sim": 0.987,
+  "sim_all": {
+   "de": 0.987,
+   "en": 0.674,
+   "ru": 0.874,
+   "tr": 0.954,
+   "ar": 0.532
+  },
+  "dur": 4.56
+ },
+ "qwen3-tts-0.6b/de-xclone-en-icl": {
+  "lang": "de",
+  "ref": "en",
+  "sim": 0.942,
+  "sim_all": {
+   "de": 0.766,
+   "en": 0.942,
+   "ru": 0.815,
+   "tr": 0.815,
+   "ar": 0.353
+  },
+  "dur": 4.4
+ },
+ "qwen3-tts-0.6b/de-xclone-en": {
+  "lang": "de",
+  "ref": "en",
+  "sim": 0.784,
+  "sim_all": {
+   "de": 0.908,
+   "en": 0.784,
+   "ru": 0.91,
+   "tr": 0.923,
+   "ar": 0.484
+  },
+  "dur": 4.4
+ },
+ "qwen3-tts-0.6b/en-clone-xvec": {
+  "lang": "en",
+  "ref": "en",
+  "sim": 0.954,
+  "sim_all": {
+   "de": 0.551,
+   "en": 0.954,
+   "ru": 0.67,
+   "tr": 0.613,
+   "ar": 0.268
+  },
+  "dur": 4.64
+ },
+ "qwen3-tts-0.6b/en-clone": {
+  "lang": "en",
+  "ref": "en",
+  "sim": 0.975,
+  "sim_all": {
+   "de": 0.575,
+   "en": 0.975,
+   "ru": 0.687,
+   "tr": 0.655,
+   "ar": 0.275
+  },
+  "dur": 4.32
+ },
+ "qwen3-tts-0.6b/en-xclone-de-icl": {
+  "lang": "en",
+  "ref": "de",
+  "sim": 0.976,
+  "sim_all": {
+   "de": 0.976,
+   "en": 0.693,
+   "ru": 0.843,
+   "tr": 0.939,
+   "ar": 0.477
+  },
+  "dur": 4.56
+ },
+ "qwen3-tts-0.6b/en-xclone-de": {
+  "lang": "en",
+  "ref": "de",
+  "sim": 0.882,
+  "sim_all": {
+   "de": 0.882,
+   "en": 0.83,
+   "ru": 0.829,
+   "tr": 0.885,
+   "ar": 0.431
+  },
+  "dur": 4.88
+ },
+ "qwen3-tts-0.6b/ru-clone-xvec": {
+  "lang": "ru",
+  "ref": "ru",
+  "sim": 0.958,
+  "sim_all": {
+   "de": 0.834,
+   "en": 0.741,
+   "ru": 0.958,
+   "tr": 0.912,
+   "ar": 0.553
+  },
+  "dur": 4.8
+ },
+ "qwen3-tts-0.6b/ru-clone": {
+  "lang": "ru",
+  "ref": "ru",
+  "sim": 0.98,
+  "sim_all": {
+   "de": 0.814,
+   "en": 0.759,
+   "ru": 0.98,
+   "tr": 0.903,
+   "ar": 0.504
+  },
+  "dur": 4.56
+ },
+ "qwen3-tts-0.6b/ru-xclone-de-icl": {
+  "lang": "ru",
+  "ref": "de",
+  "sim": 0.965,
+  "sim_all": {
+   "de": 0.965,
+   "en": 0.73,
+   "ru": 0.898,
+   "tr": 0.956,
+   "ar": 0.524
+  },
+  "dur": 4.64
+ },
+ "qwen3-tts-0.6b/ru-xclone-de": {
+  "lang": "ru",
+  "ref": "de",
+  "sim": 0.938,
+  "sim_all": {
+   "de": 0.938,
+   "en": 0.742,
+   "ru": 0.919,
+   "tr": 0.945,
+   "ar": 0.556
+  },
+  "dur": 4.96
+ }
+}

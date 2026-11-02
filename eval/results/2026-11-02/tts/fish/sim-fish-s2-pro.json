@@ -1,0 +1,212 @@
+{
+ "fish-s2-pro/de-clone-empathetic": {
+  "lang": "de",
+  "ref": "de",
+  "sim": 0.989,
+  "sim_all": {
+   "de": 0.989,
+   "en": 0.663,
+   "ru": 0.881,
+   "tr": 0.964,
+   "ar": 0.501
+  },
+  "dur": 4.74,
+  "peak": 0.724
+ },
+ "fish-s2-pro/de-clone": {
+  "lang": "de",
+  "ref": "de",
+  "sim": 0.99,
+  "sim_all": {
+   "de": 0.99,
+   "en": 0.659,
+   "ru": 0.874,
+   "tr": 0.964,
+   "ar": 0.493
+  },
+  "dur": 5.15,
+  "peak": 0.844
+ },
+ "fish-s2-pro/de-xclone-ar": {
+  "lang": "de",
+  "ref": "ar",
+  "sim": 0.986,
+  "sim_all": {
+   "de": 0.523,
+   "en": 0.292,
+   "ru": 0.487,
+   "tr": 0.503,
+   "ar": 0.986
+  },
+  "dur": 6.46,
+  "peak": 0.602
+ },
+ "fish-s2-pro/de-xclone-en": {
+  "lang": "de",
+  "ref": "en",
+  "sim": 0.974,
+  "sim_all": {
+   "de": 0.63,
+   "en": 0.974,
+   "ru": 0.758,
+   "tr": 0.706,
+   "ar": 0.288
+  },
+  "dur": 4.74,
+  "peak": 0.708
+ },
+ "fish-s2-pro/de-xclone-ru": {
+  "lang": "de",
+  "ref": "ru",
+  "sim": 0.978,
+  "sim_all": {
+   "de": 0.889,
+   "en": 0.726,
+   "ru": 0.978,
+   "tr": 0.947,
+   "ar": 0.548
+  },
+  "dur": 4.74,
+  "peak": 0.603
+ },
+ "fish-s2-pro/de-xclone-tr": {
+  "lang": "de",
+  "ref": "tr",
+  "sim": 0.982,
+  "sim_all": {
+   "de": 0.924,
+   "en": 0.715,
+   "ru": 0.956,
+   "tr": 0.982,
+   "ar": 0.521
+  },
+  "dur": 5.67,
+  "peak": 0.609
+ },
+ "fish-s2-pro/de": {
+  "lang": "de",
+  "ref": null,
+  "sim": null,
+  "sim_all": {
+   "de": 0.679,
+   "en": 0.383,
+   "ru": 0.591,
+   "tr": 0.652,
+   "ar": 0.9
+  },
+  "dur": 4.97,
+  "peak": 0.933
+ },
+ "fish-s2-pro/en-clone-whispering": {
+  "lang": "en",
+  "ref": "en",
+  "sim": 0.978,
+  "sim_all": {
+   "de": 0.564,
+   "en": 0.978,
+   "ru": 0.678,
+   "tr": 0.651,
+   "ar": 0.293
+  },
+  "dur": 4.55,
+  "peak": 0.699
+ },
+ "fish-s2-pro/en-clone": {
+  "lang": "en",
+  "ref": "en",
+  "sim": 0.98,
+  "sim_all": {
+   "de": 0.52,
+   "en": 0.98,
+   "ru": 0.657,
+   "tr": 0.612,
+   "ar": 0.286
+  },
+  "dur": 4.46,
+  "peak": 0.703
+ },
+ "fish-s2-pro/en-xclone-ar": {
+  "lang": "en",
+  "ref": "ar",
+  "sim": 0.965,
+  "sim_all": {
+   "de": 0.456,
+   "en": 0.365,
+   "ru": 0.463,
+   "tr": 0.449,
+   "ar": 0.965
+  },
+  "dur": 5.99,
+  "peak": 0.708
+ },
+ "fish-s2-pro/en-xclone-de": {
+  "lang": "en",
+  "ref": "de",
+  "sim": 0.971,
+  "sim_all": {
+   "de": 0.971,
+   "en": 0.711,
+   "ru": 0.859,
+   "tr": 0.947,
+   "ar": 0.466
+  },
+  "dur": 4.83,
+  "peak": 0.769
+ },
+ "fish-s2-pro/en": {
+  "lang": "en",
+  "ref": null,
+  "sim": null,
+  "sim_all": {
+   "de": 0.607,
+   "en": 0.854,
+   "ru": 0.625,
+   "tr": 0.689,
+   "ar": 0.399
+  },
+  "dur": 5.11,
+  "peak": 0.9
+ },
+ "fish-s2-pro/ru-clone": {
+  "lang": "ru",
+  "ref": "ru",
+  "sim": 0.987,
+  "sim_all": {
+   "de": 0.847,
+   "en": 0.751,
+   "ru": 0.987,
+   "tr": 0.927,
+   "ar": 0.49
+  },
+  "dur": 4.46,
+  "peak": 0.589
+ },
+ "fish-s2-pro/ru-xclone-de": {
+  "lang": "ru",
+  "ref": "de",
+  "sim": 0.977,
+  "sim_all": {
+   "de": 0.977,
+   "en": 0.673,
+   "ru": 0.912,
+   "tr": 0.962,
+   "ar": 0.49
+  },
+  "dur": 4.97,
+  "peak": 0.771
+ },
+ "fish-s2-pro/ru": {
+  "lang": "ru",
+  "ref": null,
+  "sim": null,
+  "sim_all": {
+   "de": 0.867,
+   "en": 0.718,
+   "ru": 0.933,
+   "tr": 0.942,
+   "ar": 0.568
+  },
+  "dur": 4.78,
+  "peak": 0.642
+ }
+}

@@ -1,0 +1,186 @@
+{
+ "elevenlabs/de-f-johanna-de-ref": {
+  "asr": "Guten Tag, schön, dass Sie da sind. Nehmen Sie bitte Platz.\n Ich erkläre Ihnen jetzt in Ruhe, wie es weitergeht und Sie können jederzeit nachfragen, wenn etwas unklar ist.\n Wir haben genug Zeit.",
+  "lang": "de"
+ },
+ "elevenlabs/de-m-otto-de-ref": {
+  "asr": "Guten Tag. Schön, dass Sie da sind. Nehmen Sie bitte Platz.\n Ich erkläre Ihnen jetzt in Ruhe, wie es weitergeht,\n und Sie können jederzeit nachfragen, wenn etwas unklar ist.\n Wir haben genug Zeit.",
+  "lang": "de"
+ },
+ "elevenlabs/en-f-juliet-en-ref": {
+  "asr": "Hello, it's good to see you.\n Please take a seat.\n I'll explain everything step by step\n and if anything is unclear, just ask me.\n There's no rush, we have plenty of time today.",
+  "lang": "en"
+ },
+ "elevenlabs/en-m-jon-en-ref": {
+  "asr": "Hello, it's good to see you.\n Please, take a seat.\n I'll explain everything step by step,\n and if anything is unclear, just ask me.\n There's no rush.\n We have plenty of time today.",
+  "lang": "en"
+ },
+ "elevenlabs/ru-f-anna-ru-ref": {
+  "asr": "Здравствуйте! Рада вас видеть. Присаживайтесь, пожалуйста.\n Я спокойно объясню вам, что будет дальше,\n и вы в любой момент можете задать вопрос, если что-то непонятно.\n Мы никуда не торопимся.",
+  "lang": "ru"
+ },
+ "elevenlabs/ru-m-gorodetsky-ru-ref": {
+  "asr": "Здравствуйте, рад вас видеть.\n Присаживайтесь, пожалуйста.\n Я спокойно объясню вам, что будет дальше, и вы в\n любой момент можете задать вопрос, если что-то непонятно.\n Мы никуда не торопимся.",
+  "lang": "ru"
+ },
+ "fish-s2-pro-el/de-f-johanna-de-ref": {
+  "asr": "Guten Tag, schön, dass Sie da sind. Nehmen Sie bitte Platz.\n Ich erkläre Ihnen jetzt in Ruhe, wie es weitergeht.\n Und Sie können jederzeit nachfragen, wenn etwas unklar ist.\n Wir haben genug Zeit.",
+  "lang": "de"
+ },
+ "fish-s2-pro-el/de-f-johanna-de": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Metformin immer nach dem Essen.",
+  "lang": "de"
+ },
+ "fish-s2-pro-el/de-f-johanna-en": {
+  "asr": "Take 500 mg of metformin twice a day, always after meals.",
+  "lang": "en"
+ },
+ "fish-s2-pro-el/de-f-johanna-ru": {
+  "asr": "Принемайте метформин по 500mg в 2 раза в день, фигда после еды.",
+  "lang": "ru"
+ },
+ "fish-s2-pro-el/de-m-otto-de-ref": {
+  "asr": "Guten Tag. Schön, dass Sie da sind. Nehmen Sie bitte Platz.\n Ich erkläre Ihnen jetzt in Ruhe, wie es weitergeht.\n Und Sie können jederzeit nachfragen, wenn etwas unklar ist.\n Wir haben genug Zeit.",
+  "lang": "de"
+ },
+ "fish-s2-pro-el/de-m-otto-de": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Metformin, immer nach dem Essen.",
+  "lang": "de"
+ },
+ "fish-s2-pro-el/de-m-otto-en": {
+  "asr": "Take 500 mg of metformin twice a day, always after meals.",
+  "lang": "en"
+ },
+ "fish-s2-pro-el/de-m-otto-ru": {
+  "asr": "Принемайте метформен по 500 мг 2 раза в день всегда после еды.",
+  "lang": "ru"
+ },
+ "fish-s2-pro-el/en-f-juliet-de": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Metformin, immer nach dem Essen.",
+  "lang": "de"
+ },
+ "fish-s2-pro-el/en-f-juliet-en-ref": {
+  "asr": "Hello, it's good to see you.\n Please take a seat.\n I'll explain everything step by step\n and if anything is unclear, just ask me.\n There's no rush, we have plenty of time today.",
+  "lang": "en"
+ },
+ "fish-s2-pro-el/en-f-juliet-en": {
+  "asr": "Take 500 milligrams of metformin twice a day, always after meals.",
+  "lang": "en"
+ },
+ "fish-s2-pro-el/en-m-jon-de": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Metformin, immer nach dem Essen.",
+  "lang": "de"
+ },
+ "fish-s2-pro-el/en-m-jon-en-ref": {
+  "asr": "Hello, it's good to see you.\n Please, take a seat.\n I'll explain everything step by step.\n And if anything is unclear, just ask me.\n There's no rush.\n We have plenty of time today.",
+  "lang": "en"
+ },
+ "fish-s2-pro-el/en-m-jon-en": {
+  "asr": "Take 500 mg of metformin twice a day, always after meals.",
+  "lang": "en"
+ },
+ "fish-s2-pro-el/ru-f-anna-de": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Metformin, Zimmer nach dem Essen.",
+  "lang": "de"
+ },
+ "fish-s2-pro-el/ru-f-anna-ru-ref": {
+  "asr": "Здравствуйте. Рада вас видеть. Присаживайтесь, пожалуйста.\n Я спокойно объясню вам, что будет дальше, и вы в любой момент можете задать вопрос, если что-то непонятно.\n Мы никуда не торопимся.",
+  "lang": "ru"
+ },
+ "fish-s2-pro-el/ru-f-anna-ru": {
+  "asr": "Принимайте метформин по 500 мг 2 раза в день, всегда после еды.",
+  "lang": "ru"
+ },
+ "fish-s2-pro-el/ru-m-gorodetsky-de": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Metformin immer nach dem Essen.",
+  "lang": "de"
+ },
+ "fish-s2-pro-el/ru-m-gorodetsky-ru-ref": {
+  "asr": "Здравствуйте, рад вас видеть.\n Присаживайтесь, пожалуйста.\n Я спокойно объясню вам, что будет дальше, и вы в\n любой момент можете задать вопрос, если что-то непонятно.\n Мы никуда не торопимся.",
+  "lang": "ru"
+ },
+ "fish-s2-pro-el/ru-m-gorodetsky-ru": {
+  "asr": "Принимайте метформин по 500 миллиграммов два раза в день, всегда после еды.",
+  "lang": "ru"
+ },
+ "chatterbox-v3-el/de-f-johanna-de-ref": {
+  "asr": "Guten Tag, schön, dass Sie da sind.\n Nehmen Sie bitte Platz.\n Ich erkläre Ihnen jetzt in Ruhe, wie es weitergeht\n und Sie können jederzeit nachfragen, wenn etwas unklar ist.\n Wir haben genug Zeit.",
+  "lang": "de"
+ },
+ "chatterbox-v3-el/de-f-johanna-de": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Metformin, immer nach dem Essen.",
+  "lang": "de"
+ },
+ "chatterbox-v3-el/de-f-johanna-en": {
+  "asr": "Take 500 mg of metformin twice a day, always after meals.",
+  "lang": "en"
+ },
+ "chatterbox-v3-el/de-f-johanna-ru": {
+  "asr": "Принимайте медформин по 500 мг 2 раза в день, всегда после еды.",
+  "lang": "ru"
+ },
+ "chatterbox-v3-el/de-m-otto-de-ref": {
+  "asr": "Guten Tag, schön, dass Sie da sind. Nehmen Sie bitte Platz.\n Ich erkläre Ihnen jetzt in Ruhe, wie es weitergeht, und Sie können jederzeit nachfragen, wenn etwas unklar ist.\n Wir haben genug Zeit.",
+  "lang": "de"
+ },
+ "chatterbox-v3-el/de-m-otto-de": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Metformin, immer nach dem Essen.",
+  "lang": "de"
+ },
+ "chatterbox-v3-el/de-m-otto-en": {
+  "asr": "Take 500 mg of metformin twice a day, always after meals.",
+  "lang": "en"
+ },
+ "chatterbox-v3-el/de-m-otto-ru": {
+  "asr": "Принимайте метформин по 500 мг два раза в день, всегда после еды.",
+  "lang": "ru"
+ },
+ "chatterbox-v3-el/en-f-juliet-de": {
+  "asr": "Nehmen Sie zweimal täglich 500 Milligramm Metformin, immer nach dem Essen.",
+  "lang": "de"
+ },
+ "chatterbox-v3-el/en-f-juliet-en-ref": {
+  "asr": "Hello, it's good to see you.\n Please take a seat.\n I'll explain everything step by step,\n and if anything is unclear, just ask me.\n There's no rush, we have plenty of time today.",
+  "lang": "en"
+ },
+ "chatterbox-v3-el/en-f-juliet-en": {
+  "asr": "Take 500 milligrams of metformin twice a day, always after meals.",
+  "lang": "en"
+ },
+ "chatterbox-v3-el/en-m-jon-de": {
+  "asr": "Nehmen Sie zweimal täglich 500 Milligramm Metformin, immer nach dem Essen.",
+  "lang": "de"
+ },
+ "chatterbox-v3-el/en-m-jon-en-ref": {
+  "asr": "Hello, it's good to see you.\n Please, take a seat.\n I'll explain everything step by step.\n And if anything is unclear, just ask me.\n There's no rush.\n We have plenty of time today.",
+  "lang": "en"
+ },
+ "chatterbox-v3-el/en-m-jon-en": {
+  "asr": "Take 500 mg of metformin twice a day, always after meals.",
+  "lang": "en"
+ },
+ "chatterbox-v3-el/ru-f-anna-de": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Metformin, immer nach dem Essen.",
+  "lang": "de"
+ },
+ "chatterbox-v3-el/ru-f-anna-ru-ref": {
+  "asr": "«Здравствуйте! Рада вас видеть!»\n Присаживайтесь, пожалуйста.\n Я спокойно объясню вам, что будет дальше,\n и вы в любой момент можете задать вопрос, если что-то непонятно.\n Мы никуда не торопимся.",
+  "lang": "ru"
+ },
+ "chatterbox-v3-el/ru-f-anna-ru": {
+  "asr": "Принимайте метформин по 50 мг 2 раза в день, всегда после еды.",
+  "lang": "ru"
+ },
+ "chatterbox-v3-el/ru-m-gorodetsky-de": {
+  "asr": "Nehmen Sie zweimal täglich 500 Milligramm Mitformin, immer nach dem Essen.",
+  "lang": "de"
+ },
+ "chatterbox-v3-el/ru-m-gorodetsky-ru-ref": {
+  "asr": "Здравствуйте, рад вас видеть. Присаживайтесь, пожалуйста. Я спокойно объясню вам, что будет дальше, и вы в любой момент можете задать вопрос, если что-то непонятно. Мы никуда не торопимся.",
+  "lang": "ru"
+ },
+ "chatterbox-v3-el/ru-m-gorodetsky-ru": {
+  "asr": "Принимайте метформин по 500 мг 2 раза в день, всегда после еды.",
+  "lang": "ru"
+ }
+}

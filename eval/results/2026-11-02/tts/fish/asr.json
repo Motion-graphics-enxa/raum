@@ -1,0 +1,71 @@
+{
+ "fish-audio/ar-clone": {
+  "asr": "تناول 500 ملي جرام من الميتفورمين مرتين يومياً"
+ },
+ "fish-audio/ar-xclone-de": {
+  "asr": "تناول 500 ميلي جرام من الميت فوغ من مرتين يوميا دائما بعد الوجبات"
+ },
+ "fish-audio/ar": {
+  "asr": "تناول 500 ميلي جرام من الميتافورمين مرتين يوميا دائما بعد الوجبات"
+ },
+ "fish-audio/de-clone-empathetic": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Metformin immer nach dem Essen."
+ },
+ "fish-audio/de-clone": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg mit Formin immer nach dem Essen."
+ },
+ "fish-audio/de-xclone-ar": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Metformin immer nach dem Essen."
+ },
+ "fish-audio/de-xclone-en": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Metformin, immer nach dem Essen."
+ },
+ "fish-audio/de-xclone-ru": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Metformin, immer nach dem Essen."
+ },
+ "fish-audio/de-xclone-tr": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Metformin, immer nach dem Essen."
+ },
+ "fish-audio/de": {
+  "asr": "Nehmen Sie zweimal täglich 500 Milligramm Medformen immer nach dem Essen."
+ },
+ "fish-audio/en-clone-whispering": {
+  "asr": "Take 500 mg of metformin twice a day, always after meals."
+ },
+ "fish-audio/en-clone": {
+  "asr": "Take 500 mg of metformin twice a day, always after meals."
+ },
+ "fish-audio/en-xclone-ar": {
+  "asr": "Take 500 mg of metformin twice a day always after meals."
+ },
+ "fish-audio/en-xclone-de": {
+  "asr": "Take 500 mg of metformin twice a day, always after meals."
+ },
+ "fish-audio/en": {
+  "asr": "Take 500 mg of metformin twice a day, always after meals."
+ },
+ "fish-audio/ru-clone-digits": {
+  "asr": "Принимайте метформин по 50 мг 2 раза в день, всегда после еды."
+ },
+ "fish-audio/ru-clone": {
+  "asr": "Принимайте метформин по 500 мг 2 раза в день, всегда после еды."
+ },
+ "fish-audio/ru-xclone-de": {
+  "asr": "Принемайте метформин по 500 мг 2 раза в день, фикца после еды."
+ },
+ "fish-audio/ru": {
+  "asr": "Принимайте медформин по 500 миллиграммов два раза в день всегда после еды."
+ },
+ "fish-audio/tr-clone-digits": {
+  "asr": "Günde 2 kez 500 mg metformin alın, her zaman yemeklerden sonra."
+ },
+ "fish-audio/tr-clone": {
+  "asr": "Günde 2 kez 500 mg metformin alın, her zaman yemeklerden sonra."
+ },
+ "fish-audio/tr-xclone-de": {
+  "asr": "Günde iki ketsbe şüks Milligram Metformin allen her zaman yemeklerden sonra."
+ },
+ "fish-audio/tr": {
+  "asr": "Günde iki kez 500 mg metforminilin her zaman yemeklerden sonra"
+ }
+}

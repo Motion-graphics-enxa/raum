@@ -1,0 +1,21 @@
+# raum-livekit on the shared GX10 (started by runtime/livekit-run.sh; --dev keeps keys devkey/secret).
+# Goal: no ICE server outside the LAN. With an empty stun_servers list LiveKit hands every client its
+# defaults (stun.l.google.com, stun1.l.google.com, global.stun.twilio.com), so the agent's WebRTC
+# pinged Google/Twilio every 10 s and phones/agent got server-reflexive candidates on the venue's
+# public IP (LiveKit then sent ICE checks there). Instead: LiveKit's embedded TURN/STUN on the LAN.
+port: 7880                     # signalling (unchanged)
+bind_addresses:
+  - 0.0.0.0
+rtc:
+  tcp_port: 7881               # ICE over TCP (unchanged)
+  udp_port: 7882               # one multiplexed UDP port for media (unchanged)
+  node_ip: 10.24.249.204
+  use_external_ip: false       # never ask a public STUN server for our own address
+  stun_servers:
+    - 10.24.249.204:3478       # the embedded TURN below answers STUN binding requests
+turn:
+  enabled: true
+  udp_port: 3478               # STUN + TURN/UDP on the LAN
+  tls_port: 0                  # no TURN/TLS (needs a domain + cert)
+  relay_range_start: 30000     # relay allocations (default 30000-40000), kept small on a shared box
+  relay_range_end: 30999

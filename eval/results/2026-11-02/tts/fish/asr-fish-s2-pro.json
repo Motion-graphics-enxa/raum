@@ -1,0 +1,47 @@
+{
+ "fish-s2-pro/de-clone-empathetic": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Metformin immer nach dem Essen."
+ },
+ "fish-s2-pro/de-clone": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Metformin, immer nach dem Essen."
+ },
+ "fish-s2-pro/de-xclone-ar": {
+  "asr": "Nehmen Sie zweimal täglich 500 Milligramm Metformin immer nach dem Essen."
+ },
+ "fish-s2-pro/de-xclone-en": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Metformin, immer nach dem Essen."
+ },
+ "fish-s2-pro/de-xclone-ru": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Metformin, immer nach dem Essen."
+ },
+ "fish-s2-pro/de-xclone-tr": {
+  "asr": "Nehmen Sie jetzt zweimal täglich 500 mg Metformin, immer nach dem Essen."
+ },
+ "fish-s2-pro/de": {
+  "asr": "Nehmen Sie zweimal täglich 500 mg Metformin, immer nach dem Essen."
+ },
+ "fish-s2-pro/en-clone-whispering": {
+  "asr": "Take 500 mg of metformin twice a day, always after meals."
+ },
+ "fish-s2-pro/en-clone": {
+  "asr": "Take 500 mg of metformin twice a day always after meals."
+ },
+ "fish-s2-pro/en-xclone-ar": {
+  "asr": "Take 500 mg of metformin twice a day always after meals."
+ },
+ "fish-s2-pro/en-xclone-de": {
+  "asr": "Take 500 mg of metformin twice a day, always after meals."
+ },
+ "fish-s2-pro/en": {
+  "asr": "Take 500 mg of metformin twice a day, always after meals."
+ },
+ "fish-s2-pro/ru-clone": {
+  "asr": "Принимайте метформин по 500 мг 2 раза в день, всегда после еды."
+ },
+ "fish-s2-pro/ru-xclone-de": {
+  "asr": "Принимайте медформин по 500 мг 2 раза в день всегда после еды."
+ },
+ "fish-s2-pro/ru": {
+  "asr": "Принимайте метформин по 500 мг два раза в день, всегда после еды."
+ }
+}

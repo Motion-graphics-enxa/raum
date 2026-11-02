@@ -1,0 +1,332 @@
+
+===== ar (30 records)
+guard numbers/unit/date  6/6 (100%)
+guard negation+allergy   4/4 (100%)
+guard semantic(new)      0/10 (0%)
+guard false alarms clean ref: 0/30 (0%)
+guard on live MT red: 1/30 (3%) | MT errors: 0
+checker negation+allergy   red<0.83: 4/4 (100%)  red|amber<0.86: 4/4 (100%)
+checker semantic(new)      red<0.83: 3/10 (30%)  red|amber<0.86: 3/10 (30%)
+checker ALL SEMANTIC       red<0.83: 7/14 (50%)  red|amber<0.86: 7/14 (50%)
+checker numbers/unit/date  red<0.83: 0/6 (0%)  red|amber<0.86: 0/6 (0%)
+checker FA clean ref  red: 0/30 (0%)  amber: 0/30 (0%)
+checker FA live MT    red: 1/30 (3%)  amber: 0/30 (0%)
+sim clean ref   : n=30 min 0.862 p5 0.890 p25 0.935 p50 0.962 max 1.000
+sim live MT     : n=30 min 0.813 p5 0.890 p25 0.934 p50 0.960 max 0.996
+sim neg+allergy : n=4 min 0.694 p5 0.699 p25 0.718 p50 0.743 max 0.820
+sim semantic new: n=10 min 0.749 p5 0.769 p25 0.821 p50 0.883 max 0.963
+sim numbers     : n=6 min 0.906 p5 0.908 p25 0.918 p50 0.925 max 0.966
+MT first ms: p50 326 p95 597 max 647 (n=30) | full ms: p50 593 p95 1201 max 1265 (n=30)
+check ms (bt+embed): p50 5241 p95 11579 max 15452 (n=80) | bt: p50 5203 p95 11513 max 15377 (n=80) | embed: p50 28 p95 66 max 75 (n=80)
+check errors: 0 | empty backs: 0
+
+===== en (30 records)
+guard numbers/unit/date  6/6 (100%)
+guard negation+allergy   4/4 (100%)
+guard semantic(new)      0/10 (0%)
+guard false alarms clean ref: 0/30 (0%)
+guard on live MT red: 0/30 (0%) | MT errors: 0
+checker negation+allergy   red<0.83: 4/4 (100%)  red|amber<0.86: 4/4 (100%)
+checker semantic(new)      red<0.83: 2/10 (20%)  red|amber<0.86: 3/10 (30%)
+checker ALL SEMANTIC       red<0.83: 6/14 (43%)  red|amber<0.86: 7/14 (50%)
+checker numbers/unit/date  red<0.83: 0/6 (0%)  red|amber<0.86: 1/6 (17%)
+checker FA clean ref  red: 0/30 (0%)  amber: 1/30 (3%)
+checker FA live MT    red: 0/30 (0%)  amber: 1/30 (3%)
+sim clean ref   : n=30 min 0.846 p5 0.897 p25 0.934 p50 0.983 max 1.000
+sim live MT     : n=30 min 0.844 p5 0.901 p25 0.953 p50 0.985 max 1.000
+sim neg+allergy : n=4 min 0.682 p5 0.693 p25 0.735 p50 0.778 max 0.822
+sim semantic new: n=10 min 0.787 p5 0.801 p25 0.851 p50 0.901 max 0.966
+sim numbers     : n=6 min 0.852 p5 0.865 p25 0.908 p50 0.934 max 0.966
+MT first ms: p50 416 p95 881 max 943 (n=30) | full ms: p50 730 p95 1305 max 1682 (n=30)
+check ms (bt+embed): p50 2343 p95 8696 max 10505 (n=80) | bt: p50 2289 p95 8624 max 10468 (n=80) | embed: p50 43 p95 87 max 146 (n=80)
+check errors: 0 | empty backs: 0
+
+===== ru (30 records)
+guard numbers/unit/date  6/6 (100%)
+guard negation+allergy   4/4 (100%)
+guard semantic(new)      0/10 (0%)
+guard false alarms clean ref: 0/30 (0%)
+guard on live MT red: 0/30 (0%) | MT errors: 0
+checker negation+allergy   red<0.83: 3/4 (75%)  red|amber<0.86: 3/4 (75%)
+checker semantic(new)      red<0.83: 1/10 (10%)  red|amber<0.86: 2/10 (20%)
+checker ALL SEMANTIC       red<0.83: 4/14 (29%)  red|amber<0.86: 5/14 (36%)
+checker numbers/unit/date  red<0.83: 0/6 (0%)  red|amber<0.86: 0/6 (0%)
+checker FA clean ref  red: 0/30 (0%)  amber: 1/30 (3%)
+checker FA live MT    red: 0/30 (0%)  amber: 1/30 (3%)
+sim clean ref   : n=30 min 0.843 p5 0.908 p25 0.952 p50 0.977 max 1.000
+sim live MT     : n=30 min 0.845 p5 0.908 p25 0.955 p50 0.990 max 1.000
+sim neg+allergy : n=4 min 0.669 p5 0.680 p25 0.724 p50 0.744 max 0.882
+sim semantic new: n=10 min 0.793 p5 0.815 p25 0.871 p50 0.891 max 0.951
+sim numbers     : n=6 min 0.896 p5 0.899 p25 0.911 p50 0.917 max 0.960
+MT first ms: p50 295 p95 692 max 1328 (n=30) | full ms: p50 510 p95 1017 max 1519 (n=30)
+check ms (bt+embed): p50 3575 p95 5628 max 11877 (n=80) | bt: p50 3544 p95 5601 max 11858 (n=80) | embed: p50 25 p95 58 max 98 (n=80)
+check errors: 0 | empty backs: 0
+
+===== tr (30 records)
+guard numbers/unit/date  6/6 (100%)
+guard negation+allergy   4/4 (100%)
+guard semantic(new)      0/10 (0%)
+guard false alarms clean ref: 0/30 (0%)
+guard on live MT red: 0/30 (0%) | MT errors: 0
+checker negation+allergy   red<0.83: 4/4 (100%)  red|amber<0.86: 4/4 (100%)
+checker semantic(new)      red<0.83: 3/10 (30%)  red|amber<0.86: 4/10 (40%)
+checker ALL SEMANTIC       red<0.83: 7/14 (50%)  red|amber<0.86: 8/14 (57%)
+checker numbers/unit/date  red<0.83: 0/6 (0%)  red|amber<0.86: 0/6 (0%)
+checker FA clean ref  red: 1/30 (3%)  amber: 1/30 (3%)
+checker FA live MT    red: 1/30 (3%)  amber: 1/30 (3%)
+sim clean ref   : n=30 min 0.743 p5 0.848 p25 0.931 p50 0.958 max 1.000
+sim live MT     : n=30 min 0.529 p5 0.854 p25 0.915 p50 0.956 max 1.000
+sim neg+allergy : n=4 min 0.669 p5 0.670 p25 0.672 p50 0.717 max 0.822
+sim semantic new: n=10 min 0.804 p5 0.813 p25 0.829 p50 0.890 max 0.991
+sim numbers     : n=6 min 0.889 p5 0.897 p25 0.921 p50 0.931 max 0.969
+MT first ms: p50 311 p95 817 max 865 (n=30) | full ms: p50 519 p95 1756 max 2227 (n=30)
+check ms (bt+embed): p50 4908 p95 13360 max 24105 (n=80) | bt: p50 4866 p95 13294 max 24014 (n=80) | embed: p50 27 p95 86 max 149 (n=80)
+check errors: 0 | empty backs: 0
+
+===== ALL (120 records)
+guard numbers/unit/date  24/24 (100%)
+guard negation+allergy   16/16 (100%)
+guard semantic(new)      0/40 (0%)
+guard false alarms clean ref: 0/120 (0%)
+guard on live MT red: 1/120 (1%) | MT errors: 0
+checker negation+allergy   red<0.83: 15/16 (94%)  red|amber<0.86: 15/16 (94%)
+checker semantic(new)      red<0.83: 9/40 (22%)  red|amber<0.86: 12/40 (30%)
+checker ALL SEMANTIC       red<0.83: 24/56 (43%)  red|amber<0.86: 27/56 (48%)
+checker numbers/unit/date  red<0.83: 0/24 (0%)  red|amber<0.86: 1/24 (4%)
+checker FA clean ref  red: 1/120 (1%)  amber: 3/120 (2%)
+checker FA live MT    red: 2/120 (2%)  amber: 3/120 (2%)
+sim clean ref   : n=120 min 0.743 p5 0.870 p25 0.934 p50 0.969 max 1.000
+sim live MT     : n=120 min 0.529 p5 0.870 p25 0.934 p50 0.976 max 1.000
+sim neg+allergy : n=16 min 0.669 p5 0.669 p25 0.691 p50 0.750 max 0.882
+sim semantic new: n=40 min 0.749 p5 0.793 p25 0.842 p50 0.893 max 0.991
+sim numbers     : n=24 min 0.852 p5 0.891 p25 0.914 p50 0.922 max 0.969
+MT first ms: p50 319 p95 796 max 1328 (n=120) | full ms: p50 569 p95 1362 max 2227 (n=120)
+check ms (bt+embed): p50 4256 p95 11222 max 24105 (n=320) | bt: p50 4234 p95 11076 max 24014 (n=320) | embed: p50 29 p95 75 max 149 (n=320)
+check errors: 0 | empty backs: 0
+
+===== sweep over all languages: red if s < t (all semantic | new semantic | clean-ref FA | live-MT FA)
+t=0.75  sem  9/56  16%  new  1/40   2%  ref-FA  1/120   1%  live-FA  1/120   1%
+t=0.76  sem 12/56  21%  new  1/40   2%  ref-FA  1/120   1%  live-FA  1/120   1%
+t=0.77  sem 12/56  21%  new  1/40   2%  ref-FA  1/120   1%  live-FA  1/120   1%
+t=0.78  sem 12/56  21%  new  1/40   2%  ref-FA  1/120   1%  live-FA  1/120   1%
+t=0.79  sem 13/56  23%  new  2/40   5%  ref-FA  1/120   1%  live-FA  1/120   1%
+t=0.80  sem 15/56  27%  new  4/40  10%  ref-FA  1/120   1%  live-FA  1/120   1%
+t=0.81  sem 18/56  32%  new  6/40  15%  ref-FA  1/120   1%  live-FA  1/120   1%
+t=0.82  sem 19/56  34%  new  7/40  18%  ref-FA  1/120   1%  live-FA  2/120   2%
+t=0.83  sem 24/56  43%  new  9/40  22%  ref-FA  1/120   1%  live-FA  2/120   2%
+t=0.84  sem 25/56  45%  new 10/40  25%  ref-FA  2/120   2%  live-FA  2/120   2%
+t=0.85  sem 27/56  48%  new 12/40  30%  ref-FA  4/120   3%  live-FA  5/120   4%
+t=0.86  sem 27/56  48%  new 12/40  30%  ref-FA  4/120   3%  live-FA  5/120   4%
+t=0.87  sem 29/56  52%  new 14/40  35%  ref-FA  6/120   5%  live-FA  6/120   5%
+t=0.88  sem 31/56  55%  new 16/40  40%  ref-FA  7/120   6%  live-FA  8/120   7%
+t=0.89  sem 33/56  59%  new 17/40  42%  ref-FA  9/120   8%  live-FA 11/120   9%
+t=0.90  sem 39/56  70%  new 23/40  58%  ref-FA 10/120   8%  live-FA 12/120  10%
+t=0.91  sem 40/56  71%  new 24/40  60%  ref-FA 13/120  11%  live-FA 14/120  12%
+t=0.92  sem 44/56  79%  new 28/40  70%  ref-FA 17/120  14%  live-FA 21/120  18%
+t=0.93  sem 47/56  84%  new 31/40  78%  ref-FA 25/120  21%  live-FA 26/120  22%
+t=0.94  sem 48/56  86%  new 32/40  80%  ref-FA 35/120  29%  live-FA 35/120  29%
+t=0.95  sem 51/56  91%  new 35/40  88%  ref-FA 39/120  32%  live-FA 38/120  32%
+t=0.96  sem 53/56  95%  new 37/40  92%  ref-FA 54/120  45%  live-FA 50/120  42%
+t=0.97  sem 55/56  98%  new 39/40  98%  ref-FA 60/120  50%  live-FA 56/120  47%
+t=0.98  sem 55/56  98%  new 39/40  98%  ref-FA 75/120  62%  live-FA 63/120  52%
+t=0.99  sem 55/56  98%  new 39/40  98%  ref-FA 84/120  70%  live-FA 81/120  68%
+
+===== semantic rows (sorted by similarity)
+sz-06-ru  allergy_omitted pert 0.6694 ref 0.9717 guard=True | 
+     src : Я принимаю ибупрофен, но у меня аллергия на пенициллин.
+     back: Я принимаю ибупрофен.
+sz-06-tr  allergy_omitted pert 0.6694 ref 0.9731 guard=True | 
+     src : Ben ibuprofen kullanıyorum ama penisiline alerjim var.
+     back: Ibuprofen alıyorum.
+kz-08-tr  negation        pert 0.6735 ref 0.7428 guard=True | 
+     src : Patronum bana ihtarname vermedi.
+     back: Patronum bana bir uyarı verdi.
+sz-06-en  allergy_omitted pert 0.6825 ref 0.9989 guard=True | 
+     src : I take ibuprofen, but I'm allergic to penicillin.
+     back: I take ibuprofen.
+kz-08-ar  negation        pert 0.6944 ref 0.9235 guard=True | 
+     src : لم يوجّه لي مديري أي إنذار.
+     back: رئيسي أعطاني إنذارًا.
+sz-06-ar  allergy_omitted pert 0.7263 ref 0.9729 guard=True | 
+     src : أتناول الإيبوبروفين، لكن لدي حساسية من البنسلين.
+     back: أنا أتناول الإيبوبروفين.
+sz-09-ru  allergy_omitted pert 0.7417 ref 0.9782 guard=True | 
+     src : Sie sind allergisch gegen Penicillin, deshalb bekommen Sie kein Amoxicillin.
+     back: Sie werden Amoxicillin nicht erhalten.
+kz-08-ru  negation        pert 0.747 ref 0.8428 guard=True | 
+     src : Мой начальник не выносил мне предупреждения.
+     back: Мой начальник дал мне выговор.
+kz-04-ar  semantic        pert 0.7494 ref 0.8615 guard=False | 
+     src : استلمت إشعار الفصل في 3 نوفمبر.
+     back: قدمت الإلغاء في 3 نوفمبر.
+sz-09-en  allergy_omitted pert 0.7526 ref 0.9534 guard=True | 
+     src : Sie sind allergisch gegen Penicillin, deshalb bekommen Sie kein Amoxicillin.
+     back: Sie werden kein Amoxicillin erhalten.
+sz-09-ar  allergy_omitted pert 0.7593 ref 0.9641 guard=True | 
+     src : Sie sind allergisch gegen Penicillin, deshalb bekommen Sie kein Amoxicillin.
+     back: Du wirst das Amoxicillin nicht erhalten.
+sz-09-tr  allergy_omitted pert 0.7597 ref 0.9394 guard=True | 
+     src : Sie sind allergisch gegen Penicillin, deshalb bekommen Sie kein Amoxicillin.
+     back: Ihnen wird Amoxicillin nicht verabreicht werden.
+vr-05-en  semantic        pert 0.787 ref 0.9514 guard=False | 
+     src : Wir gewähren 3 % Rabatt bei einer Mindestabnahme von 10.000 Stück.
+     back: Wir erheben einen Aufschlag von 3 % auf eine Mindestbestellmenge von 10.000 Einheiten.
+vr-05-ru  semantic        pert 0.793 ref 0.9568 guard=False | 
+     src : Wir gewähren 3 % Rabatt bei einer Mindestabnahme von 10.000 Stück.
+     back: Wir erheben einen Aufschlag von 3 % bei einer Mindestbestellmenge von 10 000 Stück.
+vr-05-ar  semantic        pert 0.7937 ref 0.9632 guard=False | 
+     src : Wir gewähren 3 % Rabatt bei einer Mindestabnahme von 10.000 Stück.
+     back: Wir erheben eine zusätzliche Gebühr von 3 % bei einer Mindestbestellmenge von 10,000 Stück.
+kz-08-en  negation        pert 0.8038 ref 0.9759 guard=True | 
+     src : My boss didn't give me a formal warning.
+     back: My boss gave me a warning.
+vr-05-tr  semantic        pert 0.804 ref 0.9515 guard=False | 
+     src : Wir gewähren 3 % Rabatt bei einer Mindestabnahme von 10.000 Stück.
+     back: Bei einer Mindestbestellmenge von 10.000 Stück erheben wir einen Aufschlag von %3.
+kz-03-ar  semantic        pert 0.8055 ref 0.8913 guard=False | 
+     src : Unterschreiben Sie die Aufhebungsvereinbarung nicht, bevor wir sie geprüft haben.
+     back: Unterschreiben Sie nicht die Vereinbarung zur Beendigung des Vertrags, bevor der Arbeitgeber sie überprüft.
+kz-03-en  semantic        pert 0.8186 ref 0.9071 guard=False | 
+     src : Unterschreiben Sie die Aufhebungsvereinbarung nicht, bevor wir sie geprüft haben.
+     back: Unterschreiben Sie die Kündigungsvereinbarung nicht, bis Ihr Arbeitgeber sie geprüft hat.
+sz-05-ar  negation        pert 0.8201 ref 0.9336 guard=True | 
+     src : Nehmen Sie die Tabletten nicht nüchtern ein.
+     back: Nehmen Sie die Tabletten auf nüchternen Magen ein.
+sz-05-en  negation        pert 0.8221 ref 0.9336 guard=True | 
+     src : Nehmen Sie die Tabletten nicht nüchtern ein.
+     back: Nehmen Sie die Tabletten auf nüchternen Magen.
+sz-05-tr  negation        pert 0.8221 ref 0.9315 guard=True | 
+     src : Nehmen Sie die Tabletten nicht nüchtern ein.
+     back: Nehmen Sie die Tabletten auf nüchternen Magen.
+kz-04-tr  semantic        pert 0.8239 ref 0.8634 guard=False | 
+     src : Fesih bildirimini 3 Kasım'da aldım.
+     back: İşten çıkarma bildirimini 3 Kasım'da sundum.
+kz-07-tr  semantic        pert 0.8259 ref 0.9581 guard=False | 
+     src : Der Termin beim Arbeitsgericht ist am 15. Dezember um 10:30 Uhr.
+     back: Das Gespräch mit Ihrem Arbeitgeber ist am 15. Dezember um 10:30 Uhr.
+kz-03-tr  semantic        pert 0.8396 ref 0.9264 guard=False | 
+     src : Unterschreiben Sie die Aufhebungsvereinbarung nicht, bevor wir sie geprüft haben.
+     back: Unterschreiben Sie den gegenseitigen Aufhebungsvertrag nicht, bis Ihr Arbeitgeber ihn geprüft hat.
+kz-07-en  semantic        pert 0.8424 ref 0.9541 guard=False | 
+     src : Der Termin beim Arbeitsgericht ist am 15. Dezember um 10:30 Uhr.
+     back: Das Treffen mit Ihrem Arbeitgeber ist am 15. Dezember um 10:30.
+kz-07-ru  semantic        pert 0.8427 ref 0.9473 guard=False | 
+     src : Der Termin beim Arbeitsgericht ist am 15. Dezember um 10:30 Uhr.
+     back: Das Treffen mit Ihrem Arbeitgeber findet am 15. Dezember um 10:30 statt.
+sz-02-ru  semantic        pert 0.8646 ref 0.9801 guard=False | 
+     src : Я принимаю метформин по 500 мг два раза в день.
+     back: Мой муж принимает два раза в день по 500 мг метформина.
+sz-02-ar  semantic        pert 0.8665 ref 0.9382 guard=False | 
+     src : أتناول 500 ملغ من الميتفورمين مرتين يوميًا.
+     back: زوجي يتناول 500 ملغ ميتفورمين مرتين يوميًا.
+kz-07-ar  semantic        pert 0.8714 ref 0.9483 guard=False | 
+     src : Der Termin beim Arbeitsgericht ist am 15. Dezember um 10:30 Uhr.
+     back: Der Termin für das Treffen mit dem Arbeitgeber am 15. Dezember um 10:30 Uhr.
+sz-02-en  semantic        pert 0.8772 ref 0.9922 guard=False | 
+     src : I take 500 mg of metformin twice a day.
+     back: My husband takes 500 mg Metformin twice daily.
+sz-05-ru  negation        pert 0.8819 ref 0.9065 guard=True | 
+     src : Nehmen Sie die Tabletten nicht nüchtern ein.
+     back: Nehmen Sie die Tabletten nüchtern ein.
+sz-04-tr  semantic        pert 0.8833 ref 0.9368 guard=False | 
+     src : Kommen Sie am Donnerstag, dem 12. November, um 9 Uhr wieder.
+     back: Rufen Sie uns am Donnerstag, den 12. November um 9 Uhr an.
+kz-04-ru  semantic        pert 0.8901 ref 0.9482 guard=False | 
+     src : Я получил уведомление об увольнении 3 ноября.
+     back: Я подал(а) увольнение 3. November.
+sz-04-ru  semantic        pert 0.8909 ref 1.0 guard=False | 
+     src : Kommen Sie am Donnerstag, dem 12. November, um 9 Uhr wieder.
+     back: Rufen Sie uns am Donnerstag, dem 12. November, um 9 Uhr an.
+kz-03-ru  semantic        pert 0.8917 ref 1.0 guard=False | 
+     src : Unterschreiben Sie die Aufhebungsvereinbarung nicht, bevor wir sie geprüft haben.
+     back: Unterschreiben Sie die Aufhebungsvereinbarung nicht, bevor Ihr Arbeitgeber sie geprüft hat.
+sz-04-ar  semantic        pert 0.8945 ref 0.9512 guard=False | 
+     src : Kommen Sie am Donnerstag, dem 12. November, um 9 Uhr wieder.
+     back: Bitte rufen Sie uns am Donnerstag, den 12. November um 9 Uhr an.
+sz-04-en  semantic        pert 0.8952 ref 0.9754 guard=False | 
+     src : Kommen Sie am Donnerstag, dem 12. November, um 9 Uhr wieder.
+     back: Bitte rufen Sie uns am Donnerstag, den 12. November, um 9 Uhr an.
+sz-02-tr  semantic        pert 0.8962 ref 1.0 guard=False | 
+     src : Günde iki kez 500 mg Metformin alıyorum.
+     back: Eşim günde iki kez 500 mg Metformin alıyor.
+kz-04-en  semantic        pert 0.9068 ref 0.935 guard=False | 
+     src : I received my notice of dismissal on November 3.
+     back: I submitted the termination on November 3.
+sz-10-ru  semantic        pert 0.9129 ref 0.9982 guard=False | 
+     src : Уже три дня у меня температура выше 39 градусов.
+     back: У меня уже три дня температура ниже 39 градусов.
+kz-05-ar  semantic        pert 0.9138 ref 0.9401 guard=False | 
+     src : أعمل هناك منذ ست سنوات وأتقاضى راتبًا إجماليًا قدره 3200 يورو شهريًا.
+     back: أنا أعمل هناك منذ ست سنوات وأكسب 3.200 يورو صافي في الشهر.
+vr-03-en  semantic        pert 0.9174 ref 0.9212 guard=False | 
+     src : We need at least 5,000 units a month.
+     back: We need at most 5.000 pieces per month.
+sz-10-tr  semantic        pert 0.9182 ref 1.0 guard=False | 
+     src : Üç gündür 39 derecenin üzerinde ateşim var.
+     back: Üç gündür 39 derecenin altında ateşim var.
+sz-10-ar  semantic        pert 0.9248 ref 0.9929 guard=False | 
+     src : لدي حمى تتجاوز 39 درجة منذ ثلاثة أيام.
+     back: لدي حمى أقل من 39 درجة منذ ثلاثة أيام.
+kz-05-ru  semantic        pert 0.9259 ref 0.9756 guard=False | 
+     src : Я работаю там шесть лет и получаю 3 200 евро брутто в месяц.
+     back: Я работаю там уже шесть лет и зарабатываю 3.200 евро чистыми в месяц.
+sz-10-en  semantic        pert 0.9281 ref 0.997 guard=False | 
+     src : I've had a fever of over 39 degrees for three days.
+     back: I have had a fever under 39 degrees for three days.
+vr-08-ru  semantic        pert 0.9349 ref 1.0 guard=False | 
+     src : Das Angebot gilt bis Freitag, den 6. November.
+     back: Das Angebot gilt ab Freitag, dem 6. November.
+vr-08-tr  semantic        pert 0.9442 ref 0.9925 guard=False | 
+     src : Das Angebot gilt bis Freitag, den 6. November.
+     back: Das Angebot ist ab Freitag, dem 6. November, gültig.
+vr-08-ar  semantic        pert 0.9491 ref 0.9931 guard=False | 
+     src : Das Angebot gilt bis Freitag, den 6. November.
+     back: Das Angebot ist gültig ab Freitag, dem 6. November.
+kz-05-tr  semantic        pert 0.9497 ref 0.9848 guard=False | 
+     src : Altı yıldır orada çalışıyorum ve ayda brüt 3.200 euro kazanıyorum.
+     back: Orada altı yıldır çalışıyorum ve ayda net 3.200 Euro kazanıyorum.
+vr-03-ru  semantic        pert 0.9514 ref 0.991 guard=False | 
+     src : Нам нужно минимум 5000 штук в месяц.
+     back: Нам нужно не более 5.000 штук в месяц.
+vr-08-en  semantic        pert 0.9528 ref 0.9917 guard=False | 
+     src : Das Angebot gilt bis Freitag, den 6. November.
+     back: Das Angebot ist gültig ab Freitag, 6. November.
+vr-03-ar  semantic        pert 0.9627 ref 0.9747 guard=False | 
+     src : نحتاج إلى 5000 قطعة على الأقل شهريًا.
+     back: نحتاج بحد أقصى 5.000 قطعة في الشهر.
+kz-05-en  semantic        pert 0.9659 ref 0.9907 guard=False | 
+     src : I've worked there for six years and I earn 3,200 euros gross a month.
+     back: I have been working there for six years and earn 3.200 euros net per month.
+vr-03-tr  semantic        pert 0.9906 ref 0.9567 guard=False | 
+     src : Ayda en az 5.000 adet ihtiyacımız var.
+     back: Ayda en fazla 5.000 adet ihtiyacımız var.
+
+===== clean refs / live MT below 0.86
+kz-06-en  REF s=0.8458 src: Die Frist für die Kündigungsschutzklage beträgt drei Wochen ab Zugang der Kündigung.
+     back: Die Frist für einen Anspruch auf ungerechtfertigte Kündigung beträgt drei Wochen ab Erhalt der Kündigungsmitteilung.
+kz-06-en  MT  s=0.8441 src: Die Frist für die Kündigungsschutzklage beträgt drei Wochen ab Zugang der Kündigung.
+     back: Die Frist für die Einreichung der Klage wegen unrechtmäßiger Kündigung beträgt drei Wochen ab dem Erhalt der Kündigung.
+     mt  : The deadline for filing the unfair dismissal claim is three weeks from the receipt of the termination.
+kz-04-ru  MT  s=0.8454 src: Я получил уведомление об увольнении 3 ноября.
+     back: Я получил предупреждение 3 ноября.
+     mt  : Ich habe am 3. November eine Abmahnung erhalten.
+kz-08-ru  REF s=0.8428 src: Мой начальник не выносил мне предупреждения.
+     back: Мой начальник не дал мне выговор.
+kz-08-tr  REF s=0.7428 src: Patronum bana ihtarname vermedi.
+     back: Patronum bana uyarı vermedi.
+kz-08-tr  MT  s=0.5291 src: Patronum bana ihtarname vermedi.
+     back: İşverenim bana herhangi bir uyarı vermedi.
+     mt  : Mein Arbeitgeber hat mir keine Abmahnung erteilt.
+vr-06-tr  REF s=0.8354 src: Die Vertragsstrafe beträgt 5 % des Auftragswerts.
+     back: Die Strafklausel beträgt %5 des Bestellwertes.
+vr-06-tr  MT  s=0.8469 src: Die Vertragsstrafe beträgt 5 % des Auftragswerts.
+     back: Die Strafbedingung beträgt %5 des Bestellwertes.
+     mt  : Cezai şart, sipariş tutarının %5'idir.
+kz-04-ar  MT  s=0.8134 src: استلمت إشعار الفصل في 3 نوفمبر.
+     back: لقد استلمت الإنهاء في 3. November.
+     mt  : Ich habe die Kündigung am 3. November erhalten.
+
+===== guard red on live MT / guard false alarms / guard misses
+kz-03-ar  MT guard red: [{'kind': 'negation', 'src': 'nicht', 'tgt': None, 'match': False}]
+     src: Unterschreiben Sie die Aufhebungsvereinbarung nicht, bevor wir sie geprüft haben.
+     mt : يرجى عدم التوقيع على اتفاقية الإنهاء قبل أن نقوم بمراجعتها.

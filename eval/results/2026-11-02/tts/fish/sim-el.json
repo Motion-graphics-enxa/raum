@@ -1,0 +1,552 @@
+{
+ "elevenlabs/de-f-johanna-de-ref": {
+  "voice": "de-f-johanna",
+  "sim": 0.996,
+  "sim_note": "take b vs take a"
+ },
+ "elevenlabs/de-m-otto-de-ref": {
+  "voice": "de-m-otto",
+  "sim": 0.995,
+  "sim_note": "take b vs take a"
+ },
+ "elevenlabs/en-f-juliet-en-ref": {
+  "voice": "en-f-juliet",
+  "sim": 0.989,
+  "sim_note": "take b vs take a"
+ },
+ "elevenlabs/en-m-jon-en-ref": {
+  "voice": "en-m-jon",
+  "sim": 0.995,
+  "sim_note": "take b vs take a"
+ },
+ "elevenlabs/ru-f-anna-ru-ref": {
+  "voice": "ru-f-anna",
+  "sim": 0.996,
+  "sim_note": "take b vs take a"
+ },
+ "elevenlabs/ru-m-gorodetsky-ru-ref": {
+  "voice": "ru-m-gorodetsky",
+  "sim": 0.996,
+  "sim_note": "take b vs take a"
+ },
+ "fish-s2-pro-el/de-f-johanna-de-ref": {
+  "voice": "de-f-johanna",
+  "sim": 0.993,
+  "sim_all": {
+   "de-f-johanna": 0.993,
+   "de-m-otto": 0.612,
+   "en-f-juliet": 0.746,
+   "en-m-jon": 0.253,
+   "ru-f-anna": 0.856,
+   "ru-m-gorodetsky": 0.693
+  },
+  "dur": 9.89
+ },
+ "fish-s2-pro-el/de-f-johanna-de": {
+  "voice": "de-f-johanna",
+  "sim": 0.985,
+  "sim_all": {
+   "de-f-johanna": 0.985,
+   "de-m-otto": 0.614,
+   "en-f-juliet": 0.769,
+   "en-m-jon": 0.236,
+   "ru-f-anna": 0.844,
+   "ru-m-gorodetsky": 0.683
+  },
+  "dur": 4.32
+ },
+ "fish-s2-pro-el/de-f-johanna-en": {
+  "voice": "de-f-johanna",
+  "sim": 0.972,
+  "sim_all": {
+   "de-f-johanna": 0.972,
+   "de-m-otto": 0.676,
+   "en-f-juliet": 0.769,
+   "en-m-jon": 0.261,
+   "ru-f-anna": 0.852,
+   "ru-m-gorodetsky": 0.727
+  },
+  "dur": 4.37
+ },
+ "fish-s2-pro-el/de-f-johanna-ru": {
+  "voice": "de-f-johanna",
+  "sim": 0.977,
+  "sim_all": {
+   "de-f-johanna": 0.977,
+   "de-m-otto": 0.617,
+   "en-f-juliet": 0.786,
+   "en-m-jon": 0.256,
+   "ru-f-anna": 0.874,
+   "ru-m-gorodetsky": 0.693
+  },
+  "dur": 4.6
+ },
+ "fish-s2-pro-el/de-m-otto-de-ref": {
+  "voice": "de-m-otto",
+  "sim": 0.984,
+  "sim_all": {
+   "de-f-johanna": 0.685,
+   "de-m-otto": 0.984,
+   "en-f-juliet": 0.556,
+   "en-m-jon": 0.47,
+   "ru-f-anna": 0.709,
+   "ru-m-gorodetsky": 0.918
+  },
+  "dur": 11.05
+ },
+ "fish-s2-pro-el/de-m-otto-de": {
+  "voice": "de-m-otto",
+  "sim": 0.979,
+  "sim_all": {
+   "de-f-johanna": 0.638,
+   "de-m-otto": 0.979,
+   "en-f-juliet": 0.507,
+   "en-m-jon": 0.467,
+   "ru-f-anna": 0.67,
+   "ru-m-gorodetsky": 0.908
+  },
+  "dur": 4.92
+ },
+ "fish-s2-pro-el/de-m-otto-en": {
+  "voice": "de-m-otto",
+  "sim": 0.959,
+  "sim_all": {
+   "de-f-johanna": 0.59,
+   "de-m-otto": 0.959,
+   "en-f-juliet": 0.601,
+   "en-m-jon": 0.588,
+   "ru-f-anna": 0.628,
+   "ru-m-gorodetsky": 0.85
+  },
+  "dur": 4.88
+ },
+ "fish-s2-pro-el/de-m-otto-ru": {
+  "voice": "de-m-otto",
+  "sim": 0.97,
+  "sim_all": {
+   "de-f-johanna": 0.654,
+   "de-m-otto": 0.97,
+   "en-f-juliet": 0.569,
+   "en-m-jon": 0.468,
+   "ru-f-anna": 0.679,
+   "ru-m-gorodetsky": 0.892
+  },
+  "dur": 5.02
+ },
+ "fish-s2-pro-el/en-f-juliet-de": {
+  "voice": "en-f-juliet",
+  "sim": 0.881,
+  "sim_all": {
+   "de-f-johanna": 0.884,
+   "de-m-otto": 0.741,
+   "en-f-juliet": 0.881,
+   "en-m-jon": 0.33,
+   "ru-f-anna": 0.833,
+   "ru-m-gorodetsky": 0.714
+  },
+  "dur": 5.2
+ },
+ "fish-s2-pro-el/en-f-juliet-en-ref": {
+  "voice": "en-f-juliet",
+  "sim": 0.995,
+  "sim_all": {
+   "de-f-johanna": 0.721,
+   "de-m-otto": 0.483,
+   "en-f-juliet": 0.995,
+   "en-m-jon": 0.396,
+   "ru-f-anna": 0.74,
+   "ru-m-gorodetsky": 0.461
+  },
+  "dur": 11.33
+ },
+ "fish-s2-pro-el/en-f-juliet-en": {
+  "voice": "en-f-juliet",
+  "sim": 0.972,
+  "sim_all": {
+   "de-f-johanna": 0.675,
+   "de-m-otto": 0.532,
+   "en-f-juliet": 0.972,
+   "en-m-jon": 0.372,
+   "ru-f-anna": 0.736,
+   "ru-m-gorodetsky": 0.505
+  },
+  "dur": 4.46
+ },
+ "fish-s2-pro-el/en-m-jon-de": {
+  "voice": "en-m-jon",
+  "sim": 0.949,
+  "sim_all": {
+   "de-f-johanna": 0.221,
+   "de-m-otto": 0.613,
+   "en-f-juliet": 0.285,
+   "en-m-jon": 0.949,
+   "ru-f-anna": 0.219,
+   "ru-m-gorodetsky": 0.472
+  },
+  "dur": 5.53
+ },
+ "fish-s2-pro-el/en-m-jon-en-ref": {
+  "voice": "en-m-jon",
+  "sim": 0.992,
+  "sim_all": {
+   "de-f-johanna": 0.281,
+   "de-m-otto": 0.583,
+   "en-f-juliet": 0.415,
+   "en-m-jon": 0.992,
+   "ru-f-anna": 0.288,
+   "ru-m-gorodetsky": 0.471
+  },
+  "dur": 11.47
+ },
+ "fish-s2-pro-el/en-m-jon-en": {
+  "voice": "en-m-jon",
+  "sim": 0.967,
+  "sim_all": {
+   "de-f-johanna": 0.22,
+   "de-m-otto": 0.502,
+   "en-f-juliet": 0.343,
+   "en-m-jon": 0.967,
+   "ru-f-anna": 0.226,
+   "ru-m-gorodetsky": 0.372
+  },
+  "dur": 5.11
+ },
+ "fish-s2-pro-el/ru-f-anna-de": {
+  "voice": "ru-f-anna",
+  "sim": 0.976,
+  "sim_all": {
+   "de-f-johanna": 0.864,
+   "de-m-otto": 0.655,
+   "en-f-juliet": 0.773,
+   "en-m-jon": 0.25,
+   "ru-f-anna": 0.976,
+   "ru-m-gorodetsky": 0.749
+  },
+  "dur": 4.97
+ },
+ "fish-s2-pro-el/ru-f-anna-ru-ref": {
+  "voice": "ru-f-anna",
+  "sim": 0.993,
+  "sim_all": {
+   "de-f-johanna": 0.859,
+   "de-m-otto": 0.602,
+   "en-f-juliet": 0.795,
+   "en-m-jon": 0.213,
+   "ru-f-anna": 0.993,
+   "ru-m-gorodetsky": 0.737
+  },
+  "dur": 11.56
+ },
+ "fish-s2-pro-el/ru-f-anna-ru": {
+  "voice": "ru-f-anna",
+  "sim": 0.981,
+  "sim_all": {
+   "de-f-johanna": 0.841,
+   "de-m-otto": 0.605,
+   "en-f-juliet": 0.778,
+   "en-m-jon": 0.213,
+   "ru-f-anna": 0.981,
+   "ru-m-gorodetsky": 0.728
+  },
+  "dur": 4.6
+ },
+ "fish-s2-pro-el/ru-m-gorodetsky-de": {
+  "voice": "ru-m-gorodetsky",
+  "sim": 0.951,
+  "sim_all": {
+   "de-f-johanna": 0.588,
+   "de-m-otto": 0.921,
+   "en-f-juliet": 0.368,
+   "en-m-jon": 0.465,
+   "ru-f-anna": 0.659,
+   "ru-m-gorodetsky": 0.951
+  },
+  "dur": 5.94
+ },
+ "fish-s2-pro-el/ru-m-gorodetsky-ru-ref": {
+  "voice": "ru-m-gorodetsky",
+  "sim": 0.99,
+  "sim_all": {
+   "de-f-johanna": 0.718,
+   "de-m-otto": 0.892,
+   "en-f-juliet": 0.553,
+   "en-m-jon": 0.414,
+   "ru-f-anna": 0.796,
+   "ru-m-gorodetsky": 0.99
+  },
+  "dur": 12.49
+ },
+ "fish-s2-pro-el/ru-m-gorodetsky-ru": {
+  "voice": "ru-m-gorodetsky",
+  "sim": 0.978,
+  "sim_all": {
+   "de-f-johanna": 0.623,
+   "de-m-otto": 0.895,
+   "en-f-juliet": 0.452,
+   "en-m-jon": 0.439,
+   "ru-f-anna": 0.741,
+   "ru-m-gorodetsky": 0.978
+  },
+  "dur": 4.83
+ },
+ "chatterbox-v3-el/de-f-johanna-de-ref": {
+  "voice": "de-f-johanna",
+  "sim": 0.988,
+  "sim_all": {
+   "de-f-johanna": 0.988,
+   "de-m-otto": 0.609,
+   "en-f-juliet": 0.774,
+   "en-m-jon": 0.276,
+   "ru-f-anna": 0.872,
+   "ru-m-gorodetsky": 0.682
+  },
+  "dur": 11.88
+ },
+ "chatterbox-v3-el/de-f-johanna-de": {
+  "voice": "de-f-johanna",
+  "sim": 0.979,
+  "sim_all": {
+   "de-f-johanna": 0.979,
+   "de-m-otto": 0.676,
+   "en-f-juliet": 0.781,
+   "en-m-jon": 0.28,
+   "ru-f-anna": 0.881,
+   "ru-m-gorodetsky": 0.723
+  },
+  "dur": 4.8
+ },
+ "chatterbox-v3-el/de-f-johanna-en": {
+  "voice": "de-f-johanna",
+  "sim": 0.788,
+  "sim_all": {
+   "de-f-johanna": 0.788,
+   "de-m-otto": 0.47,
+   "en-f-juliet": 0.941,
+   "en-m-jon": 0.439,
+   "ru-f-anna": 0.754,
+   "ru-m-gorodetsky": 0.512
+  },
+  "dur": 4.48
+ },
+ "chatterbox-v3-el/de-f-johanna-ru": {
+  "voice": "de-f-johanna",
+  "sim": 0.948,
+  "sim_all": {
+   "de-f-johanna": 0.948,
+   "de-m-otto": 0.647,
+   "en-f-juliet": 0.812,
+   "en-m-jon": 0.266,
+   "ru-f-anna": 0.898,
+   "ru-m-gorodetsky": 0.698
+  },
+  "dur": 5.32
+ },
+ "chatterbox-v3-el/de-m-otto-de-ref": {
+  "voice": "de-m-otto",
+  "sim": 0.983,
+  "sim_all": {
+   "de-f-johanna": 0.688,
+   "de-m-otto": 0.983,
+   "en-f-juliet": 0.575,
+   "en-m-jon": 0.467,
+   "ru-f-anna": 0.702,
+   "ru-m-gorodetsky": 0.904
+  },
+  "dur": 12.52
+ },
+ "chatterbox-v3-el/de-m-otto-de": {
+  "voice": "de-m-otto",
+  "sim": 0.982,
+  "sim_all": {
+   "de-f-johanna": 0.655,
+   "de-m-otto": 0.982,
+   "en-f-juliet": 0.557,
+   "en-m-jon": 0.475,
+   "ru-f-anna": 0.701,
+   "ru-m-gorodetsky": 0.898
+  },
+  "dur": 4.8
+ },
+ "chatterbox-v3-el/de-m-otto-en": {
+  "voice": "de-m-otto",
+  "sim": 0.941,
+  "sim_all": {
+   "de-f-johanna": 0.609,
+   "de-m-otto": 0.941,
+   "en-f-juliet": 0.686,
+   "en-m-jon": 0.61,
+   "ru-f-anna": 0.664,
+   "ru-m-gorodetsky": 0.809
+  },
+  "dur": 4.76
+ },
+ "chatterbox-v3-el/de-m-otto-ru": {
+  "voice": "de-m-otto",
+  "sim": 0.976,
+  "sim_all": {
+   "de-f-johanna": 0.623,
+   "de-m-otto": 0.976,
+   "en-f-juliet": 0.571,
+   "en-m-jon": 0.551,
+   "ru-f-anna": 0.696,
+   "ru-m-gorodetsky": 0.903
+  },
+  "dur": 6.04
+ },
+ "chatterbox-v3-el/en-f-juliet-de": {
+  "voice": "en-f-juliet",
+  "sim": 0.844,
+  "sim_all": {
+   "de-f-johanna": 0.948,
+   "de-m-otto": 0.685,
+   "en-f-juliet": 0.844,
+   "en-m-jon": 0.263,
+   "ru-f-anna": 0.868,
+   "ru-m-gorodetsky": 0.683
+  },
+  "dur": 6.36
+ },
+ "chatterbox-v3-el/en-f-juliet-en-ref": {
+  "voice": "en-f-juliet",
+  "sim": 0.985,
+  "sim_all": {
+   "de-f-johanna": 0.713,
+   "de-m-otto": 0.541,
+   "en-f-juliet": 0.985,
+   "en-m-jon": 0.425,
+   "ru-f-anna": 0.734,
+   "ru-m-gorodetsky": 0.506
+  },
+  "dur": 12.36
+ },
+ "chatterbox-v3-el/en-f-juliet-en": {
+  "voice": "en-f-juliet",
+  "sim": 0.945,
+  "sim_all": {
+   "de-f-johanna": 0.635,
+   "de-m-otto": 0.589,
+   "en-f-juliet": 0.945,
+   "en-m-jon": 0.418,
+   "ru-f-anna": 0.68,
+   "ru-m-gorodetsky": 0.501
+  },
+  "dur": 5.48
+ },
+ "chatterbox-v3-el/en-m-jon-de": {
+  "voice": "en-m-jon",
+  "sim": 0.673,
+  "sim_all": {
+   "de-f-johanna": 0.46,
+   "de-m-otto": 0.843,
+   "en-f-juliet": 0.254,
+   "en-m-jon": 0.673,
+   "ru-f-anna": 0.416,
+   "ru-m-gorodetsky": 0.746
+  },
+  "dur": 4.92
+ },
+ "chatterbox-v3-el/en-m-jon-en-ref": {
+  "voice": "en-m-jon",
+  "sim": 0.985,
+  "sim_all": {
+   "de-f-johanna": 0.254,
+   "de-m-otto": 0.573,
+   "en-f-juliet": 0.358,
+   "en-m-jon": 0.985,
+   "ru-f-anna": 0.261,
+   "ru-m-gorodetsky": 0.448
+  },
+  "dur": 13.4
+ },
+ "chatterbox-v3-el/en-m-jon-en": {
+  "voice": "en-m-jon",
+  "sim": 0.972,
+  "sim_all": {
+   "de-f-johanna": 0.235,
+   "de-m-otto": 0.543,
+   "en-f-juliet": 0.437,
+   "en-m-jon": 0.972,
+   "ru-f-anna": 0.241,
+   "ru-m-gorodetsky": 0.373
+  },
+  "dur": 5.12
+ },
+ "chatterbox-v3-el/ru-f-anna-de": {
+  "voice": "ru-f-anna",
+  "sim": 0.974,
+  "sim_all": {
+   "de-f-johanna": 0.891,
+   "de-m-otto": 0.7,
+   "en-f-juliet": 0.769,
+   "en-m-jon": 0.261,
+   "ru-f-anna": 0.974,
+   "ru-m-gorodetsky": 0.791
+  },
+  "dur": 4.12
+ },
+ "chatterbox-v3-el/ru-f-anna-ru-ref": {
+  "voice": "ru-f-anna",
+  "sim": 0.989,
+  "sim_all": {
+   "de-f-johanna": 0.891,
+   "de-m-otto": 0.655,
+   "en-f-juliet": 0.782,
+   "en-m-jon": 0.245,
+   "ru-f-anna": 0.989,
+   "ru-m-gorodetsky": 0.784
+  },
+  "dur": 12.8
+ },
+ "chatterbox-v3-el/ru-f-anna-ru": {
+  "voice": "ru-f-anna",
+  "sim": 0.979,
+  "sim_all": {
+   "de-f-johanna": 0.865,
+   "de-m-otto": 0.666,
+   "en-f-juliet": 0.777,
+   "en-m-jon": 0.25,
+   "ru-f-anna": 0.979,
+   "ru-m-gorodetsky": 0.767
+  },
+  "dur": 4.88
+ },
+ "chatterbox-v3-el/ru-m-gorodetsky-de": {
+  "voice": "ru-m-gorodetsky",
+  "sim": 0.963,
+  "sim_all": {
+   "de-f-johanna": 0.652,
+   "de-m-otto": 0.936,
+   "en-f-juliet": 0.414,
+   "en-m-jon": 0.431,
+   "ru-f-anna": 0.68,
+   "ru-m-gorodetsky": 0.963
+  },
+  "dur": 4.08
+ },
+ "chatterbox-v3-el/ru-m-gorodetsky-ru-ref": {
+  "voice": "ru-m-gorodetsky",
+  "sim": 0.995,
+  "sim_all": {
+   "de-f-johanna": 0.68,
+   "de-m-otto": 0.887,
+   "en-f-juliet": 0.506,
+   "en-m-jon": 0.454,
+   "ru-f-anna": 0.773,
+   "ru-m-gorodetsky": 0.995
+  },
+  "dur": 13.08
+ },
+ "chatterbox-v3-el/ru-m-gorodetsky-ru": {
+  "voice": "ru-m-gorodetsky",
+  "sim": 0.987,
+  "sim_all": {
+   "de-f-johanna": 0.679,
+   "de-m-otto": 0.885,
+   "en-f-juliet": 0.514,
+   "en-m-jon": 0.47,
+   "ru-f-anna": 0.775,
+   "ru-m-gorodetsky": 0.987
+  },
+  "dur": 5.08
+ }
+}

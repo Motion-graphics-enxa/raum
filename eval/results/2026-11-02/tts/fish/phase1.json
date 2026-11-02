@@ -1,0 +1,60 @@
+{
+ "mem_start_avail_mb": 14772,
+ "codec_load_s": 0.95,
+ "codec_decode_parts_mb": 720,
+ "codec_total_mb": 1784,
+ "encode": {
+  "de": {
+   "ref_s": 8.43,
+   "frames": 182,
+   "encode_cpu_ms": 2783
+  },
+  "en": {
+   "ref_s": 8.05,
+   "frames": 174,
+   "encode_cpu_ms": 2288
+  },
+  "ru": {
+   "ref_s": 8.73,
+   "frames": 188,
+   "encode_cpu_ms": 2394
+  },
+  "tr": {
+   "ref_s": 9.41,
+   "frames": 203,
+   "encode_cpu_ms": 2648
+  },
+  "ar": {
+   "ref_s": 11.5,
+   "frames": 248,
+   "encode_cpu_ms": 3405
+  }
+ },
+ "decode_full_cpu_ms": 3433,
+ "chunk_equivalence_vs_full": {
+  "64": {
+   "len_diff": 0,
+   "max_abs": 0.21387,
+   "snr_db": 15.1
+  },
+  "128": {
+   "len_diff": 0,
+   "max_abs": 0.05562,
+   "snr_db": 30.7
+  },
+  "10000": {
+   "len_diff": 0,
+   "max_abs": 0.0,
+   "snr_db": 104.4
+  }
+ },
+ "llm_cpu_load_s": 1.26,
+ "llm_cpu_smoke": {
+  "prompt_len": 245,
+  "frames": 11,
+  "ended": false,
+  "first_ms": 3906,
+  "per_frame_ms": 161
+ },
+ "mem_used_peak_mb": 2598
+}
