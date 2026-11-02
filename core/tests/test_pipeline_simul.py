@@ -711,10 +711,11 @@ def test_voice_starts_on_a_first_phrase():
     assert take_phrase("Guten Tag, Frau Demir. Ich") == ("Guten Tag,", " Frau Demir. Ich")  # boundary first
     assert take_phrase("Ja. Gut") == ("Ja.", " Gut")  # a sentence end at once
     assert take_phrase("Ja, ich") == ("", "Ja, ich")  # a comma only from the 2nd word on
-    assert take_phrase("Ich verschreibe Ihnen heute Ibuprofen gegen") == ("Ich verschreibe Ihnen heute Ibuprofen",
-                                                                           " gegen")  # 5 words
-    assert take_phrase("Nehmen Sie zweimal täglich 500 mg Metformin")[0] == "Nehmen Sie zweimal täglich 500 mg"
-    assert take_phrase("Ich bin Dr. Weber und so")[0] == "Ich bin Dr. Weber und"  # "Dr." is no boundary
+    assert take_phrase("Ich verschreibe Ihnen heute Ibuprofen gegen") == ("", "Ich verschreibe Ihnen heute Ibuprofen gegen")
+    head, rest = take_phrase("Ich verschreibe Ihnen heute Ibuprofen gegen die Schmerzen in Ihrem rechten Knie und ")
+    assert (head, rest) == ("Ich verschreibe Ihnen heute Ibuprofen gegen die Schmerzen in Ihrem rechten Knie", " und ")
+    assert take_phrase("Nehmen Sie zweimal täglich 500 mg Metformin, immer")[0] == "Nehmen Sie zweimal täglich 500 mg Metformin,"
+    assert take_phrase("Ich bin Dr. Weber und so")[0] == ""  # "Dr." is no boundary
     assert take_phrase("Ich bin") == ("", "Ich bin")  # "bin" not complete yet: still streaming
 
 

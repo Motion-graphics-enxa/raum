@@ -18,7 +18,11 @@ from raum.pipeline._util import float_to_wav
 
 SAMPLE_RATE = 16000
 BASE_WPS = 2.5  # rate 1.0 = 2.5 words per second
-RATE_MIN, RATE_MAX = 0.7, 1.5  # beyond that, synthetic speech stops being pleasant to follow
+# Never slower than the voice's own pace: German has fewer, longer words per second than en/ru, so a normal
+# German speaker (~2 wps) gave 0.80-0.86 and every en/ru translation came out 20-25 % slower, with stretched
+# pauses (box, 2 Nov: whole sentence 4.12 s at 1.0 vs 5.35 s at 0.83). Above ~1.15 the GPU voice falls behind
+# real time under load (speed 1.3 jobs: RTF 0.97-1.71) and the stream stalls between words.
+RATE_MIN, RATE_MAX = 1.0, 1.15
 
 
 class VoiceRef:

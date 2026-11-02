@@ -29,6 +29,7 @@ from raum.scheduler import Scheduler
 
 RU = ParticipantInfo(id="b-ru01", role="b", lang="ru")
 CLAUSE_RU = "Продолжайте принимать Метформин по 500 мг"  # sz-05's first spoken phrase in Russian
+FIRST_RU = "Продолжайте принимать Метформин по 500 мг два раза в день, утром и вечером во время еды."  # sz-05 spoken whole
 DOC_EN = ParticipantInfo(id="a-doc1", role="a", lang="en")
 PAT_AR_HP = ParticipantInfo(id="b-k3x9", role="b", lang="ar", audio_out="headphones")
 
@@ -246,6 +247,7 @@ def test_events_and_profiles(monkeypatch):
 
 async def test_mismatch_marks_the_card_repeats_once_in_the_standard_voice_and_times_it():
     h, voice, asr, state = echo_room(slips={"500 мг": "50 мг"})
+    # the first phrase is no longer cut at 5 words (room.PHRASE_WORDS): the cloned voice's floor keeps the sentence whole
     h.set_next_line("a", 2)  # sz-05: "Nehmen Sie zweimal täglich 500 mg Metformin weiter, ..."
     utt = await h.say(DOC.id)
     await h.p.drain()
@@ -254,18 +256,18 @@ async def test_mismatch_marks_the_card_repeats_once_in_the_standard_voice_and_ti
                                      [e.data for e in h.of("translation.final")])
     echo = h.one("voice.echo", utt)
     assert echo == {"target_lang": "ru", "kind": "dose", "spoken": "50 мг", "written": "500 мг", "clause": 0,
-                    "text": CLAUSE_RU}
+                    "text": FIRST_RU}
     first = voice.calls[0]
-    assert first.text == CLAUSE_RU and first.cloned and first.said.endswith("50 мг")
+    assert first.text == FIRST_RU and first.cloned and "50 мг" in first.said and "500 мг" not in first.said
     repeats = [c for c in voice.calls if c.text.startswith("Повторяю: ")]
     assert len(repeats) == 1  # once
-    assert repeats[0].text == f"Повторяю: {CLAUSE_RU}" and not repeats[0].cloned  # the standard voice
-    assert repeats[0].said.endswith("500 мг") and repeats[0].lane_held  # through the language's voice lane
+    assert repeats[0].text == f"Повторяю: {FIRST_RU}" and not repeats[0].cloned  # the standard voice
+    assert "500 мг" in repeats[0].said and repeats[0].lane_held  # through the language's voice lane
     assert [a["text"] for a in asr.echo] == [first.said]  # one check (the clause with a figure); the repeat: none
     assert asr.echo[0]["lang"] == "ru" and asr.echo[0]["partial"] is False and asr.echo[0]["dtype"] == "float32"
     assert state["violations"] == []  # one writer on tts-ru at any time
     heard = b"".join(np.asarray(pcm, "<i2").tobytes() for lang, pcm in state["audio"] if lang == "ru")
-    assert f"Повторяю: {CLAUSE_RU}" in heard.replace(b"\0", b"").decode("utf-8")  # the listener heard the repeat
+    assert f"Повторяю: {FIRST_RU}" in heard.replace(b"\0", b"").decode("utf-8")  # the listener heard the repeat
     t = timing(h, utt, "ru")
     assert t["echo_check"] == "mismatch" and isinstance(t["echo_ms"], float) and t["echo_ms"] >= 0
     assert h.p.echo_check.repeats == 1

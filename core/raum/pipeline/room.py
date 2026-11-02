@@ -289,7 +289,12 @@ def take_clause(buf: str, min_words: int = 0, expect_words: int | None = None) -
     return buf[:cut].strip(), buf[cut:]
 
 
-PHRASE_WORDS = 5  # the voice starts on a phrase of about 4-6 words (or the first clause boundary before that)
+# The voice starts on the first clause boundary (a sentence end, or a comma from the 2nd word); a phrase cut by
+# word count only after this many words of a long unpunctuated run. Each clause is its own TTS request, and
+# Chatterbox ends every request with 0.36-0.6 s of silence: a 5-word cut ("Take 500 mg Metformin twice | a day,
+# always after meals.") put a 0.5-0.6 s gap mid-sentence. A longer first text costs no first-audio time
+# (232-246 ms for the whole sentence vs 349-356 ms for the 5 words) and, replayed by speculate.py, ~60 ms of MT.
+PHRASE_WORDS = 12
 _WORD = re.compile(r"\S+(?=\s)")  # a complete word: the next one has begun
 _CLOSE = "\"'»«”’)"
 

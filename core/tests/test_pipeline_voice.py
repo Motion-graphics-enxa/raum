@@ -100,7 +100,9 @@ def test_pace_from_word_timestamps_or_audio():
     r = SpeakingRate()
     assert r.update("ja", 0.4) is None  # too short to say anything
     assert r.update("eins zwei drei vier fünf", 2.0) == 1.0  # 2.5 w/s
-    assert r.update("eins zwei drei vier fünf sechs sieben acht neun zehn", 2.0) == 1.5  # 5 w/s, smoothed, capped
+    assert r.update("eins zwei drei vier fünf sechs sieben acht neun zehn", 2.0) == 1.15  # 5 w/s, smoothed, capped
+    slow = SpeakingRate()
+    assert slow.update("eins zwei drei vier", 2.0) == 1.0  # 2 w/s (a normal German pace): never slower than 1.0
 
 
 async def test_mock_and_piper_accept_and_ignore_voice_args():
@@ -548,8 +550,10 @@ def test_clause_and_phrase_floor_for_a_cloned_voice():
     assert take_clause(buf)[0] == "Danke. Danke. Ich komme morgen um neun Uhr wieder."  # stock voice: as before
     assert take_phrase("Danke. Haben Sie ")[0] == "Danke."
     assert take_phrase("Danke. Haben Sie ", 5) == ("", "Danke. Haben Sie ")  # waits for more words
-    head, rest = take_phrase("Danke. Haben Sie heute noch Zeit für ", 5)
-    assert head == "Danke. Haben Sie heute noch" and rest.strip() == "Zeit für"
+    head, rest = take_phrase("Danke. Haben Sie heute noch Zeit für mich und meine ", 5)  # no boundary: 12 words
+    assert (head, rest) == ("", "Danke. Haben Sie heute noch Zeit für mich und meine ")
+    head, rest = take_phrase("Danke. Haben Sie heute noch Zeit für mich und meine Frau? Wir ", 5)
+    assert head == "Danke. Haben Sie heute noch Zeit für mich und meine Frau?" and rest.strip() == "Wir"
     assert take_clause("Ja, gut. Und", 5) == ("", "Ja, gut. Und")
     assert take_clause("Ja, gut. Wir sehen uns am Montag. Und", 5)[0] == "Ja, gut. Wir sehen uns am Montag."
     # expected 8 words in all: cutting after 7 would leave 1, so the voice waits and says it in one piece
