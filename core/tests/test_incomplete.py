@@ -31,10 +31,11 @@ UNFINISHED_DE = [
     ("Sie müssen das Medikament", "verb-final"),
     ("Sie sollten die Tabletten weiterhin", "neg-scope"),
     ("Ich möchte einen Termin.", "verb-final"),  # costs latency, never a cut
-    ("Sie haben das Medikament", "aux-open"),
-    ("Sie werden das Medikament", "aux-open"),
+    ("Sie haben das", "aux-open"),  # [pause] "nicht genommen"
+    ("Ich habe das nicht", "aux-open"),
     ("Das ist", "aux-open"),
-    ("Haben Sie Schmerzen?", "aux-open"),
+    ("Haben Sie", "aux-open"),
+    ("Ich habe das gestern", "aux-open"),
 ]
 FINISHED_DE = [
     "Sie dürfen das Metformin ab morgen nicht mehr nehmen.",
@@ -54,6 +55,13 @@ FINISHED_DE = [
     "Guten Tag, wie geht es Ihnen?",
     "Ich nehme das Metformin.",
     "Ja.",
+    # haben / sein / werden with a predicate complement: finished (the model decides), ~0.4 s faster
+    "Ich bin allergisch gegen Penicillin.",
+    "Haben Sie Schmerzen?",
+    "Das ist gut.",
+    "Ich habe Kopfschmerzen.",
+    "Wird das besser?",
+    "Ich bin 45 Jahre alt.",
 ]
 
 
@@ -115,7 +123,7 @@ async def test_rule_beats_a_confident_text_model():
 
 async def test_aux_wait_is_configurable_and_rules_can_be_switched_off():
     d = TurnDetector(Executor(0.9), {**OPTS, "aux_s": 1.0})
-    assert (await d.verdict("Haben Sie Schmerzen?", "de")).wait_s == 1.0
+    assert (await d.verdict("Sie haben das", "de")).wait_s == 1.0
     assert (await d.verdict("Sie dürfen das", "de")).wait_s == 1.6  # modals stay at max_s
     d = TurnDetector(Executor(0.9), {**OPTS, "rules": False})
     assert (await d.verdict("Sie dürfen das", "de")).wait_s == 0.0
