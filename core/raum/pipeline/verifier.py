@@ -24,6 +24,16 @@ log = logging.getLogger("raum.pipeline.verifier")
 
 _NUM = re.compile(r"\d+(?:[.,]\d+)?")
 
+BT_NUM_PREDICT_MIN = 64
+BT_NUM_PREDICT_MAX = 256
+
+
+def backtranslate_num_predict(text: str, ceiling: int = BT_NUM_PREDICT_MAX) -> int:
+    """Token budget for one back-translation: about twice the text's token estimate (len / 3), at least
+    64 (room for the low reasoning), at most 256 or the profile's own ``num_predict``."""
+    ceiling = min(ceiling, BT_NUM_PREDICT_MAX)
+    return min(ceiling, max(BT_NUM_PREDICT_MIN, 2 * -(-len(text) // 3)))
+
 
 class MockVerifier:
     """Back-translates by mapping the text back to its canned line, keeping any mistranslation
@@ -94,9 +104,12 @@ class OllamaVerifier(WarmGate):
         self._client = client or httpx.AsyncClient(
             timeout=httpx.Timeout(float(self.options.get("timeout_s", 30.0)), connect=2.0))
 
-    def _body(self, messages: list[dict[str, str]], *, fmt: str | None = None) -> dict[str, Any]:
+    def _body(self, messages: list[dict[str, str]], *, fmt: str | None = None,
+              num_predict: int | None = None) -> dict[str, Any]:
         opts = {"temperature": 0.0, "num_predict": 256}
         opts.update(engine_options(self.options, OLLAMA_OPTIONS))
+        if num_predict is not None:
+            opts["num_predict"] = num_predict
         body: dict[str, Any] = {"model": self.model, "messages": messages, "stream": False,
                                 "keep_alive": -1, "options": opts}
         reasoning = self.options.get("reasoning")
@@ -115,21 +128,38 @@ class OllamaVerifier(WarmGate):
         await warm_request(self._client, self.url, "/api/chat", body)
         self.ready = True
 
-    async def _chat(self, messages: list[dict[str, str]], *, fmt: str | None = None) -> str:
+    async def _post(self, messages: list[dict[str, str]], *, fmt: str | None = None,
+                    num_predict: int | None = None) -> dict[str, Any]:
         self._check_gate()
-        r = await self._client.post(f"{self.url}/api/chat", json=self._body(messages, fmt=fmt))
+        r = await self._client.post(f"{self.url}/api/chat",
+                                    json=self._body(messages, fmt=fmt, num_predict=num_predict))
         if r.status_code >= 400:
             raise RuntimeError(f"ollama {r.status_code}: {r.text[:200]}")
         j = r.json()
         if j.get("error"):
             raise RuntimeError(f"ollama: {j['error']}")
+        return j
+
+    @staticmethod
+    def _content(j: dict[str, Any]) -> str:
         return str((j.get("message") or {}).get("content") or "").strip()
+
+    async def _chat(self, messages: list[dict[str, str]], *, fmt: str | None = None) -> str:
+        return self._content(await self._post(messages, fmt=fmt))
 
     async def back_translate(self, text: str, text_lang: str, into_lang: str,
                              turn: TurnContext | None = None) -> str:
         system = render_prompt(load_prompt(self.backtranslate_prompt),
                                tgt_lang=lang_name(text_lang), src_lang=lang_name(into_lang))
-        return await self._chat([{"role": "system", "content": system}, {"role": "user", "content": text}])
+        messages = [{"role": "system", "content": system}, {"role": "user", "content": text}]
+        full = min(int(self.options.get("num_predict") or BT_NUM_PREDICT_MAX), BT_NUM_PREDICT_MAX)
+        cap = backtranslate_num_predict(text, full)
+        j = await self._post(messages, num_predict=cap)
+        if j.get("done_reason") == "length" and cap < full:
+            # the (low) reasoning ate the short budget: once more with the full one rather than a cut-off line
+            log.info("back-translation hit num_predict=%d; retrying at %d", cap, full)
+            j = await self._post(messages, num_predict=full)
+        return self._content(j)
 
     async def complete_json(self, prompt: str, *, purpose: str) -> dict[str, Any]:
         raw = await self._chat([{"role": "user", "content": prompt}], fmt="json")

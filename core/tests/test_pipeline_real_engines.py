@@ -113,6 +113,9 @@ async def test_ollama_translator_streams_chat():
     assert system["role"] == "system" and user == {"role": "user", "content": "Nehmen Sie 500 mg."}
     assert "Consultation room" in system["content"] and "from German into Arabic" in system["content"]
     assert "Register: formal." in system["content"] and "Metformin = ميتفورمين" in system["content"]
+    assert "the way Arabic writes them" in system["content"]  # target conventions: мг, евро, ٣٬٢٠٠
+    assert "Never leave a German word" in system["content"]  # seen: "в 10.000 Stück"
+    assert "Mirror the speaker" in system["content"] and "يرجى" in system["content"]  # Sie -> no bare خذ
     assert "{" not in system["content"]
 
     [d async for d in tr.stream(_req(text="Zweiter Satz."))]
@@ -149,7 +152,7 @@ async def test_ollama_verifier_back_translation_and_json():
     assert await v.back_translate("خذ 500 ملغ.", "ar", "de", TURN) == "Nehmen Sie 500 mg."
     b = bodies[0]
     assert b["stream"] is False and b["think"] == "low" and b["keep_alive"] == -1
-    assert b["options"]["num_predict"] == 128 and b["options"]["temperature"] == 0.0
+    assert b["options"]["num_predict"] == 64 and b["options"]["temperature"] == 0.0  # short line: the floor
     assert "Translate the following Arabic text into German" in b["messages"][0]["content"]
     assert b["messages"][1]["content"] == "خذ 500 ملغ."
 
@@ -158,6 +161,37 @@ async def test_ollama_verifier_back_translation_and_json():
     assert (await v.complete_json("prompt", purpose="repeat_back")) == {"understood": "yes"}
     assert await v.complete_text("prompt", purpose="explain_simply") == "Einfache Worte."
     assert "format" not in bodies[3]
+
+
+def test_backtranslate_num_predict_scales_with_the_text():
+    from raum.pipeline.verifier import backtranslate_num_predict
+
+    assert backtranslate_num_predict("") == 64 and backtranslate_num_predict("x" * 96) == 64  # floor
+    assert backtranslate_num_predict("x" * 150) == 100  # ~2 x len/3
+    assert backtranslate_num_predict("x" * 1000) == 256  # ceiling
+    assert backtranslate_num_predict("x" * 1000, 128) == 128 and backtranslate_num_predict("x" * 1000, 999) == 256
+
+
+async def test_ollama_verifier_back_translation_budget_and_retry():
+    bodies = []
+    replies = iter([{"message": {"content": "Wir bieten"}, "done_reason": "length"},
+                    {"message": {"content": "Wir bieten 950.000 Euro."}, "done_reason": "stop"},
+                    {"message": {"content": "Gut."}, "done_reason": "stop"}])
+
+    def handler(request):
+        bodies.append(json.loads(request.content))
+        return httpx.Response(200, json={**next(replies), "done": True})
+
+    v = OllamaVerifier("http://o:1", model="gpt-oss:120b", options={"reasoning": "low", "num_predict": 256},
+                       client=client(handler))
+    assert await v.back_translate("Мы предлагаем 950 000 евро.", "ru", "de") == "Wir bieten 950.000 Euro."
+    assert [b["options"]["num_predict"] for b in bodies] == [64, 256]  # cut off -> once more at the ceiling
+    assert all(b["think"] == "low" for b in bodies)
+    long = "Мы предлагаем 950 000 евро при оплате в течение 30 дней, доставка до конца марта. " * 3
+    assert await v.back_translate(long, "ru", "de") == "Gut."
+    assert 64 < bodies[2]["options"]["num_predict"] == 2 * -(-len(long) // 3) < 256
+    assert len(bodies) == 3  # finished normally: no retry
+    assert v._body([])["options"]["num_predict"] == 256  # summaries, repeat-back and warm-up keep the full budget
 
 
 def test_parse_json_object():
