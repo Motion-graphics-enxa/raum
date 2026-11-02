@@ -105,8 +105,9 @@ export function useLiveRoom(session: LiveSession | null, store: RoomStore): Live
         void room.startAudio().catch(() => undefined);
         await backlog();
       } catch (err) {
+        if (cancelled) return; // StrictMode remount / navigation: not a failure
         console.warn("[raum] connect failed", err);
-        if (!cancelled) setState("disconnected");
+        setState("disconnected");
       }
     })();
 

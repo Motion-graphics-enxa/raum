@@ -390,8 +390,19 @@ def run(argv: list[str] | None = None) -> int:
     if args.executor == "thread":
         # plugins must register on the main thread; all room threads then share one Silero session
         load_vad(cfg)
+    max_rooms = max(1, int(os.environ.get("RAUM_AGENT_MAX_ROOMS", "12")))
+
+    def room_load(srv: Any) -> float:
+        # Capacity is rooms (the GPU queue in raum.scheduler paces the models), not host CPU:
+        # browsers and builds on a laptop must not make the box refuse a room.
+        try:
+            return min(1.0, len(srv.active_jobs) / max_rooms)
+        except (AttributeError, RuntimeError):
+            return 0.0
+
     server = AgentServer(
         ws_url=url, api_key=key, api_secret=secret, setup_fnc=prewarm,
+        load_fnc=room_load, load_threshold=0.999,
         job_executor_type=JobExecutorType.THREAD if args.executor == "thread" else JobExecutorType.PROCESS,
         num_idle_processes=args.idle, initialize_process_timeout=30.0,
         port=int(os.environ.get("RAUM_AGENT_HTTP_PORT", "0")),  # 8081 is whisper on the box
