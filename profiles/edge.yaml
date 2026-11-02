@@ -4,7 +4,7 @@ models:
   vad:       { engine: silero }
   denoise:   { engine: deepfilternet, options: { onnx: true } }
   asr:       { engine: whisper.cpp, url: http://127.0.0.1:8081, model: small }
-  translate: { engine: ollama, url: http://127.0.0.1:11434, model: gemma4:e4b, options: { temperature: 0.1, num_predict: 256 } }
+  translate: { engine: ollama, url: http://127.0.0.1:11434, model: gemma4:e4b, options: { think: false, temperature: 0.1, num_predict: 256, num_ctx: 8192 } }
   verify:    { engine: off }
   embed:     { engine: off }
   vision:    { engine: off }
