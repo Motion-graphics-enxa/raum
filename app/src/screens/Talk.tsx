@@ -1,5 +1,5 @@
 /** Talk `/r/:room`: the other person's words in my language are the hero. */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { api, eventsSocketUrl } from "../lib/api";
 import { isRtl, langName, pick, t } from "../lib/i18n";
@@ -9,6 +9,8 @@ import { AudioOutPicker, LanguagePicker, type AudioOut } from "../components/Pic
 import { tick, unlockSound } from "../lib/sound";
 import { RoomStore, checkState, openFlag, useRoomModel, type Turn } from "../lib/store";
 import { ConfirmSheet, TalkControl, TitleBlock } from "../components/Sheet";
+import { DocumentCamera, DocumentCard } from "../components/DocumentCamera";
+import { GlossaryUpload } from "../components/GlossaryUpload";
 import { TurnView } from "../components/Turn";
 import { RoomPlan } from "../components/Plan";
 import { Ledger, Pause, Person, Play, Repeat, Stop } from "../components/Icons";
@@ -195,7 +197,7 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
       {mode.id === "verhandlungsraum" && m.offers.length ? <OfferStrip offers={m.offers} lang={myLang} labelOf={roleLabel} /> : null}
 
       <div className="talk-scroll" ref={scroller}>
-        {empty ? (
+        {empty && !m.documents.length ? (
           <div className="talk-empty">
             <RoomPlan
               mode={mode.id}
@@ -209,11 +211,14 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
           </div>
         ) : (
           <div className="turns">
+            {docsBefore(m.documents, turns, -1).map((d) => (
+              <DocumentCard key={`doc-${d.ts}`} doc={d} lang={myLang} />
+            ))}
             {turns.map((tu, i) => {
               const mine = tu.speaker === join.identity;
               return (
+                <Fragment key={tu.utt}>
                 <TurnView
-                  key={tu.utt}
                   turn={tu}
                   myLang={myLang}
                   otherLang={otherLang}
@@ -224,6 +229,10 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
                   onExplain={mode.buttons.includes("explain_simply") ? (utt) => void control("explain_simply", { utt }) : undefined}
                   onApproveExplain={(utt, text) => void control("explain_approve", { utt, text })}
                 />
+                {docsBefore(m.documents, turns, i).map((d) => (
+                  <DocumentCard key={`doc-${d.ts}`} doc={d} lang={myLang} />
+                ))}
+                </Fragment>
               );
             })}
           </div>
@@ -289,6 +298,16 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
               <span className="label">{t(myLang, "join.audio_out")}</span>
               <AudioOutPicker value={audioOut} onChange={(v) => void changeAudioOut(v)} uiLang={myLang} />
             </section>
+            {mode.id !== "verhandlungsraum" && (myRole === "a" || myRole === "b") ? (
+              <section className="menu__sec">
+                <DocumentCamera room={room} role={myRole} lang={myLang} onRead={() => setMenu(false)} />
+              </section>
+            ) : null}
+            {mode.id === "verhandlungsraum" && (myRole === "a" || myRole === "b") ? (
+              <section className="menu__sec">
+                <GlossaryUpload room={room} lang={myLang} role={myRole} compact />
+              </section>
+            ) : null}
             <ul className="menu__list">
               {myRole === "a" && mode.buttons.includes("repeat_back") ? (
                 <li>
@@ -347,4 +366,12 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
       ) : null}
     </div>
   );
+}
+
+/** Documents (F-07) whose arrival falls after turn ``i`` and before turn ``i + 1`` (``i = -1``: before the first). */
+function docsBefore<D extends { ts: number }>(docs: D[], turns: { startedAt: number }[], i: number): D[] {
+  if (!docs.length) return docs;
+  const lo = i < 0 ? -Infinity : turns[i].startedAt;
+  const hi = i + 1 < turns.length ? turns[i + 1].startedAt : Infinity;
+  return docs.filter((d) => d.ts >= lo && d.ts < hi);
 }

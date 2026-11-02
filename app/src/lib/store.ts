@@ -53,6 +53,7 @@ export interface RoomModel {
   summary: EventData["summary.ready"] | null;
   burn: EventData["burn.done"] | null;
   offers: Offer[];
+  documents: (EventData["document.ready"] & { ts: number })[]; // F-07, in arrival order
   speaking: Record<string, number>; // speaker -> utterance.start ts (cleared on end)
   voicePaused: string[]; // identities whose mic the box paused while its voice plays (C-14)
   lastTs: number;
@@ -71,6 +72,7 @@ export function emptyModel(room: string): RoomModel {
     summary: null,
     burn: null,
     offers: [],
+    documents: [],
     speaking: {},
     voicePaused: [],
     lastTs: 0,
@@ -276,6 +278,9 @@ export function apply(prev: RoomModel, e: AnyEnvelope): RoomModel {
       }
       break;
     }
+    case "document.ready":
+      m.documents = [...m.documents, { ...e.data, ts: e.ts }];
+      break;
     case "voice.state":
       m.voicePaused = e.data.playing ? e.data.paused ?? [] : [];
       break;
@@ -291,6 +296,7 @@ export function apply(prev: RoomModel, e: AnyEnvelope): RoomModel {
     case "burn.done":
       m.burn = e.data;
       m.summary = null;
+      m.documents = [];
       break;
     default:
       break;
