@@ -7,12 +7,14 @@ models:
   turn:      { engine: livekit, options: { fast: 0.1, unsure_s: 1.0, max_s: 1.6, audio_min: 0.5, llm_fallback: true, fallback_silence: 0.6, aux_s: 1.0 } }   # haben/sein/werden without a closing verb: 1.0 s (modals and "ab morgen" stay 1.6 s)
   denoise:   { engine: deepfilternet, options: { threads: 1 } }   # active only when installed with RAUM_UV_EXTRAS="--extra denoise"; gated at RTF 0.3
   asr:       { engine: whisper.cpp, url: http://127.0.0.1:8081, model: large-v3-turbo, options: { partial_every_ms: 500 } }
-  translate: { engine: ollama, url: http://127.0.0.1:11434, model: gemma4:26b, options: { think: false, temperature: 0.1, num_predict: 256, num_ctx: 8192 } }
-  verify:    { engine: ollama, url: http://127.0.0.1:11434, model: gpt-oss:120b, options: { reasoning: low, num_predict: 256 } }
+  # speed switch 2 Nov (revert = git revert this commit + reload gemma4:26b / gpt-oss:120b): e4b ties 26b on chrF++ (78.6 vs 78.4, 180 sents), frees ~14 GB
+  translate: { engine: ollama, url: http://127.0.0.1:11434, model: gemma4:e4b, options: { think: false, temperature: 0.1, num_predict: 256, num_ctx: 8192 } }
+  # gpt-oss:20b (13 GB) instead of gpt-oss:120b (65 GB): ~50 GB freed, faster; catch rate not yet measured
+  verify:    { engine: ollama, url: http://127.0.0.1:11434, model: gpt-oss:20b, options: { reasoning: low, num_predict: 256 } }
   embed:     { engine: ollama, url: http://127.0.0.1:11434, model: bge-m3 }
   # same model and num_ctx as translate: Ollama shares the loaded runner (another num_ctx would reload it)
-  vision:    { engine: ollama, url: http://127.0.0.1:11434, model: gemma4:26b, options: { think: false, temperature: 0.1, num_predict: 1024, num_ctx: 8192, timeout_s: 120 } }
-  tts:       { engine: http, url: http://127.0.0.1:8090, options: { sample_rate: 24000, timeout_s: 8, connect_s: 1, retry_s: 2, warmup_lang: de, voice_ref: true, voice_ref_s: 8, voice_ref_min_s: 3, echo_check: facts }, fallback: { engine: piper, options: { voices_dir: ~/Desktop/HackathonRaum/runtime/voices } } }   # Chatterbox ML V3 (runtime/raum-tts, MIT), Piper if it doesn't answer
+  vision:    { engine: ollama, url: http://127.0.0.1:11434, model: gemma4:e4b, options: { think: false, temperature: 0.1, num_predict: 1024, num_ctx: 8192, timeout_s: 120 } }
+  tts:       { engine: http, url: http://127.0.0.1:8090, options: { sample_rate: 24000, timeout_s: 8, connect_s: 1, retry_s: 2, warmup_lang: de, voice_ref: false, voice_ref_s: 8, voice_ref_min_s: 3, echo_check: facts }, fallback: { engine: piper, options: { voices_dir: ~/Desktop/HackathonRaum/runtime/voices } } }   # Chatterbox ML V3 (runtime/raum-tts, MIT), Piper if it doesn't answer
   # echo_check: facts = a clause with a dose / number / date / time is heard back (whisper, background slot);
   # a figure said wrong ("50 mg" for "500 mg") is noted on the card and said again in the standard voice
   # F-10 voice lock (SpeechBrain ECAPA on the CPU, beside the ASR). Off until tuned on the box: install with
