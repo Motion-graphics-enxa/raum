@@ -223,3 +223,35 @@ async def test_ollama_translator_prefix_is_fixed_across_turns():
     assert second[-1] == {"role": "user", "content": "Zweiter Satz."}
     await tr.warmup()
     assert bodies[-1]["options"] == {"num_ctx": 8192} and bodies[-1]["think"] is False
+
+
+async def test_checker_gate_answers_warming_up_without_a_request():
+    from raum.config import VerifyThresholds
+    from raum.pipeline._ollama import WarmingUp
+    from raum.pipeline.embed import OllamaEmbedder
+    from raum.pipeline.verifier import OllamaVerifier
+    from raum.verify.backtranslate import second_check
+
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append((request.url.path, request.extensions.get("timeout")))
+        if request.url.path == "/api/embed":
+            return httpx.Response(200, json={"embeddings": [[1.0, 0.0], [1.0, 0.0]]})
+        return httpx.Response(200, json={"message": {"content": "Take 500 mg."}})
+
+    v = OllamaVerifier("http://o:1", model="gpt-oss:120b", options={"reasoning": "low"}, client=client(handler))
+    e = OllamaEmbedder("http://o:1", model="bge-m3", client=client(handler))
+    v.gate = e.gate = True
+    with pytest.raises(WarmingUp):
+        await v.back_translate("x", "en", "de")
+    res = await second_check("Nehmen Sie 500 mg.", "de", "Take 500 mg.", "en", verifier=v, embedder=e,
+                             thresholds=VerifyThresholds())
+    assert res.badge == "amber" and "checker warming up" in res.reasons and calls == []
+    await v.warmup()
+    await e.warmup()
+    assert v.ready and e.ready
+    assert calls[0][1]["read"] >= 180  # the warm-up waits for a cold load
+    res = await second_check("Nehmen Sie 500 mg.", "de", "Take 500 mg.", "en", verifier=v, embedder=e,
+                             thresholds=VerifyThresholds())
+    assert res.similarity == 1.0

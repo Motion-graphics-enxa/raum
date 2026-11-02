@@ -8,6 +8,7 @@ from typing import Any
 
 import httpx
 
+from raum.pipeline._ollama import WarmGate, warm_request
 from raum.pipeline._util import sample_ms, sleep_ms
 
 
@@ -38,7 +39,7 @@ class MockEmbedder:
         return [self.vector(t) for t in texts]
 
 
-class OllamaEmbedder:
+class OllamaEmbedder(WarmGate):
     """``POST {url}/api/embed`` -> ``{"embeddings": [[...], ...]}``."""
 
     is_mock = False
@@ -53,7 +54,12 @@ class OllamaEmbedder:
         self._client = client or httpx.AsyncClient(
             timeout=httpx.Timeout(float(self.options.get("timeout_s", 15.0)), connect=2.0))
 
+    async def warmup(self) -> None:
+        await warm_request(self._client, self.url, "/api/embed", {"model": self.model, "input": ["warm"], "keep_alive": -1})
+        self.ready = True
+
     async def embed(self, texts: list[str]) -> list[list[float]]:
+        self._check_gate()
         r = await self._client.post(f"{self.url}/api/embed",
                                     json={"model": self.model, "input": texts, "keep_alive": -1})
         if r.status_code >= 400:

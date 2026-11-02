@@ -162,16 +162,28 @@ class RoomAgent:
             for pub in p.track_publications.values():
                 if pub.track is not None and pub.subscribed:
                     self._on_track_subscribed(pub.track, pub, p)
-        for e in (self.engines.translate, self.engines.verify):
+        for e in (self.engines.verify, self.engines.embed):
+            if e is not None and hasattr(e, "gate"):
+                e.gate = True  # live checks answer "warming up" until the model is resident
+        for e in (self.engines.translate, self.engines.verify, self.engines.embed):
             warm = getattr(e, "warmup", None)
             if callable(warm):
-                asyncio.create_task(self._warm(warm))
+                asyncio.create_task(self._warm(warm, getattr(e, "name", "engine")))
 
-    async def _warm(self, fn: Any) -> None:
-        try:
-            await fn()
-        except Exception as e:  # noqa: BLE001
-            log.warning("warmup failed: %s", e)
+    async def _warm(self, fn: Any, name: str) -> None:
+        delay = 5.0
+        for attempt in range(1, 8):
+            if self._closed:
+                return
+            try:
+                t0 = time.monotonic()
+                await fn()
+                log.info("%s warm (%.1f s)", name, time.monotonic() - t0)
+                return
+            except Exception as e:  # noqa: BLE001
+                log.warning("warm-up of %s failed (attempt %d): %s", name, attempt, e)
+                await asyncio.sleep(delay)
+                delay = min(delay * 2, 60.0)
 
     async def aclose(self, *_: Any) -> None:
         if self._closed:

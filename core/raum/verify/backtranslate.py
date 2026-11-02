@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 
 from raum.config import VerifyThresholds
 from raum.events import Badge
+from raum.pipeline._ollama import WarmingUp
 from raum.pipeline.base import Embedder, TurnContext, Verifier
 from raum.verify.guard import GuardResult
 from raum.verify.similarity import badge_for, cosine
@@ -61,6 +62,7 @@ async def second_check(src: str, src_lang: str, tgt: str, tgt_lang: str, *, veri
 
     similarity: float | None = None
     back: str | None = None
+    warming = False
     if verifier is None:
         reasons.append("second check off in this profile: fact guard only")
     else:
@@ -73,12 +75,17 @@ async def second_check(src: str, src_lang: str, tgt: str, tgt_lang: str, *, veri
                 similarity = round(cosine(vecs[0], vecs[1]), 4)
         except asyncio.CancelledError:
             raise
+        except WarmingUp:
+            warming = True
+            reasons.append("checker warming up")
         except Exception as e:  # noqa: BLE001  checker slow or down (§6.15): never blocks, never breaks the turn
             log.warning("second check failed: %s: %s", e.__class__.__name__, e)
             reasons.append(f"second check failed: {e.__class__.__name__}")
 
     if similarity is None:
         badge = guard_only_badge()
+        if warming and badge == "green":
+            badge = "amber"  # the second opinion isn't there yet: unsure, never a silent pass
     else:
         badge = "red" if guard_red else badge_for(similarity, thresholds)
         if similarity < thresholds.amber:

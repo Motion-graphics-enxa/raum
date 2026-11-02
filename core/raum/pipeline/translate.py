@@ -11,6 +11,7 @@ from typing import Any
 import httpx
 
 from raum.pipeline import mockdata
+from raum.pipeline._ollama import warm_request
 from raum.pipeline._util import engine_options, lang_name, load_prompt, render_prompt, sample_ms, sleep_ms
 from raum.pipeline.base import TranslateRequest
 
@@ -139,8 +140,7 @@ class OllamaTranslator:
                                 "options": engine_options(self.options, OLLAMA_OPTIONS)}
         if "think" in self.options and not getattr(self, "_no_think", False):
             body["think"] = self.options["think"]
-        r = await self._client.post(f"{self.url}/api/chat", json=body)
-        r.raise_for_status()
+        await warm_request(self._client, self.url, "/api/chat", body)  # long timeout: a cold load must not be aborted
 
     async def aclose(self) -> None:
         if self._own:

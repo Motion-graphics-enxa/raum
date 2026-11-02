@@ -15,6 +15,7 @@ from typing import Any
 import httpx
 
 from raum.pipeline import mockdata
+from raum.pipeline._ollama import WarmGate, warm_request
 from raum.pipeline._util import engine_options, lang_name, load_prompt, render_prompt, sample_ms, sleep_ms
 from raum.pipeline.base import TurnContext
 from raum.pipeline.translate import OLLAMA_OPTIONS
@@ -76,7 +77,7 @@ class MockVerifier:
         return ""
 
 
-class OllamaVerifier:
+class OllamaVerifier(WarmGate):
     """``POST {url}/api/chat`` (non-streamed). ``options.reasoning`` -> ``think`` for gpt-oss."""
 
     is_mock = False
@@ -107,7 +108,15 @@ class OllamaVerifier:
             body["format"] = fmt
         return body
 
+    async def warmup(self) -> None:
+        """Load gpt-oss on a long-timeout request (keep_alive -1, same options as live calls)."""
+        body = self._body([])
+        body.pop("format", None)
+        await warm_request(self._client, self.url, "/api/chat", body)
+        self.ready = True
+
     async def _chat(self, messages: list[dict[str, str]], *, fmt: str | None = None) -> str:
+        self._check_gate()
         r = await self._client.post(f"{self.url}/api/chat", json=self._body(messages, fmt=fmt))
         if r.status_code >= 400:
             raise RuntimeError(f"ollama {r.status_code}: {r.text[:200]}")
