@@ -89,12 +89,15 @@ def client_ip(request: Request) -> str | None:
     return peer
 
 
-def classify_ip(host: str | None) -> Path:
-    """100.64.0.0/10 (and Tailscale's v6 range) -> tunnel; private/loopback/link-local -> direct;
-    anything else -> relayed."""
+def classify_ip(host: str | None, tunnel_self: set[str] | frozenset[str] = frozenset()) -> Path:
+    """100.64.0.0/10 (and Tailscale's v6 range) -> tunnel; one of ``tunnel_self`` (the box's own address,
+    what a userspace tunnel's subnet router shows as the source) -> tunnel; private/loopback/link-local ->
+    direct; anything else -> relayed."""
     ip = _ip(host)
     if ip is None:
         return "direct"  # unix socket, test client: on the box
+    if tunnel_self and any(_ip(x) == ip for x in tunnel_self):
+        return "tunnel"
     tailnet = TAILNET_V4 if isinstance(ip, ipaddress.IPv4Address) else TAILNET_V6
     if ip in tailnet:
         return "tunnel"
@@ -103,8 +106,8 @@ def classify_ip(host: str | None) -> Path:
     return "relayed"
 
 
-def detect_path(request: Request) -> Path:
-    return classify_ip(client_ip(request))
+def detect_path(request: Request, cfg: RaumConfig | None = None) -> Path:
+    return classify_ip(client_ip(request), cfg.network.tunnel_self() if cfg is not None else frozenset())
 
 
 def public_livekit_url(request: Request, cfg: RaumConfig) -> str:
@@ -182,7 +185,7 @@ async def join(body: JoinRequest, request: Request, core: CoreDep) -> JoinRespon
     except ModeError as e:
         raise HTTPException(404, str(e)) from e
     lang = normalize_lang(body.lang, mode, body.role)
-    path = detect_path(request)
+    path = detect_path(request, core.cfg)
     room, session, p = await core.sessions.join(body.room, role=body.role, lang=lang, device=body.device,
                                                 path=path, consent_version=body.consent_version,
                                                 audio_out=body.audio_out, voice=body.voice)

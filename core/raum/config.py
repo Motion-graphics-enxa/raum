@@ -94,6 +94,17 @@ class NetworkConfig(_Open):
     core_url: str = "http://127.0.0.1:8000"  # how the agent reaches raum-core
     internal_key: str = "dev-internal"  # shared secret agent <-> core
     tunnel: str | None = "tailscale"
+    # A-04 with a userspace tailscaled (netstack) as subnet router: remote clients reach core / LiveKit
+    # with the box's own address as the source. A join from one of these addresses is path "tunnel"
+    # (so a browser on the box itself using that address shows "tunnel" too). Env RAUM_TUNNEL_SELF_IPS
+    # (comma-separated) adds to it.
+    tunnel_self_ips: list[str] = []
+
+    def tunnel_self(self) -> set[str]:
+        import os
+
+        extra = [x.strip() for x in os.environ.get("RAUM_TUNNEL_SELF_IPS", "").split(",")]
+        return {x for x in (*self.tunnel_self_ips, *extra) if x}
     # C-12: LiveKit room settings carried in every token RAUM mints (they apply when that join
     # creates the room). An agent does not keep a room open, so departure_timeout is how long the
     # agent (and its conversation memory) survives an empty room: phones that all drop at once.

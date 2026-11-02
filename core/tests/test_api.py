@@ -150,6 +150,27 @@ def test_path_detection(peer, headers, path):
     assert detect_path(_req(peer, headers)) == path
 
 
+def test_userspace_tunnel_arrives_from_the_box_itself(monkeypatch):
+    """A-04: a userspace tailscaled (netstack) subnet router hands remote clients over with the box's own
+    address as the source; that address (config or RAUM_TUNNEL_SELF_IPS) means "tunnel"."""
+    from raum.config import RaumConfig
+
+    box = "10.24.249.204"
+    assert classify_ip(box) == "direct"
+    assert classify_ip(box, {box}) == "tunnel"
+    assert classify_ip("10.24.249.17", {box}) == "direct"  # a phone on the LAN
+    assert classify_ip("::ffff:10.24.249.204", {box}) == "tunnel"
+    cfg = RaumConfig()
+    monkeypatch.delenv("RAUM_TUNNEL_SELF_IPS", raising=False)
+    assert detect_path(_req(box, {}), cfg) == "direct"
+    cfg.network.tunnel_self_ips = [box]
+    assert detect_path(_req(box, {}), cfg) == "tunnel"
+    assert detect_path(_req("127.0.0.1", {"X-Forwarded-For": box}), cfg) == "tunnel"  # through Caddy
+    cfg.network.tunnel_self_ips = []
+    monkeypatch.setenv("RAUM_TUNNEL_SELF_IPS", f" {box} , ")
+    assert detect_path(_req(box, {}), cfg) == "tunnel"
+
+
 def test_classify_ip_edges():
     assert classify_ip("fd7a:115c:a1e0::1234") == "tunnel"
     assert classify_ip("::ffff:192.168.1.9") == "direct"
