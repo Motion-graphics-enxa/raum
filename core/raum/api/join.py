@@ -134,6 +134,19 @@ def normalize_lang(lang: str | None, mode: ModeConfig, role: str) -> str:
     return "en"
 
 
+def room_configuration(cfg: RaumConfig) -> Any:
+    """LiveKit room settings for every token RAUM mints (C-12): a departure timeout long enough for
+    phones to come back, and explicit agent dispatch when ``network.agent_name`` is set."""
+    from livekit import api
+
+    name = cfg.network.dispatch_name()
+    return api.RoomConfiguration(
+        departure_timeout=max(0, int(cfg.network.departure_timeout_s)),
+        empty_timeout=max(0, int(cfg.network.empty_timeout_s)),
+        agents=[api.RoomAgentDispatch(agent_name=name)] if name else [],
+    )
+
+
 def mint_token(cfg: RaumConfig, room: str, p: ParticipantInfo, name: str | None = None) -> str:
     from livekit import api
 
@@ -145,7 +158,8 @@ def mint_token(cfg: RaumConfig, room: str, p: ParticipantInfo, name: str | None 
            .with_name(name or p.id)
            .with_metadata(json.dumps(meta))
            .with_attributes({k: str(v) for k, v in meta.items()})
-           .with_grants(grants))
+           .with_grants(grants)
+           .with_room_config(room_configuration(cfg)))
     with warnings.catch_warnings():  # livekit-server --dev uses a short secret
         warnings.filterwarnings("ignore", message=".*HMAC key.*")
         return tok.to_jwt()

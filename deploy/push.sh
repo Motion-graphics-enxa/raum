@@ -22,8 +22,9 @@
 #          RAUM_DEST (default Desktop/HackathonRaum/raum, relative = under the remote $HOME),
 #          RAUM_RESTART (systemd | box | none; default: systemd units if installed, else deploy/box.sh),
 #          RSYNC (rsync binary)
-# The box's profile comes from RAUM_PROFILE in /etc/raum/raum.env, so pushing a raum.yaml that
-# says `profile: mock` does not switch the box back to the mock pipeline.
+# The box's profile comes from RAUM_PROFILE in ~/Desktop/HackathonRaum/runtime/raum.env (shared box,
+# written by install.sh --user-space) or /etc/raum/raum.env (dedicated box), so pushing a raum.yaml
+# that says `profile: mock` does not switch the box back to the mock pipeline.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -113,8 +114,9 @@ if [ "$(cat "$HOME/.cache/raum-caddy-hash" 2>/dev/null)" != "$caddy_hash" ]; the
   fi
 fi
 
-if ! sudo -n grep -q '^RAUM_PROFILE=' /etc/raum/raum.env 2>/dev/null; then
-  echo "    note: no RAUM_PROFILE in /etc/raum/raum.env; services use raum.yaml's '$(grep -m1 '^profile:' raum.yaml)'"
+if [ -z "${RAUM_PROFILE:-}" ] && ! sudo -n grep -q '^RAUM_PROFILE=' /etc/raum/raum.env 2>/dev/null; then
+  echo "    note: no RAUM_PROFILE in $ENV_FILE (install.sh --user-space writes it) or /etc/raum/raum.env;"
+  echo "          services use raum.yaml's '$(grep -m1 '^profile:' raum.yaml)'"
 fi
 
 if [ "$RESTART" = 1 ]; then

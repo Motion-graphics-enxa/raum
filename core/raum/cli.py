@@ -2,6 +2,8 @@
 
     raum core [--host H --port P]        run raum-core (FastAPI)       -> raum.api.server:run
     raum agent [dev|start]               run raum-agent (LiveKit)      -> raum.agent.worker:run
+    raum speakerphone --room R [--role a] [--lang de] [--device D] [--list-devices]
+                                         a speakerphone on the box as a room participant (A-03)
     raum audit verify [--path P]         recompute the audit hash chain -> raum.security.audit_cli:main
     raum modes check                     validate modes/*.yaml
     raum config                          print the resolved raum.yaml + profile
@@ -27,6 +29,10 @@ def main(argv: list[str] | None = None) -> int:
         from raum.agent.worker import run
 
         return run(rest) or 0
+    if cmd == "speakerphone":
+        from raum.agent.speakerphone import run as speakerphone_run
+
+        return speakerphone_run(rest)
     if cmd == "audit":
         from raum.security.audit_cli import main as audit_main
 

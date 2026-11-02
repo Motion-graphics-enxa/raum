@@ -2,10 +2,23 @@
  * LiveKit connection for a phone in a room: mic publish, data-channel events, voice track,
  * reconnect + backlog, presence pings. The agent is the only thing we subscribe to:
  * the other person is physically present, so we only play the box's voice in our language.
+ *
+ * Reconnect and resume (C-12). The session lives on the box, so a phone that drops only has to
+ * come back and catch up:
+ *  - LiveKit's own reconnect (resume or full, ~45 s of retries) ends in `Reconnected`;
+ *  - if it gives up, or the server dropped us, we rejoin the same room with the same token
+ *    (same identity) and keep retrying with backoff, sooner when the browser says it is online
+ *    or the page becomes visible again;
+ *  - either way we then fetch core's backlog from just before the newest event we hold (the store
+ *    deduplicates), turn the microphone back on if it was on, and keep the RoomStore: turns are
+ *    never reset.
  */
 import { useEffect, useRef, useState } from "react";
 import {
+  ConnectionError,
+  ConnectionErrorReason,
   ConnectionState,
+  DisconnectReason,
   RemoteAudioTrack,
   RemoteTrack,
   RemoteTrackPublication,
@@ -37,6 +50,33 @@ export interface LiveRoom {
   disconnect: () => void;
 }
 
+/** Envelopes that are not part of the session record (they never move the backlog cursor). */
+const EPHEMERAL = new Set<string>(["privacy.meter", "gpu.stats"]);
+/** Catch-up starts a little before the newest event we hold: agent and core events may arrive out
+ * of order, and the store drops the duplicates. */
+const BACKLOG_OVERLAP_MS = 3000;
+const REJOIN_MIN_MS = 1000;
+const REJOIN_MAX_MS = 8000;
+/** Disconnects a rejoin must not undo: we left, another tab took our identity, the box removed us
+ * or deleted the room. */
+const FINAL_DISCONNECT = new Set<DisconnectReason>([
+  DisconnectReason.CLIENT_INITIATED,
+  DisconnectReason.DUPLICATE_IDENTITY,
+  DisconnectReason.PARTICIPANT_REMOVED,
+  DisconnectReason.ROOM_DELETED,
+]);
+
+/** Newest session event seen on one channel, for `?since=` on the way back. */
+function tsCursor() {
+  let ts = 0;
+  return {
+    take: (e: AnyEnvelope | AnyEnvelope[]) => {
+      for (const x of Array.isArray(e) ? e : [e]) if (!EPHEMERAL.has(x.type)) ts = Math.max(ts, x.ts);
+    },
+    since: () => (ts ? Math.max(0, ts - BACKLOG_OVERLAP_MS) : 0),
+  };
+}
+
 export function useLiveRoom(session: LiveSession | null, store: RoomStore, voiceLang?: string): LiveRoom {
   const [state, setState] = useState<LinkState>("connecting");
   const [micOn, setMicOn] = useState(false);
@@ -45,6 +85,8 @@ export function useLiveRoom(session: LiveSession | null, store: RoomStore, voice
   const [rttMs, setRtt] = useState<number | null>(null);
   const roomRef = useRef<Room | null>(null);
   const analyser = useRef<{ ctx: AudioContext; node: AnalyserNode; raf: number } | null>(null);
+  const micWanted = useRef(false); // what the user chose; restored after a reconnect or rejoin
+  const setMicRef = useRef<(on: boolean) => Promise<void>>(async () => undefined);
   const voiceRef = useRef(voiceLang ?? session?.lang ?? "");
   voiceRef.current = voiceLang ?? session?.lang ?? "";
 
@@ -64,35 +106,126 @@ export function useLiveRoom(session: LiveSession | null, store: RoomStore, voice
   useEffect(() => {
     if (!session) return;
     let cancelled = false;
+    let connecting = false;
+    let rejoining = false;
+    let attempt = 0;
+    let retryTimer = 0;
+    const cursor = tsCursor();
     const room = new Room({ adaptiveStream: false, dynacast: false, disconnectOnPageLeave: true });
     roomRef.current = room;
+    if (import.meta.env.DEV) (window as unknown as { __raumLive?: unknown }).__raumLive = { room, store };
 
     const backlog = async () => {
       try {
-        const since = store.get().lastTs ? store.get().lastTs - 1 : 0;
-        const evs = listOf<AnyEnvelope>(await api.events(session.room, since), "events");
+        const evs = listOf<AnyEnvelope>(await api.events(session.room, cursor.since()), "events");
+        cursor.take(evs);
         store.push(evs);
       } catch {
         /* core may be restarting; live events still flow */
       }
     };
 
-    room.on(RoomEvent.DataReceived, (payload: Uint8Array, _p, _kind, topic?: string) => {
-      if (topic && topic !== EVENTS_TOPIC) return;
-      const env = parseEnvelope(payload);
-      if (env) store.push(env);
-    });
-    room.on(RoomEvent.ConnectionStateChanged, (s: ConnectionState) => {
-      if (s === ConnectionState.Connected) setState("connected");
-      else if (s === ConnectionState.Reconnecting || s === ConnectionState.SignalReconnecting) setState("reconnecting");
-      else if (s === ConnectionState.Disconnected) setState("disconnected");
-      else setState("connecting");
-    });
-    room.on(RoomEvent.Reconnected, () => void backlog());
+    const restoreMic = async () => {
+      if (!micWanted.current || room.state !== ConnectionState.Connected) return;
+      const pub = room.localParticipant.getTrackPublication(Track.Source.Microphone);
+      const mst = pub?.track?.mediaStreamTrack;
+      if (pub && !pub.isMuted && mst && mst.readyState === "live") return;
+      await setMicRef.current(true);
+    };
+
+    // Presence: measure RTT to the box and report it (glass-box connection badge, G-03).
+    const ping = async () => {
+      const t0 = performance.now();
+      try {
+        await api.health();
+        const rtt = Math.round(performance.now() - t0);
+        setRtt(rtt);
+        await api.presence(session.room, session.identity, rtt).catch(() => undefined);
+      } catch {
+        setRtt(null);
+      }
+    };
 
     // Voice output: subscribe only to the agent's track for our language (tts-<lang>).
     const wantVoice = (pub: RemoteTrackPublication) =>
       pub.kind === Track.Kind.Audio && pub.trackName === `tts-${voiceRef.current}`;
+    const subscribeVoice = () =>
+      room.remoteParticipants.forEach((p) =>
+        p.trackPublications.forEach((pub) => {
+          if (wantVoice(pub)) pub.setSubscribed(true);
+        }),
+      );
+
+    const scheduleRejoin = (now = false) => {
+      if (cancelled) return;
+      rejoining = true;
+      setState("reconnecting");
+      window.clearTimeout(retryTimer);
+      const delay = now ? 0 : Math.min(REJOIN_MAX_MS, REJOIN_MIN_MS * 2 ** attempt);
+      attempt += 1;
+      retryTimer = window.setTimeout(() => void connect("rejoin"), delay);
+    };
+
+    const connect = async (why: "join" | "rejoin") => {
+      if (cancelled || connecting || room.state !== ConnectionState.Disconnected) return;
+      connecting = true;
+      try {
+        await room.connect(livekitUrl(session.livekit_url), session.token, { autoSubscribe: false });
+        connecting = false;
+        if (cancelled) return;
+        attempt = 0;
+        rejoining = false;
+        setState("connected");
+        subscribeVoice();
+        void room.startAudio().catch(() => undefined);
+        await backlog();
+        if (why === "rejoin") {
+          console.info("[raum] rejoined", session.room);
+          void ping();
+          await restoreMic();
+        }
+      } catch (err) {
+        connecting = false;
+        if (cancelled) return; // StrictMode remount / navigation: not a failure
+        console.warn(`[raum] ${why} failed`, err);
+        if (err instanceof ConnectionError && err.reason === ConnectionErrorReason.NotAllowed) {
+          rejoining = false;
+          setState("disconnected"); // token refused: the Talk screen offers a fresh join
+          return;
+        }
+        scheduleRejoin();
+      }
+    };
+
+    room.on(RoomEvent.DataReceived, (payload: Uint8Array, _p, _kind, topic?: string) => {
+      if (topic && topic !== EVENTS_TOPIC) return;
+      const env = parseEnvelope(payload);
+      if (env) {
+        cursor.take(env);
+        store.push(env);
+      }
+    });
+    room.on(RoomEvent.ConnectionStateChanged, (s: ConnectionState) => {
+      if (s === ConnectionState.Connected) setState("connected");
+      else if (s === ConnectionState.Reconnecting || s === ConnectionState.SignalReconnecting) setState("reconnecting");
+      else if (s === ConnectionState.Connecting) setState(rejoining ? "reconnecting" : "connecting");
+      // Disconnected: RoomEvent.Disconnected decides between rejoining and giving up
+    });
+    room.on(RoomEvent.Reconnected, () => {
+      void backlog();
+      void restoreMic();
+    });
+    room.on(RoomEvent.Disconnected, (reason?: DisconnectReason) => {
+      stopAnalyser(analyser);
+      setLevel(0);
+      if (cancelled || connecting) return; // a failed connect() schedules its own retry
+      if (reason !== undefined && FINAL_DISCONNECT.has(reason)) {
+        setState("disconnected");
+        return;
+      }
+      console.info("[raum] disconnected, rejoining", reason);
+      scheduleRejoin();
+    });
     room.on(RoomEvent.TrackPublished, (pub: RemoteTrackPublication) => {
       if (wantVoice(pub)) pub.setSubscribed(true);
     });
@@ -107,43 +240,29 @@ export function useLiveRoom(session: LiveSession | null, store: RoomStore, voice
       track.detach().forEach((el) => el.remove());
     });
 
-    (async () => {
-      try {
-        await room.connect(livekitUrl(session.livekit_url), session.token, { autoSubscribe: false });
-        if (cancelled) return;
-        setState("connected");
-        room.remoteParticipants.forEach((p) =>
-          p.trackPublications.forEach((pub) => {
-            if (wantVoice(pub)) pub.setSubscribed(true);
-          }),
-        );
-        void room.startAudio().catch(() => undefined);
-        await backlog();
-      } catch (err) {
-        if (cancelled) return; // StrictMode remount / navigation: not a failure
-        console.warn("[raum] connect failed", err);
-        setState("disconnected");
-      }
-    })();
-
-    // Presence: measure RTT to the box and report it (glass-box connection badge, G-03).
-    const ping = async () => {
-      const t0 = performance.now();
-      try {
-        await api.health();
-        const rtt = Math.round(performance.now() - t0);
-        setRtt(rtt);
-        await api.presence(session.room, session.identity, rtt).catch(() => undefined);
-      } catch {
-        setRtt(null);
-      }
+    // Back online, or back in the foreground (phones suspend background tabs): retry right away,
+    // or catch up on anything a frozen page missed.
+    const wake = () => {
+      if (cancelled) return;
+      if (rejoining && room.state === ConnectionState.Disconnected) scheduleRejoin(true);
+      else if (room.state === ConnectionState.Connected) void backlog();
     };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") wake();
+    };
+    window.addEventListener("online", wake);
+    document.addEventListener("visibilitychange", onVisible);
+
+    void connect("join");
     void ping();
     const iv = window.setInterval(ping, 5000);
 
     return () => {
       cancelled = true;
+      window.clearTimeout(retryTimer);
       window.clearInterval(iv);
+      window.removeEventListener("online", wake);
+      document.removeEventListener("visibilitychange", onVisible);
       stopAnalyser(analyser);
       void room.disconnect();
       roomRef.current = null;
@@ -153,6 +272,7 @@ export function useLiveRoom(session: LiveSession | null, store: RoomStore, voice
   const setMic = async (on: boolean) => {
     const room = roomRef.current;
     if (!room) return;
+    micWanted.current = on;
     try {
       setMicError(null);
       await room.localParticipant.setMicrophoneEnabled(on, {
@@ -176,6 +296,7 @@ export function useLiveRoom(session: LiveSession | null, store: RoomStore, voice
       setMicError(err instanceof Error ? err.name || err.message : String(err));
     }
   };
+  setMicRef.current = setMic;
 
   return {
     state,
@@ -236,16 +357,21 @@ export function useEventSocket(room: string, store: RoomStore, url: string): Lin
     let closed = false;
     let retry = 500;
     let timer = 0;
+    const cursor = tsCursor(); // a reconnect asks core only for what it missed (?since=)
     const open = () => {
       setState((s) => (s === "connected" ? "reconnecting" : s));
-      ws = new WebSocket(url);
+      const since = cursor.since();
+      ws = new WebSocket(since ? `${url}${url.includes("?") ? "&" : "?"}since=${since}` : url);
       ws.onopen = () => {
         retry = 500;
         setState("connected");
       };
       ws.onmessage = (m) => {
         const env = parseEnvelope(typeof m.data === "string" ? m.data : "");
-        if (env) store.push(env);
+        if (env) {
+          cursor.take(env);
+          store.push(env);
+        }
       };
       ws.onclose = () => {
         if (closed) return;

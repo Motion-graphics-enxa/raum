@@ -53,6 +53,9 @@ log = logging.getLogger("raum.agent")
 AGENT_IDENTITY = "raum-agent"
 AGENT_NAME = "RAUM"
 AUDIO_OUTS = ("headphones", "speaker", "room")
+# C-12: a phone that left (Wi-Fi gone, page reloaded) stays a translation target this long, so the
+# turns spoken while it was away are translated into its language and reach it through the backlog.
+REJOIN_GRACE_S = float(os.environ.get("RAUM_REJOIN_GRACE_S", "120"))
 VAD_OPTIONS = {"min_speech_duration", "min_silence_duration", "prefix_padding_duration", "max_buffered_speech",
                "activation_threshold", "deactivation_threshold", "force_cpu"}
 
@@ -176,8 +179,9 @@ class RoomAgent:
             self.pipeline.eot = build_turn_detector(cfg, getattr(ctx, "inference_executor", None))
         self.link = LinkClient(self.room_name, core_url=cfg.network.core_url, key=cfg.network.internal_key,
                                agent_id=f"{ctx.worker_id}/{ctx.job.id}", on_state=self.pipeline.set_state,
-                               on_control=self.pipeline.handle_control)
+                               on_control=self.pipeline.handle_control, on_utt_seq=self._continue_utts)
         self.infos: dict[str, ParticipantInfo] = {}
+        self.departed: dict[str, tuple[ParticipantInfo, float]] = {}  # identity -> (info, monotonic left)
         self.track_tasks: dict[str, asyncio.Task[None]] = {}
         self.turn_tasks: set[asyncio.Task[None]] = set()
         self.tts: dict[str, _VoiceTrack] = {}  # one AudioSource + track per voice language
@@ -263,8 +267,24 @@ class RoomAgent:
 
     # ---------------------------------------------------------------- membership
 
+    def _continue_utts(self, seq: int) -> None:
+        """C-12: core already holds ``u-0001 .. u-<seq>`` for this session (this agent replaces one that
+        left: the room emptied past its departure timeout, or a crash). Continue after them."""
+        if hasattr(self.pipeline, "seed_utterances"):
+            self.pipeline.seed_utterances(seq)
+        elif getattr(self.pipeline, "_utt_n", seq) < seq:
+            self.pipeline._utt_n = seq
+            log.info("continuing utterance ids after u-%04d", seq)
+
     def _sync_participants(self) -> None:
-        self.pipeline.set_participants(list(self.infos.values()))
+        now = time.monotonic()
+        for ident, (_, left) in list(self.departed.items()):
+            if ident in self.infos or now - left >= REJOIN_GRACE_S:
+                del self.departed[ident]
+        # C-12: a device that left stays a translation target during the grace; as "headphones", so
+        # its voice (which nobody in the room hears now) pauses no microphone (C-14)
+        away = [info.model_copy(update={"audio_out": "headphones"}) for info, _ in self.departed.values()]
+        self.pipeline.set_participants(list(self.infos.values()) + away)
         self._prepare_voices()
 
     def _room_langs(self) -> list[str]:
@@ -287,6 +307,7 @@ class RoomAgent:
         if is_agent(p):
             return
         info = participant_info(p)
+        self.departed.pop(p.identity, None)
         self.infos[p.identity] = info
         self._sync_participants()
         asyncio.create_task(self._emit_new("participant.joined", info))
@@ -306,8 +327,12 @@ class RoomAgent:
             asyncio.create_task(self._emit_new("participant.joined", info))
 
     def _on_participant_disconnected(self, p: Any) -> None:
-        if self.infos.pop(p.identity, None) is None:
+        info = self.infos.pop(p.identity, None)
+        if info is None:
             return
+        if REJOIN_GRACE_S > 0 and info.role != "observer":
+            self.departed[p.identity] = (info, time.monotonic())
+            asyncio.get_running_loop().call_later(REJOIN_GRACE_S + 0.1, self._sync_participants)
         self._sync_participants()
         for sid, t in list(self.track_tasks.items()):
             if sid.startswith(p.identity + "/"):
@@ -389,8 +414,10 @@ class RoomAgent:
                     vad_stream.push_frame(self._mic_frame(identity, frame))
             vad_stream.end_input()
 
+        speaking = False
+
         async def events() -> None:
-            speaking = False
+            nonlocal speaking
             async for ev in vad_stream:
                 if ev.type == VADEventType.START_OF_SPEECH:
                     # None while off the record or paused for echo (C-14)
@@ -414,6 +441,7 @@ class RoomAgent:
                         self._spawn_turn(self.pipeline.speech_end(identity, audio, vad_ms))
                     await asyncio.sleep(0)  # let it detach / hold the utterance before the next start
             if speaking or self.pipeline.eot is not None:  # also ends an utterance held after a pause
+                speaking = False
                 self._spawn_turn(self.pipeline.speech_end(identity, None, 0.0))
 
         try:
@@ -423,6 +451,10 @@ class RoomAgent:
         except Exception:
             log.exception("audio loop for %s failed", identity)
         finally:
+            if speaking and not self._closed:
+                # C-12: the speaker dropped mid-sentence; finish the turn with what was heard, so no
+                # utterance stays open on the other devices until (and across) the rejoin
+                self._spawn_turn(self.pipeline.speech_end(identity, None, 0.0))
             if cs is not None:
                 cs.close()
             await stream.aclose()
@@ -528,8 +560,9 @@ async def entrypoint(ctx: Any) -> None:
 def run(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="raum agent", description="RAUM LiveKit agent worker")
     ap.add_argument("mode", nargs="?", choices=["start", "dev"], default="start")
-    ap.add_argument("--agent-name", default=os.environ.get("RAUM_AGENT_NAME", ""),
-                    help="explicit dispatch only (default: auto-dispatch to every RAUM room)")
+    ap.add_argument("--agent-name", default=None,
+                    help="explicit dispatch only (default: RAUM_AGENT_NAME / network.agent_name; empty = "
+                         "auto-dispatch to every RAUM room)")
     ap.add_argument("--executor", choices=["process", "thread"],
                     default=os.environ.get("RAUM_AGENT_EXECUTOR", "process"))
     ap.add_argument("--idle", type=int, default=int(os.environ.get("RAUM_AGENT_IDLE", "1")),
@@ -542,6 +575,8 @@ def run(argv: list[str] | None = None) -> int:
     from livekit.agents.cli import proto
 
     cfg = get_config()
+    if args.agent_name is None:
+        args.agent_name = cfg.network.dispatch_name()  # core puts the same name into its tokens
     url, key, secret = livekit_credentials(cfg)
     if cfg.models.turn.enabled and not _register_turn_models():
         log.warning("models.turn is on but its extra or model files are missing: VAD pauses end turns "

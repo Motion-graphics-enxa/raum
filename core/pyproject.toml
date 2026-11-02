@@ -29,6 +29,9 @@ denoise = ["deepfilternet>=0.5.6", "torch>=2.2", "torchaudio>=2.2"]
 turn = ["livekit-plugins-turn-detector>=1.8.10,<1.9"]
 # F-10 voice lock (SpeechBrain ECAPA speaker embeddings on CPU; Apache-2.0). `uv sync --extra voicelock`.
 voicelock = ["speechbrain>=1.0", "torch>=2.2", "torchaudio>=2.2"]
+# A-03 speakerphone on the box (`raum speakerphone`): PortAudio via sounddevice. `uv sync --extra
+# speakerphone`; Linux also needs the system library (apt: libportaudio2). The macOS wheel bundles it.
+speakerphone = ["sounddevice>=0.5"]
 
 [project.scripts]
 raum = "raum.cli:main"
