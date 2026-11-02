@@ -26,7 +26,9 @@ room, stops between chunks when one starts, and asks the engine for ``background
 voice service then rejects it instead of queueing it before a live request). Each played clause counts as
 ``spec`` (made ahead of the end of turn), ``ahead`` (made while the one before played) or ``live``:
 ``pipeline.timing`` ``voice_clauses``.
-Simultaneous lanes (simul.py) are not speculated: their tail is short.
+Simultaneous lanes (simul.py): a clause a partial shows complete but cannot commit yet is translated (its exact
+segment request) and voiced ahead (``segment_ahead``); the commit replays it only if the request is identical
+(``segment_stream``), otherwise it is dropped with its audio.
 """
 
 from __future__ import annotations
@@ -88,6 +90,12 @@ def _key(req: TranslateRequest) -> tuple[Any, ...]:
             req.register, req.lang_a, req.lang_b)
 
 
+def _seg_key(req: TranslateRequest) -> tuple[Any, ...]:
+    """A simultaneous segment's request: also its exact source text and the segments before it (chat history)."""
+    earlier = tuple((str(a), str(b)) for a, b in (getattr(req, "earlier", None) or ()))
+    return (*_key(req), req.text, bool(getattr(req, "segment", False)), earlier)
+
+
 @dataclass
 class _Voice:
     kw: dict[str, Any] = field(default_factory=dict)  # voice_ref / rate it was made with
@@ -146,6 +154,8 @@ class Speculator:
         self._live_idle = asyncio.Event()
         self._live_idle.set()
         self._last: dict[str, tuple[float, int]] = {}  # utt -> (monotonic, clauses) of its last partial speculated
+        self._cands: dict[tuple[str, str], _Spec] = {}  # (utt, lang) -> a simultaneous segment made ahead (simul.py)
+        self.seg_hits = 0  # committed segments replayed from a candidate (glass box / tests)
 
     @property
     def enabled(self) -> bool:
@@ -186,6 +196,7 @@ class Speculator:
 
     def stream(self, utt: str, tgt: str, req: TranslateRequest) -> AsyncIterator[str]:
         """The turn's translation stream: the speculation if it was for exactly this text, else the engine."""
+        self.drop_candidate(utt, tgt)  # consecutive after all: a simultaneous candidate made ahead goes
         spec = self._specs.pop((utt, tgt), None)
         if spec is not None and spec.key == _key(req) and spec.started and not spec.failed:
             self.hits += 1
@@ -272,6 +283,89 @@ class Speculator:
             v.go.set()
         self._evict()
 
+    def segment_ahead(self, utt: str, tgt: str, req: TranslateRequest, voice: Any) -> None:
+        """A simultaneous segment not committed yet (simul.py ``_ahead_candidate``): its exact request translated
+        now at background priority, then its voice made into the cache (keyed by its text). One per utterance
+        and language; a different candidate replaces it (the old one dropped, its audio too)."""
+        if not self.enabled:
+            return
+        key = _seg_key(req)
+        old = self._cands.get((utt, tgt))
+        if old is not None and old.key == key and not old.failed:
+            return
+        if old is not None:
+            self._drop_cand(old)
+        spec = _Spec(key=key, utt=utt, slot="background", text=req.text)
+        spec.task = self.p._spawn(self._run_cand(spec, req, voice))
+        self._cands[(utt, tgt)] = spec
+        while len(self._cands) > _MAX_VOICES:
+            self._drop_cand(self._cands.pop(next(iter(self._cands))))
+
+    def segment_stream(self, utt: str, tgt: str, req: TranslateRequest) -> AsyncIterator[str]:
+        """A committed segment's translation: the candidate made ahead if it was this exact request (same source,
+        history, context), replayed; otherwise the candidate is dropped and the engine translates."""
+        spec = self._cands.pop((utt, tgt), None)
+        if spec is not None and spec.key == _seg_key(req) and spec.started and not spec.failed:
+            self.seg_hits += 1
+            stats.note("spec.seg", hit=1)
+            return self._replay(spec, req)
+        if spec is not None:
+            stats.note("spec.seg", dropped=1)
+            self._drop_cand(spec)
+        return self.p.engines.translate.stream(req)
+
+    def drop_text(self, utt: str, tgt: str) -> None:
+        """This language goes simultaneous now (simul.py lane): its consecutive speculation is moot."""
+        spec = self._specs.pop((utt, tgt), None)
+        if spec is not None:
+            self._cancel(spec)
+
+    def drop_candidate(self, utt: str, tgt: str) -> None:
+        """The lane is done: a candidate it never committed goes (and its audio)."""
+        spec = self._cands.pop((utt, tgt), None)
+        if spec is not None:
+            self._drop_cand(spec)
+
+    def _drop_cand(self, spec: _Spec) -> None:
+        self._cancel(spec)
+        self.forget(spec.voices)  # made for a source that was not committed: never played
+
+    async def _run_cand(self, spec: _Spec, req: TranslateRequest, voice: Any) -> None:
+        from raum.pipeline.room import MT_TIMEOUT_S, SPEC_DEFER_S
+
+        async def run() -> None:
+            async for d in self.p.engines.translate.stream(req):
+                if d:
+                    spec.parts.append(d)
+                    spec.changed.set()
+
+        with stats.scope("spec.seg"):
+            try:
+                with stats.timed("voice.defer.spec"):
+                    await voicegate.quiet(SPEC_DEFER_S)  # speculative work holds back briefly under the voice
+                async with self.p.sched.slot("background"):
+                    spec.started = True
+                    await asyncio.wait_for(run(), MT_TIMEOUT_S)
+                text = "".join(spec.parts).strip()
+                tts = self.p.engines.tts
+                if text and tts is not None:  # the voice worker says the segment's text as one clause
+                    kw = self.p._voice_kwargs(tts, voice)
+                    v = self._cached(req.tgt_lang, text, kw)
+                    if v is None:
+                        v = self._start(tts, text, req.tgt_lang, kw, kind="spec", utt=spec.utt)
+                        self._voices[_vkey(req.tgt_lang, text)] = v
+                        self._evict()
+                    spec.voices.append(v)
+            except asyncio.CancelledError:
+                spec.failed = True
+                raise
+            except Exception as e:  # noqa: BLE001
+                log.debug("speculative segment failed: %s", e)
+                spec.failed = True
+            finally:
+                spec.done = True
+                spec.changed.set()
+
     def ahead(self, lang: str, text: str, voice: Any, *, after: _Voice | None = None) -> _Voice | None:
         """A committed segment of a held simultaneous lane (simul.py): voiced now in the background, after the
         lane's segment before it, played from the cache at the end of the turn if the final still says it. Not
@@ -300,15 +394,18 @@ class Speculator:
     def drop(self, utt: str) -> None:
         for key in [k for k in self._specs if k[0] == utt]:
             self._cancel(self._specs.pop(key))
+        for key in [k for k in self._cands if k[0] == utt]:
+            self._drop_cand(self._cands.pop(key))
         for key in [k for k, v in self._voices.items() if v.utt == utt and not v.claimed]:
             self._stop(self._voices.pop(key))
         self._last.pop(utt, None)
 
     def clear(self) -> None:
         """Burn / session end / close: every cached audio goes (it may be the speaker's cloned voice)."""
-        for spec in self._specs.values():
+        for spec in (*self._specs.values(), *self._cands.values()):
             self._cancel(spec)
         self._specs.clear()
+        self._cands.clear()
         self._last.clear()
         for v in self._voices.values():
             self._stop(v)
