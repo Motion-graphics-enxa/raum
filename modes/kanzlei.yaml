@@ -13,6 +13,7 @@ guard:
   kinds: [deadline, date, time, duration, amount, currency, number, name, negation]
   confirm_on: [deadline]
 glossary: glossaries/legal-de.yaml
+asr: { glossary_prompt: true }   # the glossary's terms as whisper's prompt: "Klagefrist", not "Klage Frist"
 prompts:
   translate: prompts/translate.md
   summary: prompts/summary-kanzlei.md

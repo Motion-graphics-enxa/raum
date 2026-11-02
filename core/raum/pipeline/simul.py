@@ -468,7 +468,7 @@ class Simultaneous:
         return lane
 
     def _enqueue(self, lane: _Lane, words: list[str]) -> None:
-        seg = _Seg(index=len(lane.segs), src=" ".join(words))
+        seg = _Seg(index=len(lane.segs), src=self.p.fix_terms(" ".join(words), lane.src_lang))  # "Medformin"
         lane.segs.append(seg)
         lane.covered += len(words)
         lane.queue.put_nowait(seg)
@@ -478,7 +478,7 @@ class Simultaneous:
             return
         lane.closed = True
         if tail.strip():
-            seg = _Seg(index=len(lane.segs), src=tail.strip())
+            seg = _Seg(index=len(lane.segs), src=self.p.fix_terms(tail.strip(), lane.src_lang))
             lane.segs.append(seg)
             lane.queue.put_nowait(seg)
         lane.total = len(lane.segs)

@@ -32,7 +32,7 @@ class GuardConfig(_Strict):
     confirm_on: list[GuardKind] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def _confirm_subset(self) -> "GuardConfig":
+    def _confirm_subset(self) -> GuardConfig:
         extra = set(self.confirm_on) - set(self.kinds)
         if extra:
             raise ValueError(f"guard.confirm_on has kinds not in guard.kinds: {sorted(extra)}")
@@ -70,6 +70,14 @@ class PipelineModeConfig(_Strict):
         return "off" if v is False or v is None else ("auto" if v is True else v)
 
 
+class AsrModeConfig(_Strict):
+    """Speech recognition per room. ``glossary_prompt``: the room glossary's terms (session uploads included)
+    go to the recogniser with every call as spelling hints (whisper's ``prompt``; ``Glossary.asr_prompt``),
+    for rooms whose glossary holds words a recogniser mishears: drug names ("Medformin"), legal terms."""
+
+    glossary_prompt: bool = False
+
+
 warnings.filterwarnings("ignore", message='Field name "register"')
 
 
@@ -88,6 +96,7 @@ class ModeConfig(_Strict):
     buttons: list[Button]
     retention: RetentionConfig = Field(default_factory=RetentionConfig)
     pipeline: PipelineModeConfig = Field(default_factory=PipelineModeConfig)
+    asr: AsrModeConfig = Field(default_factory=AsrModeConfig)
     # the second model's back-translation check (§6.9). "off": fact guard only, for everyday talk where
     # speed matters more than a second opinion (Gespraech); the app then shows no badge unless red.
     checker: Literal["on", "off"] = "on"
@@ -99,7 +108,7 @@ class ModeConfig(_Strict):
         return "on" if v is True else ("off" if v is False else v)
 
     @model_validator(mode="after")
-    def _roles(self) -> "ModeConfig":
+    def _roles(self) -> ModeConfig:
         if set(self.roles) != {"a", "b"}:
             raise ValueError("roles must define exactly 'a' and 'b'")
         if "end" not in self.buttons:

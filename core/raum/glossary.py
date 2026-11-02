@@ -37,6 +37,13 @@ _KINDS = {"term", "name", "medication"}
 _LANG_COL = re.compile(r"^[a-z]{2,3}$")
 MAX_TERMS = 2000
 MAX_FIELD = 200
+# The recogniser prompt (``Glossary.asr_prompt``): whisper keeps at most 224 prompt tokens, and a long prompt
+# makes it "hear" prompt text in short or silent audio. 300 characters is ~60-100 tokens.
+ASR_PROMPT_MAX_TERMS = 40
+ASR_PROMPT_MAX_CHARS = 300
+_ASR_PROMPT_MAX_WORDS = 3  # a longer phrase is everyday words: no spelling to hint, and it eats the budget
+_ASR_PROMPT_RANK = {"medication": 0, "name": 1}  # then every other term
+_UNKNOWN_LANGS = ("", "und", "auto")
 
 
 class GlossaryError(ValueError):
@@ -69,6 +76,7 @@ class Term:
 class Glossary:
     terms: list[Term] = field(default_factory=list)
     source: str | None = None
+    _asr_prompts: dict[str, tuple[Any, str]] = field(default_factory=dict, init=False, repr=False, compare=False)
 
     @classmethod
     def load(cls, path: str | Path | None) -> Glossary:
@@ -144,6 +152,47 @@ class Glossary:
             if g:
                 pairs.append(f"{s} = {g}")
         return "; ".join(pairs) if pairs else "(none)"
+
+    def asr_prompt(self, lang: str | None, *, max_terms: int = ASR_PROMPT_MAX_TERMS,
+                   max_chars: int = ASR_PROMPT_MAX_CHARS) -> str:
+        """Spelling hints for the speech recogniser (whisper's ``prompt``): the terms as a speaker of ``lang``
+        says them, medications first, then names, then other terms (glossary order within a kind),
+        comma-separated, ending with a period: ``"Metformin, Penicillin, Insulin, Rezept."``. "" when there is
+        nothing to hint.
+
+        A term without a form in ``lang`` is left out, except a medication or name (its German key: drug and
+        proper names sound the same in every language). ``lang`` unknown (None / "und" / "auto"): the German
+        forms of medications, names and kept terms only; any other German word would push a speaker of
+        another language toward German. Capped at ``max_terms`` / ``max_chars`` (see ASR_PROMPT_MAX_CHARS).
+        Cached per language until the glossary changes (a merged upload or a correction rebuilds it)."""
+        code = (lang or "").split("-")[0].lower()
+        if code in _UNKNOWN_LANGS:
+            code = ""
+        sig = (max_terms, max_chars,
+               tuple((t.de, t.kind, t.keep, tuple(t.forms.get(code, ()))) for t in self.terms))
+        hit = self._asr_prompts.get(code)
+        if hit is not None and hit[0] == sig:
+            return hit[1]
+        picked: list[str] = []
+        seen: set[str] = set()
+        size = 0
+        for t in sorted(self.terms, key=lambda t: _ASR_PROMPT_RANK.get(t.kind, 2)):  # stable: file order per kind
+            if code:
+                forms = t.forms_for(code)
+                form = forms[0] if forms else (t.de if t.kind != "term" else None)
+            else:
+                form = t.de if (t.kind != "term" or t.keep) else None
+            form = " ".join((form or "").split())
+            if not form or "," in form or len(form.split()) > _ASR_PROMPT_MAX_WORDS or form.casefold() in seen:
+                continue
+            size += len(form) + (2 if picked else 0)  # ", " between terms
+            if len(picked) >= max_terms or size + 1 > max_chars:  # +1: the closing period
+                break  # in priority order: a medication never loses its place to a shorter term after it
+            picked.append(form)
+            seen.add(form.casefold())
+        prompt = ", ".join(picked) + "." if picked else ""
+        self._asr_prompts[code] = (sig, prompt)
+        return prompt
 
     def add_correction(self, src: str, tgt: str, tgt_lang: str, src_lang: str = "de") -> None:
         """V-05: a professional's live correction applies for the rest of the session."""

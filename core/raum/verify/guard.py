@@ -21,8 +21,12 @@ run in a fixed order, each consuming its span so a number is counted once:
     dates (numeric, day + month name, spelled ordinal days, day-only ordinals, weekdays, month-only) ->
     times (incl. "half past two", "halb drei", "at nine") -> frequencies -> percent -> temperatures ->
     amounts (incl. "€1.2m", "950k") -> doses -> durations -> bare numbers -> standalone
-    currency / unit words; then glossary medications and names, allergy, negation, and the
-    deadline promotion of dates.
+    currency / unit words; then glossary medications and names (plus a misheard drug name one or two
+    edits from exactly one glossary medication, "Medformin" = Metformin: see ``_fuzzy_meds``), allergy,
+    negation, and the deadline promotion of dates.
+
+``correct_medications(text, lang, glossary)`` puts such a misheard drug name in the glossary's spelling (the
+room does that to the final transcript, before it is shown, translated or checked).
 
 Normalised values (``Fact.value``, the convention of ``eval/sets/README.md``): dose "500 mg" /
 "0.5 g" / "10 µg" / "5 ml" / "100 IE" (the stated unit; the comparison converts to mg / ml, so 0,5 g
@@ -1092,6 +1096,133 @@ def _gloss_rx(glossary: Glossary, lang: str) -> list[tuple[Any, re.Pattern[str]]
     return out
 
 
+# A misheard or misspelt drug name ("Medformin" for the glossary's "Metformin") counts as that medication,
+# and the transcript shows the glossary spelling (``correct_medications``). Look-alike drugs exist, so only:
+# a word of >= 6 letters that is no glossary term itself (in any language), within OSA distance (Damerau:
+# substitution, insertion, deletion, adjacent swap) <= 2 of a single-word form of >= 6 letters, <= 1 when that
+# form is shorter than 8 letters ("Insulin" vs "Inseln" in "Langerhans-Inseln" is 2), and only when exactly one
+# glossary term is the nearest and it is a medication (every kind competes: a tie or a nearer name/term = no
+# match). A word an exact glossary form matched is never touched, so two different glossary drugs stay red.
+_FZ_MIN = 6
+_FZ_MAX = 2
+_FZ_LONG = 8
+_FZ_WORD = re.compile(r"\w+")
+
+
+@dataclass(frozen=True)
+class _FzIndex:
+    known: frozenset[str]  # every form of every term in every language, normalised: never fuzzy-mapped
+    forms: tuple[tuple[Any, str, str], ...]  # (term, normalised form, form as written) to compare against
+    meds: tuple[tuple[Any, str, str], ...]  # the medications among them
+
+
+_FZ_CACHE: dict[tuple[Any, ...], _FzIndex] = {}
+
+
+def _fz_index(glossary: Glossary, lang: str) -> _FzIndex:
+    sig = (lang, tuple((t.de, t.kind, t.keep, tuple((k, tuple(v)) for k, v in t.forms.items()))
+                       for t in glossary.terms))
+    hit = _FZ_CACHE.get(sig)
+    if hit is not None:
+        return hit
+    known: set[str] = set()
+    forms: list[tuple[Any, str, str]] = []
+    for term in glossary.terms:
+        known.update(_norm_simple(f, lang) for f in [term.de, *itertools.chain(*term.forms.values())])
+        seen: set[str] = set()
+        for f in [*term.forms_for(lang), term.de]:
+            nf = _norm_simple(f.strip(), lang)
+            if len(nf) >= _FZ_MIN and nf not in seen and _FZ_WORD.fullmatch(nf) and nf.isalpha():
+                seen.add(nf)
+                forms.append((term, nf, f.strip()))
+    idx = _FzIndex(known=frozenset(known), forms=tuple(forms),
+                   meds=tuple(x for x in forms if x[0].kind == "medication"))
+    if len(_FZ_CACHE) > 64:
+        _FZ_CACHE.clear()
+    _FZ_CACHE[sig] = idx
+    return idx
+
+
+def _osa(a: str, b: str, limit: int) -> int:
+    """Optimal string alignment distance of ``a`` and ``b``, or ``limit + 1`` once it is over ``limit``."""
+    if a == b:
+        return 0
+    la, lb = len(a), len(b)
+    if abs(la - lb) > limit:
+        return limit + 1
+    prev2: list[int] = []
+    prev = list(range(lb + 1))
+    for i in range(1, la + 1):
+        ca = a[i - 1]
+        cur = [i] + [0] * lb
+        for j in range(1, lb + 1):
+            cb = b[j - 1]
+            v = min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb))
+            if i > 1 and j > 1 and ca == b[j - 2] and a[i - 2] == cb:
+                v = min(v, prev2[j - 2] + 1)
+            cur[j] = v
+        if min(cur) > limit:
+            return limit + 1
+        prev2, prev = prev, cur
+    return min(prev[lb], limit + 1)
+
+
+def _fz_nearest(word: str, pool: Iterable[tuple[Any, str, str]], *,
+                strict: bool = True) -> tuple[int, list[tuple[Any, str]]]:
+    """The smallest distance and the terms at it, as (term, form as written). ``strict``: within each form's
+    own limit (1 below 8 letters); else within 2 for every form (competitors for a tie)."""
+    best = _FZ_MAX + 1
+    out: dict[int, tuple[Any, str]] = {}
+    for term, nf, written in pool:
+        limit = min(_FZ_MAX if len(nf) >= _FZ_LONG or not strict else 1, best)
+        d = _osa(word, nf, limit)
+        if d > limit:
+            continue
+        if d < best:
+            best, out = d, {}
+        out.setdefault(id(term), (term, written))
+    return best, list(out.values())
+
+
+def _fuzzy_meds(t: _Text, glossary: Glossary, exact: list[tuple[Any, int, int]]) -> list[tuple[Any, int, int, str]]:
+    """Words of ``t`` that are a misheard glossary medication: (term, a, b, glossary form as written)."""
+    idx = _fz_index(glossary, t.lang)
+    if not idx.meds:
+        return []
+    out = []
+    for m in _FZ_WORD.finditer(t.norm):
+        w = m.group(0)
+        a, b = m.span()
+        if len(w) < _FZ_MIN or not w.isalpha() or w in idx.known or any(x < b and a < y for _, x, y in exact):
+            continue
+        d, near = _fz_nearest(w, idx.meds)  # cheap first pass: medications only, each within its limit
+        if len(near) != 1:
+            continue  # none, or a tie between two drugs
+        d_all, near_all = _fz_nearest(w, idx.forms, strict=False)  # any term as near (or nearer): no match
+        if d_all == d and len(near_all) == 1 and near_all[0][0] is near[0][0]:
+            out.append((near[0][0], a, b, near[0][1]))
+    return out
+
+
+def correct_medications(text: str, lang: str, glossary: Glossary | None) -> str:
+    """``text`` with each misheard glossary medication in the glossary's spelling, by the fuzzy rules above:
+    "Sie dürfen das Medformin ab morgen nicht mehr nehmen." -> "... das Metformin ...". For the final
+    transcript, before anyone sees or translates it. Everything else is left exactly as it was."""
+    if not text or glossary is None or not any(t.kind == "medication" for t in glossary.terms):
+        return text
+    lang = (lang or "").split("-")[0].lower()
+    t = _Text(text, lang)
+    exact = [(term, m.start(), m.end()) for term, rx in _gloss_rx(glossary, lang) for m in rx.finditer(t.norm)]
+    out = text
+    for _term, a, b, written in sorted(_fuzzy_meds(t, glossary, exact), key=lambda h: h[1], reverse=True):
+        oa, ob = t.ospan(a, b)
+        word = text[oa:ob]
+        if word[:1].isupper() and written[:1].islower():  # "Penicilin ist ..." -> "Penicillin ist ..."
+            written = written[:1].upper() + written[1:]
+        out = out[:oa] + written + out[ob:]
+    return out
+
+
 # ================================================================ extraction
 
 
@@ -1384,6 +1515,9 @@ def _scan(text: str, lang: str, glossary: Glossary | None) -> tuple[_Text, list[
                 gl_hits.append((term, m.start(), m.end()))
                 if term.kind in ("medication", "name"):
                     out.append(_mk(term.kind, term.de, m.start(), m.end()))
+        for term, a, b, _written in _fuzzy_meds(t, glossary, gl_hits):  # "Medformin" = Metformin
+            gl_hits.append((term, a, b))  # an allergen candidate too
+            out.append(_mk("medication", term.de, a, b))
 
     # names after a title ("Herr Schmidt", "Dr. Weber", "السيد Müller"): Latin script, capitalised
     for m in p.rx["title"].finditer(norm):

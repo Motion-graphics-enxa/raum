@@ -5,6 +5,7 @@ from collections import Counter, defaultdict
 from typing import get_args
 
 import pytest
+
 from raum.config import repo_root
 from raum.modes import load_modes
 from raum.modes.schema import GuardKind

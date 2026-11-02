@@ -162,39 +162,39 @@ def idx(h: Harness, type: str, utt: str = "u-0001", **match) -> int:
 def test_boundaries_skip_abbreviations_ordinals_and_ellipsis():
     assert boundary("Demir.") == "sentence" and boundary("mir?") == "sentence" and boundary("اليوم؟") == "sentence"
     assert boundary("Dr.") is None and boundary("12.") is None and boundary("z.B.") is None
-    assert boundary("das ...".split()[-1]) is None and boundary("so…") is None
+    assert boundary(["das", "..."][-1]) is None and boundary("so…") is None
     assert boundary("day,") == "comma" and boundary("يوميًا،") == "comma" and boundary("gut;") == "clause"
     assert boundary('"Ja."') == "sentence" and boundary("1,2") is None and boundary("Weber") is None
 
 
 def test_commit_needs_two_identical_partials_and_a_clause_boundary():
-    a = "Hello, Mrs Demir. I am Dr. Weber. What".split()
-    b = "Hello, Mrs Demir. I am Dr. Weber. What brings you".split()
+    a = ["Hello,", "Mrs", "Demir.", "I", "am", "Dr.", "Weber.", "What"]
+    b = ["Hello,", "Mrs", "Demir.", "I", "am", "Dr.", "Weber.", "What", "brings", "you"]
     assert commit_points(a, b, "en") == [3, 7]  # "Hello," has 1 word; "Dr." is no sentence end
     assert commit_len(a, b, "en") == 7
     assert commit_len(a[:2], b, "en") == 0  # "Mrs" not seen twice yet: nothing stable past the comma
-    assert commit_len("Hello, Mrs Demir".split(), "Hello, Mrs Demir. I".split(), "en") == 0  # "." new
+    assert commit_len(["Hello,", "Mrs", "Demir"], ["Hello,", "Mrs", "Demir.", "I"], "en") == 0  # "." new
 
 
 def test_comma_needs_six_words_and_never_cuts_german():
-    en = "Keep taking 500 mg of Metformin twice a day, in the".split()
+    en = ["Keep", "taking", "500", "mg", "of", "Metformin", "twice", "a", "day,", "in", "the"]
     assert commit_len(en, en, "en") == 9
-    short = "Yes, well, I think so, and".split()
+    short = ["Yes,", "well,", "I", "think", "so,", "and"]
     assert commit_len(short, short, "en") == 0  # every clause shorter than 6 words
-    de = "Nehmen Sie zweimal täglich 500 mg Metformin weiter, morgens und".split()
+    de = ["Nehmen", "Sie", "zweimal", "täglich", "500", "mg", "Metformin", "weiter,", "morgens", "und"]
     assert commit_len(de, de, "de") == 0  # verb-final subordinate clauses: German cuts at sentence ends only
-    de2 = "Guten Tag, Frau Demir. Ich bin Dr. Weber. Was".split()
+    de2 = ["Guten", "Tag,", "Frau", "Demir.", "Ich", "bin", "Dr.", "Weber.", "Was"]
     assert commit_points(de2, de2, "de") == [4, 8]
-    assert commit_len("A b c d e f; g".split(), "A b c d e f; g".split(), "en") == 6
-    assert commit_len("A b c d e f; g".split(), "A b c d e f; g".split(), "de") == 0
+    assert commit_len(["A", "b", "c", "d", "e", "f;", "g"], ["A", "b", "c", "d", "e", "f;", "g"], "en") == 6
+    assert commit_len(["A", "b", "c", "d", "e", "f;", "g"], ["A", "b", "c", "d", "e", "f;", "g"], "de") == 0
 
 
 def test_align_finds_the_uncommitted_rest_after_an_asr_revision():
-    done = "Guten Tag, Frau Demir.".split()
-    assert align(done, "Guten Tag, Frau Demir. Ich bin".split()) == 4
-    assert align(done, "guten tag frau demir ich bin".split()) == 4  # case and punctuation revised
-    assert align(done, "Guten Tag, Frau Damir. Ich bin".split()) == 4  # one word revised
-    assert align([], "a b".split()) == 0
+    done = ["Guten", "Tag,", "Frau", "Demir."]
+    assert align(done, ["Guten", "Tag,", "Frau", "Demir.", "Ich", "bin"]) == 4
+    assert align(done, ["guten", "tag", "frau", "demir", "ich", "bin"]) == 4  # case and punctuation revised
+    assert align(done, ["Guten", "Tag,", "Frau", "Damir.", "Ich", "bin"]) == 4  # one word revised
+    assert align([], ["a", "b"]) == 0
 
 
 async def test_clause_completeness_uses_the_turn_model_else_sentence_ends():
@@ -624,8 +624,9 @@ async def test_segments_and_another_utterance_into_one_language_speak_in_turn(no
 
 
 def test_segment_request_keeps_the_fixed_system_prefix():
-    base = dict(src_lang="de", tgt_lang="ar", room_name="Consultation room", role_a="Doctor", role_b="Patient",
-                lang_a="de", lang_b="ar", glossary="Metformin = ميتفورمين", context="Names: Frau Demir")
+    base = {"src_lang": "de", "tgt_lang": "ar", "room_name": "Consultation room", "role_a": "Doctor",
+            "role_b": "Patient", "lang_a": "de", "lang_b": "ar", "glossary": "Metformin = ميتفورمين",
+            "context": "Names: Frau Demir"}
     plain = translate_messages("{src_lang} -> {tgt_lang}", TranslateRequest(text="Ich bin Dr. Weber.", **base))
     seg = translate_messages("{src_lang} -> {tgt_lang}", TranslateRequest(
         text="Ich bin Dr. Weber.", segment=True, earlier=[("Guten Tag, Frau Demir.", "مرحبًا سيدة دمير.")], **base))
@@ -760,7 +761,7 @@ async def test_timing_says_which_transcript_and_when_the_voice_was_made_and_publ
     assert h.one("pipeline.timing", utt)["asr_from"] == "final"
 
 
-async def test_worker_sink_reports_when_the_first_frame_was_accepted(agent):
+async def test_worker_sink_reports_when_the_first_frame_was_accepted(agent):  # noqa: F811  (the fixture)
     t = time.monotonic()
     took = await agent._tts_sink("de", np.ones(4410, dtype=np.int16), 22050)
     assert isinstance(took, float) and t <= took <= time.monotonic()
