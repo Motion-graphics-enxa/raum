@@ -49,7 +49,8 @@ async def test_whisper_cpp_posts_wav_and_reads_verbose_json():
     asr = WhisperCppASR("http://whisper:8081/", model="large-v3-turbo", client=client(handler))
     res = await asr.transcribe(np.zeros(16000, dtype=np.float32), lang_hint="de", partial=False, turn=TURN)
     assert seen["path"] == "/inference"
-    assert seen["fields"]["response_format"] == "verbose_json"
+    assert seen["fields"]["language"] == "de"
+    assert seen["fields"]["no_language_probabilities"] == "true"  # no second encoder pass (box: -nlp)
     assert seen["fields"]["language"] == "de"
     assert seen["fields"]["file"] == "RIFF"
     assert res.text == "Nehmen Sie 500 mg." and res.lang == "de"

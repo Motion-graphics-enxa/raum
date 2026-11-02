@@ -51,7 +51,7 @@ def test_build_vision_per_profile(monkeypatch):
     monkeypatch.setenv("RAUM_PROFILE", "spark")
     cfg = load_config()
     v = build_vision(cfg)
-    assert isinstance(v, OllamaVision) and v.model == "gemma4:26b"
+    assert isinstance(v, OllamaVision) and v.model == "gemma4:e4b"
     # the vision model is the translator's gemma4: same num_ctx, or Ollama reloads it mid-conversation
     assert cfg.models.vision.model == cfg.models.translate.model
     assert v.options["num_ctx"] == cfg.models.translate.options["num_ctx"] == 8192

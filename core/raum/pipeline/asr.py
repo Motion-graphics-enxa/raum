@@ -129,6 +129,9 @@ class WhisperCppASR:
             "response_format": "verbose_json",
             "temperature": str(self.options.get("temperature", 0.0)),
             "language": hint or "auto",
+            # whisper.cpp fills verbose_json's language_probabilities with a second encoder pass; RAUM never
+            # reads them (box: de1 0.16 s without). Also the server flag -nlp (deploy/box.sh); older servers ignore it
+            "no_language_probabilities": "true",
         }
         prompt = whisper_prompt(self.options.get("prompt"), getattr(turn, "asr_prompt", None))
         if prompt:

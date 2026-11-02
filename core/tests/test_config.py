@@ -17,8 +17,8 @@ def test_spark_profile_is_real(monkeypatch):
     monkeypatch.setenv("RAUM_PROFILE", "spark")
     cfg = load_config()
     assert cfg.models.asr.engine == "whisper.cpp"
-    assert cfg.models.translate.engine == "ollama" and cfg.models.translate.model == "gemma4:26b"
-    assert cfg.models.verify.model == "gpt-oss:120b"
+    assert cfg.models.translate.engine == "ollama" and cfg.models.translate.model == "gemma4:e4b"
+    assert cfg.models.verify.model == "gpt-oss:20b"
     assert cfg.models.embed.model == "bge-m3"
 
 

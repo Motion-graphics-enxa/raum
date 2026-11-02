@@ -97,7 +97,7 @@ start_all() {
     # user-space whisper (install.sh --user-space); kept running across restarts, `stop` ends it
     start_svc whisper . "$WHISPER_DIR/build/bin/whisper-server" \
       -m "$WHISPER_DIR/models/ggml-${WHISPER_MODEL:-large-v3-turbo}.bin" --host 127.0.0.1 --port 8081 \
-      -t "${WHISPER_THREADS:-8}" -l auto
+      -t "${WHISPER_THREADS:-8}" -l auto -nlp   # -nlp: no second encoder pass for language_probabilities
   fi
   if [ -n "${RAUM_SPEAKERPHONE_ROOM:-}" ]; then
     # supervisor: rejoins on its own while LiveKit restarts; a crash restarts it after 5 s, but exit

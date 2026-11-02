@@ -170,8 +170,8 @@ async def test_build_engines_spark_and_lite(monkeypatch):
     monkeypatch.setenv("RAUM_PROFILE", "spark")
     eng = build_engines(load_config())
     assert isinstance(eng.asr, WhisperCppASR) and eng.asr.url == "http://127.0.0.1:8081"
-    assert isinstance(eng.translate, OllamaTranslator) and eng.translate.model == "gemma4:26b"
-    assert isinstance(eng.verify, OllamaVerifier) and eng.verify.model == "gpt-oss:120b"
+    assert isinstance(eng.translate, OllamaTranslator) and eng.translate.model == "gemma4:e4b"
+    assert isinstance(eng.verify, OllamaVerifier) and eng.verify.model == "gpt-oss:20b"
     assert isinstance(eng.embed, OllamaEmbedder)
     assert eng.denoise.name in ("deepfilternet", "passthrough")  # falls back without the optional package
     await eng.aclose()
