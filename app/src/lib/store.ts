@@ -36,6 +36,9 @@ export interface Turn {
   explainSent?: EventData["explain.sent"];
   corrected?: Record<string, string>; // lang -> previous text (struck and replaced)
   ignored?: EventData["voice.lock"]; // F-10: not the device owner's voice, dropped by the box
+  // simultaneous mode: a translation arrives in segments (seg 0, 1, ...); the last final carries segs
+  segs?: Record<string, { parts: Record<number, Translation>; total: number | null }>;
+  segFacts?: Record<string, Record<number, FactCheck[]>>;
 }
 
 export interface Offer extends Omit<EventData["offer.update"], "ts"> {
@@ -153,7 +156,8 @@ export function apply(prev: RoomModel, e: AnyEnvelope): RoomModel {
         t.speaker = e.data.speaker;
         t.lang = e.data.lang;
         t.role = roleOf(m, e.data.speaker);
-        t.startedAt = e.ts;
+        t.startedAt = Math.min(t.startedAt || e.ts, e.ts); // a merged utterance starts again: keep its place
+        t.endedAt = null;
       }, { speaker: e.data.speaker, lang: e.data.lang });
       break;
     }
@@ -189,30 +193,57 @@ export function apply(prev: RoomModel, e: AnyEnvelope): RoomModel {
       break;
     case "translation.delta":
       touch((t) => {
-        const cur = t.translations[e.data.target_lang];
+        const lang = e.data.target_lang;
+        if (e.data.seg != null) {
+          const sg = segState(t, lang);
+          const part = sg.parts[e.data.seg];
+          if (part?.final) return;
+          sg.parts = { ...sg.parts, [e.data.seg]: { text: (part?.text ?? "") + e.data.delta, final: false } };
+          t.translations = { ...t.translations, [lang]: joinSegs(sg) };
+          return;
+        }
+        const cur = t.translations[lang];
         if (cur?.final) return;
-        t.translations = {
-          ...t.translations,
-          [e.data.target_lang]: { text: (cur?.text ?? "") + e.data.delta, final: false },
-        };
+        t.translations = { ...t.translations, [lang]: { text: (cur?.text ?? "") + e.data.delta, final: false } };
       });
       break;
     case "translation.final":
       touch((t) => {
-        const prevText = t.translations[e.data.target_lang];
-        if (prevText?.final && prevText.text !== e.data.text) {
-          t.corrected = { ...(t.corrected ?? {}), [e.data.target_lang]: prevText.text };
+        const lang = e.data.target_lang;
+        if (e.data.seg != null) {
+          const sg = segState(t, lang);
+          sg.parts = { ...sg.parts, [e.data.seg]: { text: e.data.text, final: true } }; // may repeat: keyed by seg
+          if (e.data.segs != null) sg.total = e.data.segs;
+          t.translations = { ...t.translations, [lang]: joinSegs(sg) };
+          return;
         }
-        t.translations = { ...t.translations, [e.data.target_lang]: { text: e.data.text, final: true } };
+        // a final without seg replaces everything before it (also a merged utterance's re-final)
+        if (t.segs?.[lang]) {
+          const { [lang]: _drop, ...rest } = t.segs;
+          t.segs = rest;
+        }
+        const prev = t.translations[lang];
+        const extended = prev && e.data.text.startsWith(prev.text.trim()); // the speaker went on: not a correction
+        if (prev?.final && prev.text !== e.data.text && !extended) {
+          t.corrected = { ...(t.corrected ?? {}), [lang]: prev.text };
+        }
+        t.translations = { ...t.translations, [lang]: { text: e.data.text, final: true } };
       });
       break;
     case "verify.facts":
       touch((t) => {
-        t.facts = { ...t.facts, [e.data.target_lang]: e.data.facts };
-        t.factsRed = {
-          ...t.factsRed,
-          [e.data.target_lang]: e.data.red ?? e.data.facts.some((f) => !f.match),
-        };
+        const lang = e.data.target_lang;
+        const red = e.data.red ?? e.data.facts.some((f) => !f.match);
+        if (e.data.seg != null) {
+          const per = { ...(t.segFacts?.[lang] ?? {}), [e.data.seg]: e.data.facts };
+          t.segFacts = { ...(t.segFacts ?? {}), [lang]: per };
+          const order = Object.keys(per).map(Number).sort((a, b) => a - b);
+          t.facts = { ...t.facts, [lang]: order.flatMap((k) => per[k]) };
+          t.factsRed = { ...t.factsRed, [lang]: Boolean(t.factsRed[lang]) || red };
+          return;
+        }
+        t.facts = { ...t.facts, [lang]: e.data.facts };
+        t.factsRed = { ...t.factsRed, [lang]: red };
       });
       break;
     case "verify.result":
@@ -411,4 +442,21 @@ export function percentile(xs: number[], p: number): number | null {
   if (!v.length) return null;
   const i = Math.min(v.length - 1, Math.max(0, Math.round((p / 100) * (v.length - 1))));
   return v[i];
+}
+
+/** The segment state of one target language (simultaneous mode), created on first use. */
+function segState(t: Turn, lang: string): { parts: Record<number, Translation>; total: number | null } {
+  const segs = { ...(t.segs ?? {}) };
+  const sg = segs[lang] ? { ...segs[lang] } : { parts: {}, total: null };
+  segs[lang] = sg;
+  t.segs = segs;
+  return sg;
+}
+
+/** Segments in order, joined with a space; final once every segment up to ``segs`` is final. */
+function joinSegs(sg: { parts: Record<number, Translation>; total: number | null }): Translation {
+  const order = Object.keys(sg.parts).map(Number).sort((a, b) => a - b);
+  const text = order.map((k) => sg.parts[k].text.trim()).filter(Boolean).join(" ");
+  const final = sg.total != null && order.length >= sg.total && order.slice(0, sg.total).every((k) => sg.parts[k].final);
+  return { text, final };
 }
