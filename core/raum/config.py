@@ -5,6 +5,8 @@ Resolution order (later wins):
   2. ``raum.yaml``                    the box's own choices (``profile:`` + overrides)
   3. env ``RAUM_PROFILE``             switch profile without editing files
   4. env ``RAUM_CONFIG``              path to an alternative raum.yaml
+  5. env ``RAUM_DATA_DIR``            sessions + audit log directory (install.sh writes it into the
+                                      box's env file: /var/lib/raum, or ~/Desktop/HackathonRaum/data)
 
 Switching the box from the mock pipeline to the real models is one line in raum.yaml:
 ``profile: mock`` -> ``profile: spark``.
@@ -170,6 +172,8 @@ def load_config(path: str | Path | None = None) -> RaumConfig:
     if os.environ.get("RAUM_PROFILE") and "models" in box:
         # an env profile switch means "use that profile's engines", not the box overrides
         merged["models"] = _deep_merge(_read_yaml(prof_path).get("models", {}), {})
+    if os.environ.get("RAUM_DATA_DIR"):
+        merged["security"] = {**(merged.get("security") or {}), "data_dir": os.environ["RAUM_DATA_DIR"]}
     return RaumConfig.model_validate(merged)
 
 

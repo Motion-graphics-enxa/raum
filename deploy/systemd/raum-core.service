@@ -24,7 +24,7 @@ EnvironmentFile=-/etc/raum/raum.env
 ExecStart=/usr/local/bin/uv run raum core
 Restart=always
 RestartSec=2
-# /var/lib/raum: sessions (encrypted) and the audit log; /opt/raum/app/data links here
+# /var/lib/raum: sessions (encrypted) and the audit log (RAUM_DATA_DIR in /etc/raum/raum.env)
 StateDirectory=raum
 StateDirectoryMode=0700
 # privacy/seal.py and meter.py run `nft` (read counters, toggle the seal) without sudo

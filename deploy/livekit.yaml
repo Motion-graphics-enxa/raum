@@ -23,8 +23,10 @@ keys:
   RAUM_LIVEKIT_KEY: RAUM_LIVEKIT_SECRET
 
 room:
-  empty_timeout: 300        # seconds a room lives after the last participant left
-  departure_timeout: 20
+  empty_timeout: 300        # seconds a new room waits for its first participant
+  departure_timeout: 20     # seconds a room lives after the last participant left (agents do not
+                            # count). RAUM's tokens override both per room (network.departure_timeout_s
+                            # = 120, empty_timeout_s = 300), so phones that all drop come back (C-12).
 
 turn:
   enabled: true             # LAN STUN/TURN on the box itself (UDP only: no cert, no domain)

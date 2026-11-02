@@ -2,7 +2,7 @@
 # Run raum-core and raum-agent in user space (no root, no systemd): for the shared GX10, where
 # everything must stay inside ~/Desktop/HackathonRaum. A dedicated box uses deploy/systemd/ instead.
 #
-#   deploy/box.sh start | stop | restart | status | logs [core|agent|app|speakerphone]
+#   deploy/box.sh start | stop | restart | status | logs [core|agent|app|speakerphone|whisper]
 #   RAUM_PROFILE=spark deploy/box.sh restart        # override raum.yaml's profile for this run
 #   RAUM_APP=1 deploy/box.sh start                  # also serve the built app (vite preview, :5180,
 #                                                   #  proxies /api + /rtc; RAUM_HTTPS=1 for phones)
@@ -10,6 +10,9 @@
 #        that room (A-03; RAUM_SPEAKERPHONE_ROLE a|b, _LANG, _DEVICE <index|name>; see
 #        `uv run raum speakerphone --list-devices`). Restarted if it crashes, never when it exits 3
 #        (no PortAudio / no such device / unplugged): fix the device, then `deploy/box.sh restart`.
+#   WHISPER_DIR=~/Desktop/HackathonRaum/whisper.cpp   # start whisper-server :8081 if nothing answers
+#        there (WHISPER_MODEL large-v3-turbo, WHISPER_THREADS 8); restart keeps it, stop ends it.
+# Install / first setup on the shared box: ./install.sh --user-space (writes runtime/raum.env).
 # Env: sourced first from $RAUM_ENV_FILE (default ~/Desktop/HackathonRaum/runtime/raum.env) if present.
 #      RAUM_RUN (pid + log dir, default ~/Desktop/HackathonRaum/runtime/run),
 #      RAUM_CORE_PORT (8000), LIVEKIT_URL / LIVEKIT_API_KEY / LIVEKIT_API_SECRET (agent).
@@ -89,6 +92,13 @@ start_all() {
   (cd core && uv sync --frozen --quiet ${RAUM_UV_EXTRAS:-})
   start_svc core core uv run raum core --host 0.0.0.0 --port "$PORT"
   start_svc agent core uv run raum agent start
+  if [ -n "${WHISPER_DIR:-}" ] && [ -x "$WHISPER_DIR/build/bin/whisper-server" ] \
+      && ! alive whisper && ! curl -s -m 1 -o /dev/null http://127.0.0.1:8081; then
+    # user-space whisper (install.sh --user-space); kept running across restarts, `stop` ends it
+    start_svc whisper . "$WHISPER_DIR/build/bin/whisper-server" \
+      -m "$WHISPER_DIR/models/ggml-${WHISPER_MODEL:-large-v3-turbo}.bin" --host 127.0.0.1 --port 8081 \
+      -t "${WHISPER_THREADS:-8}" -l auto
+  fi
   if [ -n "${RAUM_SPEAKERPHONE_ROOM:-}" ]; then
     # supervisor: rejoins on its own while LiveKit restarts; a crash restarts it after 5 s, but exit
     # 0 (stopped), 2 (bad room id) and 3 (no audio device) are final, so no crash loop
@@ -117,14 +127,14 @@ stop_all() {
 
 case "${1:-status}" in
   start) start_all ;;
-  stop) stop_all ;;
+  stop) stop_all; stop_svc whisper ;;
   restart) stop_all; start_all ;;
   status)
-    for s in core agent app speakerphone; do
+    for s in core agent app speakerphone whisper; do
       if alive "$s"; then echo "$s: running (pid $(pidof_svc "$s"))"; else echo "$s: stopped"; fi
     done
     curl -fsS -m 2 "http://127.0.0.1:$PORT/api/health" 2>/dev/null && echo || true
     ;;
   logs) tail -n "${LINES:-60}" "$RUN/${2:-core}.log" ;;
-  *) sed -n 2,14p "$0"; exit 2 ;;
+  *) sed -n 2,18p "$0"; exit 2 ;;
 esac
