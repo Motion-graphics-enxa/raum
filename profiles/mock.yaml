@@ -12,3 +12,4 @@ models:
   vision:    { engine: off }
   tts:       { engine: mock, model: mock-piper, options: { first_audio_ms: [120, 200] } }
 scheduler: { live_slots: 4, check_slots: 2, background_slots: 2 }
+security:  { data_dir: data }

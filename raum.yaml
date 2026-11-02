@@ -16,7 +16,7 @@ profile: mock
 
 security:
   session_cipher: aes-256-gcm
-  data_dir: data                 # on the box: /var/lib/raum
+  # data_dir comes from the profile: ./data (mock, relative to the repo), /var/lib/raum (spark)
   # audit_log: /var/lib/raum/audit.jsonl
 
 network:
