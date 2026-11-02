@@ -9,6 +9,7 @@ CONTRACT: these signatures are shared by the pipeline, the agent worker, core (s
 
 from __future__ import annotations
 
+import inspect
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from typing import Any, Protocol, runtime_checkable
@@ -116,13 +117,30 @@ class TTS(Protocol):
     sample_rate: int
 
     def synthesize(self, text: str, lang: str, *, voice_ref: bytes | None = None,
-                   rate: float | None = None) -> AsyncIterator[np.ndarray]:
+                   rate: float | None = None, background: bool = False) -> AsyncIterator[np.ndarray]:
         """Yield int16 PCM chunks at ``sample_rate``. May yield nothing (mock / off).
 
         ``voice_ref``: WAV bytes of the speaker's voice (memory only, never logged) for engines that
         clone voices; ``rate``: the speaker's pace relative to 2.5 words/s. Engines that cannot use them
-        accept and ignore them (the pipeline also calls older two-argument engines without them)."""
+        accept and ignore them (the pipeline also calls older two-argument engines without them).
+        ``background``: a speculative clause, made before the end of turn, that must never delay a live
+        one. The http engine sends it at low priority and raises ``tts_http.VoiceBusy`` when the service
+        will not make it now; other engines ignore it. Pass it only where ``takes_kwarg(tts.synthesize,
+        "background")``."""
         ...
+
+
+def takes_kwarg(fn: Any, name: str) -> bool:
+    """Can ``fn`` be called with keyword ``name`` (a named parameter, or ``**kwargs``)? For optional engine
+    arguments such as ``synthesize(..., background=True)``: engines without it get the plain call."""
+    try:
+        params = inspect.signature(fn).parameters
+    except (TypeError, ValueError):
+        return False
+    p = params.get(name)
+    if p is not None:
+        return p.kind in (p.KEYWORD_ONLY, p.POSITIONAL_OR_KEYWORD)
+    return any(q.kind is q.VAR_KEYWORD for q in params.values())
 
 
 @runtime_checkable

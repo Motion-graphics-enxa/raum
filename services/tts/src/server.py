@@ -3,13 +3,17 @@
 Listens on 127.0.0.1:8090 only. Speaker voices live in process memory only (never written to disk).
 See API.md next to this file.
 
-Concurrency model (v1.2, after the 2 Nov hangs):
+Concurrency model (v1.2 after the 2 Nov hangs; v1.3 adds request priorities, admission.py):
 - One GPU job at a time. A job runs in its own worker thread and pushes PCM into an in-memory buffer; it
   releases the GPU as soon as synthesis ends, whatever pace the client reads at. (Before, the GPU lock was
   held by a generator suspended at ``yield`` while RAUM played or paused the audio, so a paused or vanished
   listener blocked every other request for minutes.)
 - Admission: a request that would wait more than ~1 s for the GPU gets 503 at once, before any header or
   audio, so RAUM's client speaks that clause with Piper.
+- Priorities: ``"priority": "background"`` (a speculative clause) is admitted only when the GPU is free right now
+  and no live request waits, else 409 at once; it never counts as waiting. A live request preempts a running
+  background job at its next token step; if audio already went out, that stream is cut (no final chunk), so the
+  client sees an incomplete body instead of a clause that ends early.
 - Headers go out only with the first audio chunk. A failure before audio is an HTTP error (503), never an
   empty 200, so the client always falls back.
 - Caps per request: audio <= min(2.5 s + 0.12 s/char x script factor, 20 s); wall clock <= 2 s + 1.5 x the
@@ -27,12 +31,15 @@ import torch
 from fastapi import FastAPI, Request, HTTPException, Response
 from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel, Field
+from typing import Literal
 
+from admission import BACKGROUND, LIVE, Gate, QuietCuts, StreamCut, priority_of
 from cb_engine import CBEngine, SR
 from textnorm import normalize_text
 
 log = logging.getLogger("raum-tts")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+logging.getLogger("uvicorn.error").addFilter(QuietCuts())  # a cut background stream is not an app error
 
 MAX_VOICES = int(os.environ.get("RAUM_TTS_MAX_VOICES", "64"))
 MIN_REF_S, MAX_REF_S = 2.0, 30.0
@@ -50,15 +57,16 @@ AUDIO_CAP_SPEAK_S = 60.0                                                 # /v1/s
 # speech per character differs by script: Arabic omits short vowels, ru/tr words are long
 SCRIPT = {"ar": 1.4, "ru": 1.15, "tr": 1.15, "he": 1.3, "zh": 3.0, "ja": 2.5, "ko": 2.0}
 RATE_MIN, RATE_MAX = 0.8, 1.3   # RAUM sends the speaker's pace (0.7-1.5); beyond this the stretch sounds bad
+# background text longer than this -> 409: bounds the one vocode a preempted job may still finish
+BG_MAX_CHARS = int(os.environ.get("RAUM_TTS_BG_MAX_CHARS", "400"))
 
 t_start = time.time()
 engine = CBEngine()
-gpu_lock = threading.Lock()
+gate = Gate(admit_wait_s=ADMIT_WAIT_S, grace_s=GRACE_S, bg_max_chars=BG_MAX_CHARS)   # the GPU, by priority
 voices: "collections.OrderedDict[str, dict]" = collections.OrderedDict()
 voices_lock = threading.Lock()
 stats = collections.Counter()
 current = {"job": None}      # the job holding the GPU
-waiting = {"n": 0}           # requests waiting for admission
 
 # Default voice when a request brings no speaker reference: the built-in Chatterbox voice (MIT, ships with the
 # weights). An operator can drop a consented 8-10 s recording at $RAUM_TTS_DEFAULT_VOICES/<lang>.wav to give a
@@ -133,7 +141,7 @@ def _warm():
 
 _warm()
 _load_default_voices()
-app = FastAPI(title="raum-tts", version="1.2")
+app = FastAPI(title="raum-tts", version="1.3")
 
 
 # ---------------- helpers ----------------
@@ -187,40 +195,41 @@ def _store_voice(key, v, dur, lang):
             voices.popitem(last=False)
 
 
-def _unavailable(reason, retry_s=1):
-    stats["rejected_" + reason.split(":")[0].replace(" ", "_")] += 1
+BG_REFUSED = ("busy", "preempted", "too long")   # why a background request is refused for live speech -> 409
+
+
+def _unavailable(reason, retry_s=1, background=False):
+    key = ("bg_" if background else "") + "rejected_" + reason.split(":")[0].replace(" ", "_")
+    stats[key] += 1
+    if background and reason.startswith(BG_REFUSED):
+        return JSONResponse({"error": "tts busy", "reason": reason, "priority": BACKGROUND}, status_code=409,
+                            headers={"Cache-Control": "no-store"})
     return JSONResponse({"error": "tts busy" if reason.startswith("busy") else "tts unavailable", "reason": reason},
                         status_code=503, headers={"Retry-After": str(retry_s), "Cache-Control": "no-store"})
 
 
 # ---------------- GPU admission ----------------
-async def _admit(request: Request, expected_s: float) -> str | None:
-    """Acquire the GPU for this request, or return why not (-> 503). Never waits more than ADMIT_WAIT_S."""
-    waiting["n"] += 1
-    try:
-        # short grace first: a job whose listener just hung up is cancelled within ~10-20 ms
-        ok = await anyio.to_thread.run_sync(gpu_lock.acquire, True, GRACE_S)
-        if not ok:
-            job = current["job"]
-            remaining = (job.expected_end - time.perf_counter()) if job is not None else 0.0
-            if waiting["n"] > 1 or remaining > ADMIT_WAIT_S - GRACE_S:
-                return f"busy: predicted wait {max(0.0, remaining):.1f}s, {waiting['n'] - 1} waiting"
-            ok = await anyio.to_thread.run_sync(gpu_lock.acquire, True, ADMIT_WAIT_S - GRACE_S)
-    finally:
-        waiting["n"] -= 1
-    if not ok:
-        return f"busy: no GPU within {ADMIT_WAIT_S:.1f}s"
+async def _admit(request: Request, expected_s: float, priority: str = LIVE, chars: int = 0):
+    """(ticket, None) with the GPU held for this request, or (None, why). Live: waits <= ADMIT_WAIT_S (-> 503) and
+    preempts a background job; background: only if the GPU is free right now (-> 409). See admission.py."""
+    if priority == BACKGROUND:
+        ticket, why = gate.try_background(expected_s, chars)
+    else:
+        ticket, why = await gate.admit_live(expected_s)
+    if why:
+        return None, why
     if await request.is_disconnected():
-        gpu_lock.release()
-        return "client gone"
-    return None
+        gate.release(ticket)
+        return None, "client gone"
+    return ticket, None
 
 
 class Job:
-    """One synthesis on the GPU. The worker thread owns the (already acquired) GPU lock and always releases it."""
+    """One synthesis on the GPU. The worker thread owns the (already acquired) GPU ticket and always releases it."""
 
-    def __init__(self, parts, lang, resolve, cfg, *, speed, exaggeration, temperature, audio_cap_s, tag,
+    def __init__(self, ticket, parts, lang, resolve, cfg, *, speed, exaggeration, temperature, audio_cap_s, tag,
                  wall_cap_s=None):
+        self.ticket = ticket
         self.parts, self.lang, self.resolve, self.cfg = parts, lang, resolve, cfg
         self.speed, self.exaggeration, self.temperature = speed, exaggeration, temperature
         self.audio_cap_s = audio_cap_s
@@ -230,7 +239,7 @@ class Job:
         self.q: asyncio.Queue = asyncio.Queue()
         self.cancel = threading.Event()
         self.t0 = time.perf_counter()
-        self.expected_end = self.t0 + expected_job_s(" ".join(parts), lang)
+        ticket.expected_end = self.t0 + expected_job_s(" ".join(parts), lang)
         self.audio_s = 0.0
         self.reason = None
         self.first_at = None
@@ -238,9 +247,16 @@ class Job:
     def _put(self, item):
         self.loop.call_soon_threadsafe(self.q.put_nowait, item)
 
+    @property
+    def preempted(self):
+        return bool(self.reason and self.reason.startswith("preempted"))
+
     def should_stop(self):
         if self.cancel.is_set():
             self.reason = self.reason or "client gone"
+            return True
+        if self.ticket.preempted.is_set():   # background only: a live request wants the GPU
+            self.reason = self.reason or "preempted: live request"
             return True
         el = time.perf_counter() - self.t0
         if el > WALL_BASE_S + WALL_FACTOR * self.audio_s or el > self.wall_cap_s:
@@ -251,6 +267,8 @@ class Job:
     def run(self):
         current["job"] = self
         try:
+            if self.should_stop():   # preempted (or the client left) before it began
+                return
             voice = self.resolve()
             budget = int(TOKENS_PER_S * self.audio_cap_s * self.speed)   # tokens: output audio <= cap
             for i, s in enumerate(self.parts):
@@ -279,7 +297,7 @@ class Job:
             log.exception("%s failed", self.tag)
         finally:
             current["job"] = None
-            gpu_lock.release()
+            gate.release(self.ticket)
             self._put(None)
             el = time.perf_counter() - self.t0
             if self.reason and self.reason.startswith("cap hit"):
@@ -288,6 +306,9 @@ class Job:
             elif self.reason == "client gone":
                 stats["client_gone"] += 1
                 log.info("%s client gone; stopped after %.1fs, %.1fs audio", self.tag, el, self.audio_s)
+            elif self.preempted:
+                stats["preempted"] += 1
+                log.info("%s preempted by a live request after %.2fs, %.1fs audio", self.tag, el, self.audio_s)
             elif self.reason:
                 log.warning("%s %s", self.tag, self.reason)
             else:
@@ -296,20 +317,22 @@ class Job:
 
 
 async def _serve(request: Request, job: Job, headers: dict):
-    """Start the worker; answer only when the first audio exists (else 503); stream the rest from memory."""
+    """Start the worker; answer only when the first audio exists (else 503, or 409 for a preempted background
+    job); stream the rest from memory. A background job preempted after audio went out cuts its stream."""
+    bg = job.ticket.background
     try:
         threading.Thread(target=job.run, name="tts-job", daemon=True).start()
     except Exception:
-        gpu_lock.release()
+        gate.release(job.ticket)
         raise
     try:
         first = await asyncio.wait_for(job.q.get(), timeout=FIRST_AUDIO_S)
     except asyncio.TimeoutError:
         job.cancel.set()
         job.reason = job.reason or f"cap hit: no audio within {FIRST_AUDIO_S:.1f}s"
-        return _unavailable(f"slow: no audio within {FIRST_AUDIO_S:.1f}s")
-    if first is None:  # ended before any audio: cap, error, or client gone
-        return _unavailable(job.reason or "no audio")
+        return _unavailable(f"slow: no audio within {FIRST_AUDIO_S:.1f}s", background=bg)
+    if first is None:  # ended before any audio: cap, error, preempted, or client gone
+        return _unavailable(job.reason or "no audio", background=bg)
     log.info("%s lang=%s chars=%d cfg=%.1f speed=%.2f first audio after %.0fms", job.tag, job.lang,
              sum(map(len, job.parts)), job.cfg, job.speed, (time.perf_counter() - job.t_request) * 1000)
 
@@ -326,18 +349,20 @@ async def _serve(request: Request, job: Job, headers: dict):
                 if item is None:
                     break
                 yield item
+            if job.preempted:   # the clause is incomplete: no final chunk, so the client cannot take it as whole
+                raise StreamCut(job.tag)
         finally:
             if not job.cancel.is_set():
                 job.cancel.set()   # no-op if the job already finished; stops it within one token otherwise
-                job.expected_end = time.perf_counter()
+                job.ticket.expected_end = time.perf_counter()
 
     return StreamingResponse(body(), media_type=f"audio/L16;rate={SR};channels=1", headers=headers)
 
 
-def _audio_headers(cfg, n_parts, cap_s):
+def _audio_headers(cfg, n_parts, cap_s, priority=LIVE):
     return {"X-Sample-Rate": str(SR), "X-Audio-Format": "s16le", "X-Channels": "1",
             "X-Cfg-Weight": str(cfg), "X-Sentences": str(n_parts), "X-Max-Audio-S": f"{cap_s:.1f}",
-            "Cache-Control": "no-store", "X-Accel-Buffering": "no"}
+            "X-Priority": priority, "Cache-Control": "no-store", "X-Accel-Buffering": "no"}
 
 
 # ---------------- API ----------------
@@ -350,6 +375,7 @@ class SpeakReq(BaseModel):
     cfg_weight: float | None = Field(None, ge=0.0, le=1.0)
     temperature: float = Field(0.8, ge=0.05, le=2.0)
     normalize: bool = True
+    priority: Literal["live", "background"] = LIVE
 
 
 @app.get("/health")
@@ -359,13 +385,14 @@ async def health():
         free = int(open("/proc/meminfo").read().split("MemAvailable:")[1].split()[0]) // 1024
     except Exception:
         pass
-    job = current["job"]
+    job, holder = current["job"], gate.holder
     return {"status": "ok", "model": "chatterbox-multilingual-v3 (t3 bf16 + cuda graph, meanflow s3gen)",
             "version": app.version, "sample_rate": SR, "format": "s16le mono", "languages": engine.langs,
             "primary_languages": LANGS_PRIMARY, "voices": len(voices), "max_voices": MAX_VOICES,
-            "busy": gpu_lock.locked(), "busy_for_s": round(time.perf_counter() - job.t0, 1) if job else 0.0,
+            "busy": gate.lock.locked(), "busy_for_s": round(time.perf_counter() - job.t0, 1) if job else 0.0,
             "busy_limit_s": round(job.wall_cap_s, 1) if job else 0.0,
-            "waiting": waiting["n"], "counters": dict(stats), "uptime_s": round(time.time() - t_start),
+            "busy_priority": holder.priority if holder else None, "bg_max_chars": BG_MAX_CHARS,
+            "waiting": gate.live_waiting, "counters": dict(stats), "uptime_s": round(time.time() - t_start),
             "gpu_allocated_mb": torch.cuda.memory_allocated() >> 20,
             "gpu_reserved_mb": torch.cuda.memory_reserved() >> 20, "host_mem_available_mb": free}
 
@@ -395,14 +422,14 @@ async def create_voice(request: Request, sample_rate: int | None = None, lang: s
     if dur < MIN_REF_S:
         raise HTTPException(422, f"reference too short ({dur:.1f}s); need >= {MIN_REF_S}s, 5-10s is best")
     wav = _prep_ref(wav, sr)
-    why = await _admit(request, 0.3)
+    ticket, why = await _admit(request, 0.3)
     if why:
         return _unavailable(why)
     t = time.perf_counter()
     try:
         v = await anyio.to_thread.run_sync(lambda: engine.make_voice(wav, sr, exaggeration=exaggeration))
     finally:
-        gpu_lock.release()
+        gate.release(ticket)
     vid = "v_" + uuid.uuid4().hex[:16]
     _store_voice(vid, v, round(dur, 2), _lang_code(lang) or None)
     ms = round((time.perf_counter() - t) * 1000)
@@ -441,17 +468,19 @@ async def speak(req: SpeakReq, request: Request):
     if req.cfg_weight is not None:
         cfg = req.cfg_weight
     cap = max_audio_s(text, lang, AUDIO_CAP_SPEAK_S)
-    why = await _admit(request, expected_job_s(text, lang))
+    bg = req.priority == BACKGROUND
+    ticket, why = await _admit(request, expected_job_s(text, lang), req.priority, len(req.text))
     if why:
-        return _unavailable(why)
+        return _unavailable(why, background=bg)
     try:
-        job = Job(parts, lang, lambda: voice, cfg, speed=req.speed, exaggeration=req.exaggeration,
-                  temperature=req.temperature, audio_cap_s=cap, tag="speak voice=" + (req.voice_id or "default")[:8])
+        job = Job(ticket, parts, lang, lambda: voice, cfg, speed=req.speed, exaggeration=req.exaggeration,
+                  temperature=req.temperature, audio_cap_s=cap,
+                  tag=("speak bg" if bg else "speak") + " voice=" + (req.voice_id or "default")[:8])
         job.t_request = t_req
     except Exception:
-        gpu_lock.release()
+        gate.release(ticket)
         raise
-    return await _serve(request, job, _audio_headers(cfg, len(parts), cap))
+    return await _serve(request, job, _audio_headers(cfg, len(parts), cap, req.priority))
 
 
 # ---------------- RAUM compatibility API (core/raum/pipeline/tts_http.py) ----------------
@@ -459,7 +488,8 @@ async def speak(req: SpeakReq, request: Request):
 async def tts_compat(request: Request):
     """RAUM's http engine: JSON {text, lang, rate?, model?, sample_rate, voice_ref? (base64 WAV), voice_id?}
     or the same as multipart with a ``voice_ref`` file part. Streams s16le mono at 24 kHz (X-Sample-Rate).
-    Optional ``voice_lang``: the reference speaker's language (unknown means cross-lingual)."""
+    Optional ``voice_lang``: the reference speaker's language (unknown means cross-lingual). Optional
+    ``priority``: "live" (default) or "background" (a speculative clause; 409 unless the GPU is free now)."""
     t_req = time.perf_counter()
     ref = None
     if request.headers.get("content-type", "").startswith("multipart/"):
@@ -489,6 +519,10 @@ async def tts_compat(request: Request):
         raise HTTPException(413, "text longer than 4000 characters")
     if lang not in engine.langs:
         raise HTTPException(422, f"unsupported lang; supported: {engine.langs}")
+    priority = priority_of(fields.get("priority"))
+    if priority is None:
+        raise HTTPException(422, "priority must be 'live' or 'background'")
+    bg, chars = priority == BACKGROUND, len(text)
     try:
         rate = float(fields.get("rate") or 1.0)
     except (TypeError, ValueError):
@@ -552,18 +586,18 @@ async def tts_compat(request: Request):
             wall = max(0.05, float(fields["_cap_wall_s"]))
     except (TypeError, ValueError):
         pass
-    why = await _admit(request, expected_job_s(text, lang))
+    ticket, why = await _admit(request, expected_job_s(text, lang), priority, chars)
     if why:
-        log.info("tts 503 (%s) lang=%s chars=%d", why, lang, len(text))
-        return _unavailable(why)
+        log.info("tts %s refused (%s) lang=%s chars=%d", priority, why, lang, chars)
+        return _unavailable(why, background=bg)
     try:
-        job = Job(parts, lang, resolve, cfg, speed=speed, exaggeration=0.5, temperature=0.8, audio_cap_s=cap,
-                  tag=f"tts voice={state}", wall_cap_s=wall)
+        job = Job(ticket, parts, lang, resolve, cfg, speed=speed, exaggeration=0.5, temperature=0.8,
+                  audio_cap_s=cap, tag=f"tts{' bg' if bg else ''} voice={state}", wall_cap_s=wall)
         job.t_request = t_req
     except Exception:
-        gpu_lock.release()
+        gate.release(ticket)
         raise
-    return await _serve(request, job, _audio_headers(cfg, len(parts), cap))
+    return await _serve(request, job, _audio_headers(cfg, len(parts), cap, priority))
 
 
 @app.delete("/tts/voices/{voice_id}")

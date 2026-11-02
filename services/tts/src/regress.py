@@ -1,9 +1,11 @@
 """Regression for the 2 Nov hangs: the exact clauses RAUM sent (bot outputs /tmp/f-*.out, 17:45-17:50 local),
 with the bots' own voices (recordings/*.wav -> RAUM VoiceRef, 16 kHz) and speaker paces 0.8-1.3,
-through RAUM's unmodified HttpTTS. Prints first chunk / total / audio per clause and the cap per clause."""
+through RAUM's unmodified HttpTTS. Prints first chunk / total / audio per clause and the cap per clause.
+
+Modes: seq (default), conc, edge, prio (v1.3: background clauses never delay a live one), all."""
 import asyncio, os, sys, time, wave, json
 import numpy as np, soxr
-from raum.pipeline.tts_http import HttpTTS
+from raum.pipeline.tts_http import HttpTTS, VoiceBusy
 from raum.pipeline.voice import VoiceRef
 
 REC = os.path.expanduser("~/Desktop/HackathonRaum/raum/recordings")
@@ -59,17 +61,22 @@ class FakePiper:
         yield np.zeros(240, dtype=np.int16)
 
 
-async def one(tts, lang, text, ref, rate, tag=""):
-    t0 = time.perf_counter(); first = None; n = 0
+async def one(tts, lang, text, ref, rate, tag="", background=False):
+    t0 = time.perf_counter(); first = None; n = 0; busy = None
     fb_before = FakePiper.calls
-    async for c in tts.synthesize(text, lang, voice_ref=ref, rate=rate):
-        if first is None:
-            first = time.perf_counter() - t0
-        n += len(c)
+    kw = {"background": True} if background else {}
+    try:
+        async for c in tts.synthesize(text, lang, voice_ref=ref, rate=rate, **kw):
+            if first is None:
+                first = time.perf_counter() - t0
+            n += len(c)
+    except VoiceBusy as e:  # background only: refused or cut for live speech
+        busy = e.reason
     tot = time.perf_counter() - t0
     fb = FakePiper.calls > fb_before
     return dict(tag=tag, lang=lang, chars=len(text), rate=rate, first_ms=round((first or 0) * 1000),
-                total_ms=round(tot * 1000), audio_s=round(n / 24000, 2), fallback=fb)
+                total_ms=round(tot * 1000), audio_s=round(n / 24000, 2), fallback=fb,
+                **({"busy": busy} if background else {}))
 
 
 async def main():
@@ -96,7 +103,44 @@ async def main():
             print(json.dumps(r, ensure_ascii=False), flush=True)
     if mode in ("edge", "all"):
         await edge()
+    if mode in ("prio", "all"):
+        await prio(tts)
     await tts.aclose()
+
+
+async def prio(tts):
+    """v1.3 priorities: a background (speculative) clause is refused at once while live speech runs, cut when live
+    speech arrives, never spoken by the fallback, and never puts the service aside."""
+    import httpx
+    long_de = "Nehmen Sie dieses Medikament nicht zusammen mit Alkohol ein, und rufen Sie mich an, wenn Ihnen schwindelig wird."
+    long_en = "Take 500 mg Metformin twice a day, always after meals, and call me if you feel dizzy or sick."
+    down0, ok = tts._down_until, True
+
+    def report(r, good):
+        nonlocal ok
+        ok &= bool(good)
+        print(("ok  " if good else "FAIL"), json.dumps(r, ensure_ascii=False), flush=True)
+
+    print("-- priorities (v1.3): background never delays live")
+    r = await one(tts, "de", "Haben Sie heute schon gegessen?", None, 1.0, "background alone", background=True)
+    report(r, r["busy"] is None and r["audio_s"] > 0.5 and not r["fallback"])
+    live = asyncio.create_task(one(tts, "en", long_en, None, 1.0, "live, background asked meanwhile"))
+    await asyncio.sleep(0.5)  # the live clause is generating
+    r = await one(tts, "de", "Danke schön.", None, 1.0, "background while live speaks", background=True)
+    report(r, r["busy"] == "HTTP 409" and r["total_ms"] < 150 and not r["fallback"])
+    r = await live
+    report(r, not r["fallback"] and r["audio_s"] > 3)
+    bg = asyncio.create_task(one(tts, "de", long_de, None, 1.0, "background, live arrives", background=True))
+    await asyncio.sleep(0.5)  # the background clause is streaming
+    r = await one(tts, "en", "Do you have any allergies?", None, 1.0, "live over a background clause")
+    report(r, not r["fallback"] and r["first_ms"] < 700)  # quiet-GPU first audio + one token step
+    r = await bg
+    report(r, r["busy"] in ("stream cut", "HTTP 409") and not r["fallback"])
+    report({"service_put_aside": tts._down_until != down0}, tts._down_until == down0)
+    async with httpx.AsyncClient(timeout=5) as c:
+        h = (await c.get("http://127.0.0.1:8090/health")).json()
+    print("health:", {k: h.get(k) for k in ("version", "busy", "busy_priority", "waiting", "counters")}, flush=True)
+    print("PRIO:", "ok" if ok else "FAIL", flush=True)
 
 
 async def edge():

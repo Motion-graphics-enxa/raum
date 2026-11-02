@@ -60,7 +60,7 @@ class MockTTS:
         self.sample_rate = int(self.options.get("sample_rate", 22050))
 
     async def synthesize(self, text: str, lang: str, *, voice_ref: bytes | None = None,
-                         rate: float | None = None) -> AsyncIterator[np.ndarray]:
+                         rate: float | None = None, background: bool = False) -> AsyncIterator[np.ndarray]:
         await sleep_ms(sample_ms(self.options.get("first_audio_ms")))
         return
         yield  # pragma: no cover  (makes this an async generator)
@@ -409,7 +409,8 @@ class PiperTTS:
         return (np.clip(y, -1, 1) * 32767).astype(np.int16)
 
     async def synthesize(self, text: str, lang: str, *, voice_ref: bytes | None = None,
-                         rate: float | None = None) -> AsyncIterator[np.ndarray]:
+                         rate: float | None = None, background: bool = False) -> AsyncIterator[np.ndarray]:
+        # background (a speculative clause, see tts_http.py) is accepted and ignored: Piper has no priorities
         path = self.voice_for(lang)
         if path is None or not text.strip():
             return
