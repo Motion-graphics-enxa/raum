@@ -1,0 +1,45 @@
+# Private notes: never commit
+internal/
+
+# Secrets
+.env
+.env.*
+*.pem
+*.key
+*.crt
+
+# Models and audio
+models/
+*.gguf
+*.bin
+*.onnx
+*.safetensors
+recordings/
+*.wav
+!eval/fixtures/*.wav
+
+# Session data
+data/
+sessions/
+*.jsonl.enc
+eval/out/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Tauri
+desktop/src-tauri/target/
+
+# OS and editors
+.DS_Store
+.idea/
+.vscode/
