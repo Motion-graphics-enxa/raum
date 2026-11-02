@@ -1,0 +1,57 @@
+# RAUM infrastructure on the box: LiveKit + Caddy (plan §6.2, §8 S7, S9, S12).
+#
+#   cd /opt/raum/app/deploy && docker compose up -d        # start / update
+#   docker compose ps ; docker compose logs -f caddy        # check
+#
+# Settings come from deploy/.env (install.sh writes it; template: deploy/env.example):
+#   RAUM_HOST      the box's LAN IP or name, the site address in the Caddyfile
+#   RAUM_NODE_IP   the box's LAN IP that LiveKit announces to phones (ICE candidates)
+#   RAUM_UID/GID   uid/gid of user `raum`: LiveKit runs as raum so the nftables privacy meter
+#                  (deploy/raum.nft, `meta skuid raum`) also counts LiveKit's own traffic
+# Both services use the host network: LiveKit needs UDP 7882 / TCP 7881 / 7880 on the LAN IP,
+# Caddy needs 80 / 443 / 7443 and reaches 127.0.0.1:8000 (raum-core) and :7880.
+
+name: raum
+
+services:
+  livekit:
+    image: ${LIVEKIT_IMAGE:-livekit/livekit-server:v1.13.11}
+    restart: unless-stopped
+    network_mode: host
+    user: "${RAUM_UID:-0}:${RAUM_GID:-0}"
+    # --dev: keys devkey / secret (raum.yaml network.livekit_api_*), fine on our private network
+    command:
+      - --dev
+      - --bind
+      - 0.0.0.0
+      - --node-ip
+      - ${RAUM_NODE_IP:?set RAUM_NODE_IP (the box's LAN IP) in deploy/.env}
+    # Real keys instead of --dev: fill deploy/livekit.yaml, then replace `command` with
+    #   command: [--config, /etc/livekit.yaml, --node-ip, "${RAUM_NODE_IP}"]
+    # and uncomment:
+    # volumes:
+    #   - ./livekit.yaml:/etc/livekit.yaml:ro
+
+  caddy:
+    image: ${CADDY_IMAGE:-caddy:2}
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - livekit
+    environment:
+      RAUM_HOST: ${RAUM_HOST:?set RAUM_HOST (the box's LAN IP or name) in deploy/.env}
+      RAUM_TS_HOST: ${RAUM_TS_HOST:-}
+    # The deploy/ folder is mounted (not the single file) so a Caddyfile replaced by rsync is seen
+    # on `caddy reload`; same for app/ so a rebuilt dist/ never leaves a stale bind mount.
+    command: [caddy, run, --config, /etc/raum-deploy/Caddyfile, --adapter, caddyfile]
+    volumes:
+      - ./:/etc/raum-deploy:ro
+      - ${RAUM_APP_DIR:-/opt/raum/app/app}:/opt/raum/app/app:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      # tailnet certificate variant (Caddyfile, §9.3 A):
+      # - /etc/raum/certs:/etc/raum/certs:ro
+
+volumes:
+  caddy_data:
+  caddy_config:

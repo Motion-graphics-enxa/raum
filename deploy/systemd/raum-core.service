@@ -1,0 +1,37 @@
+# raum-core: FastAPI on 127.0.0.1:8000 (tokens, rooms, sessions, encryption, audit, summary,
+# privacy meter, admin, event API). Plan §6.2, §8 S12.
+#   sudo cp /opt/raum/app/deploy/systemd/*.service /etc/systemd/system/ && sudo systemctl daemon-reload
+#   sudo systemctl enable --now raum-core ; journalctl -u raum-core -f
+# Settings: /etc/raum/raum.env (RAUM_PROFILE=spark, ...), written by install.sh.
+# deploy/push.sh runs `uv sync --frozen` before every restart, so the service never syncs itself.
+
+[Unit]
+Description=RAUM core (FastAPI, 127.0.0.1:8000)
+Documentation=file:///opt/raum/app/plan.md
+Wants=network-online.target
+After=network-online.target raum-nft.service ollama.service docker.service
+
+[Service]
+Type=simple
+User=raum
+Group=raum
+WorkingDirectory=/opt/raum/app/core
+Environment=RAUM_HOME=/opt/raum/app
+Environment=PYTHONUNBUFFERED=1
+Environment=UV_NO_SYNC=1
+Environment=UV_PYTHON_INSTALL_DIR=/opt/raum/python
+EnvironmentFile=-/etc/raum/raum.env
+ExecStart=/usr/local/bin/uv run raum core
+Restart=always
+RestartSec=2
+# /var/lib/raum: sessions (encrypted) and the audit log; /opt/raum/app/data links here
+StateDirectory=raum
+StateDirectoryMode=0700
+# privacy/seal.py and meter.py run `nft` (read counters, toggle the seal) without sudo
+AmbientCapabilities=CAP_NET_ADMIN
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

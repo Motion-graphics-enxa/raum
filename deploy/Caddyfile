@@ -1,0 +1,88 @@
+# RAUM front door: HTTPS for the app, the API and LiveKit on one origin (plan §6.2, §8 S9, §9.3).
+#
+#   https://{$RAUM_HOST}/          app (React build), PWA
+#   https://{$RAUM_HOST}/api/*     raum-core 127.0.0.1:8000, incl. WebSockets (/api/events/{room})
+#   wss://{$RAUM_HOST}/rtc*        LiveKit signalling 127.0.0.1:7880. The app derives its LiveKit URL
+#                                  from its own origin (raum.yaml network.livekit_url: auto)
+#   wss://{$RAUM_HOST}:7443        LiveKit signalling on its own port (§8 S9), same backend
+#   http://{$RAUM_HOST}/l/<room>   listen-only jury view over plain HTTP (§9.2); mic pages redirect
+#
+# Media (WebRTC) does not go through Caddy: UDP 7882 / TCP 7881 straight to LiveKit.
+#
+# RAUM_HOST is the box's LAN IP (or name), set in deploy/.env (install.sh writes it). Run by
+# deploy/docker-compose.yml (Caddy container, host network). Reload after editing:
+#   docker compose -f /opt/raum/app/deploy/docker-compose.yml exec caddy \
+#     caddy reload --config /etc/raum-deploy/Caddyfile --adapter caddyfile
+# Validate on any machine:
+#   RAUM_HOST=192.168.8.10 caddy validate --config deploy/Caddyfile --adapter caddyfile
+#
+# Root certificate of the local CA, to install on team phones (§9.3 B):
+#   docker compose -f /opt/raum/app/deploy/docker-compose.yml cp \
+#     caddy:/data/caddy/pki/authorities/local/root.crt ./raum-root.crt
+{
+	# The box has no system trust store to install into; phones get root.crt by hand.
+	skip_install_trust
+}
+
+(raum_app) {
+	encode zstd gzip
+
+	# LiveKit signalling (/rtc, /rtc/v1, /rtc/validate) on the app's origin
+	handle /rtc* {
+		reverse_proxy 127.0.0.1:7880
+	}
+
+	# raum-core, including the WebSocket event mirror; no buffering for streamed responses
+	handle /api/* {
+		reverse_proxy 127.0.0.1:8000 {
+			flush_interval -1
+		}
+	}
+
+	# the PWA: real files first, every other path is a client-side route
+	handle {
+		root * {$RAUM_DIST:/opt/raum/app/app/dist}
+		try_files {path} /index.html
+		file_server
+	}
+}
+
+# ---------------------------------------------------------------- local CA (§8 S9, §9.3 B)
+
+{$RAUM_HOST} {
+	tls internal
+	import raum_app
+}
+
+{$RAUM_HOST}:7443 {
+	tls internal
+	reverse_proxy 127.0.0.1:7880
+}
+
+# Plain HTTP: browsers allow no microphone here, so join and admin pages go to HTTPS; the
+# listen-only view (/l/<room>) and its API/LiveKit calls stay on HTTP for unprepared jury phones.
+http://{$RAUM_HOST} {
+	@needs_tls path /j/* /admin /admin/*
+	redir @needs_tls https://{host}{uri}
+	import raum_app
+}
+
+# ---------------------------------------------------------------- tailnet certificate (§9.3 A)
+# Publicly trusted, so unprepared phones accept it. Works on the LAN with the cable pulled if the
+# router's DNS maps the ts.net name to the box's LAN IP. One-time setup (§8 S10):
+#   sudo tailscale cert --cert-file /etc/raum/certs/ts.crt --key-file /etc/raum/certs/ts.key \
+#        <spark-name>.<tailnet>.ts.net
+#   then set RAUM_TS_HOST=<spark-name>.<tailnet>.ts.net in deploy/.env, uncomment the
+#   /etc/raum/certs mount in docker-compose.yml and the two blocks below, and reload.
+# (Alternative without files: mount /var/run/tailscale/tailscaled.sock into the container and use
+#  `tls { get_certificate tailscale }`; Caddy then renews from tailscaled itself.)
+#
+# {$RAUM_TS_HOST} {
+# 	tls /etc/raum/certs/ts.crt /etc/raum/certs/ts.key
+# 	import raum_app
+# }
+#
+# {$RAUM_TS_HOST}:7443 {
+# 	tls /etc/raum/certs/ts.crt /etc/raum/certs/ts.key
+# 	reverse_proxy 127.0.0.1:7880
+# }

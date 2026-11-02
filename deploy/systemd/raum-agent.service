@@ -1,0 +1,30 @@
+# raum-agent: LiveKit Agents worker, one hidden participant per room (plan §6.1, §8 S12).
+# Pipeline: DeepFilterNet -> Silero VAD -> Whisper (whisper.service) -> Gemma 4 (Ollama)
+# -> events on the data channel + voice track; async fact guard + second-model check.
+#   sudo systemctl enable --now raum-agent ; journalctl -u raum-agent -f
+
+[Unit]
+Description=RAUM agent (LiveKit Agents worker)
+Documentation=file:///opt/raum/app/plan.md
+Wants=network-online.target
+After=network-online.target raum-core.service whisper.service ollama.service docker.service
+
+[Service]
+Type=simple
+User=raum
+Group=raum
+WorkingDirectory=/opt/raum/app/core
+Environment=RAUM_HOME=/opt/raum/app
+Environment=PYTHONUNBUFFERED=1
+Environment=UV_NO_SYNC=1
+Environment=UV_PYTHON_INSTALL_DIR=/opt/raum/python
+EnvironmentFile=-/etc/raum/raum.env
+ExecStart=/usr/local/bin/uv run raum agent start
+Restart=always
+RestartSec=2
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

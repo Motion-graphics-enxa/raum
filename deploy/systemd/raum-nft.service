@@ -1,0 +1,19 @@
+# Loads deploy/raum.nft at boot (privacy meter + sealed mode, plan §6.11, §8 S11).
+# Boots unsealed with counters at 0. Needs users raum and ollama to exist.
+#   sudo systemctl enable --now raum-nft ; sudo nft list table inet raum
+
+[Unit]
+Description=RAUM nftables table (privacy meter, sealed mode)
+Wants=network-pre.target
+Before=network-pre.target raum-core.service
+After=nftables.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/nft -f /opt/raum/app/deploy/raum.nft
+ExecReload=/usr/sbin/nft -f /opt/raum/app/deploy/raum.nft
+ExecStop=/usr/sbin/nft delete table inet raum
+
+[Install]
+WantedBy=multi-user.target

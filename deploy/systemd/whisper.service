@@ -1,0 +1,28 @@
+# whisper.cpp server, large-v3-turbo on CUDA, 127.0.0.1:8081 (plan §6.2, §8 S5).
+# Built by install.sh (or by hand, §8 S5) into /opt/raum/whisper.cpp: home directories are 0750 on
+# Ubuntu 24.04, so user raum cannot read a build under /home/<user>. To use one anyway, set
+# WHISPER_DIR in /etc/raum/raum.env and make it readable for raum.
+# Check:
+#   curl -s 127.0.0.1:8081/inference -F file=@/opt/raum/whisper.cpp/samples/jfk.wav -F response_format=json
+
+[Unit]
+Description=whisper.cpp server (127.0.0.1:8081)
+After=network.target
+
+[Service]
+Type=simple
+User=raum
+Group=raum
+Environment=WHISPER_DIR=/opt/raum/whisper.cpp
+Environment=WHISPER_MODEL=large-v3-turbo
+Environment=WHISPER_THREADS=8
+EnvironmentFile=-/etc/raum/raum.env
+# -l auto: the server default is English; RAUM needs language ID (callers may still pass language)
+ExecStart=/bin/sh -c 'exec "$WHISPER_DIR/build/bin/whisper-server" -m "$WHISPER_DIR/models/ggml-$WHISPER_MODEL.bin" --host 127.0.0.1 --port 8081 -t "$WHISPER_THREADS" -l auto'
+Restart=always
+RestartSec=2
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

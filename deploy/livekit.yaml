@@ -1,0 +1,31 @@
+# LiveKit server, non-dev configuration (plan §6.2, §8 S7). The hackathon box runs `--dev`
+# (keys devkey / secret); use this file for anything else. See docker-compose.yml for how to
+# switch, then put the same key/secret into raum.yaml (network.livekit_api_key / _secret).
+#
+# Placeholders to fill (ops):
+#   RAUM_NODE_IP          the box's LAN IP (or keep it here empty and pass --node-ip)
+#   RAUM_LIVEKIT_KEY      an API key name, e.g. "raum"
+#   RAUM_LIVEKIT_SECRET   at least 32 random characters: openssl rand -hex 32
+
+port: 7880                  # HTTP / WebSocket signalling (Caddy proxies /rtc and :7443 to it)
+bind_addresses:
+  - 0.0.0.0
+
+rtc:
+  tcp_port: 7881            # ICE over TCP when UDP is blocked
+  udp_port: 7882            # one multiplexed UDP port instead of a 50000-60000 range
+  use_external_ip: false    # never ask a public STUN server: media stays on the LAN / tailnet
+  node_ip: RAUM_NODE_IP
+
+keys:
+  RAUM_LIVEKIT_KEY: RAUM_LIVEKIT_SECRET
+
+room:
+  empty_timeout: 300        # seconds a room lives after the last participant left
+  departure_timeout: 20
+
+turn:
+  enabled: false            # no TURN relay: phones reach the box directly or over Tailscale
+
+logging:
+  level: info
