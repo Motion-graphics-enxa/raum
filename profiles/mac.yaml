@@ -1,0 +1,12 @@
+# Apple Silicon with >= 32 GB unified memory.
+profile: mac
+models:
+  vad:       { engine: silero }
+  denoise:   { engine: passthrough }
+  asr:       { engine: whisper.cpp, url: http://127.0.0.1:8081, model: large-v3-turbo }
+  translate: { engine: ollama, url: http://127.0.0.1:11434, model: gemma4:26b-mlx, options: { temperature: 0.1, num_predict: 256 } }
+  verify:    { engine: ollama, url: http://127.0.0.1:11434, model: gpt-oss:20b, options: { reasoning: low } }
+  embed:     { engine: ollama, url: http://127.0.0.1:11434, model: bge-m3 }
+  vision:    { engine: off }
+  tts:       { engine: piper }
+scheduler: { live_slots: 1, check_slots: 1, background_slots: 1 }

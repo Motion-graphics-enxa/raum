@@ -1,0 +1,31 @@
+# RAUM box configuration (plan §6.7).
+#
+# profile selects the engine set from profiles/<profile>.yaml:
+#   mock   canned transcripts/translations, real Silero VAD on real mics (this Mac, no GPU)
+#   spark  ASUS Ascent GX10 / GB10: whisper.cpp + Ollama (gemma4:26b, gpt-oss:120b, bge-m3)
+#   gpu-24 | mac | edge | lite   see profiles/
+#
+# Going live on the GX10 = change the next line to `profile: spark` and run deploy/push.sh.
+# You can also override for one run: RAUM_PROFILE=spark uv run raum-core
+profile: mock
+
+# Per-box overrides go below and win over the profile. Examples:
+# models:
+#   translate: { model: gemma4:e4b }
+#   tts: { engine: off }
+
+security:
+  session_cipher: aes-256-gcm
+  data_dir: data                 # on the box: /var/lib/raum
+  # audit_log: /var/lib/raum/audit.jsonl
+
+network:
+  livekit_url: auto              # same origin as the app; Caddy and Vite proxy /rtc to LiveKit
+  livekit_internal_url: ws://127.0.0.1:7880
+  livekit_api_key: devkey        # livekit-server --dev
+  livekit_api_secret: secret
+  core_url: http://127.0.0.1:8000
+  tunnel: tailscale
+
+thresholds: { green: 0.86, amber: 0.78 }   # calibrated in Sprint 3 (§6.9)
+asr_min_conf: 0.55

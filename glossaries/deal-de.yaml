@@ -1,0 +1,32 @@
+# Deal glossary (Verhandlungsraum). Upload per negotiation (N-02). Same format as medical-de.yaml.
+terms:
+  - de: Liefertermin
+    kind: term
+    en: delivery date
+    tr: teslim tarihi
+    ru: срок поставки
+    ar: موعد التسليم
+  - de: Mindestabnahme
+    kind: term
+    en: minimum order quantity
+    tr: minimum sipariş miktarı
+    ru: минимальный объём заказа
+    ar: الحد الأدنى للطلب
+  - de: Zahlungsziel
+    kind: term
+    en: payment terms
+    tr: ödeme vadesi
+    ru: срок оплаты
+    ar: مهلة الدفع
+  - de: Vertragsstrafe
+    kind: term
+    en: contractual penalty
+    tr: cezai şart
+    ru: договорная неустойка
+    ar: الشرط الجزائي
+  - de: Rahmenvertrag
+    kind: term
+    en: framework agreement
+    tr: çerçeve sözleşme
+    ru: рамочный договор
+    ar: اتفاقية إطارية

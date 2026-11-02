@@ -1,0 +1,198 @@
+/**
+ * RAUM event protocol (plan §6.5). TypeScript twin of core/raum/events.py.
+ * Keep both in sync; core/tests/test_events.py checks that EVENT_TYPES match.
+ *
+ * Transport: LiveKit data channel, topic "raum.events", reliable, JSON.
+ * Mirrored to /api/events/:room (WebSocket) for the table screen and the event API.
+ */
+
+export const PROTOCOL_VERSION = 1 as const;
+export const EVENTS_TOPIC = "raum.events";
+
+export type Role = "a" | "b" | "observer";
+export type Path = "direct" | "tunnel" | "relayed";
+export type Badge = "green" | "amber" | "red";
+export type FlagKind =
+  | "dose" | "allergy" | "deadline" | "amount" | "uncertain" | "date" | "number" | "mismatch";
+
+export interface ParticipantInfo {
+  id: string;
+  role: Role;
+  lang: string;
+  device: string;
+  path: Path;
+  rtt_ms?: number | null;
+}
+
+export interface FactCheck {
+  kind: string;
+  src: string | null;
+  tgt: string | null;
+  match: boolean;
+}
+
+export interface SummaryItem {
+  text: Record<string, string>;
+  uncertain?: boolean;
+}
+
+export interface SummarySection {
+  key: string;
+  title: Record<string, string>;
+  items: SummaryItem[];
+}
+
+/** Payload ("data") per event type. */
+export interface EventData {
+  "participant.joined": ParticipantInfo;
+  "participant.left": { id: string };
+  "utterance.start": { speaker: string; lang: string };
+  "utterance.end": { speaker: string; lang: string };
+  "transcript.partial": { speaker: string; lang: string; text: string; seq: number };
+  "transcript.final": { speaker: string; lang: string; text: string; asr_conf: number };
+  "translation.delta": { target_lang: string; delta: string; seq?: number | null };
+  "translation.final": { target_lang: string; text: string };
+  "verify.facts": { target_lang: string; facts: FactCheck[]; red?: boolean; ms?: number | null };
+  "verify.result": {
+    target_lang: string;
+    similarity: number | null;
+    badge: Badge;
+    reasons: string[];
+    back_translation?: string | null;
+  };
+  flag: {
+    kind: FlagKind;
+    text: string;
+    needs_confirm: boolean;
+    id?: string | null;
+    confirm_by?: Role | null;
+    target_lang?: string | null;
+    texts?: Record<string, string> | null;
+  };
+  confirm: { by: string; accepted: boolean; flag_id?: string | null };
+  "repeat_back.result": {
+    understood: "yes" | "partly" | "no";
+    missing: string[];
+    wrong: string[];
+    instruction_utt?: string | null;
+  };
+  "offer.update": { amount: number; currency: string; by: string; ts: number; text?: string | null };
+  "explain.draft": { source_utt: string; target_lang: string; text: string };
+  "explain.sent": { source_utt: string; target_lang: string; text: string };
+  "pipeline.timing": {
+    vad_ms?: number | null;
+    asr_ms?: number | null;
+    mt_first_ms?: number | null;
+    mt_full_ms?: number | null;
+    tts_first_ms?: number | null;
+    check_ms?: number | null;
+    target_lang?: string | null;
+    denoise_ms?: number | null;
+    models?: Record<string, string> | null;
+  };
+  "session.state": {
+    off_record: boolean;
+    sealed: boolean;
+    participants: ParticipantInfo[];
+    mode: string;
+    status?: "live" | "ended" | "burned";
+    session_id?: string | null;
+    human_interpreter_requested?: boolean;
+    started_at?: number | null;
+  };
+  "privacy.meter": { third_party_bytes: number; tunnel_bytes: number; sealed: boolean; source?: string | null };
+  "gpu.stats": { util_pct: number; models_loaded: string[]; mem_used_gb?: number | null; source?: string | null };
+  "summary.ready": {
+    template: string;
+    lang_a: string;
+    lang_b: string;
+    sections: SummarySection[];
+    file_note?: Record<string, string> | null;
+    approved_by?: string[];
+    generated_ms?: number | null;
+  };
+  "burn.done": { key_destroyed_at: number; audit_head_hash: string };
+}
+
+export const EVENT_TYPES = [
+  "participant.joined",
+  "participant.left",
+  "utterance.start",
+  "utterance.end",
+  "transcript.partial",
+  "transcript.final",
+  "translation.delta",
+  "translation.final",
+  "verify.facts",
+  "verify.result",
+  "flag",
+  "confirm",
+  "repeat_back.result",
+  "offer.update",
+  "explain.draft",
+  "explain.sent",
+  "pipeline.timing",
+  "session.state",
+  "privacy.meter",
+  "gpu.stats",
+  "summary.ready",
+  "burn.done",
+] as const;
+
+export type EventType = (typeof EVENT_TYPES)[number];
+
+export interface Envelope<T extends EventType = EventType> {
+  v: 1;
+  type: T;
+  room: string;
+  utt: string | null;
+  ts: number;
+  data: EventData[T];
+}
+
+export type AnyEnvelope = { [K in EventType]: Envelope<K> }[EventType];
+
+const TYPE_SET = new Set<string>(EVENT_TYPES);
+
+export function isEnvelope(x: unknown): x is AnyEnvelope {
+  if (!x || typeof x !== "object") return false;
+  const e = x as Record<string, unknown>;
+  return e.v === 1 && typeof e.type === "string" && TYPE_SET.has(e.type) && typeof e.room === "string"
+    && typeof e.ts === "number" && typeof e.data === "object" && e.data !== null;
+}
+
+export function parseEnvelope(raw: string | Uint8Array): AnyEnvelope | null {
+  try {
+    const text = typeof raw === "string" ? raw : new TextDecoder().decode(raw);
+    const obj: unknown = JSON.parse(text);
+    return isEnvelope(obj) ? obj : null;
+  } catch {
+    return null;
+  }
+}
+
+/* ------------------------------------------------------------ control (device -> box) */
+
+export type ControlAction =
+  | "off_record"
+  | "confirm"
+  | "repeat_back"
+  | "human_interpreter"
+  | "explain_simply"
+  | "explain_approve"
+  | "correct_term"
+  | "end"
+  | "approve_summary"
+  | "burn"
+  | "mute";
+
+/** Body of POST /api/rooms/:room/control */
+export interface Control {
+  action: ControlAction;
+  by?: string | null;
+  value?: unknown;
+  flag_id?: string | null;
+  accepted?: boolean | null;
+  utt?: string | null;
+  text?: string | null;
+}

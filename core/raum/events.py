@@ -1,0 +1,369 @@
+"""RAUM event protocol (plan §6.5). THE contract between agent, core and app.
+
+Transport: LiveKit data channel, topic ``raum.events``, reliable, JSON.
+Mirrored to ``/api/events/{room}`` (WebSocket) for the table screen and the event API.
+
+Every message is an :class:`Envelope`::
+
+    { "v": 1, "type": "translation.delta", "room": "sz-4821", "utt": "u-0007",
+      "ts": 1793616884123, "data": { ... } }
+
+The TypeScript twin lives in ``app/src/lib/events.ts``. Keep both in sync: a change here
+needs the same change there (``tests/test_events.py`` checks the type list matches).
+
+Fields beyond the plan's table are optional extensions, so a client written against the
+plan's table keeps working.
+"""
+
+from __future__ import annotations
+
+import time
+from typing import Any, Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+PROTOCOL_VERSION = 1
+EVENTS_TOPIC = "raum.events"
+
+Role = Literal["a", "b", "observer"]
+Path = Literal["direct", "tunnel", "relayed"]
+Badge = Literal["green", "amber", "red"]
+FlagKind = Literal["dose", "allergy", "deadline", "amount", "uncertain", "date", "number", "mismatch"]
+
+
+class _Data(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+
+# ---------------------------------------------------------------- participants
+
+
+class ParticipantInfo(_Data):
+    id: str  # LiveKit identity
+    role: Role
+    lang: str  # BCP-47 primary subtag, e.g. "de", "ar", "tr"
+    device: str = "phone"  # phone | laptop | tablet | speakerphone | table
+    path: Path = "direct"
+    rtt_ms: int | None = None  # connection latency for the glass-box badge (G-03)
+
+
+class ParticipantJoined(ParticipantInfo):
+    pass
+
+
+class ParticipantLeft(_Data):
+    id: str
+
+
+# ---------------------------------------------------------------- utterances
+
+
+class UtteranceStart(_Data):
+    speaker: str
+    lang: str
+
+
+class UtteranceEnd(_Data):
+    speaker: str
+    lang: str
+
+
+class TranscriptPartial(_Data):
+    speaker: str
+    lang: str
+    text: str
+    seq: int
+
+
+class TranscriptFinal(_Data):
+    speaker: str
+    lang: str
+    text: str
+    asr_conf: float  # 0..1
+
+
+class TranslationDelta(_Data):
+    target_lang: str
+    delta: str
+    seq: int | None = None
+
+
+class TranslationFinal(_Data):
+    target_lang: str
+    text: str
+
+
+# ---------------------------------------------------------------- verification
+
+
+class FactCheck(_Data):
+    kind: str  # dose | frequency | allergy | date | time | number | unit | medication | name | negation | amount | currency | percent | deadline
+    src: str | None  # value as found in the source (None = missing in source)
+    tgt: str | None  # value as found in the translation (None = missing in translation)
+    match: bool
+
+
+class VerifyFacts(_Data):
+    target_lang: str
+    facts: list[FactCheck] = Field(default_factory=list)
+    red: bool = False  # extension: any mismatch
+    ms: float | None = None  # extension: guard runtime
+
+
+class VerifyResult(_Data):
+    target_lang: str
+    similarity: float | None
+    badge: Badge
+    reasons: list[str] = Field(default_factory=list)
+    back_translation: str | None = None  # extension: shown in the glass box
+
+
+class Flag(_Data):
+    kind: FlagKind
+    text: str  # human-readable, in the language of the device that must act, e.g. "500 mg, twice a day. Correct?"
+    needs_confirm: bool
+    id: str | None = None  # extension: referenced by `confirm`
+    confirm_by: Role | None = None  # extension: which role must confirm (default: the listener)
+    target_lang: str | None = None  # extension
+    texts: dict[str, str] | None = None  # extension: text per language
+
+
+class Confirm(_Data):
+    by: str  # role or identity
+    accepted: bool
+    flag_id: str | None = None  # extension
+
+
+class RepeatBackResult(_Data):  # extension (S-02)
+    understood: Literal["yes", "partly", "no"]
+    missing: list[str] = Field(default_factory=list)
+    wrong: list[str] = Field(default_factory=list)
+    instruction_utt: str | None = None
+
+
+class OfferUpdate(_Data):
+    amount: float
+    currency: str
+    by: str  # role
+    ts: int
+    text: str | None = None  # extension: the phrase it came from
+
+
+class ExplainDraft(_Data):  # extension (K-02): only shown to the professional until approved
+    source_utt: str
+    target_lang: str
+    text: str
+
+
+class ExplainSent(_Data):  # extension (K-02)
+    source_utt: str
+    target_lang: str
+    text: str
+
+
+# ---------------------------------------------------------------- glass box, session
+
+
+class PipelineTiming(_Data):
+    vad_ms: float | None = None
+    asr_ms: float | None = None
+    mt_first_ms: float | None = None
+    mt_full_ms: float | None = None
+    tts_first_ms: float | None = None
+    check_ms: float | None = None
+    target_lang: str | None = None  # extension
+    denoise_ms: float | None = None  # extension
+    models: dict[str, str] | None = None  # extension: stage -> model name
+
+
+class SessionState(_Data):
+    off_record: bool
+    sealed: bool
+    participants: list[ParticipantInfo]
+    mode: str
+    status: Literal["live", "ended", "burned"] = "live"  # extension
+    session_id: str | None = None  # extension
+    human_interpreter_requested: bool = False  # extension (S-05)
+    started_at: int | None = None  # extension
+
+
+class PrivacyMeter(_Data):
+    third_party_bytes: int
+    tunnel_bytes: int
+    sealed: bool
+    source: str | None = None  # extension: "nft" | "stub"
+
+
+class GpuStats(_Data):
+    util_pct: float
+    models_loaded: list[str]
+    mem_used_gb: float | None = None  # extension
+    source: str | None = None  # extension: "nvidia-smi" | "mock"
+
+
+class SummaryItem(_Data):
+    """One bilingual line. Keys are language codes: {"de": "...", "ar": "..."}."""
+
+    text: dict[str, str]
+    uncertain: bool = False
+
+
+class SummarySection(_Data):
+    key: str  # e.g. "medications"
+    title: dict[str, str]  # per language
+    items: list[SummaryItem] = Field(default_factory=list)
+
+
+class SummaryReady(_Data):
+    template: str  # mode id
+    lang_a: str
+    lang_b: str
+    sections: list[SummarySection]
+    file_note: dict[str, str] | None = None  # extension: S-04 / K-03 note, usually {"de": "..."}
+    approved_by: list[str] = Field(default_factory=list)  # extension
+    generated_ms: float | None = None  # extension
+
+
+class BurnDone(_Data):
+    key_destroyed_at: int  # epoch ms
+    audit_head_hash: str
+
+
+# ---------------------------------------------------------------- registry
+
+EVENT_TYPES: dict[str, type[BaseModel]] = {
+    "participant.joined": ParticipantJoined,
+    "participant.left": ParticipantLeft,
+    "utterance.start": UtteranceStart,
+    "utterance.end": UtteranceEnd,
+    "transcript.partial": TranscriptPartial,
+    "transcript.final": TranscriptFinal,
+    "translation.delta": TranslationDelta,
+    "translation.final": TranslationFinal,
+    "verify.facts": VerifyFacts,
+    "verify.result": VerifyResult,
+    "flag": Flag,
+    "confirm": Confirm,
+    "repeat_back.result": RepeatBackResult,
+    "offer.update": OfferUpdate,
+    "explain.draft": ExplainDraft,
+    "explain.sent": ExplainSent,
+    "pipeline.timing": PipelineTiming,
+    "session.state": SessionState,
+    "privacy.meter": PrivacyMeter,
+    "gpu.stats": GpuStats,
+    "summary.ready": SummaryReady,
+    "burn.done": BurnDone,
+}
+
+EventType = Literal[
+    "participant.joined",
+    "participant.left",
+    "utterance.start",
+    "utterance.end",
+    "transcript.partial",
+    "transcript.final",
+    "translation.delta",
+    "translation.final",
+    "verify.facts",
+    "verify.result",
+    "flag",
+    "confirm",
+    "repeat_back.result",
+    "offer.update",
+    "explain.draft",
+    "explain.sent",
+    "pipeline.timing",
+    "session.state",
+    "privacy.meter",
+    "gpu.stats",
+    "summary.ready",
+    "burn.done",
+]
+
+# Events that carry conversation content. Only these are written (encrypted) to the session store.
+CONTENT_EVENTS = frozenset(
+    {
+        "transcript.final",
+        "translation.final",
+        "verify.facts",
+        "verify.result",
+        "flag",
+        "confirm",
+        "repeat_back.result",
+        "offer.update",
+        "explain.sent",
+        "summary.ready",
+    }
+)
+
+
+def now_ms() -> int:
+    return int(time.time() * 1000)
+
+
+class Envelope(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    v: Literal[1] = PROTOCOL_VERSION
+    type: EventType
+    room: str
+    utt: str | None = None
+    ts: int = Field(default_factory=now_ms)
+    data: dict[str, Any]
+
+    def to_json(self) -> str:
+        return self.model_dump_json(exclude_none=False)
+
+    def payload(self) -> BaseModel:
+        """Parse ``data`` into its typed model."""
+        return EVENT_TYPES[self.type].model_validate(self.data)
+
+
+def make_event(type: str, room: str, data: BaseModel | dict[str, Any], utt: str | None = None,
+               ts: int | None = None) -> Envelope:
+    """Build and validate an envelope. ``data`` may be a model or a dict (validated against the type)."""
+    if type not in EVENT_TYPES:
+        raise ValueError(f"unknown event type: {type}")
+    model = data if isinstance(data, BaseModel) else EVENT_TYPES[type].model_validate(data)
+    if not isinstance(model, EVENT_TYPES[type]):
+        model = EVENT_TYPES[type].model_validate(model.model_dump())
+    return Envelope(type=type, room=room, utt=utt, ts=ts or now_ms(), data=model.model_dump(mode="json"))
+
+
+def parse_event(raw: str | bytes | dict[str, Any]) -> Envelope:
+    """Parse and validate an incoming envelope, including its typed data."""
+    env = Envelope.model_validate_json(raw) if isinstance(raw, (str, bytes)) else Envelope.model_validate(raw)
+    env.payload()
+    return env
+
+
+# ---------------------------------------------------------------- control (device -> box)
+
+ControlAction = Literal[
+    "off_record",  # value: bool
+    "confirm",  # flag_id, accepted
+    "repeat_back",  # start a repeat-back check (S-02): the next utterance of role b is compared
+    "human_interpreter",  # S-05
+    "explain_simply",  # utt: the professional's utterance to rewrite (K-02)
+    "explain_approve",  # utt + text: send the approved draft (K-02)
+    "correct_term",  # V-05: value: {"src": "...", "tgt": "...", "lang": "ar"}
+    "end",  # end conversation -> summary
+    "approve_summary",  # by role
+    "burn",
+    "mute",  # value: bool. device-local mic pause, mirrored so the glass box knows
+]
+
+
+class Control(BaseModel):
+    """Body of ``POST /api/rooms/{room}/control`` and of core -> agent control messages."""
+
+    model_config = ConfigDict(extra="allow")
+
+    action: ControlAction
+    by: str | None = None  # role or identity of the sender
+    value: Any = None
+    flag_id: str | None = None
+    accepted: bool | None = None
+    utt: str | None = None
+    text: str | None = None

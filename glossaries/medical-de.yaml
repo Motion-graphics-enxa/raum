@@ -1,0 +1,73 @@
+# Medical glossary (plan §20.6). Grows per practice (rule 6: better every time).
+#
+# Each term:
+#   de:     the German form (canonical key)
+#   kind:   medication | name | term   (medication/name are checked by the fact guard)
+#   keep:   true = keep as is in every language (drug names)
+#   <lang>: fixed translation(s) used by the translator and accepted by the fact guard;
+#           a list means "any of these is correct" (e.g. other scripts)
+terms:
+  - de: Metformin
+    kind: medication
+    keep: true
+    ru: [Метформин, метформин]
+    ar: [ميتفورمين]
+    uk: [Метформін, метформін]
+  - de: Penicillin
+    kind: medication
+    keep: true
+    en: [penicillin]
+    tr: [penisilin]
+    ru: [пенициллин, пенициллину, пенициллина]
+    ar: [البنسلين, بنسلين]
+    uk: [пеніцилін, пеніциліну]
+  - de: Ibuprofen
+    kind: medication
+    keep: true
+    en: [ibuprofen]
+    ru: [ибупрофен]
+    ar: [إيبوبروفين, ايبوبروفين]
+  - de: Amoxicillin
+    kind: medication
+    keep: true
+    en: [amoxicillin]
+    tr: [amoksisilin]
+    ru: [амоксициллин]
+    ar: [أموكسيسيلين]
+  - de: Insulin
+    kind: medication
+    keep: true
+    en: [insulin]
+    tr: [insülin]
+    ru: [инсулин]
+    ar: [الأنسولين, أنسولين]
+  - de: Blutdruck
+    kind: term
+    en: blood pressure
+    tr: tansiyon
+    ru: давление
+    ar: ضغط الدم
+  - de: nüchtern
+    kind: term
+    en: on an empty stomach
+    tr: aç karnına
+    ru: натощак
+    ar: على معدة فارغة
+  - de: zweimal täglich
+    kind: term
+    en: twice a day
+    tr: günde iki kez
+    ru: два раза в день
+    ar: مرتين يوميًا
+  - de: Überweisung
+    kind: term
+    en: referral
+    tr: sevk
+    ru: направление
+    ar: إحالة
+  - de: Rezept
+    kind: term
+    en: prescription
+    tr: reçete
+    ru: рецепт
+    ar: وصفة طبية

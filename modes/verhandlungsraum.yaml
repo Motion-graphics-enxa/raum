@@ -1,0 +1,23 @@
+# Verhandlungsraum: CEO and foreign partner.
+id: verhandlungsraum
+prefix: vr                     # room ids: vr-3305
+name: { de: Verhandlungsraum, en: Negotiation room }
+tagline: { de: Jedes Angebot festgehalten, en: Every offer on record }
+icon: handshake
+roles:
+  a: { label: { de: Geschäftsführung, en: CEO }, default_lang: de }
+  b: { label: { de: Partner/in, en: Partner }, default_lang: auto }
+register: formal
+guard:
+  kinds: [amount, currency, percent, number, date, deadline, name, negation]
+  confirm_on: [amount]
+glossary: glossaries/deal-de.yaml
+prompts:
+  translate: prompts/translate.md
+  summary: prompts/summary-verhandlungsraum.md
+summary:
+  sections: [agreed, open, offers, next_steps]
+  takehome_for: b
+  file_note_for: a
+buttons: [off_record, offer_tracker, end]
+retention: { auto_burn_minutes: 60 }

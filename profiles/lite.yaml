@@ -1,0 +1,12 @@
+# Any laptop (e.g. M2 with 8 GB). Small models, no second-model check. The fact guard still runs.
+profile: lite
+models:
+  vad:       { engine: silero }
+  denoise:   { engine: passthrough }
+  asr:       { engine: whisper.cpp, url: http://127.0.0.1:8081, model: base }
+  translate: { engine: ollama, url: http://127.0.0.1:11434, model: gemma4:e2b, options: { temperature: 0.1, num_predict: 256 } }
+  verify:    { engine: off }
+  embed:     { engine: off }
+  vision:    { engine: off }
+  tts:       { engine: off }
+scheduler: { live_slots: 1, check_slots: 0, background_slots: 1 }

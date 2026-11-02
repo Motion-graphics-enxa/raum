@@ -1,0 +1,24 @@
+# Sprechzimmer: doctor (or clinic) and patient. Leads the pitch.
+id: sprechzimmer
+prefix: sz                     # room ids: sz-4821
+name: { de: Sprechzimmer, en: Consultation room }
+tagline: { de: Dosis und Allergien geprüft, en: Doses and allergies checked }
+icon: stethoscope
+roles:
+  a: { label: { de: Ärztin/Arzt, en: Doctor }, default_lang: de }
+  b: { label: { de: Patient/in, en: Patient }, default_lang: auto }
+register: formal               # Sie
+guard:
+  kinds: [dose, frequency, allergy, date, time, number, medication, negation]
+  confirm_on: [dose, allergy]
+glossary: glossaries/medical-de.yaml
+prompts:
+  translate: prompts/translate.md
+  summary: prompts/summary-sprechzimmer.md
+  repeat_back: prompts/repeat-back.md
+summary:
+  sections: [medications, allergies, next_appointment, warning_signs, open_questions]
+  takehome_for: b
+  file_note_for: a
+buttons: [off_record, repeat_back, human_interpreter, end]
+retention: { auto_burn_minutes: 30 }

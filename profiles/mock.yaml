@@ -1,0 +1,14 @@
+# Mock pipeline (plan §10.1 tactic 1). Runs on any laptop, no models downloaded.
+# Real microphones and real Silero VAD; transcripts and translations are canned per room
+# with the latencies of the §3 table, streamed token by token.
+profile: mock
+models:
+  vad:       { engine: silero, options: { min_silence_duration: 0.35, activation_threshold: 0.5 } }
+  denoise:   { engine: passthrough }
+  asr:       { engine: mock, model: mock-whisper, options: { latency_ms: [150, 300], partial_every_ms: 900 } }
+  translate: { engine: mock, model: mock-gemma, options: { first_token_ms: [180, 260], token_ms: 28 } }
+  verify:    { engine: mock, model: mock-gpt-oss, options: { latency_ms: [700, 1100] } }
+  embed:     { engine: mock, model: mock-bge-m3 }
+  vision:    { engine: off }
+  tts:       { engine: mock, model: mock-piper, options: { first_audio_ms: [120, 200] } }
+scheduler: { live_slots: 4, check_slots: 2, background_slots: 2 }

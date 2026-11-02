@@ -1,0 +1,13 @@
+# ASUS Ascent GX10 (NVIDIA GB10, 128 GB unified memory). Reference box. ~88-90 GB loaded at once.
+profile: spark
+models:
+  vad:       { engine: silero, options: { min_silence_duration: 0.35, activation_threshold: 0.5 } }
+  denoise:   { engine: deepfilternet, options: { onnx: true } }
+  asr:       { engine: whisper.cpp, url: http://127.0.0.1:8081, model: large-v3-turbo, options: { partial_every_ms: 1000 } }
+  translate: { engine: ollama, url: http://127.0.0.1:11434, model: gemma4:26b, options: { temperature: 0.1, num_predict: 256 } }
+  verify:    { engine: ollama, url: http://127.0.0.1:11434, model: gpt-oss:120b, options: { reasoning: low, num_predict: 256 } }
+  embed:     { engine: ollama, url: http://127.0.0.1:11434, model: bge-m3 }
+  vision:    { engine: ollama, url: http://127.0.0.1:11434, model: gemma4:26b }
+  tts:       { engine: piper, options: { voices_dir: /opt/raum/voices }, fallback: none }
+scheduler: { live_slots: 2, check_slots: 1, background_slots: 1 }
+security:  { data_dir: /var/lib/raum }

@@ -1,0 +1,24 @@
+# Kanzlei: lawyer and client.
+id: kanzlei
+prefix: kz                     # room ids: kz-1170
+name: { de: Kanzlei, en: Law office }
+tagline: { de: Fristen und Daten geprüft, en: Deadlines and dates checked }
+icon: scale
+roles:
+  a: { label: { de: Anwältin/Anwalt, en: Lawyer }, default_lang: de }
+  b: { label: { de: Mandant/in, en: Client }, default_lang: auto }
+register: formal
+guard:
+  kinds: [deadline, date, time, duration, amount, currency, number, name, negation]
+  confirm_on: [deadline]
+glossary: glossaries/legal-de.yaml
+prompts:
+  translate: prompts/translate.md
+  summary: prompts/summary-kanzlei.md
+  explain_simply: prompts/explain-simply.md
+summary:
+  sections: [parties, facts, dates, deadlines, documents_requested, next_steps]
+  takehome_for: b
+  file_note_for: a
+buttons: [off_record, explain_simply, human_interpreter, end]
+retention: { auto_burn_minutes: 30 }

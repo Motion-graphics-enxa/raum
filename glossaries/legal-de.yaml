@@ -1,0 +1,38 @@
+# Legal glossary (Kanzlei). Same format as medical-de.yaml.
+terms:
+  - de: Klagefrist
+    kind: term
+    en: deadline for filing the claim
+    tr: dava açma süresi
+    ru: срок подачи иска
+    ar: مهلة رفع الدعوى
+  - de: Kündigungsschutzklage
+    kind: term
+    en: unfair dismissal claim
+    tr: işe iade davası
+    ru: иск о защите от увольнения
+    ar: دعوى الحماية من الفصل
+  - de: Arbeitsvertrag
+    kind: term
+    en: employment contract
+    tr: iş sözleşmesi
+    ru: трудовой договор
+    ar: عقد العمل
+  - de: Lohnabrechnung
+    kind: term
+    en: payslip
+    tr: maaş bordrosu
+    ru: расчётный лист
+    ar: كشف الراتب
+  - de: Arbeitsgericht
+    kind: term
+    en: labour court
+    tr: iş mahkemesi
+    ru: суд по трудовым спорам
+    ar: محكمة العمل
+  - de: Abmahnung
+    kind: term
+    en: formal warning
+    tr: ihtarname
+    ru: предупреждение
+    ar: إنذار
