@@ -36,11 +36,17 @@ log = logging.getLogger("raum.pipeline.tts.http")
 
 DEFAULT_URL = "http://127.0.0.1:8090"
 WARMUP_TIMEOUT_S = 300.0
+FORGET_TIMEOUT_S = 2.0  # per DELETE; burn never waits longer than this per voice
 WARMUP_TEXT = "Hello."
 
 
 class TtsServiceError(RuntimeError):
     pass
+
+
+def voice_id(voice_ref: bytes) -> str:
+    """The id the service keeps a speaker's sample under (``DELETE {url}/tts/voices/{id}`` forgets it)."""
+    return hashlib.sha256(voice_ref).hexdigest()[:16]
 
 
 def tts_request(text: str, lang: str, *, voice_ref: bytes | None, rate: float | None, model: str | None,
@@ -52,7 +58,7 @@ def tts_request(text: str, lang: str, *, voice_ref: bytes | None, rate: float | 
     if model:
         fields["model"] = model
     if voice_ref is not None:
-        fields["voice_id"] = hashlib.sha256(voice_ref).hexdigest()[:16]  # lets the service cache the speaker
+        fields["voice_id"] = voice_id(voice_ref)  # lets the service cache the speaker
         if options.get("voice_ref_as") == "multipart":
             return {"data": {k: str(v) for k, v in fields.items()},
                     "files": {"voice_ref": ("voice_ref.wav", voice_ref, "audio/wav")}}
@@ -192,6 +198,23 @@ class HttpTTS:
             async for _ in r.aiter_bytes():
                 pass
         self.ready = True
+
+    async def forget(self, voice_ids: Iterable[str]) -> int:
+        """Make the service drop these speakers' samples (session end, burn, a device gone for good).
+        204 and 404 both mean gone. Fail-soft: logs the id prefix and the error class, never a body."""
+        gone = 0
+        for vid in dict.fromkeys(voice_ids):
+            try:
+                r = await self._client.delete(f"{self.url}{self.path}/voices/{vid}",
+                                              timeout=httpx.Timeout(FORGET_TIMEOUT_S, connect=1.0))
+            except Exception as e:  # noqa: BLE001
+                log.warning("tts: could not delete voice %s… (%s)", vid[:4], _reason(e))
+                continue
+            if r.status_code in (200, 204, 404):
+                gone += 1
+            else:
+                log.warning("tts: deleting voice %s… returned HTTP %d", vid[:4], r.status_code)
+        return gone
 
     async def aclose(self) -> None:
         if self._own:

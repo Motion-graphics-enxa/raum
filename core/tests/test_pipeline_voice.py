@@ -449,3 +449,88 @@ async def test_voice_ref_never_reaches_events_logs_store_or_audit(tmp_path, monk
         for n in needles:
             assert n not in hay, f"voice sample leaked into the {where}"
     await asyncio.sleep(0)
+
+
+# ---------------------------------------------------------------- the service forgets the cloned voice
+
+
+class ForgetfulService(Service):
+    """The voice service, plus DELETE /tts/voices/{id}: records which ids it was told to drop."""
+
+    def __init__(self, delete_status: int = 204, **kw) -> None:
+        super().__init__(**kw)
+        self.deleted: list[str] = []
+        self.delete_status = delete_status
+
+    async def __call__(self, req: httpx.Request) -> httpx.Response:
+        if req.method == "DELETE":
+            assert req.url.path.startswith("/tts/voices/")
+            self.deleted.append(req.url.path.rsplit("/", 1)[1])
+            return httpx.Response(self.delete_status)
+        return await super().__call__(req)
+
+    def sent_ids(self) -> set[str]:
+        return {self.body(r)["voice_id"] for r in self.requests if r.method == "POST" and "voice_id" in self.body(r)}
+
+
+def on_headphones(h: Harness) -> Harness:
+    """Both devices on headphones: nobody's speech is echo, so both voices are sampled (C-14)."""
+    h.p.set_participants([p.model_copy(update={"audio_out": "headphones"}) for p in (DOC, PAT)])
+    return h
+
+
+async def test_burn_deletes_every_cloned_voice_in_the_service():
+    svc = ForgetfulService()
+    h = on_headphones(voiced(http_tts(svc)))
+    await speak(h, DOC.id, tone(3.0))
+    await h.p.drain()
+    await speak(h, DOC.id, tone(3.0, freq=260.0))  # the sample grew: a second id for the same speaker
+    await speak(h, PAT.id, tone(4.0, freq=311.0))
+    await h.p.drain()
+    sent = svc.sent_ids()
+    assert len(sent) >= 2, "the service got the speakers' voices"
+    await h.p.handle_control(Control(action="burn"))
+    await asyncio.sleep(0.05)
+    assert set(svc.deleted) == sent  # every id the service ever got, nothing else
+    assert all(not ref.sent_ids for ref in h.p._voice_refs.values())
+
+
+async def test_session_end_and_close_delete_the_voices_too():
+    svc = ForgetfulService()
+    h = voiced(http_tts(svc))
+    await speak(h, DOC.id, tone(4.0))
+    await h.p.drain()
+    h.p.set_state(SessionState(off_record=False, sealed=False, participants=[], mode="sprechzimmer",
+                               status="ended", session_id="s-1"))
+    await asyncio.sleep(0.05)
+    assert set(svc.deleted) == svc.sent_ids() and svc.deleted
+    svc.deleted.clear()
+    await speak(h, PAT.id, tone(4.0))
+    await h.p.drain()
+    await h.p.aclose()  # the agent leaves: it waits for the DELETEs
+    assert set(svc.deleted) == svc.sent_ids() - set() and svc.deleted
+
+
+async def test_a_device_gone_for_good_has_only_its_voice_deleted():
+    svc = ForgetfulService()
+    h = on_headphones(voiced(http_tts(svc)))
+    await speak(h, DOC.id, tone(4.0))
+    await speak(h, PAT.id, tone(4.0, freq=311.0))
+    await h.p.drain()
+    pat_ids = set(h.p._voice_refs[PAT.id].sent_ids)
+    assert pat_ids and pat_ids < svc.sent_ids()
+    h.p.forget_speaker(PAT.id)
+    await asyncio.sleep(0.05)
+    assert set(svc.deleted) == pat_ids and PAT.id not in h.p._voice_refs and DOC.id in h.p._voice_refs
+
+
+async def test_a_failing_delete_never_blocks_the_burn(caplog):
+    svc = ForgetfulService(delete_status=500)
+    h = voiced(http_tts(svc))
+    await speak(h, DOC.id, tone(4.0))
+    await h.p.drain()
+    with caplog.at_level(logging.WARNING, logger="raum.pipeline.tts_http"):
+        await h.p.handle_control(Control(action="burn"))
+        await asyncio.sleep(0.05)
+    assert h.p._voice_refs == {} and svc.deleted
+    assert all("RIFF" not in r.message and "voice_ref" not in r.message for r in caplog.records)

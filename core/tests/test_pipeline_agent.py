@@ -218,3 +218,21 @@ async def test_link_close_leaves_no_loop_on_a_dead_socket():
         await link.aclose()
         await asyncio.sleep(0.05)
         assert loops() == []
+
+
+def test_a_device_gone_past_the_rejoin_grace_has_its_voice_forgotten():
+    import time as _time
+
+    from raum.agent import worker as w
+    from raum.events import ParticipantInfo
+
+    agent, _ = _agent()
+    gone = ParticipantInfo(id="b-gone", role="b", lang="ar")
+    back = ParticipantInfo(id="b-back", role="b", lang="ru")
+    forgotten: list[str] = []
+    agent.pipeline.forget_speaker = forgotten.append  # type: ignore[method-assign]
+    agent.infos = {back.id: back}
+    agent.departed = {gone.id: (gone, _time.monotonic() - w.REJOIN_GRACE_S - 1),
+                      back.id: (back, _time.monotonic() - w.REJOIN_GRACE_S - 1)}
+    agent._sync_participants()
+    assert forgotten == ["b-gone"] and agent.departed == {}  # the device that came back keeps its voice

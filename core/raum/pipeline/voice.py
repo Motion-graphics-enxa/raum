@@ -24,7 +24,7 @@ RATE_MIN, RATE_MAX = 0.7, 1.5  # beyond that, synthetic speech stops being pleas
 class VoiceRef:
     """The first ``max_s`` seconds of a speaker's clean speech (16 kHz mono); ``wav()`` = WAV bytes."""
 
-    __slots__ = ("_chunks", "_samples", "_wav", "max_samples", "sample_rate")
+    __slots__ = ("_chunks", "_samples", "_wav", "max_samples", "sample_rate", "sent_ids")
 
     def __init__(self, *, max_s: float = 8.0, sample_rate: int = SAMPLE_RATE) -> None:
         self.sample_rate = sample_rate
@@ -32,6 +32,8 @@ class VoiceRef:
         self._chunks: list[np.ndarray] = []
         self._samples = 0
         self._wav: bytes | None = None
+        # ids under which a voice service holds this sample (one per growth stage): deleted with it
+        self.sent_ids: set[str] = set()
 
     @property
     def seconds(self) -> float:

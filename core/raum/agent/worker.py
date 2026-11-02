@@ -281,6 +281,8 @@ class RoomAgent:
         for ident, (_, left) in list(self.departed.items()):
             if ident in self.infos or now - left >= REJOIN_GRACE_S:
                 del self.departed[ident]
+                if ident not in self.infos:  # gone for good: its voice sample goes (also in the service)
+                    self.pipeline.forget_speaker(ident)
         # C-12: a device that left stays a translation target during the grace; as "headphones", so
         # its voice (which nobody in the room hears now) pauses no microphone (C-14)
         away = [info.model_copy(update={"audio_out": "headphones"}) for info, _ in self.departed.values()]

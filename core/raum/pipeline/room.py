@@ -91,6 +91,7 @@ from raum.pipeline.base import AsrResult, Engines, TranslateRequest, TurnContext
 from raum.pipeline.echo import EchoControl
 from raum.pipeline.simul import Simultaneous
 from raum.pipeline.speculate import Speculator
+from raum.pipeline.tts_http import voice_id
 from raum.pipeline.voice import SpeakingRate, VoiceArgs, VoiceRef, speech_seconds
 from raum.pipeline.voicelock import VoiceLock
 from raum.scheduler import Scheduler
@@ -296,6 +297,7 @@ class RoomPipeline:
         # Voice (C-13): one lane per target language, so utterances speak one after another and each
         # language's audio track has a single writer. A failing clause is dropped; only repeated
         # failures pause that language's voice, and only for VOICE_PAUSE_S (never the whole session).
+        self._service_forgets: set[asyncio.Task[Any]] = set()  # DELETEs of cloned voices in flight
         self._voice_lanes: dict[str, asyncio.Lock] = {}
         self._voice_fails: dict[str, int] = {}
         self._voice_paused_until: dict[str, float] = {}
@@ -898,11 +900,38 @@ class RoomPipeline:
         return ref.wav() if ref is not None and ref.seconds >= self.voice_ref_min_s else None
 
     def _forget_voices(self) -> None:
+        ids = [i for ref in self._voice_refs.values() for i in ref.sent_ids]
         for ref in self._voice_refs.values():
+            ref.sent_ids.clear()
             ref.clear()
         self._voice_refs.clear()
         self._rates.clear()
         self.voicelock.clear()  # F-10: the owners' voices go with the session
+        self._forget_in_service(ids)
+
+    def forget_speaker(self, speaker: str) -> None:
+        """A device left for good (after the rejoin grace): its voice sample goes, here and in the service."""
+        ref = self._voice_refs.pop(speaker, None)
+        self._rates.pop(speaker, None)
+        if ref is not None:
+            ids = list(ref.sent_ids)
+            ref.sent_ids.clear()
+            ref.clear()
+            self._forget_in_service(ids)
+
+    def _forget_in_service(self, ids: list[str]) -> None:
+        """A voice-cloning service keeps each sample it got until told: tell it (DELETE per id). Not in
+        ``self._tasks``: ``aclose`` must not cancel it (it waits for it briefly instead)."""
+        forget = getattr(self.engines.tts, "forget", None)
+        if not ids or not callable(forget):
+            return
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return
+        t = loop.create_task(forget(ids))
+        self._service_forgets.add(t)
+        t.add_done_callback(self._service_forgets.discard)
 
     def _voice_kwargs(self, tts: Any, voice: VoiceArgs | None) -> dict[str, Any]:
         """``voice_ref`` / ``rate`` for engines that take them (older ones get the plain call)."""
@@ -910,6 +939,8 @@ class RoomPipeline:
             return {}
         ref = voice.ref
         wav = ref.wav() if ref is not None and ref.seconds >= self.voice_ref_min_s else None  # cleared on burn
+        if wav is not None and getattr(tts, "uses_voice_ref", False):
+            ref.sent_ids.add(voice_id(wav))  # the service will hold it under this id until we delete it
         return {"voice_ref": wav, "rate": voice.rate}
 
     # ---------------------------------------------------------------- echo control (C-14)
@@ -1232,6 +1263,8 @@ class RoomPipeline:
         self._active.clear()
         self.echo.clear()
         self._forget_voices()
+        if self._service_forgets:  # the voice service deletes the samples before the room goes
+            await asyncio.wait(list(self._service_forgets), timeout=3.0)
         tasks = list(self._tasks)
         for t in tasks:
             t.cancel()
