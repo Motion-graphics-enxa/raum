@@ -323,3 +323,58 @@ def unfinished(text: str, lang: str | None) -> str | None:
     if why is None and _TRAILING_NUMBER.search(text):
         return "number-open"  # "принимайте по 500", "take 500"
     return why
+
+
+# ---------------------------------------------------------------- sentences whisper split at a pause
+
+_SENT_BREAK = re.compile(r"(\.\.\.|…|[.!?])\s+(?=\S)")
+_NEG_ANY = frozenset({"not", "never", "nicht", "nie", "не", "ни"})
+
+
+def _continues(word: str, lang: str) -> bool:
+    """Can ``word`` (lowercase) carry on a sentence a rule called unfinished ("nicht", "nehmen", "не",
+    "принимать", "not")?"""
+    if word in _NEG_ANY:
+        return True
+    if lang == "de":
+        return word in ("mehr", "kein", "keine", "keinen") or _verb_form_de(word)
+    if lang == "ru":
+        return bool(_INF_RU.fullmatch(word))
+    return False
+
+
+def join_fragments(text: str, lang: str | None) -> str:
+    """Undo a sentence end whisper put at a pause inside a sentence: "You should not. Take this medicine
+    with alcohol." -> "You should not take this medicine with alcohol." (the translator otherwise invents
+    a sentence for "You should not."). A break is removed only after a fragment a hard rule calls unfinished
+    AND (it ends in a conjunction / preposition / negation, or the next word continues it: a negation, a
+    German verb form, a Russian infinitive). "Yes, I can. Thank you." stays."""
+    code = (lang or "").split("-")[0].lower()
+    if code not in _RULES or not text:
+        return text
+    out = text
+    pos = 0
+    while True:
+        m = _SENT_BREAK.search(out, pos)
+        if m is None:
+            return out
+        start = max(out.rfind(c, 0, m.start()) for c in ".!?…") + 1
+        fragment = out[start:m.end(1)].strip()  # with its "?": "Where are you from?" is no fragment
+        why = _RULES[code](fragment) if _WORD.search(fragment) else None
+        rest = out[m.end():]
+        nxt = _WORD.match(rest)
+        if why is None or why in SOFT or nxt is None:
+            pos = m.end()
+            continue
+        last = (_WORD.findall(fragment) or [""])[-1].lower()
+        word = nxt.group(0)
+        low = word.lower()
+        dangling = why in ("conj-open", "neg-open") or last in _NEG_ANY or last == "to"
+        if not (dangling or m.group(1) in ("...", "…") or _continues(low, code)):
+            pos = m.end()
+            continue
+        keep_case = (code == "en" and (word == "I" or word.startswith(("I'", "I’")))) or \
+            (code == "de" and not (low in _FUNCTION_DE or _continues(low, code)))
+        joined = word if keep_case else low
+        out = out[:m.start()] + " " + joined + rest[len(word):]
+        pos = m.start() + 1

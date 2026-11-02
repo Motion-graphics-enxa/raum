@@ -300,3 +300,62 @@ def test_commit_floor_is_lower_for_svo_languages():
     assert d.commit_floor("en") == d.commit_floor("ru") == 0.02
     assert d.commit_floor("de") == 0.1  # verb-final: commit only what the model calls finished
     assert TurnDetector(Executor(), {**OPTS, "rules": False}).commit_floor("en") == 0.1
+
+
+# ---------------------------------------------------------------- whisper's sentence end at a pause
+
+JOINS = [
+    ("en", "You should not. Take this medicine with alcohol.", "You should not take this medicine with alcohol."),
+    ("en", "I'm allergic to... penicillin.", "I'm allergic to penicillin."),
+    ("de", "Sie dürfen das Metformin ab morgen. Nicht mehr nehmen.",
+     "Sie dürfen das Metformin ab morgen nicht mehr nehmen."),
+    ("de", "Sie dürfen das Medformin abnorgen? Nicht mehr nehmen.", "Sie dürfen das Medformin abnorgen nicht mehr nehmen."),
+    ("de", "Ich bin allergisch gegen. Penicillin.", "Ich bin allergisch gegen Penicillin."),  # the noun keeps its case
+    ("de", "Ich habe das. Nicht genommen.", "Ich habe das nicht genommen."),
+    ("ru", "Вам нельзя. Принимать метформин с алкоголем.", "Вам нельзя принимать метформин с алкоголем."),
+]
+KEEPS = [
+    ("en", "Yes, I can. Thank you."),
+    ("en", "Where are you from? I'm from Berlin."),
+    ("en", "You may. I think so."),
+    ("de", "Guten Tag. Wie geht es Ihnen?"),
+    ("de", "Das ist gut. Danke."),
+    ("de", "Sie dürfen. Danke."),
+    ("de", "Nehmen Sie 500. Milligramm."),  # a SOFT reason never joins
+    ("ru", "Мне можно? Спасибо."),
+    ("tr", "Yapmamalısınız. Bu ilacı alkolle almayın."),  # no rules for the language
+]
+
+
+@pytest.mark.parametrize(("lang", "text", "joined"), JOINS)
+def test_join_fragments(lang, text, joined):
+    from raum.pipeline.incomplete import join_fragments
+
+    assert join_fragments(text, lang) == joined
+
+
+@pytest.mark.parametrize(("lang", "text"), KEEPS)
+def test_join_fragments_keeps_real_sentences(lang, text):
+    from raum.pipeline.incomplete import join_fragments
+
+    assert join_fragments(text, lang) == text
+
+
+class EnPauseASR:
+    """The box's en-pause clip: whisper puts a full stop where the speaker paused."""
+
+    is_mock = False
+
+    async def transcribe(self, audio, *, lang_hint, partial, turn):
+        await asyncio.sleep(0.005)
+        return AsrResult(text="You should not. Take this medicine with alcohol.", lang="en", conf=0.93, ms=5.0)
+
+
+async def test_whispers_full_stop_at_a_pause_is_not_a_sentence_end_for_the_translator():
+    from pipeline_helpers import PAT
+
+    h = Harness()
+    h.p.engines.asr = EnPauseASR()
+    await h.say(PAT.id, seconds=1.0)
+    await h.p.drain()
+    assert h.one("transcript.final")["text"] == "You should not take this medicine with alcohol."

@@ -95,6 +95,7 @@ from raum.pipeline import texts as T
 from raum.pipeline._util import int16_to_float, lang_code, lang_name, load_prompt, render_prompt
 from raum.pipeline.base import AsrResult, Engines, TranslateRequest, TurnContext
 from raum.pipeline.echo import EchoControl
+from raum.pipeline.incomplete import join_fragments
 from raum.pipeline.merge import Continuations
 from raum.pipeline.simul import Simultaneous
 from raum.pipeline.speculate import Speculator
@@ -357,7 +358,10 @@ class RoomPipeline:
 
     def fix_terms(self, text: str, lang: str | None) -> str:
         """A misheard glossary medication in the glossary's spelling ("Medformin" -> "Metformin", guard.py
-        ``correct_medications``): what the card shows, the translator reads and the fact guard checks."""
+        ``correct_medications``), and a sentence end whisper put at a pause inside a sentence removed ("You
+        should not. Take ..." -> "You should not take ...", incomplete.py ``join_fragments``): what the card
+        shows, the translator reads and the fact guard checks."""
+        text = join_fragments(text, lang)
         fixed, _ok = _guard_call(guard.correct_medications, text, lang or "", self.glossary)
         return fixed if isinstance(fixed, str) else text
 
