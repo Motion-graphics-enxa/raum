@@ -418,12 +418,15 @@ def test_take_clause_splits_speakable_prefixes():
     # ordinals and abbreviations never end a clause
     assert take_clause("Kommen Sie am Donnerstag, dem 12. November wieder")[0] == ""
     assert take_clause("Bitte kommen Sie zu Dr. Weber")[0] == ""
-    # a comma ends a clause only once it is long enough to be worth speaking
+    # a comma ends a later clause only from COMMA_WORDS words on: the rest of a sentence is one voice request
     assert take_clause("Ja, gut")[0] == ""
-    head, rest = take_clause("Nehmen Sie die Tabletten bitte immer morgens, und abends")
-    assert head == "Nehmen Sie die Tabletten bitte immer morgens," and rest == " und abends"
-    head, _ = take_clause("أتناول ٥٠٠ ملغ من الميتفورمين مرتين يوميًا، وعندي")
-    assert head.endswith("يوميًا،")
+    assert take_clause("Nehmen Sie die Tabletten bitte immer morgens, und abends")[0] == ""
+    assert take_clause("a day, always after meals. Then") == ("a day, always after meals.", " Then")
+    head, rest = take_clause("Bitte nehmen Sie ab morgen zweimal täglich 500 mg Metformin zum Essen, und wenn")
+    assert head.endswith("zum Essen,") and rest == " und wenn"  # a long sentence still goes out in pieces
+    assert take_clause("أتناول ٥٠٠ ملغ من الميتفورمين مرتين يوميًا، وعندي")[0] == ""  # the Arabic comma too
+    head, _ = take_clause("أتناول ٥٠٠ ملغ من الميتفورمين مرتين يوميًا مع الطعام كل صباح وكل مساء دائمًا، وعندي")
+    assert head.endswith("دائمًا،")
 
 
 async def test_facts_skip_questions_and_valueless_facts(no_guard):

@@ -245,7 +245,7 @@ class _Ask:
     ready: bool = True  # False until the read-back has started playing: nothing earlier answers it
 
 
-_CLAUSE_END = re.compile(r"[.!?;:…。！？،؛؟](?=\s)|,(?=\s)")
+_CLAUSE_END = re.compile(r"[.!?;:…。！？؛؟](?=\s)|[,،](?=\s)")
 _ABBREV = re.compile(r"(?:\b(?:Dr|Fr|Hr|Prof|Nr|ca|bzw|z\.B|u\.a|St|Mr|Mrs|Ms|No|vs)\.|\d\.)$", re.IGNORECASE)
 MIN_CLAUSE_CHARS = 16
 
@@ -267,9 +267,18 @@ def _tail_ok(head: str, min_words: int, expect_words: int | None) -> bool:
     return not min_words or expect_words is None or expect_words - _words(head) >= min_words
 
 
+# After the first phrase (take_phrase), a clause ends at a comma only once it has this many words: the rest of the
+# sentence is ONE voice request. Every request boundary costs the voice's edge silence and restarts its intonation
+# (box, 2 Nov, sz-9101: "Take 500 mg Metformin twice | a day, | always after meals." played with 630 + 530 ms gaps);
+# Gemma e4b has the whole sentence in ~300 ms, long before the first phrase has played out, so waiting for the
+# sentence end costs no time. A very long sentence still goes out in pieces (no stall behind a long MT).
+COMMA_WORDS = 12
+_COMMAS = (",", "،")
+
+
 def take_clause(buf: str, min_words: int = 0, expect_words: int | None = None) -> tuple[str, str]:
     """Split off the longest speakable prefix that ends at a clause boundary (sentence end, or a comma
-    once the clause is long enough). Ordinals and abbreviations ("12.", "Dr.") never end a clause.
+    once the clause has ``COMMA_WORDS`` words). Ordinals and abbreviations ("12.", "Dr.") never end a clause.
     ``min_words``: no cut before that many words (a cloned voice is clean only from ~5 words); the
     short clause waits and goes with the next one."""
     cut = -1
@@ -280,7 +289,7 @@ def take_clause(buf: str, min_words: int = 0, expect_words: int | None = None) -
             continue
         if not _tail_ok(head, min_words, expect_words):
             continue
-        if m.group(0) == "," and len(head.strip()) < 2 * MIN_CLAUSE_CHARS:
+        if m.group(0) in _COMMAS and (len(head.strip()) < 2 * MIN_CLAUSE_CHARS or _words(head) < COMMA_WORDS):
             continue
         if m.group(0) == "." and _ABBREV.search(head):
             continue
