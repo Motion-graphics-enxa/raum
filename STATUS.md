@@ -1,6 +1,6 @@
 # RAUM build status
 
-_Read by the ops session. Updated at every milestone. Last update: Mon 2 Nov, ~22:30 (main aa06db2)._
+_Read by the ops session. Updated at every milestone. Last update: Mon 2 Nov, ~23:00 (main c352cc7)._
 
 ## What works (on `main`)
 - **Live on the GX10 (ops):** real engines (whisper.cpp large-v3-turbo, gemma4:26b, gpt-oss:120b, bge-m3, Piper binary), fact guard, encrypted sessions + audit chain. Measured warm: vad 320 / asr 249 / first words 677 / sentence 888 / voice 1399 / check 1425 ms.
@@ -13,7 +13,8 @@ _Read by the ops session. Updated at every milestone. Last update: Mon 2 Nov, ~2
 - **Pause P0 (pause-de.wav, "Sie dürfen das Metformin ab morgen [800 ms] nicht mehr nehmen."):** (1) 0457b5b `pipeline/incomplete.py`: deterministic verb-final / neg-scope rule (de), trailing auxiliary (en), before the text model; a low-confidence "?" is not completeness; options `rules`, `aux_s` (spark 1.0, ops 9088c81), `q_conf`. Box: 8/8 one utterance, correct. (2+3) 58078c1: glossary as whisper's prompt in sz/kz (`asr.glossary_prompt`), fuzzy medication match (unique nearest, <=2 edits on 8+ chars, <=1 on 6-7) and the transcript corrected to the glossary spelling. Box: "Metformin" 3/3, green 3/3.
 - **End of turn faster (6ca5b43):** `fast-complete` at 0.45 s (de/en/ru) when the transcript ends in . ! ?, asr_conf >= 0.90, >= 3 words, no rule, text P >= 0.02; rules for ru (modal at the end, не/ни, conj/prep, time phrase after a modal), en/de conj/prep, soft trailing number; en/ru clauses commit at 0.02 in simultaneous mode. Smarter aux rule (e88c2c9): aux-open only without a complement.
 - **Continuation merge (c85c0de):** sz/kz, the same speaker again within 1.2 s of an end of turn whose voice still plays: the cut voice stops (`p.tts_stop` -> `AudioSource.clear_queue`), one ASR over both halves, translated/checked/spoken whole; `utterance.continued` dims the cut card. Box: cont-de 2/2. Whisper's pause full stop undone (`join_fragments`, b9f9c0f; en-pause 2/2), segments joined without "\n" (5be55a6).
-- **Confirm UX (5aa0985, b7a1061):** green = quiet "noted" chips on the professional's card (`flag kind:"noted"`), nobody asked; uncertain (guard mismatch, checker amber/red from the meaning check, asr_conf < `asr_confirm_conf` 0.7) = one spoken read-back in the standard voice ("Nur zur Sicherheit: ...?") + small Ja/Nein on the card, a spoken yes/no in the next short utterance answers (`confirm via:"voice"`); unanswered stays "unconfirmed", never asked twice; summary lists noted/unconfirmed/confirmed/rejected. A checker that is only warming up/failed/off asks nothing.
+- **Live speed, real phones (user's gs rooms, after aa06db2, GPU free), p50:** end of turn 0.69-0.81 s, first words 0.70-0.88 s, **voice 0.82-1.03 s**.
+- **Confirm UX (5aa0985, b7a1061):** green = quiet "noted" chips on the professional's card (`flag kind:"noted"`), nobody asked; uncertain (guard mismatch, checker amber/red from the meaning check, asr_conf < `asr_confirm_conf` 0.6, box data; mode `pipeline.asr_confirm_conf` per room) = one spoken read-back in the standard voice ("Nur zur Sicherheit: ...?") + small Ja/Nein on the card, a spoken yes/no in the next short utterance answers (`confirm via:"voice"`); unanswered stays "unconfirmed", never asked twice; summary lists noted/unconfirmed/confirmed/rejected. A checker that is only warming up/failed/off asks nothing.
 - **Voice echo check (9206651):** `tts.options.echo_check: facts` (spark): clauses with dose/number/date/time heard back by whisper in the background slot; a wrong figure -> `voice.echo` note on the listener's card + the clause once more in the standard voice ("Повторяю: ..."), audit `voice.echo_mismatch` (kinds only); `echo_ms` / `echo_check` in timing.
 - **A-04 tunnel path (e18401e):** a join from the box's own address (`RAUM_TUNNEL_SELF_IPS` / `network.tunnel_self_ips`, userspace tailscaled subnet router) is path "tunnel".
 - **Simultaneous mode + latency (d1bd3b7):** on ops' end of turn; speculation at the pause (never published before the turn ends), voice on the first phrase, stable partial as final; `tts_synth_first_ms` / `tts_publish_first_ms` / `asr_from` in pipeline.timing. Box: speaker stops -> voice 747-1246 ms (sz), 850-956 ms (gs).
@@ -33,13 +34,13 @@ _Read by the ops session. Updated at every milestone. Last update: Mon 2 Nov, ~2
 - **Design:** impeccable only. PRODUCT.md, direction contract `.impeccable/surfaces/`, finish review (fix -> verdict -> final batch), **DESIGN.md** + `.impeccable/design.json`.
 - **No third-party bytes:** LiveKit gets LAN-only STUN/TURN (box's own :3478; compose, livekit.yaml, dev.sh), onnxruntime telemetry off (ops 739e8a1); privacy meter reads 0 B on the GX10.
 - **Deploy:** `deploy/push.sh` -> `gx10:~/Desktop/HackathonRaum/raum`; `deploy/box.sh` (sources `runtime/raum.env`; process groups); `RAUM_UV_EXTRAS="--extra denoise"` for DeepFilterNet.
-- **Tests:** `cd core && uv run pytest -q` -> 1133 passed; `uv run ruff check .` clean.
+- **Tests:** `cd core && uv run pytest -q` -> 1136 passed; `uv run ruff check .` clean; two-phone e2e sz + gs pass on the mock stack.
 
 ## In flight (parallel agents, worktree branches; the integrator merges)
 - Nothing running; waiting for ops' box results on the confirm UX and the echo check.
 
 ## Integrator TODO
-- Tune on the box: `asr_confirm_conf` (0.7 is a guess), echo check's effect on live `asr_ms`.
+- Box: the read-back path end to end (uncertain fact -> spoken read-back -> spoken yes); echo check's effect on live `asr_ms` (first run: none).
 - impeccable context drift reported by its tooling (not repaired as a side effect): PRODUCT.md says "web" though there is an Android build; `.impeccable/design.json` older than DESIGN.md; no `buildPath` in `.impeccable/config.json`.
 - Spoken AI disclosure for the speakerphone participant (no consent screen).
 - After the freeze: checker meaning judge on the gpt-oss call (subtle changes score 0.88-0.99 similarity).
