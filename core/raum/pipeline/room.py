@@ -98,7 +98,7 @@ from raum.events import (
 )
 from raum.glossary import Glossary, GlossaryError, parse_terms
 from raum.modes.schema import ModeConfig
-from raum.pipeline import codeswitch, readback, stats
+from raum.pipeline import codeswitch, readback, stats, voicegate
 from raum.pipeline import texts as T
 from raum.pipeline._util import int16_to_float, lang_code, lang_name, load_prompt, render_prompt
 from raum.pipeline.base import AsrResult, Engines, TranslateRequest, TurnContext
@@ -124,6 +124,11 @@ log = logging.getLogger("raum.pipeline.room")
 SAMPLE_RATE = 16000
 ASR_TIMEOUT_S = 15.0
 PARTIAL_TIMEOUT_S = 5.0
+# voice in flight (voicegate.py): a partial waits at most this long for the voice to finish synthesising (spacing
+# partials to ~1 s while it does); the second check (gpt-oss) and the echo check wait up to CHECK_DEFER_S
+PARTIAL_DEFER_S = float(os.environ.get("RAUM_PARTIAL_DEFER_S", "0.5"))
+CHECK_DEFER_S = float(os.environ.get("RAUM_CHECK_DEFER_S", "2.0"))
+SPEC_DEFER_S = float(os.environ.get("RAUM_SPEC_DEFER_S", "0.3"))
 MT_TIMEOUT_S = 30.0
 CHECK_TIMEOUT_S = 20.0
 EXPLAIN_TIMEOUT_S = 30.0  # a whole plain-language rewrite (K-02), off the live path
@@ -587,6 +592,8 @@ class RoomPipeline:
         audio = u.audio()
         turn = replace(u.turn, speech_ms=len(audio) * 1000.0 / SAMPLE_RATE)
         try:
+            with stats.timed("voice.defer.partial"):
+                await voicegate.quiet(PARTIAL_DEFER_S)
             async with self.sched.slot("background"):
                 if u.closed:
                     return
@@ -950,6 +957,8 @@ class RoomPipeline:
         if verifier is None:  # guard only: no model, no slot
             result = await run()
         else:
+            with stats.timed("voice.defer.check"):
+                await voicegate.quiet(CHECK_DEFER_S)  # gpt-oss between clauses, not under the voice
             async with self.sched.slot("check"):
                 result = await run()
         check_ms = round((time.monotonic() - t_final) * 1000.0, 1)

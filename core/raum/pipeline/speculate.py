@@ -40,7 +40,7 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
-from raum.pipeline import stats
+from raum.pipeline import stats, voicegate
 from raum.pipeline.base import TranslateRequest, takes_kwarg
 
 if TYPE_CHECKING:
@@ -486,6 +486,10 @@ class Speculator:
         # partials (their marks are before the stop: negative)
         with stats.scope("spec" if spec.pause else "spec.partial"):
             try:
+                if slot == "background":  # speculative MT holds back briefly under the voice; live MT never waits
+                    from raum.pipeline.room import SPEC_DEFER_S
+                    with stats.timed("voice.defer.spec"):
+                        await voicegate.quiet(SPEC_DEFER_S)
                 async with self.p.sched.slot(slot):
                     spec.started = True
                     stats.mark("mt", "start_ms")

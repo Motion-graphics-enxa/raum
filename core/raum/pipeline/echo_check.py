@@ -50,7 +50,7 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
-from raum.pipeline import stats
+from raum.pipeline import stats, voicegate
 from raum.pipeline import texts as T
 from raum.pipeline._util import int16_to_float
 from raum.pipeline.base import TurnContext
@@ -318,6 +318,9 @@ class EchoCheck:
             return
         turn = TurnContext(room=p.room, mode=p.mode.id, speaker=ECHO_SPEAKER, role="observer",
                            utt=f"{g.utt}-echo{pr.clause}", speech_ms=audio.size * 1000.0 / ASR_RATE)
+        from raum.pipeline.room import CHECK_DEFER_S
+        with stats.timed("voice.defer.echo"):
+            await voicegate.quiet(CHECK_DEFER_S)  # hear the clause back once the next one is synthesised
         try:
             with stats.timed("echo.slot.background"):  # pipeline.timing stages
                 await asyncio.wait_for(p.sched.acquire("background"), ECHO_WAIT_S)

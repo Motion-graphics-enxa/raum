@@ -42,7 +42,7 @@ from typing import Any
 import httpx
 import numpy as np
 
-from raum.pipeline import stats
+from raum.pipeline import stats, voicegate
 
 log = logging.getLogger("raum.pipeline.tts.http")
 
@@ -320,7 +320,9 @@ class HttpTTS:
         n = 0
         done = False
         try:
-            async with self._client.stream("POST", self.url + self.path, **req) as r:
+            # voice in flight (voicegate.py): deferrable GPU work in every room waits while a live clause synthesises
+            async with (contextlib.nullcontext() if background else voicegate.speaking()) as mark, \
+                    self._client.stream("POST", self.url + self.path, **req) as r:
                 if r.status_code >= 400:
                     if background and r.status_code in BUSY_STATUSES:
                         m["refused"] = 1
@@ -336,6 +338,8 @@ class HttpTTS:
                             if not n:
                                 m["ttfb_ms"] = (time.monotonic() - t0) * 1000.0
                             n += len(chunk)
+                            if mark is not None:
+                                mark.touch()
                             yield chunk
                 except httpx.HTTPError as e:
                     if background:  # the service cuts a background stream when live speech needs the voice

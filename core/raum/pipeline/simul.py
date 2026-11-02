@@ -70,6 +70,7 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
+from raum.pipeline import stats, voicegate
 from raum.pipeline import texts as T
 from raum.pipeline._util import lang_code
 from raum.pipeline.base import AsrResult, TurnContext
@@ -605,6 +606,9 @@ class Simultaneous:
         if verifier is None:
             result = await run()
         else:
+            from raum.pipeline.room import CHECK_DEFER_S
+            with stats.timed("voice.defer.check"):
+                await voicegate.quiet(CHECK_DEFER_S)  # gpt-oss between clauses, not under the voice
             async with p.sched.slot("check"):
                 result = await run()
         check_ms = round((time.monotonic() - t) * 1000.0, 1)
