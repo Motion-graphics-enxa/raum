@@ -25,6 +25,7 @@ import asyncio
 import inspect
 import os
 import sys
+import time
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
@@ -91,15 +92,20 @@ async def build(cfg: Any, direct_ollama: str | None, log) -> tuple[Any, Any, Any
 
 async def second_check(verifier: Any, embedder: Any, rec: dict, tgt_text: str, guard_red: bool | None,
                        thr: Any) -> dict[str, Any]:
+    t0 = time.perf_counter()
     try:
         back = await verifier.back_translate(tgt_text, rec["tgt_lang"], rec["src_lang"])
+        t1 = time.perf_counter()
         a, b = await embedder.embed([rec["src"], back])
         s = cosine(a, b)
     except Exception as e:  # noqa: BLE001
         return {"similarity": None, "badge": "grey", "back": None, "error": repr(e),
-                "combined": "red" if guard_red else "grey"}
+                "combined": "red" if guard_red else "grey", "ms": round((time.perf_counter() - t0) * 1000, 1)}
+    t2 = time.perf_counter()
     return {"similarity": round(s, 4), "badge": badge(s, thr.green, thr.amber),
-            "combined": badge(s, thr.green, thr.amber, guard_red), "back": back}
+            "combined": badge(s, thr.green, thr.amber, guard_red), "back": back,
+            "ms": round((t2 - t0) * 1000, 1), "bt_ms": round((t1 - t0) * 1000, 1),
+            "embed_ms": round((t2 - t1) * 1000, 1)}
 
 
 # ------------------------------------------------------------------ one record
@@ -228,6 +234,9 @@ def summarize(rows: list[dict]) -> dict[str, Any]:
                            "perturbed_p50": percentile([r["check_pert"]["similarity"] for r in rows
                                                         if r.get("check_pert", {}).get("similarity")
                                                         is not None], 50)},
+            "ms": {q: percentile([c.get("ms") for r in rows for k in ("check_ref", "check_pert")
+                                  for c in [r.get(k) or {}]] + [r["mt"].get("ms") for r in rows if "mt" in r],
+                                 int(q[1:])) for q in ("p50", "p95")},
             "calibration": calibrate(rows),
         }
         s["combined"] = {
@@ -338,8 +347,10 @@ def render_md(rep: dict[str, Any]) -> str:
               "", f"False alarms (red) on clean references: {c['false_alarms']['red']}/{c['false_alarms']['n']} "
               f"= {fmt_pct(c['false_alarms']['rate'])}; amber: {c['false_alarms']['amber']}.",
               f"Similarity: clean p50 {c['similarity']['clean_p50']}, clean min {c['similarity']['clean_min']}, "
-              f"perturbed p50 {c['similarity']['perturbed_p50']}. Thresholds green ≥ {rep['thresholds']['green']}, "
-              f"amber ≥ {rep['thresholds']['amber']}.", ""]
+              f"perturbed p50 {round(c['similarity']['perturbed_p50'] or 0, 4)}. "
+              f"Thresholds green ≥ {rep['thresholds']['green']}, amber ≥ {rep['thresholds']['amber']}. "
+              f"Check time (back-translation + embedding) p50 {fmt_ms(c['ms']['p50'])}, p95 {fmt_ms(c['ms']['p95'])}.",
+              ""]
         if c.get("calibration"):
             cal = c["calibration"]
             L += [f"Calibration suggestion (§6.9): red below **{cal['red_below']}** catches "

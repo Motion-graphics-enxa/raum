@@ -27,5 +27,5 @@ network:
   core_url: http://127.0.0.1:8000
   tunnel: tailscale
 
-thresholds: { green: 0.86, amber: 0.78 }   # calibrated in Sprint 3 (§6.9)
+thresholds: { green: 0.86, amber: 0.83 }   # G3 eval on the GX10 (90 records ru/tr/ar): 11/12 semantic red, 2/90 false alarms
 asr_min_conf: 0.55
