@@ -116,6 +116,8 @@ async def test_ollama_translator_streams_chat():
     assert "the way Arabic writes them" in system["content"]  # target conventions: мг, евро, ٣٬٢٠٠
     assert "Never leave a German word" in system["content"]  # seen: "в 10.000 Stück"
     assert "Mirror the speaker" in system["content"] and "يرجى" in system["content"]  # Sie -> no bare خذ
+    assert "if Arabic is German, Russian, Turkish or Arabic, give Fahrenheit in Celsius" in system["content"]
+    assert "38,9 °C (102 °F)" in system["content"]  # converted, original kept: the guard accepts either
     assert "{" not in system["content"]
 
     [d async for d in tr.stream(_req(text="Zweiter Satz."))]
