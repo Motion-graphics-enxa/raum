@@ -44,12 +44,14 @@ import asyncio
 import json
 import logging
 import sys
+import time
 from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
 from livekit.agents.inference_runner import _InferenceRunner
 
+from raum.pipeline._ollama import note_ollama
 from raum.pipeline._util import float_to_int16, lang_code, lang_name
 from raum.pipeline.incomplete import SOFT, unfinished
 
@@ -188,9 +190,18 @@ class LlmJudge:
                                     lang=lang_name(lang), text=text)}]}
         if self.think is not None:
             body["think"] = self.think
-        r = await self._client.post(f"{self.url}/api/chat", json=body)
-        r.raise_for_status()
-        return str(r.json()["message"]["content"]).strip().lower().startswith("yes")
+        # stage "eot.text" (pipeline/stats.py): wall_ms and the server timings (_ollama.note_ollama)
+        t0 = time.monotonic()
+        j: Any = None
+        try:
+            r = await self._client.post(f"{self.url}/api/chat", json=body)
+            r.raise_for_status()
+            j = r.json()
+        finally:
+            ok = isinstance(j, dict)
+            note_ollama("eot.text", j if ok else None, (time.monotonic() - t0) * 1000.0, self.model,
+                        error=None if ok else 1)
+        return str(j["message"]["content"]).strip().lower().startswith("yes")
 
     async def aclose(self) -> None:
         await self._client.aclose()

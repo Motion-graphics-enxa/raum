@@ -10,12 +10,13 @@ import json
 import logging
 import random
 import re
+import time
 from typing import Any
 
 import httpx
 
 from raum.pipeline import mockdata
-from raum.pipeline._ollama import WarmGate, warm_request
+from raum.pipeline._ollama import WarmGate, note_ollama, warm_request
 from raum.pipeline._util import engine_options, lang_name, load_prompt, render_prompt, sample_ms, sleep_ms
 from raum.pipeline.base import TurnContext
 from raum.pipeline.translate import OLLAMA_OPTIONS
@@ -132,23 +133,39 @@ class OllamaVerifier(WarmGate):
         self.ready = True
 
     async def _post(self, messages: list[dict[str, str]], *, fmt: str | None = None,
-                    num_predict: int | None = None) -> dict[str, Any]:
+                    num_predict: int | None = None, purpose: str | None = None) -> dict[str, Any]:
+        """Stage ``check`` (back-translation) or ``check.<purpose>`` (pipeline/stats.py): ``wall_ms`` and the
+        server timings (``_ollama.note_ollama``); ``error=1`` / ``cancelled=1`` when no answer came."""
         self._check_gate()
-        r = await self._client.post(f"{self.url}/api/chat",
-                                    json=self._body(messages, fmt=fmt, num_predict=num_predict))
-        if r.status_code >= 400:
-            raise RuntimeError(f"ollama {r.status_code}: {r.text[:200]}")
-        j = r.json()
-        if j.get("error"):
-            raise RuntimeError(f"ollama: {j['error']}")
-        return j
+        t0 = time.monotonic()
+        j: dict[str, Any] | None = None
+        end: dict[str, float | None] = {}
+        try:
+            r = await self._client.post(f"{self.url}/api/chat",
+                                        json=self._body(messages, fmt=fmt, num_predict=num_predict))
+            if r.status_code >= 400:
+                raise RuntimeError(f"ollama {r.status_code}: {r.text[:200]}")
+            j = r.json()
+            if j.get("error"):
+                raise RuntimeError(f"ollama: {j['error']}")
+            return j
+        except Exception:
+            end["error"] = 1
+            raise
+        except BaseException:
+            end["cancelled"] = 1
+            raise
+        finally:
+            note_ollama(f"check.{purpose}" if purpose else "check", j if not end else None,
+                        (time.monotonic() - t0) * 1000.0, self.model, **end)
 
     @staticmethod
     def _content(j: dict[str, Any]) -> str:
         return str((j.get("message") or {}).get("content") or "").strip()
 
-    async def _chat(self, messages: list[dict[str, str]], *, fmt: str | None = None) -> str:
-        return self._content(await self._post(messages, fmt=fmt))
+    async def _chat(self, messages: list[dict[str, str]], *, fmt: str | None = None,
+                    purpose: str | None = None) -> str:
+        return self._content(await self._post(messages, fmt=fmt, purpose=purpose))
 
     async def back_translate(self, text: str, text_lang: str, into_lang: str,
                              turn: TurnContext | None = None) -> str:
@@ -165,11 +182,11 @@ class OllamaVerifier(WarmGate):
         return self._content(j)
 
     async def complete_json(self, prompt: str, *, purpose: str) -> dict[str, Any]:
-        raw = await self._chat([{"role": "user", "content": prompt}], fmt="json")
+        raw = await self._chat([{"role": "user", "content": prompt}], fmt="json", purpose=purpose)
         return parse_json_object(raw)
 
     async def complete_text(self, prompt: str, *, purpose: str) -> str:
-        return await self._chat([{"role": "user", "content": prompt}])
+        return await self._chat([{"role": "user", "content": prompt}], purpose=purpose)
 
     async def aclose(self) -> None:
         if self._own:
