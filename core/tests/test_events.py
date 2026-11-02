@@ -36,6 +36,8 @@ def test_plan_example_parses():
     ("offer.update", {"amount": 1200000, "currency": "EUR", "by": "a", "ts": 1}),
     ("pipeline.timing", {"vad_ms": 320, "asr_ms": 210, "mt_first_ms": 240, "mt_full_ms": 700,
                          "tts_first_ms": None, "check_ms": 1000}),
+    ("voice.lock", {"speaker": "a-doc1", "accepted": False, "status": "mismatch", "score": 0.12, "threshold": 0.35}),
+    ("voice.lock", {"speaker": "a-doc1", "accepted": True, "status": "enrolling"}),
     ("session.state", {"off_record": False, "sealed": False, "participants": [], "mode": "sprechzimmer"}),
     ("privacy.meter", {"third_party_bytes": 0, "tunnel_bytes": 2048, "sealed": False}),
     ("gpu.stats", {"util_pct": 41.5, "models_loaded": ["gemma4:26b"]}),
@@ -55,6 +57,8 @@ def test_bad_payload_rejected():
         make_event("nope", "sz-1", {})
     with pytest.raises(ValidationError):
         Envelope.model_validate({"v": 2, "type": "flag", "room": "x", "data": {}})
+    with pytest.raises(ValidationError):
+        make_event("voice.lock", "sz-1", {"speaker": "a-doc1", "accepted": True, "status": "maybe"})
 
 
 def test_control_actions():
@@ -65,7 +69,7 @@ def test_control_actions():
 
 def test_typescript_twin_lists_the_same_types():
     ts = (repo_root() / "app" / "src" / "lib" / "events.ts").read_text(encoding="utf-8")
-    block = re.search(r"export const EVENT_TYPES = \[(.*?)\] as const", ts, re.S)
+    block = re.search(r"export const EVENT_TYPES = \[(.*?)\] as const", ts, re.DOTALL)
     assert block, "EVENT_TYPES array missing in events.ts"
     ts_types = set(re.findall(r'"([a-z_.]+)"', block.group(1)))
     assert ts_types == set(EVENT_TYPES)

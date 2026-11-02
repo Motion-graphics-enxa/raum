@@ -14,6 +14,8 @@ export type Path = "direct" | "tunnel" | "relayed";
 export type Badge = "green" | "amber" | "red";
 export type FlagKind =
   | "dose" | "allergy" | "deadline" | "amount" | "uncertain" | "date" | "number" | "mismatch";
+/** F-10: enrolling / short / unchecked pass; match passes; mismatch is dropped. */
+export type VoiceLockStatus = "enrolling" | "match" | "mismatch" | "short" | "unchecked";
 
 export interface ParticipantInfo {
   id: string;
@@ -111,6 +113,19 @@ export interface EventData {
     models?: Record<string, string> | null;
   };
   "voice.state": { target_lang: string; playing: boolean; paused?: string[] };
+  /** F-10 voice lock: one per utterance while the lock is on. accepted=false: not the device owner's voice,
+   * the utterance is dropped (no transcript.final, not translated, spoken, stored or summarized). */
+  "voice.lock": {
+    speaker: string;
+    accepted: boolean;
+    status: VoiceLockStatus;
+    score?: number | null; // cosine similarity with the owner's voice (glass box)
+    threshold?: number | null;
+    enrolled_s?: number | null; // seconds of the owner's speech learned so far
+    enroll_s?: number | null; // seconds needed before the lock closes
+    ms?: number | null; // embedding time (beside the transcription)
+    waited_ms?: number | null; // how long the turn waited for the verdict after transcription
+  };
   "session.state": {
     off_record: boolean;
     sealed: boolean;
@@ -155,6 +170,7 @@ export const EVENT_TYPES = [
   "document.ready",
   "pipeline.timing",
   "voice.state",
+  "voice.lock",
   "session.state",
   "privacy.meter",
   "gpu.stats",
@@ -208,7 +224,8 @@ export type ControlAction =
   | "end"
   | "approve_summary"
   | "burn"
-  | "mute";
+  | "mute"
+  | "voice_lock_reset"; // F-10: learn the owner's voice again (by: identity, role, or none = all)
 
 /** Body of POST /api/rooms/:room/control */
 export interface Control {

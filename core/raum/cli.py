@@ -5,6 +5,7 @@
     raum audit verify [--path P]         recompute the audit hash chain -> raum.security.audit_cli:main
     raum modes check                     validate modes/*.yaml
     raum config                          print the resolved raum.yaml + profile
+    raum voicelock check [--engine E]    load the F-10 speaker model (download once) and time it
 """
 
 from __future__ import annotations
@@ -43,6 +44,10 @@ def main(argv: list[str] | None = None) -> int:
 
         print(json.dumps(load_config().model_dump(mode="json"), indent=2))
         return 0
+    if cmd == "voicelock":
+        from raum.pipeline.voicelock import main as voicelock_main
+
+        return voicelock_main(rest)
     print(f"unknown command: {' '.join(argv)}\n{__doc__}", file=sys.stderr)
     return 2
 

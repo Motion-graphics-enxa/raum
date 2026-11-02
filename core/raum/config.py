@@ -68,6 +68,8 @@ class ModelsConfig(_Open):
     tts: EngineConfig = EngineConfig(engine="mock")
     turn: EngineConfig = EngineConfig(engine="off")  # semantic end of turn (raum.pipeline.turn), agent only
     summary: EngineConfig | None = None  # defaults to the verify engine/model
+    # F-10 voice lock (raum.pipeline.voicelock): off | mock | ecapa
+    voicelock: EngineConfig = EngineConfig(engine="off")
 
 
 class SchedulerConfig(_Open):
@@ -122,6 +124,9 @@ class RaumConfig(_Open):
         for stage in ("vad", "denoise", "asr", "translate", "verify", "embed", "tts"):
             ec: EngineConfig = getattr(self.models, stage)
             out[stage] = f"{ec.engine}:{ec.model}" if ec.model else ec.engine
+        vl = self.models.voicelock
+        if vl.enabled:  # optional stage: listed only when on
+            out["voicelock"] = f"{vl.engine}:{vl.model}" if vl.model else vl.engine
         return out
 
 
@@ -141,7 +146,7 @@ def _read_yaml(path: Path) -> dict[str, Any]:
     with path.open(encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
     if not isinstance(data, dict):
-        raise ValueError(f"{path}: expected a mapping")
+        raise ValueError(f"{path}: expected a mapping")  # noqa: TRY004  (a config error, like the others here)
     return data
 
 

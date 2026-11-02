@@ -615,7 +615,7 @@ class SessionManager:
             except GlossaryError as e:
                 raise BadRequest(str(e)) from None
             forwarded = bool((await self.upload_glossary(room_id, terms, by=ctl.by))["forwarded"])
-        elif a in ("repeat_back", "explain_simply", "explain_approve", "correct_term"):
+        elif a in ("repeat_back", "explain_simply", "explain_approve", "correct_term", "voice_lock_reset"):
             forwarded = await self.forward(room, ctl)
             if a == "explain_approve":
                 self._audit("explain_approved", s.id, by=by)

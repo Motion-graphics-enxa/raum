@@ -22,6 +22,7 @@ def fast_config() -> RaumConfig:
     for stage in ("asr", "translate", "verify", "embed", "tts"):
         getattr(m, stage).engine = "mock"
     m.denoise.engine = "passthrough"
+    m.voicelock.engine = "off"  # F-10: tests turn it on themselves (a box may have it on in raum.yaml)
     m.asr.options = {"latency_ms": 2, "partial_latency_ms": 1, "partial_every_ms": 300}
     m.translate.options = {"first_token_ms": 3, "token_ms": 0}
     m.verify.options = {"latency_ms": 3}

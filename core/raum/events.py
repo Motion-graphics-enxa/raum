@@ -209,6 +209,25 @@ class VoiceState(_Data):  # extension (C-14): the box's voice is playing in a la
     paused: list[str] = Field(default_factory=list)  # identities whose mic is paused meanwhile
 
 
+VoiceLockStatus = Literal["enrolling", "match", "mismatch", "short", "unchecked"]
+
+
+class VoiceLockResult(_Data):  # extension (F-10, raum.pipeline.voicelock): one per utterance while the lock is on
+    speaker: str  # the device (identity) whose mic heard the utterance
+    # False: not the device owner's voice. The utterance is dropped: no transcript.final, not translated, not
+    # spoken, not stored, not summarized. The speaker's own phone shows a quiet "not your voice: ignored".
+    accepted: bool
+    # enrolling: still learning the owner's voice (passes) · match / mismatch: compared with the owner's voice ·
+    # short: too short to verify (passes) · unchecked: the check failed or was late (passes)
+    status: VoiceLockStatus
+    score: float | None = None  # cosine similarity with the owner's voice (glass box); never the voice itself
+    threshold: float | None = None
+    enrolled_s: float | None = None  # seconds of the owner's speech learned so far
+    enroll_s: float | None = None  # seconds needed before the lock closes
+    ms: float | None = None  # embedding time (runs beside the transcription)
+    waited_ms: float | None = None  # how long the turn waited for the verdict after transcription (0 when on time)
+
+
 class SessionState(_Data):
     off_record: bool
     sealed: bool
@@ -284,6 +303,7 @@ EVENT_TYPES: dict[str, type[BaseModel]] = {
     "document.ready": DocumentReady,
     "pipeline.timing": PipelineTiming,
     "voice.state": VoiceState,
+    "voice.lock": VoiceLockResult,
     "session.state": SessionState,
     "privacy.meter": PrivacyMeter,
     "gpu.stats": GpuStats,
@@ -311,6 +331,7 @@ EventType = Literal[
     "document.ready",
     "pipeline.timing",
     "voice.state",
+    "voice.lock",
     "session.state",
     "privacy.meter",
     "gpu.stats",
@@ -391,6 +412,7 @@ ControlAction = Literal[
     "approve_summary",  # by role
     "burn",
     "mute",  # value: bool. device-local mic pause, mirrored so the glass box knows
+    "voice_lock_reset",  # F-10: forget the owner's voice and learn it again (by: identity, role, or none = all)
 ]
 
 

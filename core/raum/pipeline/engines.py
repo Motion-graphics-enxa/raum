@@ -19,6 +19,7 @@ from raum.pipeline.translate import MockTranslator, OllamaTranslator
 from raum.pipeline.tts import make_tts
 from raum.pipeline.verifier import MockVerifier, OllamaVerifier
 from raum.pipeline.vision import MockVision, OllamaVision
+from raum.pipeline.voicelock import make_speaker_encoder
 
 log = logging.getLogger("raum.pipeline.engines")
 
@@ -78,8 +79,15 @@ def build_engines(cfg: RaumConfig, *, seed: int | None = None) -> Engines:
     tts = make_tts(m.tts.engine, m.tts.options, m.tts.model, url=m.tts.url,
                    fallback=(m.tts.model_extra or {}).get("fallback", "piper")) if m.tts.enabled else None
 
+    # F-10 voice lock: loaded once per agent process; None when off (or its optional extra is missing)
+    voicelock = make_speaker_encoder(m.voicelock.engine, m.voicelock.model, m.voicelock.options)
+
     names = cfg.engine_names()
     names["denoise"] = denoise.name
+    if voicelock is not None:
+        names["voicelock"] = voicelock.name
+    else:
+        names.pop("voicelock", None)
     if tts is None:
         names["tts"] = "off"
     if verify is None:
@@ -87,7 +95,7 @@ def build_engines(cfg: RaumConfig, *, seed: int | None = None) -> Engines:
     if embed is None:
         names["embed"] = "off"
     return Engines(denoise=denoise, asr=asr, translate=translate, verify=verify, embed=embed, tts=tts,
-                   names=names)
+                   names=names, voicelock=voicelock)
 
 
 def build_vision(cfg: RaumConfig, *, seed: int | None = None) -> MockVision | OllamaVision | None:

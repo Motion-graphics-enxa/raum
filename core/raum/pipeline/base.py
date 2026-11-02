@@ -116,6 +116,19 @@ class TTS(Protocol):
         ...
 
 
+@runtime_checkable
+class SpeakerEncoder(Protocol):
+    """Voice lock (F-10, ``raum.pipeline.voicelock``): a speaker embedding of 16 kHz mono speech.
+
+    ``embed`` is synchronous and CPU-bound; the pipeline calls it on a worker thread, never on the event
+    loop. Returns a 1-D float32 vector, L2-normalised (all zeros = no voice in it).
+    PRIVACY: the vector is biometric data; it stays in memory (see voicelock.py)."""
+
+    name: str
+
+    def embed(self, audio: np.ndarray) -> np.ndarray: ...
+
+
 @dataclass
 class Engines:
     denoise: Denoiser
@@ -125,6 +138,7 @@ class Engines:
     embed: Embedder | None
     tts: TTS | None
     names: dict[str, str] = field(default_factory=dict)  # stage -> model name, for the glass box
+    voicelock: SpeakerEncoder | None = None  # F-10; None = voice lock off (the default)
 
     async def aclose(self) -> None:
         for e in (self.asr, self.translate, self.verify, self.embed, self.tts):

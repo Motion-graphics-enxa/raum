@@ -43,6 +43,11 @@ Additions beyond the contract (all optional):
   on burn, session end / a new session (``set_state``) and ``aclose``. ``rate`` (the speaker's words
   per second / 2.5) is passed to every engine
   that accepts it. Never in events, logs, the store or the audit log.
+- Voice lock (F-10, ``raum.pipeline.voicelock``, ``models.voicelock``, off by default): each device's mic only
+  produces its owner's utterances. The speaker embedding runs beside the final ASR; after the ASR, an utterance
+  that is not the owner's voice is dropped before ``transcript.final`` (not translated, spoken, stored or
+  summarized). ``voice.lock`` carries the verdict and score. The voices are memory only and go with the voice
+  samples (burn, session end, ``aclose``); control ``voice_lock_reset`` learns a device's voice again.
 
 Timing (``pipeline.timing``, one per utterance and target language, after the check): ``vad_ms``
 is the endpoint delay; ``asr_ms`` the final transcription; ``mt_first_ms``, ``mt_full_ms`` and
@@ -81,6 +86,7 @@ from raum.pipeline._util import int16_to_float, lang_code, lang_name, load_promp
 from raum.pipeline.base import AsrResult, Engines, TranslateRequest, TurnContext
 from raum.pipeline.echo import EchoControl
 from raum.pipeline.voice import SpeakingRate, VoiceArgs, VoiceRef, speech_seconds
+from raum.pipeline.voicelock import VoiceLock
 from raum.scheduler import Scheduler
 from raum.verify import guard
 from raum.verify.backtranslate import CheckResult, second_check
@@ -249,6 +255,7 @@ class RoomPipeline:
         self.vad_pad_s = float((config.models.vad.options or {}).get("prefix_padding_duration", 0.5))
         self._voice_refs: dict[str, VoiceRef] = {}
         self._rates: dict[str, SpeakingRate] = {}
+        self.voicelock = VoiceLock.for_room(engines, config, emit=self.emit, spawn=self._spawn)  # F-10
         self.scheduler: Scheduler | None = None
         self._utt_n = 0
         self._turn_index = 0
@@ -483,6 +490,8 @@ class RoomPipeline:
         audio = u.final_audio()
         n = len(audio)
         audio_p = self._spawn(self.eot.audio_p(audio))  # CPU, in parallel with the ASR
+        self.voicelock.start(u.speaker, u.id, audio, (time.monotonic() - t_stop) * 1000.0,  # F-10: beside it too
+                             getattr(self.participants.get(u.speaker), "device", None))
         res: AsrResult | None = None
         t_asr = time.monotonic()
         try:
@@ -513,6 +522,10 @@ class RoomPipeline:
 
     async def _turn(self, u: _Utt, audio: np.ndarray, vad_ms: float, t0: float, *,
                     asr: AsrResult | None = None, eot: dict[str, Any] | None = None) -> None:
+        # F-10: the speaker embedding runs on a worker thread beside the final ASR below; with the early ASR
+        # (asr given) it already started beside that one in _hold, on the same audio
+        device = getattr(self.participants.get(u.speaker), "device", None)
+        lock = self.voicelock.begin(u.speaker, u.id, audio, vad_ms, device, reuse=asr is not None)
         await self.emit("utterance.end", {"speaker": u.speaker, "lang": u.lang}, utt=u.id)
         turn = replace(u.turn, speech_ms=len(audio) * 1000.0 / SAMPLE_RATE)
         timing: dict[str, Any] = {"vad_ms": round(vad_ms, 1), "models": dict(self.engines.names)}
@@ -535,11 +548,16 @@ class RoomPipeline:
                 raise
             except Exception as e:  # noqa: BLE001
                 log.warning("final asr failed for %s: %s: %s", u.id, e.__class__.__name__, e)
-                await self._say_again(u, u.lang if u.lang != "und" else None)
+                if await self.voicelock.admit(lock, clean=False):  # F-10: no prompt for someone else's voice
+                    await self._say_again(u, u.lang if u.lang != "und" else None)
                 return
             timing["asr_ms"] = round((time.monotonic() - t_asr) * 1000.0, 1)
         src_lang = lang_code(res.lang) or u.hint or self._default_lang(u.role)
         text = res.text.strip()
+        # F-10 voice lock: not the device owner's voice -> dropped here, before anything of it is published
+        clean = bool(text) and res.conf >= self.cfg.asr_min_conf and not u.echoed  # may teach the owner's voice
+        if not await self.voicelock.admit(lock, clean=clean):
+            return
         await self.emit("transcript.final", {"speaker": u.speaker, "lang": src_lang, "text": text,
                                              "asr_conf": round(float(res.conf), 3)}, utt=u.id)
         if not text:
@@ -789,6 +807,7 @@ class RoomPipeline:
             ref.clear()
         self._voice_refs.clear()
         self._rates.clear()
+        self.voicelock.clear()  # F-10: the owners' voices go with the session
 
     def _voice_kwargs(self, tts: Any, voice: VoiceArgs | None) -> dict[str, Any]:
         """``voice_ref`` / ``rate`` for engines that take them (older ones get the plain call)."""
@@ -977,6 +996,8 @@ class RoomPipeline:
                 self._merge_glossary(control.value)
             elif action == "burn":
                 self._burn()
+            elif action == "voice_lock_reset":  # F-10
+                self.voicelock.reset(control.by, self.participants.values())
             # confirm, human_interpreter, end, approve_summary, mute: handled by core / the devices
         except Exception:
             log.exception("control %s failed", action)

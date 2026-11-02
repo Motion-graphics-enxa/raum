@@ -11,5 +11,7 @@ models:
   embed:     { engine: mock, model: mock-bge-m3 }
   vision:    { engine: mock, model: mock-gemma-vision, options: { latency_ms: [900, 1400] } }
   tts:       { engine: mock, model: mock-piper, options: { first_audio_ms: [120, 200] } }
+  # F-10 voice lock: off | mock (spectral fingerprint, for tests) | ecapa (SpeechBrain; needs --extra voicelock)
+  voicelock: { engine: off }
 scheduler: { live_slots: 4, check_slots: 2, background_slots: 2 }
 security:  { data_dir: data }

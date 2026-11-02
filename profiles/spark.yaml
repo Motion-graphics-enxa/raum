@@ -13,5 +13,9 @@ models:
   # same model and num_ctx as translate: Ollama shares the loaded runner (another num_ctx would reload it)
   vision:    { engine: ollama, url: http://127.0.0.1:11434, model: gemma4:26b, options: { think: false, temperature: 0.1, num_predict: 1024, num_ctx: 8192, timeout_s: 120 } }
   tts:       { engine: piper, options: { voices_dir: ~/Desktop/HackathonRaum/runtime/voices }, fallback: none }
+  # F-10 voice lock (SpeechBrain ECAPA on the CPU, beside the ASR). Off until tuned on the box: install with
+  # `--extra voicelock` added to RAUM_UV_EXTRAS, fetch + time it with `uv run raum voicelock check --engine ecapa`,
+  # then set engine: ecapa. threshold = cosine with the owner's voice: lower lets more through.
+  voicelock: { engine: off, model: speechbrain/spkrec-ecapa-voxceleb, options: { threshold: 0.35, enroll_s: 6, min_utt_s: 1.0, model_dir: ~/Desktop/HackathonRaum/runtime/models/spkrec-ecapa-voxceleb, device: cpu, threads: 1 } }
 scheduler: { live_slots: 2, check_slots: 1, background_slots: 1 }
 security:  { data_dir: ~/Desktop/HackathonRaum/data }   # shared GX10: everything stays in our folder

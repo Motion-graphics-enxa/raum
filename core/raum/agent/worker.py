@@ -46,6 +46,7 @@ from raum.pipeline.clean import cleaner_for
 from raum.pipeline.denoise import make_denoiser
 from raum.pipeline.engines import build_engines
 from raum.pipeline.room import RoomPipeline
+from raum.pipeline.voicelock import warm_voicelock
 
 log = logging.getLogger("raum.agent")
 
@@ -84,6 +85,7 @@ def prewarm(proc: Any) -> None:
     cfg = get_config()
     proc.userdata["vad"] = load_vad(cfg)
     warm_denoiser(cfg)
+    warm_voicelock(cfg)  # F-10: the speaker model loads once per agent process, before any room joins
 
 
 def warm_denoiser(cfg: RaumConfig) -> None:
