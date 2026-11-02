@@ -1,6 +1,6 @@
 # RAUM build status
 
-_Read by the ops session. Updated at every milestone. Last update: Mon 2 Nov, ~19:30 (main 58078c1)._
+_Read by the ops session. Updated at every milestone. Last update: Mon 2 Nov, ~20:30 (main e18401e)._
 
 ## What works (on `main`)
 - **Live on the GX10 (ops):** real engines (whisper.cpp large-v3-turbo, gemma4:26b, gpt-oss:120b, bge-m3, Piper binary), fact guard, encrypted sessions + audit chain. Measured warm: vad 320 / asr 249 / first words 677 / sentence 888 / voice 1399 / check 1425 ms.
@@ -11,6 +11,8 @@ _Read by the ops session. Updated at every milestone. Last update: Mon 2 Nov, ~1
 - **Voice lanes (P0 fix, e0f806b):** one writer per `tts-<lang>` source; utterances into one language speak in turn; a failed clause is dropped (3 in a row: that language pauses 20 s), never off for the session; a failed source is replaced.
 - **Semantic end of turn (ops, 47ed350):** VAD 0.25 s pause -> early final ASR + smart-turn + LiveKit text turn model -> end now / 1.0 s / 1.6 s; speech in the wait continues the utterance. Extra `turn`; off in mock.
 - **Pause P0 (pause-de.wav, "Sie dürfen das Metformin ab morgen [800 ms] nicht mehr nehmen."):** (1) 0457b5b `pipeline/incomplete.py`: deterministic verb-final / neg-scope rule (de), trailing auxiliary (en), before the text model; a low-confidence "?" is not completeness; options `rules`, `aux_s` (spark 1.0, ops 9088c81), `q_conf`. Box: 8/8 one utterance, correct. (2+3) 58078c1: glossary as whisper's prompt in sz/kz (`asr.glossary_prompt`), fuzzy medication match (unique nearest, <=2 edits on 8+ chars, <=1 on 6-7) and the transcript corrected to the glossary spelling. Box: "Metformin" 3/3, green 3/3.
+- **End of turn faster (6ca5b43):** `fast-complete` at 0.45 s (de/en/ru) when the transcript ends in . ! ?, asr_conf >= 0.90, >= 3 words, no rule, text P >= 0.02; rules for ru (modal at the end, не/ни, conj/prep, time phrase after a modal), en/de conj/prep, soft trailing number; en/ru clauses commit at 0.02 in simultaneous mode. Smarter aux rule (e88c2c9): aux-open only without a complement.
+- **A-04 tunnel path (e18401e):** a join from the box's own address (`RAUM_TUNNEL_SELF_IPS` / `network.tunnel_self_ips`, userspace tailscaled subnet router) is path "tunnel".
 - **Simultaneous mode + latency (d1bd3b7):** on ops' end of turn; speculation at the pause (never published before the turn ends), voice on the first phrase, stable partial as final; `tts_synth_first_ms` / `tts_publish_first_ms` / `asr_from` in pipeline.timing. Box: speaker stops -> voice 747-1246 ms (sz), 850-956 ms (gs).
 - **Gespraech room (gs):** `checker: off` (fact guard only, no badge unless red, no prompts), numbers/dates/times, simultaneous from the first word; rooms list in `order`. **3+ language rooms:** `pipeline.check_targets: one` (one gpt-oss check per utterance).
 - **Guard English (guard-en):** 10.30 am, EUR 1.2m, 950k, at nine, half past two / halb drei, the third of November, number words, at 2 / 14 Uhr, F -> C (prompt converts, original in brackets). Eval 100 % caught, 0 false alarms.
@@ -28,11 +30,12 @@ _Read by the ops session. Updated at every milestone. Last update: Mon 2 Nov, ~1
 - **Design:** impeccable only. PRODUCT.md, direction contract `.impeccable/surfaces/`, finish review (fix -> verdict -> final batch), **DESIGN.md** + `.impeccable/design.json`.
 - **No third-party bytes:** LiveKit gets LAN-only STUN/TURN (box's own :3478; compose, livekit.yaml, dev.sh), onnxruntime telemetry off (ops 739e8a1); privacy meter reads 0 B on the GX10.
 - **Deploy:** `deploy/push.sh` -> `gx10:~/Desktop/HackathonRaum/raum`; `deploy/box.sh` (sources `runtime/raum.env`; process groups); `RAUM_UV_EXTRAS="--extra denoise"` for DeepFilterNet.
-- **Tests:** `cd core && uv run pytest -q` -> 944 passed; `uv run ruff check .` clean.
+- **Tests:** `cd core && uv run pytest -q` -> 997 passed; `uv run ruff check .` clean.
 
 ## In flight (parallel agents, worktree branches; the integrator merges)
 1. P0 fix (4): in sz/kz a continuation within 1.2 s of an end of turn stops that voice, merges, re-translates and speaks the merged sentence; the first card shows "continued".
-2. Smarter aux rule (ready on branch `aux-complement`, lands after (4)): aux-open only when nothing but function words follow haben/sein/werden or the clause ends in "nicht".
+2. Confirm UX (user via ops): green facts = quiet "noted" chips on the professional's screen only, no prompt; uncertain = a spoken read-back ("Nur zur Sicherheit: ...?") and a spoken yes/no; buttons secondary; unanswered stays "unconfirmed", never asked twice.
+3. Voice echo check (P1): clauses with dose/number/date/time facts go back through whisper (background slot) beside playback; a mismatch marks the card, re-speaks once with the standard voice ("Ich wiederhole: ..."), audit `voice.echo_mismatch`; `tts.options.echo_check`, `echo_ms`.
 
 ## Integrator TODO
 - Spoken AI disclosure for the speakerphone participant (no consent screen).
