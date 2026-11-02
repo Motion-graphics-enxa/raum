@@ -48,7 +48,7 @@ export default function Table() {
   const lastLang = last ? Object.keys(last.timing)[0] : null;
   const firsts = turns.map((tu) => Object.values(tu.timing).map(firstWordsMs)).flat().filter((x): x is number => x != null);
   const fulls = turns
-    .map((tu) => Object.values(tu.timing).map((tm) => (tm.mt_full_ms != null ? (tm.vad_ms ?? 0) + tm.mt_full_ms : null)))
+    .map((tu) => Object.values(tu.timing).map((tm) => tm.mt_full_ms ?? null))
     .flat()
     .filter((x): x is number => x != null);
   const p50 = percentile(firsts, 50);

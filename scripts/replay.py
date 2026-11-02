@@ -126,7 +126,7 @@ async def main() -> None:
                 else:
                     await emit("flag", {"kind": kind, "text": text, "needs_confirm": True, "id": f"{utt}-f{j}",
                                         "confirm_by": listener, "target_lang": tgt}, utt)
-            await emit("pipeline.timing", {"vad_ms": 340, "asr_ms": 210, "mt_first_ms": 430, "mt_full_ms": 980,
+            await emit("pipeline.timing", {"vad_ms": 340, "asr_ms": 210, "mt_first_ms": 780, "mt_full_ms": 1190,
                                            "tts_first_ms": None, "check_ms": None, "target_lang": tgt,
                                            "models": {"asr": "mock-whisper", "translate": "mock-gemma",
                                                       "verify": "mock-gpt-oss"}}, utt)
@@ -136,7 +136,7 @@ async def main() -> None:
                                          "badge": "red" if red else "green",
                                          "reasons": ["fact mismatch: date"] if red else [],
                                          "back_translation": src}, utt)
-            await emit("pipeline.timing", {"vad_ms": 340, "asr_ms": 210, "mt_first_ms": 430, "mt_full_ms": 980,
+            await emit("pipeline.timing", {"vad_ms": 340, "asr_ms": 210, "mt_first_ms": 780, "mt_full_ms": 1190,
                                            "tts_first_ms": None, "check_ms": 1120, "target_lang": tgt,
                                            "models": {"asr": "mock-whisper", "translate": "mock-gemma",
                                                       "verify": "mock-gpt-oss"}}, utt)

@@ -8,6 +8,6 @@ models:
   verify:    { engine: ollama, url: http://127.0.0.1:11434, model: gpt-oss:120b, options: { reasoning: low, num_predict: 256 } }
   embed:     { engine: ollama, url: http://127.0.0.1:11434, model: bge-m3 }
   vision:    { engine: ollama, url: http://127.0.0.1:11434, model: gemma4:26b }
-  tts:       { engine: piper, options: { voices_dir: /opt/raum/voices }, fallback: none }
+  tts:       { engine: piper, options: { voices_dir: ~/Desktop/HackathonRaum/runtime/voices }, fallback: none }
 scheduler: { live_slots: 2, check_slots: 1, background_slots: 1 }
-security:  { data_dir: /var/lib/raum }
+security:  { data_dir: ~/Desktop/HackathonRaum/data }   # shared GX10: everything stays in our folder

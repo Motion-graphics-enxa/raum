@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # One-command deploy from the laptop to the box (plan §10.1 tactic 3). Target: under 30 s.
 #
-#   deploy/push.sh                 push to ${RAUM_HOST:-spark} (an ~/.ssh/config alias, §8 S1)
+#   deploy/push.sh                 push to ${RAUM_HOST:-gx10} (an ~/.ssh/config alias, §8 S1)
 #   deploy/push.sh --dry-run       print every step, touch nothing, connect to nothing
 #   RAUM_HOST=192.168.8.10 deploy/push.sh
 #
 # Steps
-#   1. rsync the repo to $HOST:/opt/raum/app (light: no .git, node_modules, .venv, internal/,
+#   1. rsync the repo to $HOST:$RAUM_DEST (default ~/Desktop/HackathonRaum/raum on the shared GX10;
+#      light: no .git, node_modules, .venv, internal/,
 #      data/, eval/out, *.wav, dist). Excluded paths on the box are never deleted, so its .venv,
 #      node_modules, dist, data -> /var/lib/raum and deploy/.env survive every push.
 #   2. on the box: cd core && uv sync --frozen
@@ -18,14 +19,17 @@
 #
 # Options: --dry-run  --no-build  --force-build  --no-restart  --no-health  -h|--help
 # Env:     RAUM_HOST (ssh target, default spark), RAUM_SSH (overrides RAUM_HOST for ssh only),
-#          RAUM_DEST (default /opt/raum/app), RSYNC (rsync binary)
+#          RAUM_DEST (default Desktop/HackathonRaum/raum, relative = under the remote $HOME),
+#          RAUM_RESTART (systemd | box | none; default: systemd units if installed, else deploy/box.sh),
+#          RSYNC (rsync binary)
 # The box's profile comes from RAUM_PROFILE in /etc/raum/raum.env, so pushing a raum.yaml that
 # says `profile: mock` does not switch the box back to the mock pipeline.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-HOST="${RAUM_SSH:-${RAUM_HOST:-spark}}"
-DEST="${RAUM_DEST:-/opt/raum/app}"
+HOST="${RAUM_SSH:-${RAUM_HOST:-gx10}}"
+DEST="${RAUM_DEST:-Desktop/HackathonRaum/raum}"
+RESTART_MODE="${RAUM_RESTART:-auto}"
 RSYNC="${RSYNC:-rsync}"
 DRY=0 BUILD=1 FORCE_BUILD=0 RESTART=1 HEALTH=1
 
@@ -61,7 +65,10 @@ read -r -d '' REMOTE <<'REMOTE_EOF' || true
 set -euo pipefail
 DEST="$1" BUILD="$2" FORCE_BUILD="$3" RESTART="$4" HEALTH="$5"
 export PATH="/usr/local/bin:$HOME/.local/bin:$PATH"
-export UV_PYTHON_INSTALL_DIR=/opt/raum/python   # readable by user raum (home dirs are 0750)
+RESTART_MODE="${6:-auto}"
+case "$DEST" in /*) ;; *) DEST="$HOME/$DEST" ;; esac
+# dedicated box: python for user raum lives in /opt/raum/python (home dirs are 0750)
+[ -d /opt/raum/python ] && export UV_PYTHON_INSTALL_DIR=/opt/raum/python
 t0=$(date +%s%N)
 lap() { printf '    %s (%d ms)\n' "$1" $(( ($(date +%s%N) - t0) / 1000000 )); }
 cd "$DEST"
@@ -108,11 +115,21 @@ if ! sudo -n grep -q '^RAUM_PROFILE=' /etc/raum/raum.env 2>/dev/null; then
 fi
 
 if [ "$RESTART" = 1 ]; then
-  echo "==> restart raum-core raum-agent"
-  if ! sudo -n systemctl restart raum-core raum-agent; then
-    echo "restart failed: are the units installed? (sudo ./install.sh on the box)" >&2
-    exit 1
+  mode="$RESTART_MODE"
+  if [ "$mode" = auto ]; then
+    if systemctl list-unit-files raum-core.service 2>/dev/null | grep -q raum-core; then mode=systemd; else mode=box; fi
   fi
+  case "$mode" in
+    systemd)
+      echo "==> restart raum-core raum-agent (systemd)"
+      sudo -n systemctl restart raum-core raum-agent || { echo "systemctl restart failed" >&2; exit 1; }
+      ;;
+    box)
+      echo "==> restart core + agent (deploy/box.sh, user space)"
+      bash deploy/box.sh restart
+      ;;
+    none) echo "==> restart skipped" ;;
+  esac
   lap "services restarted"
 fi
 
@@ -127,7 +144,7 @@ if [ "$HEALTH" = 1 ]; then
     sleep 0.5
   done
   echo "raum-core not healthy after 20 s; last log lines:" >&2
-  sudo -n journalctl -u raum-core -n 30 --no-pager >&2 || true
+  sudo -n journalctl -u raum-core -n 30 --no-pager >&2 2>/dev/null || bash deploy/box.sh logs core >&2 || true
   exit 1
 fi
 REMOTE_EOF
@@ -149,7 +166,7 @@ fi
 start=$(date +%s)
 echo "==> rsync -> $HOST:$DEST"
 "${RSYNC_CMD[@]}"
-printf '%s\n' "$REMOTE" | ssh "${SSH_OPTS[@]}" "$HOST" bash -s -- "$DEST" "$BUILD" "$FORCE_BUILD" "$RESTART" "$HEALTH"
+printf '%s\n' "$REMOTE" | ssh "${SSH_OPTS[@]}" "$HOST" bash -s -- "$DEST" "$BUILD" "$FORCE_BUILD" "$RESTART" "$HEALTH" "$RESTART_MODE"
 took=$(( $(date +%s) - start ))
 if [ "$took" -gt 30 ]; then
   echo "pushed in ${took}s (target < 30 s; first push and npm ci are slower)"

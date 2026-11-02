@@ -207,29 +207,32 @@ const STAGE_LABEL: Record<string, Record<string, string>> = {
 };
 
 /**
- * Stage durations from pipeline.timing. vad_ms is the endpoint delay after the speaker stopped;
- * asr/mt/check are measured by the agent from the endpoint (mt_* cumulative).
+ * Stage durations from pipeline.timing (see core/raum/pipeline/room.py): vad_ms is the endpoint
+ * delay and asr_ms the transcription time (durations); mt_first_ms, mt_full_ms and tts_first_ms are
+ * cumulative from the moment the speaker stopped; check_ms runs from translation.final.
  */
 export function stagesOf(tm: EventData["pipeline.timing"] | undefined): Stage[] {
   if (!tm) return [];
+  const vad = tm.vad_ms ?? null;
   const asr = tm.asr_ms ?? null;
   const first = tm.mt_first_ms ?? null;
   const full = tm.mt_full_ms ?? null;
+  const tts = tm.tts_first_ms ?? null;
   const seg = (a: number | null, b: number | null) => (a != null && b != null ? Math.max(0, b - a) : null);
+  const beforeMt = (vad ?? 0) + (asr ?? 0);
   return [
-    { key: "endpoint", label: STAGE_LABEL.endpoint, ms: tm.vad_ms ?? null },
+    { key: "endpoint", label: STAGE_LABEL.endpoint, ms: vad },
     { key: "asr", label: STAGE_LABEL.asr, ms: asr },
-    { key: "mt_first", label: STAGE_LABEL.mt_first, ms: first != null && asr != null && first > asr ? first - asr : first },
+    { key: "mt_first", label: STAGE_LABEL.mt_first, ms: first != null ? Math.max(0, first - beforeMt) : null },
     { key: "mt_full", label: STAGE_LABEL.mt_full, ms: seg(first, full) },
     { key: "check", label: STAGE_LABEL.check, ms: tm.check_ms ?? null },
-    { key: "tts", label: STAGE_LABEL.tts, ms: tm.tts_first_ms ?? null },
+    { key: "tts", label: STAGE_LABEL.tts, ms: tts != null && full != null && tts > full ? tts - full : null },
   ].filter((s) => s.ms != null) as Stage[];
 }
 
-/** First translated words on the listener's screen after the speaker stopped. */
+/** First translated words on the listener's screen after the speaker stopped (§3: < 1.0 s). */
 export function firstWordsMs(tm: EventData["pipeline.timing"] | undefined): number | null {
-  if (!tm || tm.mt_first_ms == null) return null;
-  return (tm.vad_ms ?? 0) + tm.mt_first_ms;
+  return tm?.mt_first_ms ?? null;
 }
 
 export function Masskette({ stages, lang, big = false }: { stages: Stage[]; lang: string; big?: boolean }) {

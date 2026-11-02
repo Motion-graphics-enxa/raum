@@ -106,12 +106,12 @@ class RaumConfig(_Open):
     asr_min_conf: float = 0.55  # below: "please say that again" (V-03)
 
     def data_dir(self) -> Path:
-        p = Path(self.security.data_dir)
+        p = Path(self.security.data_dir).expanduser()
         return p if p.is_absolute() else repo_root() / p
 
     def audit_path(self) -> Path:
         if self.security.audit_log:
-            p = Path(self.security.audit_log)
+            p = Path(self.security.audit_log).expanduser()
             return p if p.is_absolute() else repo_root() / p
         return self.data_dir() / "audit.jsonl"
 
