@@ -17,11 +17,15 @@ simultaneous mode, the segment that covers it) takes its place.
   One worker per (utt, target) publishes in order, so an older draft never follows a newer one.
 - **Spacing**: draft MTs of one (utt, target) start at least ``pipeline.draft_every_ms`` (0.6 s) apart.
 - **Priority**: ``voicegate.quiet(SPEC_DEFER_S)`` first (live voice first, in any room), then the scheduler's
-  ``background`` slot. The same engine and request as the turn (``RoomPipeline._request``), collected, not streamed.
+  ``background`` slot, last among background work: a draft starts only while nothing waits for a background slot
+  and, with two or more slots, one stays free for the next partial ASR (a partial queued behind a draft MT would
+  hold back the commits, the next draft, and the pause's reuse of the running partial as the final). The same
+  engine and request as the turn (``RoomPipeline._request``), collected, not streamed.
 - **Simultaneous mode** (simul.py): once a target language has committed segments, its draft covers only the
   uncommitted tail after them (aligned like simul.py aligns the tail at the end), as a segment request with the
   earlier segments as chat history, and carries ``seg`` = the index that tail will have. A segment >= ``seg``
-  arriving in the app covers it; the next draft follows that segment.
+  arriving in the app covers it; the next draft follows that segment. The tail waits (at most ``SEG_WAIT_S``) until
+  the segments before it are translated (live slot, quick), so its request has their translations as history.
 - **Stops** when the utterance ends (``speech_end``: the final translation replaces it), when it is dropped (off the
   record, burn, close) and at session end; in flight MTs are cancelled and nothing more of it goes out.
 - **Never voiced**: no TTS, no voice lane, no fact guard, flags or read-back from a draft, and it is not a content
@@ -29,7 +33,7 @@ simultaneous mode, the segment that covers it) takes its place.
   utterance only after its final ASR, so nothing of it is translated before.
 
 Stages (``pipeline.timing`` ``stages``): ``draft.collect`` (each draft MT, wall), ``draft.mt`` (the engine's own,
-Ollama), ``draft.slot.background``, ``draft.voice.defer``.
+Ollama), ``draft.slot.background``, ``draft.voice.defer``, ``draft.yield`` (waited for a free background slot).
 """
 
 from __future__ import annotations
@@ -53,6 +57,8 @@ log = logging.getLogger("raum.pipeline.draft")
 
 DRAFT_AFTER_MS = 1500.0
 DRAFT_EVERY_MS = 600.0
+SEG_WAIT_S = 1.0  # a tail draft waits this long at most for the committed segments before it to be translated
+POLL_S = 0.025
 
 
 def stable_prefix(prev: list[str] | None, cur: list[str]) -> list[str]:
@@ -76,7 +82,20 @@ def _norm(text: str) -> list[str]:
 class _Want:
     src: str  # source text to translate (glossary spelling)
     seg: int | None  # simultaneous mode: the index of the tail segment it drafts; None: the whole utterance
-    earlier: list[tuple[str, str]] = field(default_factory=list)  # committed segments (source, translation)
+    segs: list[Any] = field(default_factory=list)  # simul.py's committed segments before it (read at MT start)
+
+    def earlier(self) -> list[tuple[str, str]]:
+        """The committed segments translated so far, as (source, translation): the request's chat history."""
+        out = []
+        for s in self.segs:
+            text = str(getattr(s, "text", "") or "")
+            if not text:
+                break  # translated strictly in order: the rest is not there yet
+            out.append((str(getattr(s, "src", "")), text))
+        return out
+
+    def history_ready(self) -> bool:
+        return all(getattr(s, "text", "") for s in self.segs)
 
     @property
     def key(self) -> tuple[str, int | None]:
@@ -96,6 +115,7 @@ class _Lane:
     sent: tuple[str, int | None] | None = None  # key of the last text an MT was started for
     seq: int = 0
     started: float = float("-inf")  # monotonic s, the last MT's start
+    held: float | None = None  # monotonic s since a tail waits for the segments before it
     task: asyncio.Task[None] | None = None
 
 
@@ -194,14 +214,13 @@ class Drafts:
         if not tail:
             return None  # the committed segments cover all the stable text
         src = self.p.fix_terms(" ".join(tail), lang)
-        earlier = [(str(s.src), str(s.text)) for s in segs if getattr(s, "text", "")]
-        return _Want(src=src, seg=len(segs), earlier=earlier) if src.strip() else None
+        return _Want(src=src, seg=len(segs), segs=segs) if src.strip() else None
 
     def _request(self, u: _Utt, lang: str, tgt: str, want: _Want) -> TranslateRequest:
         rec = SimpleNamespace(utt=u.id, speaker=u.speaker, role=u.role, lang=lang, text=want.src, turn=u.turn)
         req = self.p._request(rec, tgt, self.p._context())  # type: ignore[arg-type]
         if want.seg is not None:  # the tail after committed segments: a segment request, as simul.py builds them
-            req = replace(req, segment=True, earlier=list(want.earlier))
+            req = replace(req, segment=True, earlier=want.earlier())
         return req
 
     async def _run(self, st: _UttDraft, u: _Utt, lang: str, tgt: str, lane: _Lane) -> None:
@@ -217,8 +236,18 @@ class Drafts:
                 if gap > 0:
                     await asyncio.sleep(gap)
                     continue  # a newer text may have come meanwhile
+                if not want.history_ready():  # simultaneous: the segments before the tail are being translated
+                    lane.held = lane.held or time.monotonic()
+                    if time.monotonic() - lane.held < SEG_WAIT_S:
+                        await asyncio.sleep(POLL_S)
+                        continue
+                lane.held = None
                 with stats.timed("voice.defer"):
                     await voicegate.quiet(SPEC_DEFER_S)  # live voice first, in any room
+                with stats.timed("yield"):
+                    await self._yield(st)  # then every other background job (partial ASR first)
+                if st.closed:
+                    return
                 async with self.p.sched.slot("background"):
                     if st.closed:
                         return
@@ -234,6 +263,18 @@ class Drafts:
                 if want.seg is not None:
                     data["seg"] = want.seg
                 await self.p.emit("translation.draft", data, utt=st.utt)
+
+    async def _yield(self, st: _UttDraft) -> None:
+        """Until nothing waits for a background slot and one stays free after this draft takes its own (with one
+        slot: until it is idle). Scheduler.acquire takes a free slot without awaiting, so nothing slips in between."""
+        sched = self.p.sched
+        while not st.closed:
+            slots = int(getattr(sched, "slots", {}).get("background", 1))
+            running = int(getattr(sched, "running", {}).get("background", 0))
+            waiting = getattr(sched, "waiting", {}).get("background") or ()
+            if not waiting and running < max(1, slots - 1):
+                return
+            await asyncio.sleep(POLL_S)
 
     async def _translate(self, req: TranslateRequest, timeout_s: float) -> str:
         parts: list[str] = []

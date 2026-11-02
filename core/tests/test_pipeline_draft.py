@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import contextvars
+import itertools
 
 import pytest
 from pipeline_helpers import Harness, fake_check, fake_extract, not_implemented
@@ -89,8 +90,9 @@ def drafts(h: Harness, utt: str | None = None) -> list[dict]:
 
 
 def harness(participants=None, **pipeline) -> Harness:
+    """Consecutive (``simultaneous: off``) unless asked; drafts unspaced (the speech here runs ~7x real time)."""
     cfg = config()
-    for k, v in {"draft_every_ms": 0.0, **pipeline}.items():
+    for k, v in {"draft_every_ms": 0.0, "simultaneous": "off", **pipeline}.items():
         setattr(cfg.pipeline, k, v)
     return Harness(participants=participants or [DOC_DE, PAT_AR_SPK], cfg=cfg)
 
@@ -108,14 +110,14 @@ def feed(h: Harness, u, text: str, speech_s: float = 2.0, conf: float = 0.95) ->
 
 
 def test_stable_part_is_the_word_aligned_common_prefix_of_the_last_two_partials():
-    assert stable_prefix(None, "Guten Tag Frau".split()) == ["Guten", "Tag"]  # one partial: minus its last word
+    assert stable_prefix(None, ["Guten", "Tag", "Frau"]) == ["Guten", "Tag"]  # one partial: minus its last word
     assert stable_prefix(None, ["Guten"]) == []
-    assert stable_prefix("Guten Tag Frau Demir".split(), "Guten Tag Frau Demir ich".split()) == \
-        "Guten Tag Frau Demir".split()
+    assert stable_prefix(["Guten", "Tag", "Frau", "Demir"], ["Guten", "Tag", "Frau", "Demir", "ich"]) == \
+        ["Guten", "Tag", "Frau", "Demir"]
     # word-aligned: a word that gained its punctuation (or was revised) ends the stable part
-    assert stable_prefix("Guten Tag Frau".split(), "Guten Tag, Frau Demir.".split()) == ["Guten"]
-    assert stable_prefix("Sie nehmen 50".split(), "Sie nehmen 500 mg".split()) == ["Sie", "nehmen"]
-    assert stable_prefix("a b".split(), "a b".split()) == ["a", "b"]
+    assert stable_prefix(["Guten", "Tag", "Frau"], ["Guten", "Tag,", "Frau", "Demir."]) == ["Guten"]
+    assert stable_prefix(["Sie", "nehmen", "50"], ["Sie", "nehmen", "500", "mg"]) == ["Sie", "nehmen"]
+    assert stable_prefix(["a", "b"], ["a", "b"]) == ["a", "b"]
 
 
 def test_draft_event_shape_and_defaults():
@@ -136,6 +138,7 @@ async def test_drafts_start_after_1_5_s_of_speech_and_go_out_in_place(no_guard):
     cfg = config(word_ms=200)  # sz-01, 14 words in 2.8 s: each partial (every 0.5 s) reveals more of it
     cfg.pipeline.draft_every_ms = 0.0
     cfg.pipeline.speculate = False  # only the drafts and the turn translate
+    cfg.pipeline.simultaneous = "off"  # consecutive: the draft is the whole stable text
     h = Harness(participants=[DOC_DE, PAT_AR_SPK], cfg=cfg)
     spy = h.engines.translate = _Spy(h)  # type: ignore[assignment]
     utt = await say(h, DOC_DE.id, 3.0)
@@ -191,7 +194,7 @@ async def test_one_mt_in_flight_the_newest_text_wins_and_a_stale_draft_never_goe
     gated.release(0)
     await until(lambda: len(gated.calls) == 2)
     assert gated.calls[1][0] == "Guten Tag Frau Demir"  # the newest; "Guten Tag Frau" was never translated
-    assert drafts(h) == [{"target_lang": "ar", "text": "<Guten Tag>", "seq": 1}]
+    assert drafts(h) == [{"target_lang": "ar", "text": "<Guten Tag>", "seq": 1, "seg": None}]
     # the ASR revises an earlier word while that MT runs: its draft is stale and never goes out
     feed(h, u, "Guten Morgen Frau Demir ich bin", speech_s=3.0)  # stable "Guten"
     gated.release(1)
@@ -199,7 +202,7 @@ async def test_one_mt_in_flight_the_newest_text_wins_and_a_stale_draft_never_goe
     assert gated.calls[2][0] == "Guten"
     gated.release(2)
     await until(lambda: len(drafts(h)) == 2)
-    assert drafts(h)[1] == {"target_lang": "ar", "text": "<Guten>", "seq": 2}
+    assert drafts(h)[1] == {"target_lang": "ar", "text": "<Guten>", "seq": 2, "seg": None}
     # the same stable text again: nothing new
     feed(h, u, "Guten Morgen Frau Demir ich bin", speech_s=3.5)  # identical partials: all of it is stable
     await until(lambda: len(gated.calls) == 4)
@@ -225,13 +228,13 @@ async def test_draft_mts_of_one_utterance_and_language_are_spaced(no_guard):
 
     gated.stream = stream  # type: ignore[method-assign]
     u = await open_utt(h)
-    words = "Guten Tag Frau Demir ich bin Doktor Weber was".split()
+    words = ["Guten", "Tag", "Frau", "Demir", "ich", "bin", "Doktor", "Weber", "was"]
     for n in range(3, len(words) + 1):
         feed(h, u, " ".join(words[:n]), speech_s=1.5 + n / 10)
         await asyncio.sleep(0.03)  # partials every 30 ms: faster than the spacing
     await h.p.drain()
     assert len(starts) >= 2
-    assert all(b - a >= 0.14 for a, b in zip(starts, starts[1:], strict=False)), starts
+    assert all(b - a >= 0.14 for a, b in itertools.pairwise(starts)), starts
     assert len(starts) < len(words) - 2  # spaced: some texts were superseded before their turn
     assert drafts(h)[-1]["text"] == "<" + " ".join(words[:-1]) + ">"  # the newest stable text came last
 
@@ -256,22 +259,24 @@ async def test_no_draft_after_the_utterance_ends_and_an_mt_in_flight_is_cancelle
     assert not drafts(h)
 
 
-async def test_off_the_record_and_burn_stop_the_drafts(no_guard):
-    from raum.events import Control
+@pytest.mark.parametrize("stop", ["off_record", "burn", "session_end"])
+async def test_off_the_record_burn_and_session_end_stop_the_drafts(no_guard, stop):
+    from raum.events import Control, SessionState
 
-    for stop in ("off_record", "burn"):
-        h = harness()
-        gated = h.engines.translate = _Gated()  # type: ignore[assignment]
-        u = await open_utt(h)
-        feed(h, u, "Guten Tag Frau Demir")
-        await until(lambda: len(gated.calls) == 1)
-        if stop == "burn":
-            await h.p.handle_control(Control(action="burn"))
-        else:
-            h.p._set_off_record(True)
-        gated.release(0)
-        await h.p.drain()
-        assert not drafts(h) and h.p.draft._utts == {}, stop
+    h = harness()
+    gated = h.engines.translate = _Gated()  # type: ignore[assignment]
+    u = await open_utt(h)
+    feed(h, u, "Guten Tag Frau Demir")
+    await until(lambda: len(gated.calls) == 1)
+    if stop == "burn":
+        await h.p.handle_control(Control(action="burn"))
+    elif stop == "off_record":
+        h.p._set_off_record(True)
+    else:
+        h.p.set_state(SessionState(off_record=False, sealed=False, participants=[], mode="sprechzimmer", status="ended"))
+    gated.release(0)
+    await asyncio.sleep(0.02)
+    assert not drafts(h) and h.p.draft._utts == {}
 
 
 async def test_drafts_use_the_background_slot_after_the_voice_gate(no_guard, monkeypatch):
@@ -304,7 +309,10 @@ async def test_drafts_use_the_background_slot_after_the_voice_gate(no_guard, mon
     assert order == [f"quiet:{SPEC_DEFER_S}", "slot:background"]  # live voice first, then a background slot
 
 
-async def test_drafts_are_never_voiced_or_checked(monkeypatch):
+@pytest.mark.parametrize("listener,simultaneous", [(PAT_AR_SPK, "off"), (PAT_AR_HP, "auto"), (PAT_AR_SPK, "auto")])
+async def test_drafts_are_never_voiced_or_checked(monkeypatch, listener, simultaneous):
+    """The same utterance with drafts on and off: the same clauses voiced, the same texts fact-checked, the same
+    flags (consecutive; simultaneous on headphones; simultaneous live on the loudspeaker)."""
     checked: list[str] = []
 
     def check(src, src_lang, tgt, tgt_lang, **kw):
@@ -313,19 +321,19 @@ async def test_drafts_are_never_voiced_or_checked(monkeypatch):
 
     monkeypatch.setattr(guard, "check", check)
     monkeypatch.setattr(guard, "extract", fake_extract)
-    h = room([DOC_DE, PAT_AR_SPK], complete_clauses=False, word_ms=200)
-    h.cfg.pipeline.draft_every_ms = 0.0
-    h.cfg.pipeline.speculate = False  # no voice made ahead: every clause made must come from the final
-    voice = Voice(h)
-    utt = await say(h, DOC_DE.id, 3.0)
-    await h.p.drain()
-    assert drafts(h, utt)
-    end = idx(h, "utterance.end", utt)
-    assert voice.made and all(at > end for at in voice.made_at)  # nothing synthesised while drafts went out
-    final = h.one("translation.final", utt)["text"]
-    assert "".join(voice.made).replace(" ", "") == final.replace(" ", "")  # the final's clauses, nothing else
-    assert checked == [final]  # the fact guard saw the final only
-    assert not [e for e in h.of("flag", utt) if any(d["text"] in str(e.data) for d in drafts(h, utt))]
+    runs = []
+    for on in (True, False):
+        checked.clear()
+        h = room([DOC_DE, listener], word_ms=200)
+        h.cfg.pipeline.draft_text, h.cfg.pipeline.draft_every_ms = on, 0.0
+        h.cfg.pipeline.simultaneous = simultaneous
+        h.cfg.pipeline.speculate = False  # no voice made ahead from partials: deterministic
+        voice = Voice(h)
+        utt = await say(h, DOC_DE.id, 3.0)
+        await h.p.drain()
+        assert bool(drafts(h, utt)) is on
+        runs.append((sorted(voice.made), sorted(checked), [e.data.get("kind") for e in h.of("flag", utt)]))
+    assert runs[0] == runs[1] and runs[0][0], runs
 
 
 # ---------------------------------------------------------------- simultaneous mode
@@ -335,8 +343,8 @@ async def test_with_committed_segments_the_draft_is_only_the_uncommitted_tail(no
     h = room([DOC_DE, PAT_AR_HP])  # headphones: simultaneous, every clause complete (sentence ends commit)
     h.cfg.pipeline.draft_every_ms = 0.0
     spy = h.engines.translate = _Spy(h)  # type: ignore[assignment]
-    utt = await speak(h, DOC_DE.id, 2.0)
-    await h.p.drain()
+    utt = await speak(h, DOC_DE.id, 2.0)  # still talking: the lanes stay open (no drain before the end)
+    await until(lambda: any(d.get("seg") == 2 for d in drafts(h, utt)))
     segs = h.p.simul.lanes(utt)["ar"].segs
     assert [s.src for s in segs][:2] == ["Guten Tag, Frau Demir.", "Ich bin Dr. Weber."]
     out = drafts(h, utt)
@@ -360,3 +368,19 @@ async def test_voice_lock_turns_drafts_off(no_guard):
     assert d.enabled
     h.p.voicelock = SimpleNamespace(enabled=True)  # type: ignore[assignment]  F-10: admitted after the final ASR
     assert not d.enabled
+
+
+async def test_drafts_come_last_among_background_work(no_guard):
+    """Two background slots, one busy (a partial ASR, a speculation): the draft waits, so the next partial never
+    queues behind a draft MT; it starts once the slot is free."""
+    h = harness()
+    spy = h.engines.translate = _Spy(h)  # type: ignore[assignment]
+    sched = h.p.scheduler = Scheduler(live_slots=1, check_slots=1, background_slots=2)
+    await sched.acquire("background")
+    u = await open_utt(h)
+    feed(h, u, "Guten Tag Frau Demir")
+    await asyncio.sleep(0.1)
+    assert not spy.reqs and sched.running["background"] == 1  # the last free slot stays for the next partial
+    sched.release("background")
+    await until(lambda: len(drafts(h)) == 1)
+    assert spy.prios == [None] and sched.running["background"] == 0

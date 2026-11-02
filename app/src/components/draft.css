@@ -1,0 +1,5 @@
+/* Live draft translation (DraftText.tsx): quieter ink until the final translation takes its place. Same size,
+   weight and line as the text it continues, so nothing moves when the final replaces it. */
+.translation--draft {
+  color: var(--ink-3);
+}

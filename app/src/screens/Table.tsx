@@ -6,6 +6,8 @@ import type { ParticipantInfo } from "../lib/events";
 import { isRtl, langName, pick, t } from "../lib/i18n";
 import { useEventSocket } from "../lib/live";
 import { RoomStore, checkState, percentile, useRoomModel, type Turn } from "../lib/store";
+import { shownTranslation } from "../lib/draft";
+import { DraftText } from "../components/DraftText";
 import { FactDims, Hatch, VerifyMark } from "../components/Drawing";
 import { Timeline, firstWordsMs, pathLabel } from "../components/Sheet";
 import { OfferTimeline } from "../components/Offers";
@@ -202,10 +204,12 @@ function TableRow({
   const cell = (lang: string | null) => {
     if (!lang) return <span className="trow__empty">—</span>;
     const isSrc = lang === turn.lang;
-    const text = isSrc ? turn.text ?? turn.partial : turn.translations[lang]?.text;
+    const shown = isSrc ? null : shownTranslation(turn, lang); // the translation + its live draft (draft.ts)
+    const text = isSrc ? turn.text ?? turn.partial : shown?.text;
     return (
       <p className={`trow__text ${isSrc ? "is-src" : ""}`} lang={lang} dir={isRtl(lang) ? "rtl" : "ltr"}>
-        {text || " "}
+        {text || (shown?.draft ? null : " ")}
+        {shown?.draft ? <DraftText text={shown.draft} ui={UI} lead={!!text} mark /> : null}
       </p>
     );
   };
