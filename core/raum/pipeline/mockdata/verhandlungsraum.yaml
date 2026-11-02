@@ -1,0 +1,96 @@
+# Mock conversation for the Verhandlungsraum (CEO a, partner b). Format: see sprechzimmer.yaml.
+mode: verhandlungsraum
+lines:
+  - id: vr-01
+    role: a
+    text:
+      de: "Willkommen, Herr Petrov. Schön, dass Sie heute hier sind."
+      en: "Welcome, Mr Petrov. Good to have you here today."
+      tr: "Hoş geldiniz Bay Petrov. Bugün burada olmanız çok güzel."
+      ru: "Добро пожаловать, господин Петров. Рад, что вы сегодня здесь."
+      ar: "أهلًا بك سيد بيتروف. يسعدنا وجودك هنا اليوم."
+
+  - id: vr-02
+    role: b
+    text:
+      de: "Danke. Wir möchten über den Rahmenvertrag für 2027 sprechen."
+      en: "Thank you. We would like to discuss the framework agreement for 2027."
+      tr: "Teşekkürler. 2027 için çerçeve sözleşmeyi konuşmak istiyoruz."
+      ru: "Спасибо. Мы хотели бы обсудить рамочный договор на 2027 год."
+      ar: "شكرًا. نود أن نناقش الاتفاقية الإطارية لعام 2027."
+
+  - id: vr-03
+    role: a
+    text:
+      de: "Unser Angebot liegt bei 1,2 Millionen Euro."
+      en: "Our offer is 1.2 million euros."
+      tr: "Teklifimiz 1,2 milyon Euro."
+      ru: "Наше предложение составляет 1,2 миллиона евро."
+      ar: "عرضنا هو 1.2 مليون يورو."
+
+  - id: vr-04
+    role: b
+    text:
+      de: "Das ist uns zu hoch. Wir dachten an 900.000 Euro."
+      en: "That is too high for us. We were thinking of 900,000 euros."
+      tr: "Bu bizim için çok yüksek. 900.000 Euro düşünüyorduk."
+      ru: "Для нас это слишком дорого. Мы думали о 900 000 евро."
+      ar: "هذا مرتفع جدًا بالنسبة لنا. كنا نفكر في 900,000 يورو."
+
+  - id: vr-05
+    role: a
+    text:
+      de: "Wir können auf 1,05 Millionen gehen, wenn die Lieferung bis März erfolgt."
+      en: "We can go to 1.05 million if delivery takes place by March."
+      tr: "Teslimat mart ayına kadar yapılırsa 1,05 milyona inebiliriz."
+      ru: "Мы можем пойти на 1,05 миллиона, если поставка будет до марта."
+      ar: "يمكننا النزول إلى 1.05 مليون إذا تم التسليم بحلول مارس."
+
+  - id: vr-06
+    role: b
+    text:
+      de: "Wir brauchen außerdem ein Zahlungsziel von 60 Tagen."
+      en: "We also need payment terms of 60 days."
+      tr: "Ayrıca 60 günlük ödeme vadesine ihtiyacımız var."
+      ru: "Нам также нужен срок оплаты 60 дней."
+      ar: "نحتاج أيضًا إلى مهلة دفع مدتها 60 يومًا."
+
+  # The red path: the translator turns "within 10 days" into "within 30 days".
+  - id: vr-07
+    role: a
+    mistranslate: { "10": "30" }
+    text:
+      de: "Einverstanden, 60 Tage, aber mit 2 Prozent Skonto bei Zahlung innerhalb von 10 Tagen."
+      en: "Agreed, 60 days, but with a 2 percent discount for payment within 10 days."
+      tr: "Kabul, 60 gün, ancak 10 gün içinde ödemede yüzde 2 indirimle."
+      ru: "Согласны, 60 дней, но со скидкой 2 процента при оплате в течение 10 дней."
+      ar: "موافقون، 60 يومًا، ولكن مع خصم 2 بالمئة عند الدفع خلال 10 أيام."
+
+  # Mumbled: low ASR confidence -> "please say that again", not translated.
+  - id: vr-08
+    role: b
+    conf: 0.4
+    text:
+      de: "Hm, da müsste ich ... äh ... nachfragen ..."
+      en: "Hm, I would have to ... uh ... check ..."
+      tr: "Hımm, bunu ... şey ... sormam gerek ..."
+      ru: "Хм, мне нужно ... э-э ... уточнить ..."
+      ar: "همم، يجب أن ... آه ... أسأل ..."
+
+  - id: vr-09
+    role: a
+    text:
+      de: "Dann halten wir fest: 1,05 Millionen Euro, Lieferung bis zum 31. März."
+      en: "Then let us put it on record: 1.05 million euros, delivery by 31 March."
+      tr: "O halde kayda geçirelim: 1,05 milyon Euro, teslimat 31 Mart'a kadar."
+      ru: "Тогда зафиксируем: 1,05 миллиона евро, поставка до 31 марта."
+      ar: "إذن نثبت ما يلي: 1.05 مليون يورو، والتسليم بحلول 31 مارس."
+
+  - id: vr-10
+    role: b
+    text:
+      de: "Einverstanden. Wir schicken Ihnen den Vertrag bis Freitag."
+      en: "Agreed. We will send you the contract by Friday."
+      tr: "Kabul. Sözleşmeyi cuma gününe kadar size göndereceğiz."
+      ru: "Согласны. Мы пришлём вам договор до пятницы."
+      ar: "موافقون. سنرسل لكم العقد بحلول يوم الجمعة."

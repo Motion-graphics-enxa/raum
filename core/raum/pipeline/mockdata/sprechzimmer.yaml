@@ -1,0 +1,108 @@
+# Mock conversation for the Sprechzimmer (doctor a, patient b). Used by the mock engines:
+#   MockASR        next line for the speaker's role, in the speaker's language (fallback en)
+#   MockTranslator finds the line by its source text and streams the target language word by word
+#   MockVerifier   back-translates by mapping back to the line (mistranslation kept)
+#
+# Per line:
+#   conf          ASR confidence (default 0.93). Below asr_min_conf -> "please say that again".
+#   mistranslate  {wrong-from: wrong-to} applied to every TARGET text (never the source): the red path.
+#                 Matched as a whole number (no digit before or after).
+#   simple        canned plain-language version (explain simply, K-02), per language.
+#
+# Digits stay Western in every language (as on real prescriptions) so the fact guard can compare them.
+mode: sprechzimmer
+lines:
+  - id: sz-01
+    role: a
+    text:
+      de: "Guten Tag, Frau Demir. Ich bin Dr. Weber. Was führt Sie heute zu mir?"
+      en: "Hello, Mrs Demir. I am Dr. Weber. What brings you to me today?"
+      tr: "Merhaba Demir Hanım. Ben Dr. Weber. Bugün sizi bana ne getirdi?"
+      ru: "Здравствуйте, госпожа Демир. Я доктор Вебер. Что привело вас ко мне сегодня?"
+      ar: "مرحبًا سيدة دمير. أنا الدكتور فيبر. ما الذي أتى بكِ إليّ اليوم؟"
+
+  - id: sz-02
+    role: b
+    text:
+      de: "Ich nehme zweimal täglich 500 mg Metformin."
+      en: "I take 500 mg of Metformin twice a day."
+      tr: "Günde iki kez 500 mg Metformin alıyorum."
+      ru: "Я принимаю Метформин по 500 мг два раза в день."
+      ar: "آخذ 500 ملغ من ميتفورمين مرتين يوميًا."
+
+  - id: sz-03
+    role: a
+    text:
+      de: "Sind Sie gegen irgendwelche Medikamente allergisch?"
+      en: "Are you allergic to any medication?"
+      tr: "Herhangi bir ilaca alerjiniz var mı?"
+      ru: "У вас есть аллергия на какие-либо лекарства?"
+      ar: "هل لديكِ حساسية من أي دواء؟"
+
+  - id: sz-04
+    role: b
+    text:
+      de: "Ich bin allergisch gegen Penicillin."
+      en: "I am allergic to penicillin."
+      tr: "Penisiline alerjim var."
+      ru: "У меня аллергия на пенициллин."
+      ar: "لدي حساسية من البنسلين."
+
+  - id: sz-05
+    role: a
+    text:
+      de: "Nehmen Sie zweimal täglich 500 mg Metformin weiter, morgens und abends zum Essen."
+      en: "Keep taking 500 mg of Metformin twice a day, in the morning and in the evening with food."
+      tr: "Metformin 500 mg'ı günde iki kez, sabah ve akşam yemekle birlikte almaya devam edin."
+      ru: "Продолжайте принимать Метформин по 500 мг два раза в день, утром и вечером во время еды."
+      ar: "استمري في تناول 500 ملغ من ميتفورمين مرتين يوميًا، صباحًا ومساءً مع الطعام."
+
+  - id: sz-06
+    role: b
+    text:
+      de: "Seit drei Tagen habe ich Fieber und Halsschmerzen."
+      en: "I have had a fever and a sore throat for three days."
+      tr: "Üç gündür ateşim ve boğaz ağrım var."
+      ru: "Уже три дня у меня температура и болит горло."
+      ar: "عندي حمى والتهاب في الحلق منذ ثلاثة أيام."
+
+  # The red path: the translator turns 400 mg into 40 mg. The fact guard must catch it.
+  - id: sz-07
+    role: a
+    mistranslate: { "400": "40" }
+    text:
+      de: "Ich verschreibe Ihnen Ibuprofen 400 mg, höchstens dreimal täglich nach dem Essen."
+      en: "I am prescribing you Ibuprofen 400 mg, at most three times a day after meals."
+      tr: "Size İbuprofen 400 mg yazıyorum, yemekten sonra günde en fazla üç kez."
+      ru: "Я выписываю вам Ибупрофен 400 мг, не более трёх раз в день после еды."
+      ar: "سأصف لكِ إيبوبروفين 400 ملغ، ثلاث مرات يوميًا كحد أقصى بعد الأكل."
+
+  # Mumbled: low ASR confidence -> "please say that again", not translated.
+  - id: sz-08
+    role: b
+    conf: 0.4
+    text:
+      de: "Äh, also, ich weiß nicht, ob ich das ..."
+      en: "Uh, well, I don't know if I ..."
+      tr: "Şey, yani, bilmiyorum, acaba ben ..."
+      ru: "Э-э, ну, я не знаю, смогу ли я ..."
+      ar: "آه، يعني، لا أعرف إن كنت ..."
+
+  - id: sz-09
+    role: a
+    text:
+      de: "Kommen Sie am Donnerstag, dem 12. November, um 9 Uhr wieder."
+      en: "Come back on Thursday, 12 November, at 9 o'clock."
+      tr: "12 Kasım Perşembe günü saat 9'da tekrar gelin."
+      ru: "Приходите снова в четверг, 12 ноября, в 9 часов."
+      ar: "عودي يوم الخميس، 12 نوفمبر، الساعة 9."
+
+  # Repeat-back (S-02) of sz-09: the date is missing -> "partly".
+  - id: sz-10
+    role: b
+    text:
+      de: "Danke. Also zweimal täglich 500 mg Metformin und am Donnerstag um 9 Uhr wiederkommen."
+      en: "Thank you. So 500 mg of Metformin twice a day, and come back on Thursday at 9."
+      tr: "Teşekkürler. Yani günde iki kez 500 mg Metformin ve Perşembe saat 9'da tekrar geliyorum."
+      ru: "Спасибо. Значит, Метформин по 500 мг два раза в день и прийти снова в четверг в 9."
+      ar: "شكرًا. إذن 500 ملغ من ميتفورمين مرتين يوميًا، وأعود يوم الخميس الساعة 9."

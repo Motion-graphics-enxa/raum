@@ -1,0 +1,100 @@
+"""Localised texts the pipeline puts into ``flag`` events (de, en, tr, ru, ar; fallback en)."""
+
+from __future__ import annotations
+
+import re
+
+LANGS = ("de", "en", "tr", "ru", "ar")
+
+SAY_AGAIN = {
+    "de": "Bitte noch einmal sagen.",
+    "en": "Please say that again.",
+    "tr": "Lütfen tekrar söyleyin.",
+    "ru": "Пожалуйста, повторите.",
+    "ar": "من فضلك، قلها مرة أخرى.",
+}
+
+CORRECT = {
+    "de": "Stimmt das?",
+    "en": "Correct?",
+    "tr": "Doğru mu?",
+    "ru": "Верно?",
+    "ar": "هل هذا صحيح؟",
+}
+
+MISMATCH = {
+    "de": "Achtung, bitte prüfen: {facts}. Stimmt das?",
+    "en": "Please check: {facts}. Correct?",
+    "tr": "Lütfen kontrol edin: {facts}. Doğru mu?",
+    "ru": "Пожалуйста, проверьте: {facts}. Верно?",
+    "ar": "يرجى التحقق: {facts}. هل هذا صحيح؟",
+}
+
+UNSURE = {
+    "de": "Diese Übersetzung ist vielleicht falsch. Bitte beim Gegenüber nachfragen.",
+    "en": "This translation may be wrong. Please check with the other person.",
+    "tr": "Bu çeviri yanlış olabilir. Lütfen karşınızdaki kişiye sorun.",
+    "ru": "Этот перевод может быть неверным. Пожалуйста, уточните у собеседника.",
+    "ar": "قد تكون هذه الترجمة خاطئة. يرجى التأكد من الطرف الآخر.",
+}
+
+LABELS = {
+    "allergy": {"de": "Allergie", "en": "Allergy", "tr": "Alerji", "ru": "Аллергия", "ar": "حساسية"},
+    "deadline": {"de": "Frist", "en": "Deadline", "tr": "Son tarih", "ru": "Срок", "ar": "المهلة"},
+    "date": {"de": "Datum", "en": "Date", "tr": "Tarih", "ru": "Дата", "ar": "التاريخ"},
+    "amount": {"de": "Betrag", "en": "Amount", "tr": "Tutar", "ru": "Сумма", "ar": "المبلغ"},
+}
+
+_THOUSANDS = {"de": ".", "tr": ".", "ru": " ", "en": ",", "ar": ","}
+_DECIMAL = {"de": ",", "tr": ",", "ru": ",", "en": ".", "ar": "."}
+
+
+def pick(table: dict[str, str], lang: str | None) -> str:
+    return table.get(lang or "en") or table["en"]
+
+
+def all_langs(table: dict[str, str], extra: str | None = None) -> dict[str, str]:
+    out = {k: table[k] for k in LANGS if k in table}
+    if extra and extra not in out:
+        out[extra] = table["en"]
+    return out
+
+
+def per_day(n: int, lang: str) -> str:
+    if lang == "de":
+        return {1: "einmal täglich", 2: "zweimal täglich", 3: "dreimal täglich"}.get(n, f"{n}-mal täglich")
+    if lang == "tr":
+        return f"günde {n} kez"
+    if lang == "ru":
+        word = "раз" if n == 1 or n >= 5 else "раза"
+        return f"{n} {word} в день"
+    if lang == "ar":
+        return {1: "مرة يوميًا", 2: "مرتين يوميًا"}.get(n, f"{n} مرات يوميًا")
+    return {1: "once a day", 2: "twice a day"}.get(n, f"{n} times a day")
+
+
+def format_number(x: float, lang: str) -> str:
+    if float(x).is_integer():
+        s = f"{int(x):,}".replace(",", "\0")
+        return s.replace("\0", _THOUSANDS.get(lang, ","))
+    whole, frac = f"{x:,.2f}".rstrip("0").split(".")
+    whole = whole.replace(",", _THOUSANDS.get(lang, ","))
+    return f"{whole}{_DECIMAL.get(lang, '.')}{frac}"
+
+
+_PER_DAY = re.compile(r"^(\d+)\s*/\s*(day|d|tag)$", re.IGNORECASE)
+_AMOUNT = re.compile(r"^(\d+(?:\.\d+)?)\s*([A-Z]{3})$")
+
+
+def fact_text(kind: str, value: str | None, lang: str) -> str:
+    """A normalised fact value ("2/day", "1200000 EUR", "500 mg") as a short phrase in ``lang``."""
+    if not value:
+        return "-"
+    m = _PER_DAY.match(value.strip())
+    if m:
+        text = per_day(int(m.group(1)), lang)
+    else:
+        a = _AMOUNT.match(value.strip())
+        text = f"{format_number(float(a.group(1)), lang)} {a.group(2)}" if a else value
+    label = LABELS.get(kind)
+    return f"{pick(label, lang)}: {text}" if label else text
