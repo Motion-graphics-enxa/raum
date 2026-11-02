@@ -72,6 +72,7 @@ from raum.events import Control
 from raum.pipeline import texts as T
 from raum.pipeline._util import lang_code
 from raum.pipeline.base import AsrResult, TurnContext
+from raum.pipeline.incomplete import unfinished
 from raum.pipeline.voice import speech_seconds
 from raum.verify import guard
 from raum.verify.backtranslate import second_check
@@ -317,6 +318,8 @@ class Simultaneous:
         if not words:
             return False
         eot = getattr(self.p, "eot", None)
+        if unfinished(text, lang):  # incomplete.py: "Sie dürfen das Metformin ab morgen" is no clause to commit
+            return False
         if eot is not None and _turn_model_covers(lang):
             try:
                 return float(await eot.text_p(text)) >= float(getattr(eot, "fast", 0.1))

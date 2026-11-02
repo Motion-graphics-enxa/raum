@@ -45,7 +45,7 @@ class FakeEot:
     async def audio_p(self, audio):
         return 0.9
 
-    async def verdict(self, text, lang, audio=None):
+    async def verdict(self, text, lang, audio=None, **kw):
         self.texts.append(text)
         return Verdict(self.waits.pop(0), "test")
 
@@ -149,10 +149,10 @@ class FakeExecutor:
 OPTS = {"fast": 0.1, "unsure_s": 1.0, "max_s": 1.6, "audio_min": 0.5}
 
 
-async def verdict(p_text, p_audio=0.9, lang="de", text="Ich habe gestern"):
+async def verdict(p_text, p_audio=0.9, lang="de", text="Ich nehme das Metformin", conf=None):
     d = TurnDetector(FakeExecutor(p_text, p_audio), OPTS)
     audio = asyncio.ensure_future(d.audio_p(np.zeros(16000, dtype=np.float32)))
-    return await d.verdict(text, lang, audio)
+    return await d.verdict(text, lang, audio, conf=conf)
 
 
 async def test_tiers():

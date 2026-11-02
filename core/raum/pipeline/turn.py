@@ -4,6 +4,7 @@ The Silero VAD reports a pause after a short silence (``models.vad`` ``min_silen
 on spark). ``RoomPipeline.speech_pause`` then runs the final ASR at once (speculatively) and asks
 ``TurnDetector.verdict`` how much silence to allow in total before the turn ends:
 
+    a deterministic rule (incomplete.py)      -> max_s     "Sie dürfen das Metformin ab morgen" (no verb yet)
     P_text >= fast and P_audio >= audio_min   -> 0         end now; the speculative ASR is the final one
     P_text >= the language's calibrated floor  -> unsure_s
     P_text below it (no verb yet, "und", "äh") -> max_s
@@ -19,6 +20,13 @@ event loop only awaits an IPC reply):
   the utterance, 20-120 ms. It can only hold back the fast path, never end a turn by itself.
 * a language the text model lacks (ar): the resident translate model answers yes/no (one token), or,
   without it, ``unsure_s``.
+
+Before any model, ``incomplete.unfinished`` (German verb-final / negation scope, English trailing auxiliary;
+~0 ms) can only make the wait longer: ``verb-final`` and ``neg-scope`` wait ``max_s``, ``aux-open`` (haben /
+sein / werden without a closing verb: "Haben Sie Schmerzen?") waits ``aux_s`` (default ``max_s``). A transcript
+ending in "?" with ASR confidence below ``q_conf`` (0.85) never ends the turn at once: the "?" is dropped
+for the text model and the verdict is at least ``unsure_s`` (whisper's "?" on a cut, misheard sentence is not
+evidence that it is finished).
 
 Every failure (model files missing, IPC error, timeout) degrades to ``unsure_s``: never a cut.
 Model files are fetched at install time (``python -m raum.pipeline.turn download``), never at runtime.
@@ -37,6 +45,7 @@ import numpy as np
 from livekit.agents.inference_runner import _InferenceRunner
 
 from raum.pipeline._util import float_to_int16, lang_code, lang_name
+from raum.pipeline.incomplete import unfinished
 
 log = logging.getLogger("raum.pipeline.turn")
 
@@ -193,6 +202,9 @@ class TurnDetector:
         self.max_s = float(o.get("max_s", 1.6))
         self.audio_min = float(o.get("audio_min", 0.5))
         self.audio = bool(o.get("audio", True))
+        self.rules = bool(o.get("rules", True))  # incomplete.py
+        self.aux_s = float(o.get("aux_s", self.max_s))
+        self.q_conf = float(o.get("q_conf", 0.85))
         self._warned: set[str] = set()
 
     def _warn(self, what: str, e: BaseException) -> None:
@@ -220,11 +232,31 @@ class TurnDetector:
         out = await asyncio.wait_for(self.executor.do_inference(LK_METHOD, data), IPC_TIMEOUT_S)
         return float(json.loads(out)["eou_probability"])
 
-    async def verdict(self, text: str, lang: str | None, audio: asyncio.Future[float | None] | None = None) -> Verdict:
+    def rule(self, text: str, lang: str | None) -> Verdict | None:
+        """The deterministic rules (incomplete.py): a wait, or None (no opinion)."""
+        why = unfinished(text, lang_code(lang)) if self.rules else None
+        if why is None:
+            return None
+        return Verdict(self.aux_s if why == "aux-open" else self.max_s, why)
+
+    async def verdict(self, text: str, lang: str | None, audio: asyncio.Future[float | None] | None = None, *,
+                      conf: float | None = None) -> Verdict:
         text = (text or "").strip()
         code = lang_code(lang) or ""
         if not text:
             return Verdict(0.0, "no-text")  # nothing to wait for; the pipeline drops an empty turn
+        unsure_q = conf is not None and conf < self.q_conf and text.endswith("?")
+        if unsure_q:
+            text = text.rstrip("?？؟ ").strip() or text
+        ruled = self.rule(text, code)
+        if ruled is not None:
+            return ruled
+        v = await self._model_verdict(text, code, audio)
+        if unsure_q and v.wait_s < self.unsure_s:
+            return Verdict(self.unsure_s, "low-conf-question", v.p_text, v.p_audio)
+        return v
+
+    async def _model_verdict(self, text: str, code: str, audio: asyncio.Future[float | None] | None) -> Verdict:
         floor = LK_FLOOR.get(code)
         if floor is None:
             if self.llm is None:

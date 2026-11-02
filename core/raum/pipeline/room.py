@@ -563,7 +563,8 @@ class RoomPipeline:
                 self.spec.on_text(u, res.text, lang_code(res.lang) or u.hint or self._default_lang(u.role),
                                   slot="live", seconds=speech_seconds(n / SAMPLE_RATE, (time.monotonic() - t_stop)
                                                                       * 1000.0, res.words, self.vad_pad_s))
-            verdict = await self.eot.verdict(res.text, lang_code(res.lang) or u.hint, audio_p)
+            verdict = await self.eot.verdict(res.text, lang_code(res.lang) or u.hint, audio_p,
+                                             conf=float(res.conf) if res.has_conf else None)
         except asyncio.CancelledError:
             audio_p.cancel()
             raise

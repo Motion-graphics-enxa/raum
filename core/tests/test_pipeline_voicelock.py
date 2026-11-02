@@ -389,7 +389,7 @@ class PauseEot:
     async def audio_p(self, audio):
         return 0.9
 
-    async def verdict(self, text, lang, audio=None):
+    async def verdict(self, text, lang, audio=None, **kw):
         from raum.pipeline.turn import Verdict
 
         return Verdict(self.waits.pop(0), "test")

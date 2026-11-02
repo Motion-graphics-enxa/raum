@@ -71,7 +71,7 @@ class Eot:
     async def audio_p(self, audio):
         return 0.9
 
-    async def verdict(self, text, lang, audio=None):
+    async def verdict(self, text, lang, audio=None, **kw):
         return Verdict(self.waits.pop(0) if self.waits else 0.0, "test")
 
     async def aclose(self):
@@ -705,7 +705,7 @@ async def test_pause_speculation_runs_beside_the_verdict_and_plays_only_after_th
     h = room([DOC_DE, PAT_AR_SPK], complete_clauses=False, final_reveal=True)
 
     class SlowVerdict(Eot):
-        async def verdict(self, text, lang, audio=None):
+        async def verdict(self, text, lang, audio=None, **kw):
             await asyncio.sleep(0.15)  # the turn models take their time; MT runs meanwhile
             return Verdict(0.0, "test")
 
