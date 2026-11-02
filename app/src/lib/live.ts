@@ -28,9 +28,10 @@ import {
 } from "livekit-client";
 import { api, listOf, livekitUrl } from "./api";
 import { EVENTS_TOPIC, parseEnvelope, type AnyEnvelope } from "./events";
+import { createEventLink, OVERLAP_MS, type LinkState } from "./link";
 import type { RoomStore } from "./store";
 
-export type LinkState = "connecting" | "connected" | "reconnecting" | "disconnected";
+export type { LinkState } from "./link";
 
 export interface LiveSession {
   room: string;
@@ -47,6 +48,10 @@ export interface LiveRoom {
   level: number; // 0..1, smoothed
   setMic: (on: boolean) => Promise<void>;
   rttMs: number | null;
+  /** The browser refused to start the box's voice without a tap (iOS autoplay): show "Tap to hear". */
+  audioBlocked: boolean;
+  /** Start the voice from a user gesture. Text rendering never waits for it. */
+  startAudio: () => void;
   disconnect: () => void;
 }
 
@@ -54,7 +59,7 @@ export interface LiveRoom {
 const EPHEMERAL = new Set<string>(["privacy.meter", "gpu.stats"]);
 /** Catch-up starts a little before the newest event we hold: agent and core events may arrive out
  * of order, and the store drops the duplicates. */
-const BACKLOG_OVERLAP_MS = 3000;
+const BACKLOG_OVERLAP_MS = OVERLAP_MS;
 const REJOIN_MIN_MS = 1000;
 const REJOIN_MAX_MS = 8000;
 /** Disconnects a rejoin must not undo: we left, another tab took our identity, the box removed us
@@ -83,6 +88,7 @@ export function useLiveRoom(session: LiveSession | null, store: RoomStore, voice
   const [micError, setMicError] = useState<string | null>(null);
   const [level, setLevel] = useState(0);
   const [rttMs, setRtt] = useState<number | null>(null);
+  const [audioBlocked, setAudioBlocked] = useState(false);
   const roomRef = useRef<Room | null>(null);
   const analyser = useRef<{ ctx: AudioContext; node: AnalyserNode; raf: number } | null>(null);
   const micWanted = useRef(false); // what the user chose; restored after a reconnect or rejoin
@@ -177,7 +183,11 @@ export function useLiveRoom(session: LiveSession | null, store: RoomStore, voice
         rejoining = false;
         setState("connected");
         subscribeVoice();
-        void room.startAudio().catch(() => undefined);
+        // Text first: the backlog never waits for the voice (iOS may hold startAudio until a tap).
+        void room
+          .startAudio()
+          .catch(() => undefined)
+          .finally(() => setAudioBlocked(!room.canPlaybackAudio));
         await backlog();
         if (why === "rejoin") {
           console.info("[raum] rejoined", session.room);
@@ -211,6 +221,7 @@ export function useLiveRoom(session: LiveSession | null, store: RoomStore, voice
       else if (s === ConnectionState.Connecting) setState(rejoining ? "reconnecting" : "connecting");
       // Disconnected: RoomEvent.Disconnected decides between rejoining and giving up
     });
+    room.on(RoomEvent.AudioPlaybackStatusChanged, () => setAudioBlocked(!room.canPlaybackAudio));
     room.on(RoomEvent.Reconnected, () => {
       void backlog();
       void restoreMic();
@@ -251,6 +262,8 @@ export function useLiveRoom(session: LiveSession | null, store: RoomStore, voice
       if (document.visibilityState === "visible") wake();
     };
     window.addEventListener("online", wake);
+    window.addEventListener("pageshow", wake);
+    window.addEventListener("focus", wake);
     document.addEventListener("visibilitychange", onVisible);
 
     void connect("join");
@@ -262,6 +275,8 @@ export function useLiveRoom(session: LiveSession | null, store: RoomStore, voice
       window.clearTimeout(retryTimer);
       window.clearInterval(iv);
       window.removeEventListener("online", wake);
+      window.removeEventListener("pageshow", wake);
+      window.removeEventListener("focus", wake);
       document.removeEventListener("visibilitychange", onVisible);
       stopAnalyser(analyser);
       void room.disconnect();
@@ -305,6 +320,15 @@ export function useLiveRoom(session: LiveSession | null, store: RoomStore, voice
     level,
     setMic,
     rttMs,
+    audioBlocked,
+    startAudio: () => {
+      const room = roomRef.current;
+      if (!room || room.canPlaybackAudio) return;
+      void room
+        .startAudio()
+        .catch(() => undefined)
+        .finally(() => setAudioBlocked(!room.canPlaybackAudio));
+    },
     disconnect: () => void roomRef.current?.disconnect(),
   };
 }
@@ -349,43 +373,43 @@ function stopAnalyser(ref: React.MutableRefObject<{ ctx: AudioContext; node: Ana
   ref.current = null;
 }
 
-/** WebSocket mirror (table screen, listen-only, summary): /api/events/:room with reconnect. */
+/** WebSocket mirror (table screen, listen-only, summary, and the talk screen's second source):
+ * /api/events/:room through the events link (./link.ts: backoff, heartbeat, wake, `?since=` resync). */
 export function useEventSocket(room: string, store: RoomStore, url: string): LinkState {
   const [state, setState] = useState<LinkState>("connecting");
   useEffect(() => {
-    let ws: WebSocket | null = null;
-    let closed = false;
-    let retry = 500;
-    let timer = 0;
-    const cursor = tsCursor(); // a reconnect asks core only for what it missed (?since=)
-    const open = () => {
-      setState((s) => (s === "connected" ? "reconnecting" : s));
-      const since = cursor.since();
-      ws = new WebSocket(since ? `${url}${url.includes("?") ? "&" : "?"}since=${since}` : url);
-      ws.onopen = () => {
-        retry = 500;
-        setState("connected");
-      };
-      ws.onmessage = (m) => {
-        const env = parseEnvelope(typeof m.data === "string" ? m.data : "");
-        if (env) {
-          cursor.take(env);
-          store.push(env);
-        }
-      };
-      ws.onclose = () => {
-        if (closed) return;
-        setState("reconnecting");
-        timer = window.setTimeout(open, retry);
-        retry = Math.min(retry * 2, 5000);
-      };
-      ws.onerror = () => ws?.close();
+    const link = createEventLink({
+      url: (since) => (since ? `${url}${url.includes("?") ? "&" : "?"}since=${since}` : url),
+      open: (u) => new WebSocket(u),
+      onMessage: (data) => {
+        const env = parseEnvelope(data);
+        if (!env) return null;
+        store.push(env);
+        return EPHEMERAL.has(env.type) ? null : env.ts;
+      },
+      onState: setState,
+      now: () => Date.now(),
+      setTimeout: (fn, ms) => window.setTimeout(fn, ms),
+      clearTimeout: (id) => window.clearTimeout(id),
+      setInterval: (fn, ms) => window.setInterval(fn, ms),
+      clearInterval: (id) => window.clearInterval(id),
+      log: (msg) => console.info(msg, room),
+    });
+    const wake = () => link.wake();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") wake();
     };
-    open();
+    window.addEventListener("online", wake);
+    window.addEventListener("pageshow", wake);
+    window.addEventListener("focus", wake);
+    document.addEventListener("visibilitychange", onVisible);
+    link.start();
     return () => {
-      closed = true;
-      window.clearTimeout(timer);
-      ws?.close();
+      window.removeEventListener("online", wake);
+      window.removeEventListener("pageshow", wake);
+      window.removeEventListener("focus", wake);
+      document.removeEventListener("visibilitychange", onVisible);
+      link.stop();
     };
   }, [room, store, url]);
   return state;

@@ -129,7 +129,10 @@ def run(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=args.log_level.upper(), format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     import uvicorn
 
-    # proxy headers are handled in raum.api.join (X-Forwarded-For trusted from loopback only)
+    # proxy headers are handled in raum.api.join (X-Forwarded-For trusted from loopback only).
+    # WebSockets (/api/events, the agent link) never time out idle: core ticks /api/events every second,
+    # answers the app's "ping", and uvicorn's protocol pings (every 20 s, 20 s to answer) only reap
+    # sockets whose peer is gone (a phone that slept); the app reconnects with ?since= when it wakes.
     uvicorn.run("raum.api.server:create_app", factory=True, host=args.host, port=args.port, reload=args.reload,
-                log_level=args.log_level, proxy_headers=False)
+                log_level=args.log_level, proxy_headers=False, ws_ping_interval=20.0, ws_ping_timeout=20.0)
     return 0
