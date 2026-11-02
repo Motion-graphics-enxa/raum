@@ -12,8 +12,9 @@ from raum.modes.schema import GuardKind
 SETS = repo_root() / "eval" / "sets"
 REQUIRED = {"id", "room", "src_lang", "tgt_lang", "src", "facts", "approved"}
 OPTIONAL = {"ref", "perturbed", "perturbation"}
-PERTURBATIONS = {"wrong_number": 3, "wrong_unit": 2, "negation": 2, "allergy_omitted": 2, "date_shifted": 1}
-DEMO_LANGS = {"ru", "tr"}  # §19: the demo language is one of these; both must be complete
+PERTURBATIONS = {"wrong_number": 3, "wrong_unit": 2, "negation": 2, "allergy_omitted": 2, "date_shifted": 1,
+                 "semantic": 10}
+DEMO_LANGS = {"en", "ru", "tr"}  # stage demo pair is de-en; ru/tr from §19. All must be complete
 DEMO_SENTENCES = [  # §20.7, German side (src or ref)
     "Ich nehme zweimal täglich 500 mg Metformin.",
     "Ich bin allergisch gegen Penicillin.",

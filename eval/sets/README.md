@@ -1,13 +1,17 @@
 # Eval sets (plan §12.1)
 
 One JSON object per line, one file per room. Each file holds the room's 10 sentences in every
-prepared language: **ru** and **tr** (the demo language is one of them, §19) and **ar**.
+prepared language: **en** (the stage demo pair is German professional + English-speaking
+patient/client/partner), **ru** and **tr** (§19) and **ar**.
 So each language is a complete 30-sentence set on its own:
 
 - 10 sentences per room, both directions (German professional → other party, other party → German),
   every sentence with at least one fact
 - 10 perturbed translations: wrong number 3, wrong unit 2, negation flipped 2, allergy omitted 2,
   date shifted 1
+- 10 more with a `semantic` perturbation: a subtle meaning change that keeps every fact
+  (subject, before/after, gross/net, at least/at most, discount/surcharge, until/from, court/employer).
+  The fact guard cannot see these by design; they calibrate the second-model check (§6.9)
 - a clean reference translation on every record (30 ≥ the 10 the plan asks for) to measure false alarms
 - all seven §20.7 demo sentences (as German source or German reference)
 
@@ -35,7 +39,7 @@ So each language is a complete 30-sentence set on its own:
 | `src` | what the speaker says |
 | `facts` | what the fact guard must protect, normalised (below). Kinds must be in the room's `guard.kinds` |
 | `ref` | clean reference translation (expect **green**; red = false alarm) |
-| `perturbation` | `wrong_number` · `wrong_unit` · `negation` · `allergy_omitted` · `date_shifted` |
+| `perturbation` | `wrong_number` · `wrong_unit` · `negation` · `allergy_omitted` · `date_shifted` · `semantic` (facts unchanged, meaning changed) |
 | `perturbed.tgt_text` | the reference with one deliberate error; `expect` is always `red` |
 | `perturbed.note` | what was changed, for the report |
 | `approved` | `false` until a native speaker has approved `src` / `ref` / `perturbed` for this language |
@@ -64,7 +68,8 @@ counts when the guard normalises the same way).
 | `negation` | `not`, one entry per negation | `not` |
 
 The sets deliberately include locale traps for the guard: `3 200` (ru thousands space), `950.000`
-(de/tr thousands dot) vs `950,000` (ar), `1,2` vs `1.2` million, `%3` (tr percent prefix),
+(de/tr thousands dot) vs `950,000` (ar, en), `1,2` vs `1.2` million, `€1.2 million`, `%3` (tr percent prefix),
+12-hour clock (`9 a.m.`, `2 p.m.`), `November 3` vs `3 November`, `won't`/`can't`,
 number words (`drei`, `три`, `üç`, `ثلاثة`), Turkish verb-suffix negation (`almayın`) and Russian
 case endings on drug names (`метформина`).
 
