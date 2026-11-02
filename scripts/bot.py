@@ -43,6 +43,11 @@ RATE = 48000
 FRAME_MS = 10
 
 
+# pipeline.timing fields summarized (ms; tts_synth/publish: stop -> first PCM / first frame accepted)
+TIMING_KEYS = ("vad_ms", "asr_ms", "mt_first_ms", "mt_full_ms", "tts_synth_first_ms", "tts_publish_first_ms",
+               "tts_first_ms", "check_ms")
+
+
 def mint_token(args: argparse.Namespace, identity: str) -> str:
     meta = {"role": args.role, "lang": args.lang, "device": args.device, "path": "direct"}
     tok = (api.AccessToken(args.api_key, args.api_secret)
@@ -97,20 +102,22 @@ class Bot:
         self.counts[etype] += 1
         data = env.get("data", {})
         if etype == "pipeline.timing":
-            row = {k: data.get(k) for k in ("vad_ms", "asr_ms", "mt_first_ms", "mt_full_ms", "tts_first_ms",
-                                            "check_ms", "target_lang")}
+            row = {k: data.get(k) for k in (*TIMING_KEYS, "target_lang", "asr_from")}
             row["utt"] = env.get("utt")
             self.timing_rows.append(row)
             for k, v in row.items():
                 if isinstance(v, (int, float)):
                     self.timings[k].append(float(v))
+        if etype == "pipeline.timing" and self.args.timing_json:
+            print(json.dumps({"utt": env.get("utt"), **{k: v for k, v in data.items() if k != "models"}},
+                             ensure_ascii=False), flush=True)
         if self.args.json:
             print(json.dumps(env, ensure_ascii=False), flush=True)
         elif self.args.listen:
             lag = int(time.time() * 1000) - int(env.get("ts", 0))
             shown = {k: v for k, v in data.items() if k != "models" and v not in (None, [], {})}
             text = json.dumps(shown, ensure_ascii=False)
-            if len(text) > 160 and not self.args.full:
+            if len(text) > 160 and not self.args.full and etype != "pipeline.timing":  # timing: always whole
                 text = text[:157] + "..."
             print(f"{self.stamp()} {env.get('utt') or '-':7} {etype:19} lag={lag:4d}ms {text}", flush=True)
 
@@ -176,7 +183,7 @@ class Bot:
         print(f"\n{self.identity}: events received: " + ", ".join(f"{k}={v}" for k, v in sorted(self.counts.items())))
         if self.timings:
             print("pipeline.timing (ms)   n    p50     p95     min     max")
-            for k in ("vad_ms", "asr_ms", "mt_first_ms", "mt_full_ms", "tts_first_ms", "check_ms"):
+            for k in TIMING_KEYS:
                 v = sorted(self.timings.get(k, []))
                 if not v:
                     continue
@@ -206,6 +213,8 @@ def main() -> None:
     ap.add_argument("--full", action="store_true", help="do not shorten printed events")
     ap.add_argument("--duration", type=float, help="leave after N seconds")
     ap.add_argument("--csv", help="write pipeline.timing rows to this CSV")
+    ap.add_argument("--timing-json", action="store_true",
+                    help="print every pipeline.timing in full, one JSON per line (latency breakdown)")
     ap.add_argument("--identity")
     ap.add_argument("--token", help="join with this token (e.g. from POST /api/join) instead of minting one")
     ap.add_argument("--name")
