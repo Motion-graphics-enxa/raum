@@ -1,6 +1,6 @@
 # RAUM build status
 
-_Read by the ops session. Updated at every milestone. Last update: Mon 2 Nov, evening (pre-render churn fix, stage timings, TTS v1.3)._
+_Read by the ops session. Updated at every milestone. Last update: Mon 2 Nov, ~21:00 (main 4da1497: finals on :8082, code-switch, voice gaps, voice gate)._
 
 ## What works (on `main`)
 - **Live on the GX10 (ops):** real engines (whisper.cpp large-v3-turbo, gemma4:26b, gpt-oss:120b, bge-m3, Piper binary), fact guard, encrypted sessions + audit chain. Measured warm: vad 320 / asr 249 / first words 677 / sentence 888 / voice 1399 / check 1425 ms.
@@ -17,6 +17,10 @@ _Read by the ops session. Updated at every milestone. Last update: Mon 2 Nov, ev
 - **Voice made ahead (6953f3e + fix):** the pause's early final voices every clause (up to 4 / 15 s) while the end of turn waits, played only after it, back to back (the next clause made while one plays); a final differing in its tail replays the unchanged clauses. Churn fix: a superseded speculation hands its unfinished clauses to the newer text (box log: one clause made 3x per turn); `tts.options.spec_voice` first (default: partials voice their first phrase only, none in an own voice whose sample still grows) / pause / all / off; the speaker's voice sample takes the utterance at the pause, so the pre-render and the turn match.
 - **TTS service v1.3 (`priority: background`):** a speculative clause is admitted only on an idle GPU, refused (409) otherwise, cut at the next token when live speech arrives; `X-Priority`, `X-Queue-Ms`; client `VoiceBusy` never puts the service aside. Deploy `services/tts/src/admission.py` beside `server.py`.
 - **pipeline.timing `stages` (pipeline/stats.py):** per stage wait vs work: `slot.<class>` wait/held, `asr.settle`, `asr`/`asr.partial` wall, `spec.mt` start/first/done marks + Ollama load/prompt/eval/queue, `check`, `embed`, `eot.text`, `tts`/`tts.bg` ttfb/queue, `voice.<kind>` waits, `voice` claim_ms/ready/first_ms (the first clause), `echo.*`. An Ollama load > 500 ms logs "reloaded". whisper requests skip language probabilities (`-nlp` in box.sh too).
+- **Second whisper for finals (b3b28fa):** `asr.options.final_url` (spark :8082): early/turn finals and the echo check, partials on :8081 (the final queued behind a running partial: 515 ms wall for a 0.16 s clip); 30 s fallback to url; box.sh starts `whisper-final`. Requests skip language probabilities (`-nlp`).
+- **Code-switch (96fff05, 7ae133d):** English inside ru/de speech kept: a seed sentence per speaker language before whisper's glossary terms (`asr.options.code_switch_seed`), its echo stripped; a Latin phrase the final dropped comes back from the partials (non-Latin-script speakers, `pipeline/codeswitch.py`); the translator is told mixed-in phrases are not names. Box: mix-ru and mix2-ru keep "but I think it is not working".
+- **Voice delivery:** pace 1.0-1.15 (never slower than normal); the first phrase waits for a clause boundary (12 words); after it the rest of a sentence is one request (comma only from 12 words); a clause queued mid-playback is made at once; the next clause made ahead is claimed at live priority.
+- **Voice gate (4da1497, ops gpu-sched):** while any room's live voice synthesises (`/dev/shm/raum-voice`), partial ASR waits <= 0.5 s, the second/echo check <= 2 s, speculative MT <= 0.3 s; live MT never waits. Box bursts: first audio 1192 -> 319 ms, stall 1035 -> 0 ms. `RAUM_VOICE_GATE=0` off.
 - **Live speed, real phones (user's gs rooms, after aa06db2, GPU free), p50:** end of turn 0.69-0.81 s, first words 0.70-0.88 s, **voice 0.82-1.03 s**.
 - **Confirm UX (5aa0985, b7a1061):** green = quiet "noted" chips on the professional's card (`flag kind:"noted"`), nobody asked; uncertain (guard mismatch, checker amber/red from the meaning check, asr_conf < `asr_confirm_conf` 0.6, box data; mode `pipeline.asr_confirm_conf` per room) = one spoken read-back in the standard voice ("Nur zur Sicherheit: ...?") + small Ja/Nein on the card, a spoken yes/no in the next short utterance answers (`confirm via:"voice"`); unanswered stays "unconfirmed", never asked twice; summary lists noted/unconfirmed/confirmed/rejected. A checker that is only warming up/failed/off asks nothing.
 - **Voice echo check (9206651):** `tts.options.echo_check: facts` (spark): clauses with dose/number/date/time heard back by whisper in the background slot; a wrong figure -> `voice.echo` note on the listener's card + the clause once more in the standard voice ("Повторяю: ..."), audit `voice.echo_mismatch` (kinds only); `echo_ms` / `echo_check` in timing.
@@ -38,12 +42,15 @@ _Read by the ops session. Updated at every milestone. Last update: Mon 2 Nov, ev
 - **Design:** impeccable only. PRODUCT.md, direction contract `.impeccable/surfaces/`, finish review (fix -> verdict -> final batch), **DESIGN.md** + `.impeccable/design.json`.
 - **No third-party bytes:** LiveKit gets LAN-only STUN/TURN (box's own :3478; compose, livekit.yaml, dev.sh), onnxruntime telemetry off (ops 739e8a1); privacy meter reads 0 B on the GX10.
 - **Deploy:** `deploy/push.sh` -> `gx10:~/Desktop/HackathonRaum/raum`; `deploy/box.sh` (sources `runtime/raum.env`; process groups); `RAUM_UV_EXTRAS="--extra denoise"` for DeepFilterNet.
-- **Tests:** `cd core && uv run pytest -q` -> 1193 passed (incl. services/tts tests); `uv run ruff check .` clean; two-phone e2e sz + gs pass on the mock stack.
+- **Tests:** `cd core && uv run pytest -q` -> 1203 passed (incl. services/tts tests); `uv run ruff check .` clean; two-phone e2e sz + gs pass on the mock stack.
 
 ## In flight (parallel agents, worktree branches; the integrator merges)
-- Nothing running; waiting for ops' box numbers from `stages` (where the remaining ~300 ms between end of turn and first voice goes).
+- services/tts edge trim (lead ~30 ms, tail ~80/200 ms) + first_tokens 10 + pkuseg mount; HttpTTS `tts.options.urls` (2 instances :8090/:8091, idle-first, failover before Piper).
+- Phone live link: events-WS reconnect (backoff, visibility/online, heartbeat, `since=` resync, "Reconnecting…"), proxy/uvicorn keepalive, LiveKit data-channel fallback, iOS startAudio from a tap; header language pair.
+- Simultaneous for everyone (speaker listeners too) with the final-revision guard; German commits at verb-complete commas; P2 settle only on a transcribing partial; P3 re-speculation throttle; simul `stages`.
 
 ## Integrator TODO
+- Pass-through voice: a whole utterance already in the listener's language (the speaker switched language) is voiced as is, no MT.
 - Own voice later: register the clone during speech at `voice_ref_min_s`, so the pre-render uses it from the first utterance.
 - Box: the read-back path end to end (uncertain fact -> spoken read-back -> spoken yes); echo check's effect on live `asr_ms` (first run: none).
 - impeccable context drift reported by its tooling (not repaired as a side effect): PRODUCT.md says "web" though there is an Android build; `.impeccable/design.json` older than DESIGN.md; no `buildPath` in `.impeccable/config.json`.
