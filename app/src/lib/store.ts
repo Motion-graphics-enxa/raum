@@ -54,6 +54,7 @@ export interface RoomModel {
   burn: EventData["burn.done"] | null;
   offers: Offer[];
   speaking: Record<string, number>; // speaker -> utterance.start ts (cleared on end)
+  voicePaused: string[]; // identities whose mic the box paused while its voice plays (C-14)
   lastTs: number;
   version: number;
 }
@@ -71,6 +72,7 @@ export function emptyModel(room: string): RoomModel {
     burn: null,
     offers: [],
     speaking: {},
+    voicePaused: [],
     lastTs: 0,
     version: 0,
   };
@@ -274,6 +276,9 @@ export function apply(prev: RoomModel, e: AnyEnvelope): RoomModel {
       }
       break;
     }
+    case "voice.state":
+      m.voicePaused = e.data.playing ? e.data.paused ?? [] : [];
+      break;
     case "privacy.meter":
       m.privacy = e.data;
       break;
@@ -341,7 +346,8 @@ export class RoomStore {
 
 function dedupeKey(e: AnyEnvelope): string | null {
   // Streaming deltas can legitimately repeat text; key them by seq when present, else ts.
-  if (e.type === "privacy.meter" || e.type === "gpu.stats" || e.type === "session.state") return null;
+  if (e.type === "privacy.meter" || e.type === "gpu.stats" || e.type === "session.state" || e.type === "voice.state")
+    return null;
   const d = e.data as unknown as Record<string, unknown>;
   const extra =
     e.type === "translation.delta"

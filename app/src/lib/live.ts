@@ -37,7 +37,7 @@ export interface LiveRoom {
   disconnect: () => void;
 }
 
-export function useLiveRoom(session: LiveSession | null, store: RoomStore): LiveRoom {
+export function useLiveRoom(session: LiveSession | null, store: RoomStore, voiceLang?: string): LiveRoom {
   const [state, setState] = useState<LinkState>("connecting");
   const [micOn, setMicOn] = useState(false);
   const [micError, setMicError] = useState<string | null>(null);
@@ -45,6 +45,21 @@ export function useLiveRoom(session: LiveSession | null, store: RoomStore): Live
   const [rttMs, setRtt] = useState<number | null>(null);
   const roomRef = useRef<Room | null>(null);
   const analyser = useRef<{ ctx: AudioContext; node: AnalyserNode; raf: number } | null>(null);
+  const voiceRef = useRef(voiceLang ?? session?.lang ?? "");
+  voiceRef.current = voiceLang ?? session?.lang ?? "";
+
+  // Language changed after joining: follow the box's voice track for the new language.
+  useEffect(() => {
+    const room = roomRef.current;
+    if (!room) return;
+    room.remoteParticipants.forEach((p) =>
+      p.trackPublications.forEach((pub) => {
+        if (pub.kind === Track.Kind.Audio && pub.trackName?.startsWith("tts-")) {
+          pub.setSubscribed(pub.trackName === `tts-${voiceRef.current}`);
+        }
+      }),
+    );
+  }, [voiceLang]);
 
   useEffect(() => {
     if (!session) return;
@@ -77,7 +92,7 @@ export function useLiveRoom(session: LiveSession | null, store: RoomStore): Live
 
     // Voice output: subscribe only to the agent's track for our language (tts-<lang>).
     const wantVoice = (pub: RemoteTrackPublication) =>
-      pub.kind === Track.Kind.Audio && pub.trackName === `tts-${session.lang}`;
+      pub.kind === Track.Kind.Audio && pub.trackName === `tts-${voiceRef.current}`;
     room.on(RoomEvent.TrackPublished, (pub: RemoteTrackPublication) => {
       if (wantVoice(pub)) pub.setSubscribed(true);
     });

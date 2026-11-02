@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
@@ -74,6 +74,21 @@ async def control(room: str, body: Control, core: CoreDep) -> dict[str, Any]:
     """Device actions: off_record, confirm, repeat_back, explain_simply, explain_approve, correct_term,
     human_interpreter, end, approve_summary, burn, mute."""
     return await core.sessions.control(room, body)
+
+
+class ParticipantUpdate(BaseModel):
+    identity: str
+    lang: str | None = None
+    audio_out: Literal["headphones", "speaker", "room"] | None = None
+
+
+@router.post("/rooms/{room}/participant")
+async def participant(room: str, body: ParticipantUpdate, core: CoreDep) -> dict[str, Any]:
+    """Change a joined device's language or voice output (C-02 one tap, C-14). The agent picks it up
+    from the next utterance via the participant's LiveKit metadata."""
+    lang = body.lang.lower().split("-")[0] if body.lang else None
+    p = await core.sessions.update_participant(room, body.identity, lang=lang, audio_out=body.audio_out)
+    return p.model_dump(mode="json")
 
 
 @router.post("/rooms/{room}/presence")

@@ -6,7 +6,7 @@ import ipaddress
 import json
 import re
 import warnings
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -29,6 +29,8 @@ class JoinRequest(BaseModel):
     role: Role
     lang: str = Field("auto", description="BCP-47 tag or 'auto'; reduced to the primary subtag")
     device: str = Field("phone", max_length=32)
+    audio_out: Literal["headphones", "speaker", "room"] = Field(
+        "speaker", description="How the voice plays on this device (C-14 echo control)")
     consent: bool = Field(False, description="Must be true: 'This is an AI interpreter' (EU AI Act Art. 50)")
     consent_version: str = Field(CONSENT_VERSION, max_length=64)
 
@@ -135,7 +137,7 @@ def normalize_lang(lang: str | None, mode: ModeConfig, role: str) -> str:
 def mint_token(cfg: RaumConfig, room: str, p: ParticipantInfo, name: str | None = None) -> str:
     from livekit import api
 
-    meta = {"role": p.role, "lang": p.lang, "device": p.device, "path": p.path}
+    meta = {"role": p.role, "lang": p.lang, "device": p.device, "path": p.path, "audio_out": p.audio_out}
     grants = api.VideoGrants(room_join=True, room=room, can_publish=p.role != "observer", can_subscribe=True,
                              can_publish_data=True)
     tok = (api.AccessToken(cfg.network.livekit_api_key, cfg.network.livekit_api_secret)
@@ -163,7 +165,7 @@ async def join(body: JoinRequest, request: Request, core: CoreDep) -> JoinRespon
     lang = normalize_lang(body.lang, mode, body.role)
     path = detect_path(request)
     room, session, p = await core.sessions.join(body.room, role=body.role, lang=lang, device=body.device,
-                                                path=path, consent_version=body.consent_version)
+                                                path=path, consent_version=body.consent_version, audio_out=body.audio_out)
     name = mode.label(body.role, lang) if body.role in ("a", "b") else "Observer"
     return JoinResponse(
         token=mint_token(core.cfg, room.id, p, name=name),

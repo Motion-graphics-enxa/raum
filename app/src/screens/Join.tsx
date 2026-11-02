@@ -1,13 +1,13 @@
 /** Join `/j/:room?role=a|b`: one scan, zero decisions (C-01, C-02, C-03). */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { api, ApiError, listOf, type ModeConfig } from "../lib/api";
 import type { Role } from "../lib/events";
-import { LANGS, isRtl, langName, pick, t } from "../lib/i18n";
-import { deviceKind, deviceLang, rememberLang, saveJoin } from "../lib/session";
+import { isRtl, pick, t } from "../lib/i18n";
+import { deviceAudioOut, deviceKind, deviceLang, rememberAudioOut, rememberLang, saveJoin } from "../lib/session";
+import { AudioOutPicker, LanguagePicker, type AudioOut } from "../components/Pickers";
 import { unlockSound } from "../lib/sound";
 import { Hatch } from "../components/Drawing";
-import { Globe } from "../components/Icons";
 import "./screens.css";
 
 export async function resolveMode(room: string): Promise<ModeConfig | null> {
@@ -33,6 +33,7 @@ export default function Join() {
   const nav = useNavigate();
   const [mode, setMode] = useState<ModeConfig | null>(null);
   const [lang, setLang] = useState(() => qs.get("lang") ?? deviceLang());
+  const [audioOut, setAudioOut] = useState<AudioOut>(deviceAudioOut);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -49,7 +50,6 @@ export default function Join() {
     };
   }, [room]);
 
-  const options = useMemo(() => (LANGS.includes(lang) ? LANGS : [lang, ...LANGS]), [lang]);
   const dir = isRtl(lang) ? "rtl" : "ltr";
 
   const join = async () => {
@@ -58,7 +58,8 @@ export default function Join() {
     unlockSound();
     try {
       rememberLang(lang);
-      const j = await api.join({ room, role, lang, device: deviceKind(), consent: true });
+      rememberAudioOut(audioOut);
+      const j = await api.join({ room, role, lang, device: deviceKind(), consent: true, audio_out: audioOut });
       saveJoin(j);
       nav(`/r/${room}`);
     } catch (e) {
@@ -102,20 +103,12 @@ export default function Join() {
           <label className="label" htmlFor="lang">
             {t(lang, "join.language")}
           </label>
-          <div className="field">
-            <Globe />
-            <select id="lang" value={lang} onChange={(e) => setLang(e.target.value)}>
-              {options.map((l) => (
-                <option key={l} value={l}>
-                  {langName(l)}
-                  {l !== lang ? ` · ${langName(l, lang)}` : ""}
-                </option>
-              ))}
-            </select>
-            <span className="field__hint mono" aria-hidden="true">
-              {t(lang, "join.change")}
-            </span>
-          </div>
+          <LanguagePicker lang={lang} onChange={setLang} uiLang={lang} />
+        </section>
+
+        <section className="join__lang">
+          <span className="label">{t(lang, "join.audio_out")}</span>
+          <AudioOutPicker value={audioOut} onChange={setAudioOut} uiLang={lang} />
         </section>
 
         <section className="join__consent" aria-labelledby="consent-title">

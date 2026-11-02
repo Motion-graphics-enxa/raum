@@ -28,6 +28,16 @@ export function langName(code: string, inLang?: string): string {
 type Dict = Record<string, string>;
 
 const en: Dict = {
+  "join.more": "More…",
+  "join.audio_out": "How do you hear the translation?",
+  "join.headphones": "Headphones",
+  "join.headphones_hint": "Only you hear it",
+  "join.speaker": "Phone speaker",
+  "join.speaker_hint": "Mic pauses while it speaks",
+  "talk.language": "Language",
+  "talk.same_lang": "You both chose {lang}. Pick the language you speak.",
+  "talk.change_lang": "Change language",
+  "talk.voice_playing": "Translation playing, wait a moment.",
   "app.slogan": "Translates. Checks. Forgets.",
   "app.tagline": "What's said in the room stays in the room.",
   "join.you_are": "You join as",
@@ -119,6 +129,16 @@ const en: Dict = {
 };
 
 const de: Dict = {
+  "join.more": "Mehr…",
+  "join.audio_out": "Wie hören Sie die Übersetzung?",
+  "join.headphones": "Kopfhörer",
+  "join.headphones_hint": "Nur Sie hören sie",
+  "join.speaker": "Lautsprecher",
+  "join.speaker_hint": "Mikrofon pausiert, solange es spricht",
+  "talk.language": "Sprache",
+  "talk.same_lang": "Sie haben beide {lang} gewählt. Wählen Sie die Sprache, die Sie sprechen.",
+  "talk.change_lang": "Sprache ändern",
+  "talk.voice_playing": "Übersetzung läuft, einen Moment bitte.",
   "app.slogan": "Übersetzt. Prüft. Vergisst.",
   "app.tagline": "Was im Raum gesagt wird, bleibt im Raum.",
   "join.you_are": "Sie nehmen teil als",
@@ -210,6 +230,16 @@ const de: Dict = {
 };
 
 const tr: Dict = {
+  "join.more": "Diğer…",
+  "join.audio_out": "Çeviriyi nasıl duymak istersiniz?",
+  "join.headphones": "Kulaklık",
+  "join.headphones_hint": "Yalnızca siz duyarsınız",
+  "join.speaker": "Hoparlör",
+  "join.speaker_hint": "Konuşurken mikrofon durur",
+  "talk.language": "Dil",
+  "talk.same_lang": "İkiniz de {lang} seçtiniz. Konuştuğunuz dili seçin.",
+  "talk.change_lang": "Dili değiştir",
+  "talk.voice_playing": "Çeviri oynatılıyor, bir an bekleyin.",
   "summary.empty": "Henüz özetlenecek bir şey yok.",
   "summary.takehome_body": "Oturum sürdüğü sürece bu özeti başka bir telefonda açmak için tarayın.",
   "summary.burn": "Oturumu yok et",
@@ -297,6 +327,16 @@ const tr: Dict = {
 };
 
 const ru: Dict = {
+  "join.more": "Ещё…",
+  "join.audio_out": "Как вы слушаете перевод?",
+  "join.headphones": "Наушники",
+  "join.headphones_hint": "Слышите только вы",
+  "join.speaker": "Динамик",
+  "join.speaker_hint": "Микрофон пауза, пока звучит перевод",
+  "talk.language": "Язык",
+  "talk.same_lang": "Вы оба выбрали {lang}. Выберите язык, на котором говорите.",
+  "talk.change_lang": "Сменить язык",
+  "talk.voice_playing": "Звучит перевод, подождите.",
   "summary.empty": "Пока нечего подытоживать.",
   "summary.takehome_body": "Отсканируйте, чтобы открыть итоги на другом телефоне, пока сеанс существует.",
   "summary.burn": "Уничтожить сеанс",
@@ -384,6 +424,16 @@ const ru: Dict = {
 };
 
 const ar: Dict = {
+  "join.more": "المزيد…",
+  "join.audio_out": "كيف تسمع الترجمة؟",
+  "join.headphones": "سماعات الرأس",
+  "join.headphones_hint": "أنت فقط تسمعها",
+  "join.speaker": "مكبر الصوت",
+  "join.speaker_hint": "يتوقف الميكروفون أثناء التشغيل",
+  "talk.language": "اللغة",
+  "talk.same_lang": "اختار كلاكما {lang}. اختر اللغة التي تتحدثها.",
+  "talk.change_lang": "تغيير اللغة",
+  "talk.voice_playing": "الترجمة قيد التشغيل، انتظر لحظة.",
   "summary.empty": "لا يوجد ما يُلخَّص بعد.",
   "summary.takehome_body": "امسح الرمز لفتح هذا الملخص على هاتف آخر ما دامت الجلسة قائمة.",
   "summary.burn": "إتلاف الجلسة",

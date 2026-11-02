@@ -12,7 +12,7 @@ import contextlib
 import logging
 import time
 import warnings
-from typing import Protocol
+from typing import Any, Protocol
 
 from raum.config import RaumConfig
 from raum.events import EVENTS_TOPIC, Envelope
@@ -147,6 +147,21 @@ class LiveKitPublisher:
             if not isinstance(getattr(e, "status", None), int):  # transport error: LiveKit is down
                 self._down_until = time.monotonic() + 3.0
             self._warn("livekit send_data failed for %s (%s): %s", env.room, env.type, str(e) or type(e).__name__)
+            return False
+
+    async def update_participant(self, room: str, identity: str, meta: dict[str, Any]) -> bool:
+        """Set the participant's metadata and attributes (same JSON as the token). Fail soft."""
+        try:
+            import json
+
+            from livekit import api
+
+            await self._client().room.update_participant(api.UpdateParticipantRequest(
+                room=room, identity=identity, metadata=json.dumps(meta),
+                attributes={k: str(v) for k, v in meta.items()}))
+            return True
+        except Exception as e:  # noqa: BLE001
+            self._warn("update_participant %s/%s failed: %s", room, identity, e)
             return False
 
     async def aclose(self) -> None:

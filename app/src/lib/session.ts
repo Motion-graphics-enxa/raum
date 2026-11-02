@@ -47,6 +47,22 @@ export function rememberLang(lang: string): void {
   }
 }
 
+export function deviceAudioOut(): "headphones" | "speaker" {
+  try {
+    return localStorage.getItem("raum:audio_out") === "headphones" ? "headphones" : "speaker";
+  } catch {
+    return "speaker";
+  }
+}
+
+export function rememberAudioOut(v: string): void {
+  try {
+    localStorage.setItem("raum:audio_out", v);
+  } catch {
+    /* ignore */
+  }
+}
+
 export function deviceKind(): string {
   const ua = navigator.userAgent;
   if (/iPad|Tablet/i.test(ua)) return "tablet";

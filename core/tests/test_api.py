@@ -80,7 +80,7 @@ def test_join_token_metadata_and_grants(client):
     uuid.UUID(j["session_id"])
     claims = api.TokenVerifier("devkey", "secret").verify(j["token"])
     assert claims.identity == j["identity"]
-    meta = {"role": "b", "lang": "ar", "device": "phone", "path": "direct"}
+    meta = {"role": "b", "lang": "ar", "device": "phone", "path": "direct", "audio_out": "speaker"}
     assert json.loads(claims.metadata) == meta
     assert claims.attributes == meta
     v = claims.video
@@ -363,3 +363,19 @@ def test_events_ws_meter_and_gpu_ticks(client):
     with pytest.raises(WebSocketDisconnect) as e, client.websocket_connect("/api/events/nope") as sub:
         sub.receive_json()
     assert e.value.code == 4404
+
+
+def test_participant_update_changes_lang_and_audio_out(tmp_path):
+    from fastapi.testclient import TestClient
+
+    from raum.api.server import create_app
+
+    app = create_app()
+    with TestClient(app) as c:
+        j = c.post("/api/join", json={"room": "sz-7001", "role": "b", "lang": "en", "consent": True,
+                                      "audio_out": "headphones"}).json()
+        r = c.post("/api/rooms/sz-7001/participant", json={"identity": j["identity"], "lang": "ar-SY"})
+        assert r.status_code == 200 and r.json()["lang"] == "ar" and r.json()["audio_out"] == "headphones"
+        r = c.post("/api/rooms/sz-7001/participant", json={"identity": j["identity"], "audio_out": "speaker"})
+        assert r.json()["audio_out"] == "speaker" and r.json()["lang"] == "ar"
+        assert c.post("/api/rooms/sz-7001/participant", json={"identity": "b-nope"}).status_code == 404

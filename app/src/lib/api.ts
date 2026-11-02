@@ -70,7 +70,7 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
 }
 
 export const api = {
-  join: (b: { room: string; role: Role; lang: string; device: string; consent: boolean }) =>
+  join: (b: { room: string; role: Role; lang: string; device: string; consent: boolean; audio_out?: string }) =>
     req<JoinResponse>("POST", "/api/join", b),
   modes: () => req<ModeConfig[] | Record<string, ModeConfig>>("GET", "/api/modes"),
   rooms: () => req<RoomInfo[] | { rooms: RoomInfo[] }>("GET", "/api/rooms"),
@@ -79,6 +79,8 @@ export const api = {
   events: (room: string, since = 0) =>
     req<AnyEnvelope[] | { events: AnyEnvelope[] }>("GET", `/api/rooms/${room}/events?since=${since}`),
   control: (room: string, c: Control) => req<unknown>("POST", `/api/rooms/${room}/control`, c),
+  participant: (room: string, identity: string, change: { lang?: string; audio_out?: string }) =>
+    req<ParticipantInfo>("POST", `/api/rooms/${room}/participant`, { identity, ...change }),
   presence: (room: string, identity: string, rtt_ms: number) =>
     req<unknown>("POST", `/api/rooms/${room}/presence`, { identity, rtt_ms }),
   end: (room: string) => req<unknown>("POST", `/api/rooms/${room}/end`),
