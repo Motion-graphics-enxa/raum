@@ -28,8 +28,13 @@ Normalised values (``Fact.value``, the convention of ``eval/sets/README.md``): d
 == 500 mg), frequency "2/day" | "1/week" | "q8h", date "--11-12" | "--03" (month) | "---12" (day) |
 "wd:thu" (a stated year is kept for the comparison: 12.11.2026 != 12.11.2025, but == "12 November"),
 time "09:00", duration "P7D" | "PT8H", amount "1200000 EUR" (or "1050000" without a currency) plus a
-currency fact "EUR", percent "20%", number "3" | "2.5", medication/name/allergen = the glossary's
-German key, allergy "present" when no allergen is named, negation "not".
+currency fact "EUR", percent "20%", number "3" | "2.5" (a count "10.000 Stück" / "10 000 штук" is the number
+"10000": it matches a bare number, not an amount), medication/name/allergen = the glossary's German key,
+allergy "present" when no allergen is named, negation "not".
+
+Thousands: "1.200" / "1,200" by locale (``parse_number``); "3 200" / "950 000" in groups of three after a
+1-3 digit head is one number with NBSP / narrow NBSP in any language and with a plain space in
+space-thousands languages (ru, uk, fr, pl, ...), elsewhere only before a currency or count word.
 
 Matching (``check``): exact multiset match per value, then lenient pairs that are the same fact
 said differently — a date with a year vs the same day without one, a deadline vs a plain date, an
@@ -170,6 +175,23 @@ _COMMA_DECIMAL = {"de", "tr", "ru", "uk", "fr", "es", "it", "pt", "pl", "nl", "r
 _SPACE_THOUSANDS = {"ru", "uk", "fr", "pl", "bg", "cs", "sk", "kk"}
 
 
+def _digits(sep: str) -> str:
+    """Digit run regex. ``sep`` separates thousands groups: ``3 200``, ``950 000``, ``1 200 000,50`` read as one
+    number. Groups only follow a 1-3 digit head that does not continue a time, date or fraction ("9:00 500 mg",
+    "1/2 500", "am 12. 500 mg", a year "2026 500" stay apart). After normalisation NBSP, narrow NBSP, thin
+    and figure space are all U+00A0."""
+    lb = r"(?<![\w.,٫٬])"
+    grouped = rf"(?<![:/])\d{{1,3}}(?:{sep}\d{{3}}(?!\d))+(?:[.,٫٬]\d+)?"
+    return rf"{lb}(?:{grouped}|\d+(?:[.,٫٬]\d+)*)"
+
+
+# U+00A0-family spaces group thousands in every language (typographic, never "2 x 500"); a plain space does in
+# space-thousands languages, and elsewhere only right before a currency or a count word ("3 200 Euro" yes,
+# "take 2 500 mg tablets" no).
+_DIG_NBSP = _digits(" ")
+_DIG_SPACE = _digits("[  ]")
+
+
 def _dec(s: str) -> Decimal | None:
     try:
         return Decimal(s)
@@ -274,7 +296,7 @@ _WEAK1: dict[str, list[str]] = {
     "ar": ["واحد", "واحدة"],
 }
 _AR_DUAL_NOUNS = ["قرصين", "قرصان", "حبتين", "حبتان", "كبسولتين", "ملعقتين", "ملعقتان", "نقطتين", "جرعتين",
-                  "ورقتين", "نسختين", "كشفين"]
+                  "ورقتين", "نسختين", "كشفين", "قطعتين", "قطعتان"]
 
 _SCALES: dict[str, list[tuple[str, int]]] = {
     "de": [(r"tausend", 10**3), (r"tsd\.?", 10**3), (r"mio\.?", 10**6), (r"millionen|million", 10**6),
@@ -301,10 +323,10 @@ _CURRENCIES: dict[str, list[tuple[str, str]]] = {
            (r"roubles?|rubles?", "RUB")],
     "tr": [(r"euro\w*|avro\w*", "EUR"), (r"dolar\w*", "USD"), (r"sterlin\w*", "GBP"), (r"lira\w*|tl", "TRY"),
            (r"ruble\w*", "RUB"), (r"frank\w*", "CHF")],
-    "ru": [(r"евро", "EUR"), (r"доллар\w*", "USD"), (r"фунт\w* стерлинг\w*", "GBP"), (r"лир\w*", "TRY"),
+    "ru": [(r"евро|euros?", "EUR"), (r"доллар\w*", "USD"), (r"фунт\w* стерлинг\w*", "GBP"), (r"лир\w*", "TRY"),
            (r"рубл\w*|руб\.?", "RUB"), (r"франк\w*", "CHF")],
-    "uk": [(r"євро", "EUR"), (r"долар\w*", "USD"), (r"гривн\w*|грн\.?", "UAH"), (r"рубл\w*", "RUB")],
-    "ar": [(r"يورو", "EUR"), (r"دولار\w*", "USD"), (r"جنيه إسترليني", "GBP"), (r"ليرة|ليرات", "TRY"),
+    "uk": [(r"євро|euros?", "EUR"), (r"долар\w*", "USD"), (r"гривн\w*|грн\.?", "UAH"), (r"рубл\w*", "RUB")],
+    "ar": [(r"يورو|euros?", "EUR"), (r"دولار\w*", "USD"), (r"جنيه إسترليني", "GBP"), (r"ليرة|ليرات", "TRY"),
            (r"روبل", "RUB")],
 }
 
@@ -322,7 +344,7 @@ _UNITS: dict[str, list[tuple[str, str, Decimal]]] = {
            (r"millilit(?:er|re)s?", "ml", _D(1)), (r"lit(?:er|re)s?", "ml", _D(1000)),
            (r"(?:international )?units?", "IE", _D(1))],
     "tr": [(r"miligram\w*", "mg", _D(1)), (r"mikrogram\w*", "mg", _D("0.001")), (r"kilogram\w*|kilo", "mg", _D(10**6)),
-           (r"gram\w*", "mg", _D(1000)), (r"mililitre\w*", "ml", _D(1)), (r"litre\w*", "ml", _D(1000)),
+           (r"gram\w*", "mg", _D(1000)), (r"mililitre\w*|cc", "ml", _D(1)), (r"litre\w*", "ml", _D(1000)),
            (r"ünite\w*", "IE", _D(1))],
     "ru": [(r"мг|миллиграмм\w*", "mg", _D(1)), (r"мкг|микрограмм\w*", "mg", _D("0.001")),
            (r"кг|килограмм\w*", "mg", _D(10**6)), (r"г|гр|грамм\w*", "mg", _D(1000)),
@@ -330,15 +352,20 @@ _UNITS: dict[str, list[tuple[str, str, Decimal]]] = {
     "uk": [(r"мг|міліграм\w*", "mg", _D(1)), (r"мкг|мікрограм\w*", "mg", _D("0.001")), (r"кг", "mg", _D(10**6)),
            (r"г|грам\w*", "mg", _D(1000)), (r"мл|мілілітр\w*", "ml", _D(1)), (r"л|літр\w*", "ml", _D(1000)),
            (r"од\.?|одиниц\w*", "IE", _D(1))],
-    "ar": [(r"ملغ|ملغم|مغ|مجم|ملجم|ملليغرام|مليغرام|ميليغرام|ملغرام|ملليجرام|مليجرام", "mg", _D(1)),
+    "ar": [((r"ملغ|ملغم|مغ|مجم|ملجم|ملليغرام|مليغرام|ميليغرام|ملغرام|ملليجرام|مليجرام|ميليجرام|"
+             r"ملي غرام|مللي غرام|ميلي غرام|ملي جرام|مللي جرام|ميلي جرام"), "mg", _D(1)),
            (r"ميكروغرام|ميكروجرام|مكغ", "mg", _D("0.001")), (r"كغ|كجم|كيلوغرام|كيلوجرام|كيلو", "mg", _D(10**6)),
            (r"غرام|غرامات|جرام|جرامات|غم|جم|غ", "mg", _D(1000)),
-           (r"مل|ملل|مليلتر|ملليلتر|ميليلتر|مليلترات", "ml", _D(1)), (r"لتر|لترات", "ml", _D(1000)),
+           (r"مل|ملل|مليلتر|ملليلتر|ميليلتر|مليلترات|ملي لتر|مللي لتر|ميلي لتر", "ml", _D(1)), (r"لتر|لترات", "ml", _D(1000)),
            (r"وحدة دولية|وحدات دولية|وحدة|وحدات", "IE", _D(1))],
 }
 _UNIT_SYMBOL = {("mg", _D(1)): "mg", ("mg", _D(1000)): "g", ("mg", _D("0.001")): "µg", ("mg", _D(10**6)): "kg",
                 ("ml", _D(1)): "ml", ("ml", _D(1000)): "l", ("IE", _D(1)): "IE"}
 _SOLO_UNIT_MIN_LEN = 4  # standalone unit words ("in Milligramm"), never bare symbols like "g"
+# count words after a number ("10.000 Stück" = "10 000 штук" = "10.000 adet" = "10000 قطعة"): the value stays a
+# number ("10000"), and the count is told apart from an amount ("10.000 Stück" -> "10.000 Euro" is red)
+_COUNT = {"de": r"stück|stücke|stk\.?", "en": r"pieces?|pcs\.?", "tr": r"adet\w*", "ru": r"штук\w*|шт\.?",
+          "uk": r"штук\w*|шт\.?", "ar": r"قطعة|قطع"}
 
 _DUR: dict[str, list[tuple[str, str]]] = {
     "de": [(r"tag|tage|tagen|tages", "D"), (r"woche|wochen", "W"), (r"monat|monate|monaten|monats", "M"),
@@ -359,7 +386,7 @@ _AR_DUAL_DUR = [(r"يومين|يومان", "D"), (r"أسبوعين|أسبوعا�
                 (r"سنتين|سنتان|عامين|عامان", "Y"), (r"ساعتين|ساعتان", "H"), (r"دقيقتين|دقيقتان", "MIN")]
 
 _PCT_WORDS = {"de": r"prozent", "en": r"percent|per cent|pct", "tr": r"", "ru": r"процент\w*",
-              "uk": r"відсот\w*", "ar": r"بالمئة|بالمائة|في المئة|في المائة|بالمية"}
+              "uk": r"відсот\w*", "ar": r"بالمئة|بالمائة|في المئة|في المائة|بالمية|في المية"}
 
 _MONTHS: dict[str, list[tuple[str, int]]] = {
     "de": [(r"januar|jänner|jan\.", 1), (r"februar|feber|feb\.", 2), (r"märz|maerz|mär\.|mrz\.", 3),
@@ -519,10 +546,10 @@ def _build_pack(lang: str) -> _Pack:
         weak.update({n(k): 2 for k in _AR_DUAL_NOUNS})
     numw = _alt(words) or r"(?!x)x"
     numw_any = _alt({**words, **weak}) if (words or weak) else r"(?!x)x"
-    dig = (r"(?<![\w.,\u066b\u066c])\d+(?:[.,\u066b\u066c]\d+|[\u00a0 ]\d{3}(?!\d))*" if lang in _SPACE_THOUSANDS
-           else r"(?<![\w.,\u066b\u066c])\d+(?:[.,\u066b\u066c]\d+|\u00a0\d{3}(?!\d))*")
+    dig = _DIG_SPACE if lang in _SPACE_THOUSANDS else _DIG_NBSP
     NUM = rf"(?:{dig}|(?<!\w)(?:{numw})(?!\w))"
     NUM_ANY = rf"(?:{dig}|(?<!\w)(?:{numw_any})(?!\w))"
+    NUM_M = rf"(?:{_DIG_SPACE}|(?<!\w)(?:{numw})(?!\w))"  # before a currency or a count word
 
     scales = _Lex(_SCALES.get(L, []), lang)
     cur = _Lex([*_CURRENCIES.get(L, []), *_CUR_SYMBOLS], lang)
@@ -577,7 +604,7 @@ def _build_pack(lang: str) -> _Pack:
     # -------------------------------------------------- times
     H = r"(?P<h>[01]?\d|2[0-3])"
     M = r"(?::(?P<m>[0-5]\d))"
-    MD = r"(?:[:.](?P<m>[0-5]\d))"
+    MD = r"(?:[:.](?P<m>[0-5]\d)(?!\d))"  # not "10.000" (a number, not 10:00)
     times: list[tuple[str, str]] = []
     if L == "de":
         mer = r"(?P<mer>morgens|früh|vormittags|mittags|nachmittags|abends|nachts)"
@@ -585,7 +612,7 @@ def _build_pack(lang: str) -> _Pack:
             ((rf"(?<!\w)(?:(?P<mer0>morgens|früh|vormittags|nachmittags|abends|nachts)\s+)?(?:um\s+)?"
              rf"(?P<h>[01]?\d|2[0-3]|{numw}){MD}?\s*uhr{B}(?:\s+{mer})?"), "t"),
             ((rf"(?<!\w)(?:(?P<mer0>morgens|früh|vormittags|nachmittags|abends)\s+)?um\s+{H}{MD}?"
-             rf"(?=\s*(?:[,.;!?)]|$|morgens|abends|früh|vormittags|nachmittags|wieder|zurück|in\s|bei\s|am\s|im\s))"
+             rf"(?=\s*(?:[,.](?!\d)|[;!?)]|$|morgens|abends|früh|vormittags|nachmittags|wieder|zurück|in\s|bei\s|am\s|im\s))"
              rf"(?:\s*{mer})?"), "t"),
         ]
     elif L in ("en", ""):
@@ -594,7 +621,7 @@ def _build_pack(lang: str) -> _Pack:
              r"(?!\w)"), "t"),
             ((rf"(?<!\w)(?P<h>1[0-2]|0?[1-9]|{numw})\s+o'?clock{B}"
              r"(?:\s+(?P<mer>in the morning|in the afternoon|in the evening|at night))?"), "t"),
-            ((rf"(?<!\w)at\s+{H}{MD}?(?=\s*(?:[,.;!?)]|$|in the|tomorrow|today|tonight|sharp|on\s))"
+            ((rf"(?<!\w)at\s+{H}{MD}?(?=\s*(?:[,.](?!\d)|[;!?)]|$|in the|tomorrow|today|tonight|sharp|on\s))"
              r"(?:\s+(?P<mer>in the morning|in the afternoon|in the evening|at night))?"), "t"),
         ]
     elif L == "tr":
@@ -701,8 +728,8 @@ def _build_pack(lang: str) -> _Pack:
     CUR = cur.alt
     CURP = _ralt(n(p) for p, _ in _CUR_SYMBOLS)
     amt = [
-        (rf"(?<!\w)(?P<cur>{CURP})\s*(?P<n>{NUM})(?:\s*(?P<sc>{SC}){B})?", "amt"),
-        (rf"(?P<n>{NUM})(?:\s*(?P<sc>{SC}))?\s*(?P<cur>{CUR}){apo}(?!\w)", "amt"),
+        (rf"(?<!\w)(?P<cur>{CURP})\s*(?P<n>{NUM_M})(?:\s*(?P<sc>{SC}){B})?", "amt"),
+        (rf"(?P<n>{NUM_M})(?:\s*(?P<sc>{SC}))?\s*(?P<cur>{CUR}){apo}(?!\w)", "amt"),
         (rf"(?P<n>{NUM})\s*(?P<sc>{SC}){apo}{B}", "amt"),
     ]
     if L in _SCALE1:
@@ -713,6 +740,7 @@ def _build_pack(lang: str) -> _Pack:
     lists["amt"] = amt
     rx["dose"] = rf"(?P<n>{NUM})\s*(?P<u>{units.alt}){apo}(?!\w)"
     rx["dur"] = rf"(?P<n>{NUM})\s+(?P<u>{dur.alt}){B}"
+    rx["count"] = rf"(?P<n>{NUM_M})\s*(?:{n(_COUNT[L])}){apo}(?!\w)" if L in _COUNT else r"(?!x)x"
     if L == "ar":
         rx["dur2"] = rf"(?<!\w)(?P<u>{_ralt(n(p) for p, _ in _AR_DUAL_DUR)}){B}"
     rx["dig"] = dig
@@ -1065,6 +1093,15 @@ def _scan(text: str, lang: str, glossary: Glossary | None) -> tuple[_Text, list[
 
     _run(t, p.rx["dose"], dose_fn, out)
 
+    def count_fn(m: re.Match[str]) -> _F | None:
+        nv = _numval(m.group("n"), p)
+        if nv is None:
+            return None
+        v = _fmt(nv)
+        return _mk("number", v, *m.span(), key="cnt", alts=(("num", v),), num=nv)  # == a bare "10000", != an amount
+
+    _run(t, p.rx["count"], count_fn, out)
+
     # -------------------------------------------------- durations
     def dur_fn(m: re.Match[str]) -> _F | None:
         nv = _numval(m.group("n"), p)
@@ -1273,18 +1310,19 @@ def _compare(sf: list[_F], tf: list[_F]) -> list[tuple[tuple[int, int], FactChec
                 t = take(s, T, t_used, rule)
                 if t is not None:
                     pair[i] = t
-    # weak facts only satisfy a strong fact of the other side
+    # weak facts only satisfy a strong fact of the other side ("قطعتين" satisfies "2 Stück")
+    same = lambda s, t: exact(s, t) or lenient(s, t)
     ws_used: set[int] = set()
     wt_used: set[int] = set()
     for i, s in enumerate(S):
         if i not in pair:
-            t = take(s, WT, wt_used, lambda a, b: a.key == b.key)
+            t = take(s, WT, wt_used, same)
             if t is not None:
                 pair[i] = t
     t_soft: dict[int, _F] = {}
     for j, t in enumerate(T):
         if j not in t_used:
-            s = take(t, WS, ws_used, lambda a, b: a.key == b.key)
+            s = take(t, WS, ws_used, same)
             if s is not None:
                 t_soft[j] = s
                 t_used.add(j)

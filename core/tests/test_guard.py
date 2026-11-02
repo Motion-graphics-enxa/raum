@@ -261,6 +261,98 @@ def test_locale_amounts_are_equal():
         assert not check(a, al, b, bl).red
 
 
+SPACES = [" ", " ", " "]  # plain space, NBSP, narrow NBSP
+
+
+@pytest.mark.parametrize("sp", SPACES)
+def test_spaced_thousands_are_one_number(sp):
+    for text, lang, value in [(f"3{sp}200 Euro", "de", "3200 EUR"), (f"950{sp}000 Euro", "de", "950000 EUR"),
+                              (f"1{sp}200{sp}000 €", "de", "1200000 EUR"), (f"1{sp}200,50 Euro", "de", "1200.5 EUR"),
+                              (f"€ 3{sp}200", "en", "3200 EUR"), (f"3{sp}200 евро", "ru", "3200 EUR"),
+                              (f"950{sp}000 евро", "ru", "950000 EUR"), (f"3{sp}200 avro", "tr", "3200 EUR"),
+                              (f"950{sp}000 يورو", "ar", "950000 EUR"), (f"٩٥٠{sp}٠٠٠ يورو", "ar", "950000 EUR"),
+                              (f"12{sp}500 мг", "ru", "12500 mg"), (f"10{sp}000 Stück", "de", "10000")]:
+        assert values(text, lang) == [value], (text, lang)
+    # kz-05-ru / vr-04-ru: a German translation that keeps the Russian spacing is still correct
+    for room, src, tgt in [
+        ("kanzlei", "Я работаю там шесть лет и получаю 3 200 евро брутто в месяц.",
+         f"Ich arbeite seit sechs Jahren dort und verdiene 3{sp}200 Euro brutto im Monat."),
+        ("verhandlungsraum", "Мы предлагаем 950 000 евро при оплате в течение 30 дней.",
+         f"Wir bieten 950{sp}000 Euro bei Zahlung innerhalb von 30 Tagen."),
+    ]:
+        r = room_check(get_mode(room), src, "ru", tgt, "de")
+        assert not r.red and r.facts, bad_rows(r)
+        assert not room_check(get_mode(room), tgt, "de", src, "ru").red
+    r = room_check(VR, "Мы предлагаем 950 000 евро.", "ru", f"Wir bieten 905{sp}000 Euro.", "de")
+    assert r.red and ("amount", "950 000 евро", f"905{sp}000 Euro") in bad_rows(r)
+
+
+def test_spaced_thousands_do_not_glue_neighbours():
+    assert values("am 12. 500 mg", "de") == ["---12", "500 mg"]  # a day, then a dose: never 12500
+    assert values("am 12. 500 Euro", "de") == ["---12", "500 EUR"]
+    assert values("am 12. November 3 200 Euro", "de") == ["--11-12", "3200 EUR"]
+    assert values("im Jahr 2026 500 Euro", "de") == ["2026", "500 EUR"]  # a year is never a head
+    assert values("в 2019 году 300 евро", "ru") == ["2019", "300 EUR"]
+    assert values("2019 300", "ru") == ["2019", "300"]
+    assert values("12 ноября 2026 г. 500 евро", "ru") == ["--11-12", "500 EUR"]
+    assert values("в 9:00 500 мг", "ru") == ["09:00", "500 mg"]  # the time does not swallow the dose
+    assert "2500 mg" not in values("Примите 1/2 500 мг.", "ru")
+    # a plain space before a unit outside space-thousands languages is "2 x 500 mg", not 2500 mg
+    assert values("Take 2 500 mg tablets.", "en") == ["2", "500 mg"]
+    assert values("Nehmen Sie 2 500-mg-Tabletten.", "de") == ["2", "500"]
+    assert not room_check(SZ, "Take 2 500 mg tablets.", "en", "Nehmen Sie zwei Tabletten à 500 mg.", "de").red
+
+
+def test_source_locale_separator_copied_into_the_target_is_red():
+    src = "Мы предлагаем 950 000 евро."
+    assert room_check(VR, src, "ru", "Wir bieten 950,000 Euro.", "de").red  # de reads 950,000 as 950.0
+    assert not room_check(VR, src, "ru", "Wir bieten 950.000 Euro.", "de").red
+    src = "Wir bieten 950.000 Euro."
+    assert room_check(VR, src, "de", "نقدم 950.000 يورو.", "ar").red  # ar reads 950.000 as 950.0
+    for ok in ("نقدم 950,000 يورو.", "نقدم ٩٥٠٬٠٠٠ يورو.", "نقدم 950 000 يورو."):
+        assert not room_check(VR, src, "de", ok, "ar").red, ok
+
+
+def test_thousands_are_not_read_as_a_time():
+    assert values("Wir senken den Preis um 10.000 Euro.", "de") == ["10000 EUR"]
+    assert values("Der Preis steigt um 10,50 Euro.", "de") == ["10.5 EUR"]
+    assert values("We sell at 10,000 euros.", "en") == ["10000 EUR"]
+    assert values("в 10.000 Stück", "ru") == ["10000"]  # seen from the translator: not 10:00
+    assert values("Kommen Sie um 9.", "de", "time") == ["09:00"] == values("Come at 9.", "en", "time")
+    assert values("в 10.00 утра", "ru", "time") == ["10:00"]
+    assert not room_check(VR, "Wir senken um 10.000 Euro.", "de", "Мы снижаем на 10 000 евро.", "ru").red
+
+
+def test_target_convention_units_and_currencies():
+    groups = {
+        "500 mg": [("500 mg", "de"), ("500 Milligramm", "de"), ("500 мг", "ru"), ("500 ملغ", "ar"), ("500 مجم", "ar"),
+                   ("500 ملي غرام", "ar"), ("500 miligram", "tr"), ("500 mg", "tr")],
+        "5 ml": [("5 ml", "de"), ("5 мл", "ru"), ("5 مل", "ar"), ("5 ملي لتر", "ar"), ("5 mililitre", "tr"),
+                 ("5 cc", "tr")],
+        "500 EUR": [("500 Euro", "de"), ("500 €", "de"), ("500 евро", "ru"), ("500 €", "ru"), ("500 يورو", "ar"),
+                    ("500 €", "ar"), ("500 avro", "tr"), ("500 euro", "tr"), ("500 Euro", "ru"), ("500 Euro", "ar")],
+        "20%": [("20 Prozent", "de"), ("20 %", "de"), ("20 процентов", "ru"), ("yüzde 20", "tr"), ("%20", "tr"),
+                ("20 بالمئة", "ar"), ("20 في المية", "ar"), ("٢٠٪", "ar")],
+        "10000": [("10.000 Stück", "de"), ("10 000 штук", "ru"), ("10.000 adet", "tr"), ("10000 قطعة", "ar"),
+                  ("10,000 pieces", "en"), ("10 000 шт.", "ru")],
+    }
+    for value, texts in groups.items():
+        for text, lang in texts:
+            assert values(text, lang) == [value], (text, lang)
+        for (a, al), (b, bl) in itertools.pairwise(texts):
+            assert not check(a, al, b, bl).red, (a, b)
+    for text, lang in [("0,5 g", "de"), ("0,5 г", "ru"), ("0,5 gram", "tr"), ("0.5 غرام", "ar"), ("0.5 جم", "ar")]:
+        assert not check("500 mg", "de", text, lang).red, (text, lang)
+    # a currency word left in Latin script still counts: a swap is red
+    assert room_check(VR, "Wir zahlen 500 Dollar.", "de", "Мы платим 500 Euro.", "ru").red
+    # a count matches a bare number and an Arabic dual, but is not an amount
+    assert not room_check(VR, "10.000 Stück", "de", "10 000", "ru").red
+    assert not room_check(SZ, "Nehmen Sie 2 Stück.", "de", "خذ قطعتين.", "ar").red
+    assert not room_check(SZ, "Nehmen Sie 2 Stück.", "de", "Take 2 tablets.", "en").red
+    r = room_check(VR, "Wir liefern 10.000 Stück.", "de", "Мы поставим 10 000 евро.", "ru")
+    assert r.red and ("number", "10.000 Stück", "10 000 евро") in bad_rows(r)
+
+
 def test_arabic_digits_and_units():
     assert values("٥٠٠ ملغ", "ar") == ["500 mg"] == values("500 mg", "en")
     assert not check("٥٠٠ ملغ", "ar", "500 mg", "de").red
