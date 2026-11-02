@@ -11,6 +11,7 @@ import type { ParticipantInfo } from "../lib/events";
 import { pick } from "../lib/i18n";
 import { Hatch, fmtMs } from "../components/Drawing";
 import { Check, Cross, Key, Shield } from "../components/Icons";
+import { GlossaryUpload } from "../components/GlossaryUpload";
 import { QR } from "../components/QR";
 import { Timeline, pathLabel } from "../components/Sheet";
 import "./screens.css";
@@ -80,6 +81,7 @@ export default function Admin() {
   const [err, setErr] = useState<string | null>(null);
   const [created, setCreated] = useState<string | null>(null);
   const [codes, setCodes] = useState<string | null>(null);
+  const [gloss, setGloss] = useState<string | null>(null); // N-02: the deal glossary panel of one room
   const [busy, setBusy] = useState(false);
   const [verify, setVerify] = useState<AuditVerify | null>(null);
   const [verifying, setVerifying] = useState(false);
@@ -238,6 +240,8 @@ export default function Admin() {
               lat={lat?.rooms[r.room]}
               codesOpen={codes === r.room}
               onCodes={() => setCodes(codes === r.room ? null : r.room)}
+              glossOpen={gloss === r.room}
+              onGloss={() => setGloss(gloss === r.room ? null : r.room)}
               onBurn={() => void burn(r.room)}
               base={base}
             />
@@ -322,6 +326,8 @@ function RoomSheet({
   lat,
   codesOpen,
   onCodes,
+  glossOpen,
+  onGloss,
   onBurn,
   base,
 }: {
@@ -330,6 +336,8 @@ function RoomSheet({
   lat?: RoomLatency;
   codesOpen: boolean;
   onCodes: () => void;
+  glossOpen: boolean;
+  onGloss: () => void;
   onBurn: () => void;
   base: string;
 }) {
@@ -359,6 +367,11 @@ function RoomSheet({
           <button type="button" className="admin__link" onClick={onCodes} aria-expanded={codesOpen}>
             QR
           </button>
+          {r.session_id && r.status !== "burned" ? (
+            <button type="button" className="admin__link" onClick={onGloss} aria-expanded={glossOpen}>
+              Glossar
+            </button>
+          ) : null}
           <button
             type="button"
             className="admin__link admin__link--bad"
@@ -422,6 +435,11 @@ function RoomSheet({
       {codesOpen ? (
         <div className="aroom__codes">
           <RoomCodes room={r.room} base={base} mode={mode} />
+        </div>
+      ) : null}
+      {glossOpen && r.session_id && r.status !== "burned" ? (
+        <div className="aroom__gloss">
+          <GlossaryUpload room={r.room} lang="de" role="admin" />
         </div>
       ) : null}
     </article>

@@ -312,6 +312,10 @@
   border-top: var(--line) solid var(--rule-strong);
   padding: 0 var(--s-4);
 }
+.aroom__gloss {
+  border-top: var(--line) solid var(--rule-strong);
+  padding: var(--s-4);
+}
 .aplate {
   font-size: 0.9375rem;
 }

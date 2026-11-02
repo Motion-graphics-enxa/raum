@@ -89,7 +89,11 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
     }
   }, [m.summary, m.burn, m.session?.status, nav, room]);
 
-  const turns = m.turns.filter((tu) => tu.text || tu.partial || Object.keys(tu.translations).length || tu.uncertain);
+  const turns = m.turns.filter(
+    (tu) =>
+      (tu.text || tu.partial || Object.keys(tu.translations).length || tu.uncertain) &&
+      (!tu.ignored || tu.speaker === join.identity), // F-10: someone else's voice: only its own phone notes it
+  );
 
   // Recency ramp over the other person's turns.
   const theirIdx = turns.map((tu, i) => (tu.speaker !== join.identity ? i : -1)).filter((i) => i >= 0);
@@ -228,6 +232,7 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
                   myRole={myRole}
                   onExplain={mode.buttons.includes("explain_simply") ? (utt) => void control("explain_simply", { utt }) : undefined}
                   onApproveExplain={(utt, text) => void control("explain_approve", { utt, text })}
+                  onRelearn={mine ? () => void api.control(room, { action: "voice_lock_reset", by: join.identity }).catch((e) => console.warn("[raum] control", e)) : undefined}
                 />
                 {docsBefore(m.documents, turns, i).map((d) => (
                   <DocumentCard key={`doc-${d.ts}`} doc={d} lang={myLang} />

@@ -127,6 +127,15 @@
   color: var(--unsure);
 }
 
+/* F-10: the box heard another voice on this phone and ignored it (quiet: nothing was sent) */
+.turn__ignored {
+  display: grid;
+  gap: var(--s-2);
+  justify-items: start;
+  font-size: var(--ramp-3);
+  color: var(--ink-3);
+}
+
 .turn__action {
   justify-self: start;
   border: 0;

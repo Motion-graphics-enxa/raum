@@ -35,6 +35,7 @@ export interface Turn {
   explainDraft?: EventData["explain.draft"];
   explainSent?: EventData["explain.sent"];
   corrected?: Record<string, string>; // lang -> previous text (struck and replaced)
+  ignored?: EventData["voice.lock"]; // F-10: not the device owner's voice, dropped by the box
 }
 
 export interface Offer extends Omit<EventData["offer.update"], "ts"> {
@@ -280,6 +281,12 @@ export function apply(prev: RoomModel, e: AnyEnvelope): RoomModel {
     }
     case "document.ready":
       m.documents = [...m.documents, { ...e.data, ts: e.ts }];
+      break;
+    case "voice.lock":
+      if (!e.data.accepted) touch((t) => {
+        t.ignored = e.data;
+        if (!t.speaker) t.speaker = e.data.speaker;
+      }, { speaker: e.data.speaker, lang: "" });
       break;
     case "voice.state":
       m.voicePaused = e.data.playing ? e.data.paused ?? [] : [];

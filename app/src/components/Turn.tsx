@@ -15,6 +15,7 @@ export function TurnView({
   ramp,
   speakerLabel,
   onExplain,
+  onRelearn,
   onApproveExplain,
   myRole,
 }: {
@@ -26,6 +27,7 @@ export function TurnView({
   speakerLabel: string;
   myRole: Role | null;
   onExplain?: (utt: string) => void;
+  onRelearn?: () => void; // F-10: learn this device's voice again
   onApproveExplain?: (utt: string, text: string) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -74,12 +76,21 @@ export function TurnView({
         <span className="turn__who">{speakerLabel}</span>
         <span className="turn__time mono">{fmtTime(turn.startedAt, myLang)}</span>
         <span className="turn__spacer" />
-        {!sayAgain && (tr || mine) ? (
+        {!sayAgain && !turn.ignored && (tr || mine) ? (
           <VerifyMark state={state} lang={myLang} ms={state === "translating" ? null : firstMs} onClick={() => setOpen((o) => !o)} />
         ) : null}
       </header>
 
-      {sayAgain ? (
+      {turn.ignored ? (
+        <div className="turn__ignored">
+          <p dir="auto">{t(myLang, "talk.not_your_voice")}</p>
+          {onRelearn ? (
+            <button type="button" className="turn__action" onClick={onRelearn}>
+              {t(myLang, "talk.relearn_voice")}
+            </button>
+          ) : null}
+        </div>
+      ) : sayAgain ? (
         <p className="turn__again" dir="auto">
           {flagText?.texts?.[myLang] ?? t(myLang, "talk.say_again")}
         </p>
