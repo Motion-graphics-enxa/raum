@@ -50,7 +50,7 @@ async def test_turn_event_order_and_content(no_guard):
     final = h.one("transcript.final", utt)
     assert final["text"] == sz01.text["de"] and final["lang"] == "de" and final["asr_conf"] == pytest.approx(0.93)
     tr = h.one("translation.final", utt)
-    assert tr == {"target_lang": "ar", "text": sz01.text["ar"]}
+    assert {k: v for k, v in tr.items() if v is not None} == {"target_lang": "ar", "text": sz01.text["ar"]}
     deltas = h.of("translation.delta", utt)
     assert "".join(d.data["delta"] for d in deltas) == tr["text"]
     assert [d.data["seq"] for d in deltas] == list(range(1, len(deltas) + 1))
@@ -98,7 +98,7 @@ async def test_no_listener_translates_to_other_roles_default(no_guard):
     h = Harness(participants=[PAT])
     utt = await h.say(PAT.id)
     tr = h.one("translation.final", utt)
-    assert tr == {"target_lang": "de", "text": line("sprechzimmer", "sz-02").text["de"]}
+    assert {k: v for k, v in tr.items() if v is not None} == {"target_lang": "de", "text": line("sprechzimmer", "sz-02").text["de"]}
 
     h2 = Harness(participants=[DOC])
     utt = await h2.say(DOC.id)

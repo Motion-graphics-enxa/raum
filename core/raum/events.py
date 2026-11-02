@@ -45,6 +45,10 @@ class ParticipantInfo(_Data):
     device: str = "phone"  # phone | laptop | tablet | speakerphone | table
     path: Path = "direct"
     rtt_ms: int | None = None  # connection latency for the glass-box badge (G-03)
+    # extension (C-14): how this device plays the voice. "headphones" = nobody else hears it (no echo,
+    # its mic is never paused); "speaker" = the device's own mic pauses while its voice plays;
+    # "room" = a shared speaker the whole room hears (all mics pause). Default: speaker.
+    audio_out: Literal["headphones", "speaker", "room"] = "speaker"
 
 
 class ParticipantJoined(ParticipantInfo):
@@ -86,11 +90,14 @@ class TranslationDelta(_Data):
     target_lang: str
     delta: str
     seq: int | None = None
+    seg: int | None = None  # extension (simultaneous mode): segment index within the utterance, 0-based
 
 
 class TranslationFinal(_Data):
     target_lang: str
-    text: str
+    text: str  # with `seg`: this segment's text only; the utterance's translation = segments in order
+    seg: int | None = None
+    segs: int | None = None  # extension: total segments, sent on the last segment's final
 
 
 # ---------------------------------------------------------------- verification
@@ -105,6 +112,7 @@ class FactCheck(_Data):
 
 class VerifyFacts(_Data):
     target_lang: str
+    seg: int | None = None  # extension: facts of one segment (app merges segments)
     facts: list[FactCheck] = Field(default_factory=list)
     red: bool = False  # extension: any mismatch
     ms: float | None = None  # extension: guard runtime
@@ -112,6 +120,7 @@ class VerifyFacts(_Data):
 
 class VerifyResult(_Data):
     target_lang: str
+    seg: int | None = None  # extension
     similarity: float | None
     badge: Badge
     reasons: list[str] = Field(default_factory=list)
@@ -174,6 +183,12 @@ class PipelineTiming(_Data):
     target_lang: str | None = None  # extension
     denoise_ms: float | None = None  # extension
     models: dict[str, str] | None = None  # extension: stage -> model name
+
+
+class VoiceState(_Data):  # extension (C-14): the box's voice is playing in a language
+    target_lang: str
+    playing: bool
+    paused: list[str] = Field(default_factory=list)  # identities whose mic is paused meanwhile
 
 
 class SessionState(_Data):
@@ -249,6 +264,7 @@ EVENT_TYPES: dict[str, type[BaseModel]] = {
     "explain.draft": ExplainDraft,
     "explain.sent": ExplainSent,
     "pipeline.timing": PipelineTiming,
+    "voice.state": VoiceState,
     "session.state": SessionState,
     "privacy.meter": PrivacyMeter,
     "gpu.stats": GpuStats,
@@ -274,6 +290,7 @@ EventType = Literal[
     "explain.draft",
     "explain.sent",
     "pipeline.timing",
+    "voice.state",
     "session.state",
     "privacy.meter",
     "gpu.stats",

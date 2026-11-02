@@ -1,0 +1,1019 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-02T14:05:14+00:00",
+  "title": "Design System: RAUM",
+  "extensions": {
+    "colorMeta": {
+      "paper": {
+        "role": "neutral",
+        "displayName": "Drafting Film",
+        "canonical": "#f6f9fb",
+        "oklch": "oklch(98.0% 0.004 236.5)",
+        "tonalRamp": [
+          "oklch(15% 0.004 236.5)",
+          "oklch(25% 0.004 236.5)",
+          "oklch(37% 0.004 236.5)",
+          "oklch(49% 0.004 236.5)",
+          "oklch(61% 0.004 236.5)",
+          "oklch(73% 0.004 236.5)",
+          "oklch(85% 0.004 236.5)",
+          "oklch(95% 0.004 236.5)"
+        ]
+      },
+      "paper-2": {
+        "role": "neutral",
+        "displayName": "Film Shade",
+        "canonical": "#eaf0f5",
+        "oklch": "oklch(95.2% 0.009 242.8)",
+        "tonalRamp": [
+          "oklch(15% 0.009 242.8)",
+          "oklch(25% 0.009 242.8)",
+          "oklch(37% 0.009 242.8)",
+          "oklch(49% 0.009 242.8)",
+          "oklch(61% 0.009 242.8)",
+          "oklch(73% 0.009 242.8)",
+          "oklch(85% 0.009 242.8)",
+          "oklch(95% 0.009 242.8)"
+        ]
+      },
+      "paper-3": {
+        "role": "neutral",
+        "displayName": "Film Fold",
+        "canonical": "#dde6ee",
+        "oklch": "oklch(92.0% 0.015 244.7)",
+        "tonalRamp": [
+          "oklch(15% 0.015 244.7)",
+          "oklch(25% 0.015 244.7)",
+          "oklch(37% 0.015 244.7)",
+          "oklch(49% 0.015 244.7)",
+          "oklch(61% 0.015 244.7)",
+          "oklch(73% 0.015 244.7)",
+          "oklch(85% 0.015 244.7)",
+          "oklch(95% 0.015 244.7)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Blue-Black Ink",
+        "canonical": "#0a1d30",
+        "oklch": "oklch(22.6% 0.045 250.5)",
+        "tonalRamp": [
+          "oklch(15% 0.045 250.5)",
+          "oklch(25% 0.045 250.5)",
+          "oklch(37% 0.045 250.5)",
+          "oklch(49% 0.045 250.5)",
+          "oklch(61% 0.045 250.5)",
+          "oklch(73% 0.045 250.5)",
+          "oklch(85% 0.045 250.5)",
+          "oklch(95% 0.045 250.5)"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Ink 2",
+        "canonical": "#33495f",
+        "oklch": "oklch(39.7% 0.046 249.1)",
+        "tonalRamp": [
+          "oklch(15% 0.046 249.1)",
+          "oklch(25% 0.046 249.1)",
+          "oklch(37% 0.046 249.1)",
+          "oklch(49% 0.046 249.1)",
+          "oklch(61% 0.046 249.1)",
+          "oklch(73% 0.046 249.1)",
+          "oklch(85% 0.046 249.1)",
+          "oklch(95% 0.046 249.1)"
+        ]
+      },
+      "ink-3": {
+        "role": "neutral",
+        "displayName": "Ink 3",
+        "canonical": "#566c82",
+        "oklch": "oklch(52.2% 0.044 248.7)",
+        "tonalRamp": [
+          "oklch(15% 0.044 248.7)",
+          "oklch(25% 0.044 248.7)",
+          "oklch(37% 0.044 248.7)",
+          "oklch(49% 0.044 248.7)",
+          "oklch(61% 0.044 248.7)",
+          "oklch(73% 0.044 248.7)",
+          "oklch(85% 0.044 248.7)",
+          "oklch(95% 0.044 248.7)"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#c3d0dc",
+        "oklch": "oklch(85.1% 0.022 245.9)",
+        "tonalRamp": [
+          "oklch(15% 0.022 245.9)",
+          "oklch(25% 0.022 245.9)",
+          "oklch(37% 0.022 245.9)",
+          "oklch(49% 0.022 245.9)",
+          "oklch(61% 0.022 245.9)",
+          "oklch(73% 0.022 245.9)",
+          "oklch(85% 0.022 245.9)",
+          "oklch(95% 0.022 245.9)"
+        ]
+      },
+      "rule-strong": {
+        "role": "neutral",
+        "displayName": "Construction Line",
+        "canonical": "#8fa3b6",
+        "oklch": "oklch(70.6% 0.036 247.0)",
+        "tonalRamp": [
+          "oklch(15% 0.036 247.0)",
+          "oklch(25% 0.036 247.0)",
+          "oklch(37% 0.036 247.0)",
+          "oklch(49% 0.036 247.0)",
+          "oklch(61% 0.036 247.0)",
+          "oklch(73% 0.036 247.0)",
+          "oklch(85% 0.036 247.0)",
+          "oklch(95% 0.036 247.0)"
+        ]
+      },
+      "brand": {
+        "role": "primary",
+        "displayName": "Berliner Blau",
+        "canonical": "#0d3a61",
+        "oklch": "oklch(34.1% 0.083 249.4)",
+        "tonalRamp": [
+          "oklch(15% 0.083 249.4)",
+          "oklch(25% 0.083 249.4)",
+          "oklch(37% 0.083 249.4)",
+          "oklch(49% 0.083 249.4)",
+          "oklch(61% 0.083 249.4)",
+          "oklch(73% 0.083 249.4)",
+          "oklch(85% 0.083 249.4)",
+          "oklch(95% 0.083 249.4)"
+        ]
+      },
+      "brand-2": {
+        "role": "primary",
+        "displayName": "Pressed Blue",
+        "canonical": "#164f82",
+        "oklch": "oklch(41.9% 0.103 249.9)",
+        "tonalRamp": [
+          "oklch(15% 0.103 249.9)",
+          "oklch(25% 0.103 249.9)",
+          "oklch(37% 0.103 249.9)",
+          "oklch(49% 0.103 249.9)",
+          "oklch(61% 0.103 249.9)",
+          "oklch(73% 0.103 249.9)",
+          "oklch(85% 0.103 249.9)",
+          "oklch(95% 0.103 249.9)"
+        ]
+      },
+      "brand-ink": {
+        "role": "primary",
+        "displayName": "Band Lettering",
+        "canonical": "#eef6fc",
+        "oklch": "oklch(96.9% 0.012 239.9)",
+        "tonalRamp": [
+          "oklch(15% 0.012 239.9)",
+          "oklch(25% 0.012 239.9)",
+          "oklch(37% 0.012 239.9)",
+          "oklch(49% 0.012 239.9)",
+          "oklch(61% 0.012 239.9)",
+          "oklch(73% 0.012 239.9)",
+          "oklch(85% 0.012 239.9)",
+          "oklch(95% 0.012 239.9)"
+        ]
+      },
+      "brand-ink-2": {
+        "role": "primary",
+        "displayName": "Band Lettering 2",
+        "canonical": "#b9d3e8",
+        "oklch": "oklch(85.4% 0.040 242.5)",
+        "tonalRamp": [
+          "oklch(15% 0.040 242.5)",
+          "oklch(25% 0.040 242.5)",
+          "oklch(37% 0.040 242.5)",
+          "oklch(49% 0.040 242.5)",
+          "oklch(61% 0.040 242.5)",
+          "oklch(73% 0.040 242.5)",
+          "oklch(85% 0.040 242.5)",
+          "oklch(95% 0.040 242.5)"
+        ]
+      },
+      "brand-rule": {
+        "role": "primary",
+        "displayName": "Band Rule",
+        "canonical": "#2f5f8a",
+        "oklch": "oklch(47.2% 0.087 247.8)",
+        "tonalRamp": [
+          "oklch(15% 0.087 247.8)",
+          "oklch(25% 0.087 247.8)",
+          "oklch(37% 0.087 247.8)",
+          "oklch(49% 0.087 247.8)",
+          "oklch(61% 0.087 247.8)",
+          "oklch(73% 0.087 247.8)",
+          "oklch(85% 0.087 247.8)",
+          "oklch(95% 0.087 247.8)"
+        ]
+      },
+      "link": {
+        "role": "primary",
+        "displayName": "Drawing Link",
+        "canonical": "#164f82",
+        "oklch": "oklch(41.9% 0.103 249.9)",
+        "tonalRamp": [
+          "oklch(15% 0.103 249.9)",
+          "oklch(25% 0.103 249.9)",
+          "oklch(37% 0.103 249.9)",
+          "oklch(49% 0.103 249.9)",
+          "oklch(61% 0.103 249.9)",
+          "oklch(73% 0.103 249.9)",
+          "oklch(85% 0.103 249.9)",
+          "oklch(95% 0.103 249.9)"
+        ]
+      },
+      "focus": {
+        "role": "neutral",
+        "displayName": "Focus Blue",
+        "canonical": "#1b6fd1",
+        "oklch": "oklch(54.9% 0.170 255.8)",
+        "tonalRamp": [
+          "oklch(15% 0.170 255.8)",
+          "oklch(25% 0.170 255.8)",
+          "oklch(37% 0.170 255.8)",
+          "oklch(49% 0.170 255.8)",
+          "oklch(61% 0.170 255.8)",
+          "oklch(73% 0.170 255.8)",
+          "oklch(85% 0.170 255.8)",
+          "oklch(95% 0.170 255.8)"
+        ]
+      },
+      "ok": {
+        "role": "secondary",
+        "displayName": "Verified Green",
+        "canonical": "#157347",
+        "oklch": "oklch(49.2% 0.109 157.0)",
+        "tonalRamp": [
+          "oklch(15% 0.109 157.0)",
+          "oklch(25% 0.109 157.0)",
+          "oklch(37% 0.109 157.0)",
+          "oklch(49% 0.109 157.0)",
+          "oklch(61% 0.109 157.0)",
+          "oklch(73% 0.109 157.0)",
+          "oklch(85% 0.109 157.0)",
+          "oklch(95% 0.109 157.0)"
+        ]
+      },
+      "unsure": {
+        "role": "secondary",
+        "displayName": "Unsure Ochre",
+        "canonical": "#925400",
+        "oklch": "oklch(50.7% 0.115 63.4)",
+        "tonalRamp": [
+          "oklch(15% 0.115 63.4)",
+          "oklch(25% 0.115 63.4)",
+          "oklch(37% 0.115 63.4)",
+          "oklch(49% 0.115 63.4)",
+          "oklch(61% 0.115 63.4)",
+          "oklch(73% 0.115 63.4)",
+          "oklch(85% 0.115 63.4)",
+          "oklch(95% 0.115 63.4)"
+        ]
+      },
+      "unsure-wash": {
+        "role": "secondary",
+        "displayName": "Ochre Wash",
+        "canonical": "#f7ecd9",
+        "oklch": "oklch(94.7% 0.028 81.5)",
+        "tonalRamp": [
+          "oklch(15% 0.028 81.5)",
+          "oklch(25% 0.028 81.5)",
+          "oklch(37% 0.028 81.5)",
+          "oklch(49% 0.028 81.5)",
+          "oklch(61% 0.028 81.5)",
+          "oklch(73% 0.028 81.5)",
+          "oklch(85% 0.028 81.5)",
+          "oklch(95% 0.028 81.5)"
+        ]
+      },
+      "bad": {
+        "role": "secondary",
+        "displayName": "Mismatch Red",
+        "canonical": "#c01d2c",
+        "oklch": "oklch(52.1% 0.195 23.7)",
+        "tonalRamp": [
+          "oklch(15% 0.195 23.7)",
+          "oklch(25% 0.195 23.7)",
+          "oklch(37% 0.195 23.7)",
+          "oklch(49% 0.195 23.7)",
+          "oklch(61% 0.195 23.7)",
+          "oklch(73% 0.195 23.7)",
+          "oklch(85% 0.195 23.7)",
+          "oklch(95% 0.195 23.7)"
+        ]
+      },
+      "bad-wash": {
+        "role": "secondary",
+        "displayName": "Red Wash",
+        "canonical": "#fbe5e6",
+        "oklch": "oklch(94.0% 0.024 14.4)",
+        "tonalRamp": [
+          "oklch(15% 0.024 14.4)",
+          "oklch(25% 0.024 14.4)",
+          "oklch(37% 0.024 14.4)",
+          "oklch(49% 0.024 14.4)",
+          "oklch(61% 0.024 14.4)",
+          "oklch(73% 0.024 14.4)",
+          "oklch(85% 0.024 14.4)",
+          "oklch(95% 0.024 14.4)"
+        ]
+      },
+      "pending": {
+        "role": "secondary",
+        "displayName": "Pending Slate",
+        "canonical": "#6a7f94",
+        "oklch": "oklch(58.7% 0.041 248.5)",
+        "tonalRamp": [
+          "oklch(15% 0.041 248.5)",
+          "oklch(25% 0.041 248.5)",
+          "oklch(37% 0.041 248.5)",
+          "oklch(49% 0.041 248.5)",
+          "oklch(61% 0.041 248.5)",
+          "oklch(73% 0.041 248.5)",
+          "oklch(85% 0.041 248.5)",
+          "oklch(95% 0.041 248.5)"
+        ]
+      },
+      "room-sprechzimmer": {
+        "role": "tertiary",
+        "displayName": "Sprechzimmer Teal",
+        "canonical": "#0a6f80",
+        "oklch": "oklch(49.9% 0.085 213.5)",
+        "tonalRamp": [
+          "oklch(15% 0.085 213.5)",
+          "oklch(25% 0.085 213.5)",
+          "oklch(37% 0.085 213.5)",
+          "oklch(49% 0.085 213.5)",
+          "oklch(61% 0.085 213.5)",
+          "oklch(73% 0.085 213.5)",
+          "oklch(85% 0.085 213.5)",
+          "oklch(95% 0.085 213.5)"
+        ]
+      },
+      "room-kanzlei": {
+        "role": "tertiary",
+        "displayName": "Kanzlei Violet",
+        "canonical": "#5945a4",
+        "oklch": "oklch(46.3% 0.147 289.0)",
+        "tonalRamp": [
+          "oklch(15% 0.147 289.0)",
+          "oklch(25% 0.147 289.0)",
+          "oklch(37% 0.147 289.0)",
+          "oklch(49% 0.147 289.0)",
+          "oklch(61% 0.147 289.0)",
+          "oklch(73% 0.147 289.0)",
+          "oklch(85% 0.147 289.0)",
+          "oklch(95% 0.147 289.0)"
+        ]
+      },
+      "room-verhandlungsraum": {
+        "role": "tertiary",
+        "displayName": "Verhandlungsraum Magenta",
+        "canonical": "#a03670",
+        "oklch": "oklch(50.3% 0.153 350.2)",
+        "tonalRamp": [
+          "oklch(15% 0.153 350.2)",
+          "oklch(25% 0.153 350.2)",
+          "oklch(37% 0.153 350.2)",
+          "oklch(49% 0.153 350.2)",
+          "oklch(61% 0.153 350.2)",
+          "oklch(73% 0.153 350.2)",
+          "oklch(85% 0.153 350.2)",
+          "oklch(95% 0.153 350.2)"
+        ]
+      },
+      "band-sprechzimmer": {
+        "role": "tertiary",
+        "displayName": "Sprechzimmer Teal on the Band",
+        "canonical": "#5fd0de",
+        "oklch": "oklch(79.8% 0.104 206.3)",
+        "tonalRamp": [
+          "oklch(15% 0.104 206.3)",
+          "oklch(25% 0.104 206.3)",
+          "oklch(37% 0.104 206.3)",
+          "oklch(49% 0.104 206.3)",
+          "oklch(61% 0.104 206.3)",
+          "oklch(73% 0.104 206.3)",
+          "oklch(85% 0.104 206.3)",
+          "oklch(95% 0.104 206.3)"
+        ]
+      },
+      "band-kanzlei": {
+        "role": "tertiary",
+        "displayName": "Kanzlei Violet on the Band",
+        "canonical": "#b6a6ff",
+        "oklch": "oklch(77.3% 0.126 291.4)",
+        "tonalRamp": [
+          "oklch(15% 0.126 291.4)",
+          "oklch(25% 0.126 291.4)",
+          "oklch(37% 0.126 291.4)",
+          "oklch(49% 0.126 291.4)",
+          "oklch(61% 0.126 291.4)",
+          "oklch(73% 0.126 291.4)",
+          "oklch(85% 0.126 291.4)",
+          "oklch(95% 0.126 291.4)"
+        ]
+      },
+      "band-verhandlungsraum": {
+        "role": "tertiary",
+        "displayName": "Verhandlungsraum Magenta on the Band",
+        "canonical": "#ff9fd0",
+        "oklch": "oklch(81.3% 0.128 348.4)",
+        "tonalRamp": [
+          "oklch(15% 0.128 348.4)",
+          "oklch(25% 0.128 348.4)",
+          "oklch(37% 0.128 348.4)",
+          "oklch(49% 0.128 348.4)",
+          "oklch(61% 0.128 348.4)",
+          "oklch(73% 0.128 348.4)",
+          "oklch(85% 0.128 348.4)",
+          "oklch(95% 0.128 348.4)"
+        ]
+      },
+      "paper-dark": {
+        "role": "neutral",
+        "displayName": "Drafting Film (Blaupause)",
+        "canonical": "#0b2a45",
+        "oklch": "oklch(27.8% 0.062 248.5)",
+        "tonalRamp": [
+          "oklch(15% 0.062 248.5)",
+          "oklch(25% 0.062 248.5)",
+          "oklch(37% 0.062 248.5)",
+          "oklch(49% 0.062 248.5)",
+          "oklch(61% 0.062 248.5)",
+          "oklch(73% 0.062 248.5)",
+          "oklch(85% 0.062 248.5)",
+          "oklch(95% 0.062 248.5)"
+        ]
+      },
+      "paper-2-dark": {
+        "role": "neutral",
+        "displayName": "Film Shade (Blaupause)",
+        "canonical": "#0f3352",
+        "oklch": "oklch(31.3% 0.069 248.2)",
+        "tonalRamp": [
+          "oklch(15% 0.069 248.2)",
+          "oklch(25% 0.069 248.2)",
+          "oklch(37% 0.069 248.2)",
+          "oklch(49% 0.069 248.2)",
+          "oklch(61% 0.069 248.2)",
+          "oklch(73% 0.069 248.2)",
+          "oklch(85% 0.069 248.2)",
+          "oklch(95% 0.069 248.2)"
+        ]
+      },
+      "paper-3-dark": {
+        "role": "neutral",
+        "displayName": "Film Fold (Blaupause)",
+        "canonical": "#143c5f",
+        "oklch": "oklch(34.7% 0.076 248.4)",
+        "tonalRamp": [
+          "oklch(15% 0.076 248.4)",
+          "oklch(25% 0.076 248.4)",
+          "oklch(37% 0.076 248.4)",
+          "oklch(49% 0.076 248.4)",
+          "oklch(61% 0.076 248.4)",
+          "oklch(73% 0.076 248.4)",
+          "oklch(85% 0.076 248.4)",
+          "oklch(95% 0.076 248.4)"
+        ]
+      },
+      "ink-dark": {
+        "role": "neutral",
+        "displayName": "Blue-Black Ink (Blaupause)",
+        "canonical": "#eaf4fb",
+        "oklch": "oklch(96.2% 0.014 238.0)",
+        "tonalRamp": [
+          "oklch(15% 0.014 238.0)",
+          "oklch(25% 0.014 238.0)",
+          "oklch(37% 0.014 238.0)",
+          "oklch(49% 0.014 238.0)",
+          "oklch(61% 0.014 238.0)",
+          "oklch(73% 0.014 238.0)",
+          "oklch(85% 0.014 238.0)",
+          "oklch(95% 0.014 238.0)"
+        ]
+      },
+      "ink-2-dark": {
+        "role": "neutral",
+        "displayName": "Ink 2 (Blaupause)",
+        "canonical": "#b4cde0",
+        "oklch": "oklch(83.6% 0.038 240.8)",
+        "tonalRamp": [
+          "oklch(15% 0.038 240.8)",
+          "oklch(25% 0.038 240.8)",
+          "oklch(37% 0.038 240.8)",
+          "oklch(49% 0.038 240.8)",
+          "oklch(61% 0.038 240.8)",
+          "oklch(73% 0.038 240.8)",
+          "oklch(85% 0.038 240.8)",
+          "oklch(95% 0.038 240.8)"
+        ]
+      },
+      "ink-3-dark": {
+        "role": "neutral",
+        "displayName": "Ink 3 (Blaupause)",
+        "canonical": "#8eadc5",
+        "oklch": "oklch(73.3% 0.049 241.6)",
+        "tonalRamp": [
+          "oklch(15% 0.049 241.6)",
+          "oklch(25% 0.049 241.6)",
+          "oklch(37% 0.049 241.6)",
+          "oklch(49% 0.049 241.6)",
+          "oklch(61% 0.049 241.6)",
+          "oklch(73% 0.049 241.6)",
+          "oklch(85% 0.049 241.6)",
+          "oklch(95% 0.049 241.6)"
+        ]
+      },
+      "rule-dark": {
+        "role": "neutral",
+        "displayName": "Hairline (Blaupause)",
+        "canonical": "#28557b",
+        "oklch": "oklch(43.6% 0.080 246.5)",
+        "tonalRamp": [
+          "oklch(15% 0.080 246.5)",
+          "oklch(25% 0.080 246.5)",
+          "oklch(37% 0.080 246.5)",
+          "oklch(49% 0.080 246.5)",
+          "oklch(61% 0.080 246.5)",
+          "oklch(73% 0.080 246.5)",
+          "oklch(85% 0.080 246.5)",
+          "oklch(95% 0.080 246.5)"
+        ]
+      },
+      "rule-strong-dark": {
+        "role": "neutral",
+        "displayName": "Construction Line (Blaupause)",
+        "canonical": "#4b7aa2",
+        "oklch": "oklch(56.3% 0.081 245.6)",
+        "tonalRamp": [
+          "oklch(15% 0.081 245.6)",
+          "oklch(25% 0.081 245.6)",
+          "oklch(37% 0.081 245.6)",
+          "oklch(49% 0.081 245.6)",
+          "oklch(61% 0.081 245.6)",
+          "oklch(73% 0.081 245.6)",
+          "oklch(85% 0.081 245.6)",
+          "oklch(95% 0.081 245.6)"
+        ]
+      },
+      "brand-dark": {
+        "role": "primary",
+        "displayName": "Prussian Night",
+        "canonical": "#071d33",
+        "oklch": "oklch(22.6% 0.051 250.9)",
+        "tonalRamp": [
+          "oklch(15% 0.051 250.9)",
+          "oklch(25% 0.051 250.9)",
+          "oklch(37% 0.051 250.9)",
+          "oklch(49% 0.051 250.9)",
+          "oklch(61% 0.051 250.9)",
+          "oklch(73% 0.051 250.9)",
+          "oklch(85% 0.051 250.9)",
+          "oklch(95% 0.051 250.9)"
+        ]
+      },
+      "brand-ink-2-dark": {
+        "role": "primary",
+        "displayName": "Band Lettering 2 (Blaupause)",
+        "canonical": "#9fc2dc",
+        "oklch": "oklch(79.7% 0.053 240.5)",
+        "tonalRamp": [
+          "oklch(15% 0.053 240.5)",
+          "oklch(25% 0.053 240.5)",
+          "oklch(37% 0.053 240.5)",
+          "oklch(49% 0.053 240.5)",
+          "oklch(61% 0.053 240.5)",
+          "oklch(73% 0.053 240.5)",
+          "oklch(85% 0.053 240.5)",
+          "oklch(95% 0.053 240.5)"
+        ]
+      },
+      "brand-rule-dark": {
+        "role": "primary",
+        "displayName": "Band Rule (Blaupause)",
+        "canonical": "#24507a",
+        "oklch": "oklch(42.1% 0.086 249.6)",
+        "tonalRamp": [
+          "oklch(15% 0.086 249.6)",
+          "oklch(25% 0.086 249.6)",
+          "oklch(37% 0.086 249.6)",
+          "oklch(49% 0.086 249.6)",
+          "oklch(61% 0.086 249.6)",
+          "oklch(73% 0.086 249.6)",
+          "oklch(85% 0.086 249.6)",
+          "oklch(95% 0.086 249.6)"
+        ]
+      },
+      "link-dark": {
+        "role": "primary",
+        "displayName": "Cyan Trace",
+        "canonical": "#9fd3ff",
+        "oklch": "oklch(84.6% 0.082 244.5)",
+        "tonalRamp": [
+          "oklch(15% 0.082 244.5)",
+          "oklch(25% 0.082 244.5)",
+          "oklch(37% 0.082 244.5)",
+          "oklch(49% 0.082 244.5)",
+          "oklch(61% 0.082 244.5)",
+          "oklch(73% 0.082 244.5)",
+          "oklch(85% 0.082 244.5)",
+          "oklch(95% 0.082 244.5)"
+        ]
+      },
+      "ok-dark": {
+        "role": "secondary",
+        "displayName": "Verified Green (Blaupause)",
+        "canonical": "#63d69e",
+        "oklch": "oklch(79.4% 0.133 159.9)",
+        "tonalRamp": [
+          "oklch(15% 0.133 159.9)",
+          "oklch(25% 0.133 159.9)",
+          "oklch(37% 0.133 159.9)",
+          "oklch(49% 0.133 159.9)",
+          "oklch(61% 0.133 159.9)",
+          "oklch(73% 0.133 159.9)",
+          "oklch(85% 0.133 159.9)",
+          "oklch(95% 0.133 159.9)"
+        ]
+      },
+      "unsure-dark": {
+        "role": "secondary",
+        "displayName": "Unsure Ochre (Blaupause)",
+        "canonical": "#f3b85b",
+        "oklch": "oklch(81.9% 0.129 76.6)",
+        "tonalRamp": [
+          "oklch(15% 0.129 76.6)",
+          "oklch(25% 0.129 76.6)",
+          "oklch(37% 0.129 76.6)",
+          "oklch(49% 0.129 76.6)",
+          "oklch(61% 0.129 76.6)",
+          "oklch(73% 0.129 76.6)",
+          "oklch(85% 0.129 76.6)",
+          "oklch(95% 0.129 76.6)"
+        ]
+      },
+      "unsure-wash-dark": {
+        "role": "secondary",
+        "displayName": "Ochre Wash (Blaupause)",
+        "canonical": "#3a3a32",
+        "oklch": "oklch(34.6% 0.014 107.1)",
+        "tonalRamp": [
+          "oklch(15% 0.014 107.1)",
+          "oklch(25% 0.014 107.1)",
+          "oklch(37% 0.014 107.1)",
+          "oklch(49% 0.014 107.1)",
+          "oklch(61% 0.014 107.1)",
+          "oklch(73% 0.014 107.1)",
+          "oklch(85% 0.014 107.1)",
+          "oklch(95% 0.014 107.1)"
+        ]
+      },
+      "bad-dark": {
+        "role": "secondary",
+        "displayName": "Mismatch Red (Blaupause)",
+        "canonical": "#ff8585",
+        "oklch": "oklch(75.3% 0.149 21.2)",
+        "tonalRamp": [
+          "oklch(15% 0.149 21.2)",
+          "oklch(25% 0.149 21.2)",
+          "oklch(37% 0.149 21.2)",
+          "oklch(49% 0.149 21.2)",
+          "oklch(61% 0.149 21.2)",
+          "oklch(73% 0.149 21.2)",
+          "oklch(85% 0.149 21.2)",
+          "oklch(95% 0.149 21.2)"
+        ]
+      },
+      "bad-wash-dark": {
+        "role": "secondary",
+        "displayName": "Red Wash (Blaupause)",
+        "canonical": "#43303f",
+        "oklch": "oklch(33.7% 0.037 334.0)",
+        "tonalRamp": [
+          "oklch(15% 0.037 334.0)",
+          "oklch(25% 0.037 334.0)",
+          "oklch(37% 0.037 334.0)",
+          "oklch(49% 0.037 334.0)",
+          "oklch(61% 0.037 334.0)",
+          "oklch(73% 0.037 334.0)",
+          "oklch(85% 0.037 334.0)",
+          "oklch(95% 0.037 334.0)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Hero (ramp 0)",
+        "purpose": "The other person's newest sentence, typing in. Largest step of the recency ramp."
+      },
+      "headline": {
+        "displayName": "Question",
+        "purpose": "The one question on the confirm sheet; consent and empty-state titles."
+      },
+      "title": {
+        "displayName": "Ramp 1",
+        "purpose": "The previous turn; explain-simply text; say-again line."
+      },
+      "body": {
+        "displayName": "Body / Ramp 2-3",
+        "purpose": "Older turns and running text; tabular figures on."
+      },
+      "source": {
+        "displayName": "Source line",
+        "purpose": "The original sentence beneath the translation, in ink 3."
+      },
+      "figure": {
+        "displayName": "Figure",
+        "purpose": "Dimension values, cloud pairs and every number with its unit."
+      },
+      "label": {
+        "displayName": "Lettering",
+        "purpose": "Mono uppercase labels that name the value beside them: speakers, cells, fact kinds, marks."
+      },
+      "wordmark": {
+        "displayName": "Wordmark",
+        "purpose": "RAUM on Home and Join only."
+      }
+    },
+    "shadows": [
+      {
+        "name": "sheet",
+        "value": "0 1px 2px rgb(10 29 48 / 0.06), 0 8px 24px rgb(10 29 48 / 0.08)",
+        "purpose": "Paper objects: summary sheet, resting talk control. Blaupause: 0 1px 2px rgb(0 0 0 / 0.3), 0 10px 30px rgb(0 0 0 / 0.35)."
+      },
+      {
+        "name": "sheet-rising",
+        "value": "0 -12px 32px rgb(6 20 34 / 0.18)",
+        "purpose": "The confirm sheet sliding up."
+      },
+      {
+        "name": "stamp-impression",
+        "value": "inset 0 0 0 1.5px color-mix(in oklab, var(--bad) 35%, transparent)",
+        "purpose": "Double rim of the burn stamp."
+      },
+      {
+        "name": "scrim",
+        "value": "rgb(6 20 34 / 0.38)",
+        "purpose": "Prussian scrim behind the confirm sheet (0.32 behind the menu)."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "The one easing for every draw, settle and slide."
+      },
+      {
+        "name": "t-draw",
+        "value": "220ms",
+        "purpose": "Dimension line draws from start tick to end tick (scaleX), staggered 60 ms per fact."
+      },
+      {
+        "name": "dim-tick",
+        "value": "160ms, starts 40ms before the line completes",
+        "purpose": "End ticks fade in."
+      },
+      {
+        "name": "dim-settle",
+        "value": "260ms, +120ms delay, 3px rise",
+        "purpose": "Dimension value settles above the line; timeline segments use the same settle."
+      },
+      {
+        "name": "cloud-draw",
+        "value": "520ms",
+        "purpose": "Revision cloud strokes itself around the mismatched pair (dashoffset on pathLength 1)."
+      },
+      {
+        "name": "turn-in",
+        "value": "240ms, 6px rise",
+        "purpose": "A new turn enters; proof panel opens in 200 ms."
+      },
+      {
+        "name": "sheet-up",
+        "value": "280ms, 24px rise",
+        "purpose": "Confirm sheet (menu sheet 240 ms); scrim fades 160-180 ms."
+      },
+      {
+        "name": "erase",
+        "value": "520ms clip-path toward inline end, staggered 90ms per section, to 0.2 opacity",
+        "purpose": "The burn erases the summary stroke by stroke."
+      },
+      {
+        "name": "stamp-in",
+        "value": "420ms, scale 1.18 to 1, rotated -3deg",
+        "purpose": "The key-destroyed stamp lands."
+      },
+      {
+        "name": "contour-level",
+        "value": "r 90ms linear, opacity 160ms linear",
+        "purpose": "Talk-control contour lines follow the voice level."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "all animation and transition durations 1ms, one iteration",
+        "purpose": "prefers-reduced-motion: every drawing appears already drawn."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "admin-stack",
+        "value": "760px"
+      },
+      {
+        "name": "table-stack",
+        "value": "860px"
+      }
+    ],
+    "lineTypes": [
+      {
+        "name": "solid",
+        "meaning": "verified; direct connection; a drawn segment"
+      },
+      {
+        "name": "dashed",
+        "meaning": "checking / pending; tunnel connection; async check segment"
+      },
+      {
+        "name": "dotted",
+        "meaning": "unsure / say again; relayed connection; uncertain summary item"
+      },
+      {
+        "name": "dash-dot",
+        "meaning": "the 1.0 s budget target on the timeline"
+      },
+      {
+        "name": "revision-cloud",
+        "meaning": "mismatch"
+      }
+    ],
+    "rooms": [
+      {
+        "name": "Sprechzimmer",
+        "hatch": "single 45° diagonal",
+        "layer": "room-sprechzimmer",
+        "band": "band-sprechzimmer"
+      },
+      {
+        "name": "Kanzlei",
+        "hatch": "cross-hatch",
+        "layer": "room-kanzlei",
+        "band": "band-kanzlei"
+      },
+      {
+        "name": "Verhandlungsraum",
+        "hatch": "dot grid",
+        "layer": "room-verhandlungsraum",
+        "band": "band-verhandlungsraum"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Flat Berliner Blau fill with a 2 px border in the fill colour; inverts to ink in the Blaupause.",
+      "html": "<button class=\"ds-btn\">Beitreten</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 24px; border: 2px solid var(--brand, #0d3a61); border-radius: 2px; background: var(--brand, #0d3a61); color: var(--brand-ink, #eef6fc); font-family: var(--font-text); font-weight: 650; font-size: 1.0625rem; letter-spacing: 0.005em; transition: background 140ms cubic-bezier(0.16,1,0.3,1), border-color 140ms cubic-bezier(0.16,1,0.3,1), transform 120ms cubic-bezier(0.16,1,0.3,1); } .ds-btn:hover { background: var(--brand-2, #164f82); border-color: var(--brand-2, #164f82); } .ds-btn:active { transform: translateY(1px); } .ds-btn:focus-visible { outline: 2px solid var(--focus, #1b6fd1); outline-offset: 2px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary action: transparent with a construction-line border.",
+      "html": "<button class=\"ds-btn-ghost\">Zur Zusammenfassung</button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 24px; border: 2px solid var(--rule-strong, #8fa3b6); border-radius: 2px; background: transparent; color: var(--ink, #0a1d30); font-family: var(--font-text); font-weight: 650; font-size: 1.0625rem; transition: background 140ms cubic-bezier(0.16,1,0.3,1), border-color 140ms cubic-bezier(0.16,1,0.3,1); } .ds-btn-ghost:hover { background: var(--paper-2, #eaf0f5); border-color: var(--ink-3, #566c82); } .ds-btn-ghost:focus-visible { outline: 2px solid var(--focus, #1b6fd1); outline-offset: 2px; }"
+    },
+    {
+      "name": "Confirm Answers",
+      "kind": "button",
+      "refersTo": "button-ok",
+      "description": "The two answers on the confirm sheet: yes in Verified Green, no as a red outline.",
+      "html": "<div class=\"ds-answers\"><button class=\"ds-ans ds-ans--bad\">Nein, falsch</button><button class=\"ds-ans ds-ans--ok\">Ja, richtig</button></div>",
+      "css": ".ds-answers { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; } .ds-ans { min-height: 60px; border: 2px solid; border-radius: 2px; font-family: var(--font-text); font-weight: 650; font-size: 1.1875rem; transition: background 140ms cubic-bezier(0.16,1,0.3,1); } .ds-ans--ok { background: var(--ok, #157347); border-color: var(--ok, #157347); color: #fff; } .ds-ans--bad { background: transparent; border-color: var(--bad, #c01d2c); color: var(--bad, #c01d2c); } .ds-ans--bad:hover { background: var(--bad-wash, #fbe5e6); } .ds-ans:focus-visible { outline: 2px solid var(--focus, #1b6fd1); outline-offset: 2px; }"
+    },
+    {
+      "name": "Title Block",
+      "kind": "nav",
+      "refersTo": "title-block",
+      "description": "The Schriftfeld: Prussian band with room hatch, room name, live status and a row of mono cells.",
+      "html": "<header class=\"ds-tb\"><div class=\"ds-tb__row\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 22 22\" class=\"ds-tb__hatch\"><defs><pattern id=\"ds-h\" width=\"12\" height=\"12\" patternUnits=\"userSpaceOnUse\"><path d=\"M-2 6l8-8M-2 14L14-2M6 14l8-8\" stroke=\"currentColor\" stroke-width=\"1.3\" fill=\"none\"/></pattern></defs><rect x=\".75\" y=\".75\" width=\"20.5\" height=\"20.5\" fill=\"url(#ds-h)\" stroke=\"currentColor\" stroke-width=\"1.5\"/></svg><span class=\"ds-tb__name\">Sprechzimmer</span><span class=\"ds-tb__status\"><span class=\"ds-tb__dot\"></span>Live</span></div><dl class=\"ds-tb__cells\"><div><dt>Raum</dt><dd>SZ-5223</dd></div><div><dd>DE ⇄ AR</dd></div><div class=\"end\"><dd>Direkt 4 ms</dd></div></dl></header>",
+      "css": ".ds-tb { background: var(--brand, #0d3a61); color: var(--brand-ink, #eef6fc); padding: 8px 16px 0; border-bottom: 1px solid var(--brand-rule, #2f5f8a); font-family: var(--font-text); } .ds-tb__row { display: flex; align-items: center; gap: 12px; min-height: 40px; } .ds-tb__hatch { color: var(--band-sprechzimmer, #5fd0de); flex: none; } .ds-tb__name { flex: 1; font-weight: 700; font-size: 1.125rem; } .ds-tb__status { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.07em; text-transform: uppercase; color: var(--brand-ink, #eef6fc); } .ds-tb__dot { width: 8px; height: 8px; border-radius: 50%; background: #6fe0a6; } .ds-tb__cells { display: grid; grid-template-columns: auto auto 1fr; margin: 4px -16px 0; border-top: 1px solid var(--brand-rule, #2f5f8a); } .ds-tb__cells > div { padding: 5px 16px 6px; border-inline-end: 1px solid var(--brand-rule, #2f5f8a); } .ds-tb__cells > div.end { border-inline-end: 0; text-align: end; } .ds-tb__cells dt { font-family: var(--font-mono); font-size: 0.625rem; letter-spacing: 0.07em; text-transform: uppercase; color: var(--brand-ink-2, #b9d3e8); } .ds-tb__cells dd { margin: 0; font-family: var(--font-mono); font-size: 0.8125rem; font-weight: 600; letter-spacing: 0.04em; }"
+    },
+    {
+      "name": "Dimension (checked fact)",
+      "kind": "custom",
+      "refersTo": "figure",
+      "description": "A checked fact dimensioned like a wall; line type carries the state (solid verified, dashed checking, dotted unsure).",
+      "html": "<span class=\"ds-dims\"><span class=\"ds-dim ds-dim--ok\"><span class=\"ds-dim__v\">500 mg</span><span class=\"ds-dim__l\"></span><span class=\"ds-dim__k\">Dosis</span></span><span class=\"ds-dim ds-dim--pending\"><span class=\"ds-dim__v\">2×/Tag</span><span class=\"ds-dim__l\"></span><span class=\"ds-dim__k\">Häufigkeit</span></span><span class=\"ds-dim ds-dim--unsure\"><span class=\"ds-dim__v\">13.11.</span><span class=\"ds-dim__l\"></span><span class=\"ds-dim__k\">Datum</span></span></span>",
+      "css": ".ds-dims { display: flex; flex-wrap: wrap; gap: 12px 24px; } .ds-dim { --c: var(--pending, #6a7f94); display: inline-grid; grid-template-rows: auto 12px auto; justify-items: center; min-width: 64px; } .ds-dim--ok { --c: var(--ok, #157347); } .ds-dim--unsure { --c: var(--unsure, #925400); } .ds-dim__v { font-family: var(--font-mono); font-weight: 640; font-size: 1rem; color: var(--ink, #0a1d30); padding: 0 8px; white-space: nowrap; } .ds-dim__l { position: relative; width: 100%; height: 12px; border-inline: 1px solid color-mix(in oklab, var(--c) 70%, transparent); } .ds-dim__l::before { content: ''; position: absolute; inset-inline: 0; top: 50%; border-top: 1.5px solid var(--c); transform-origin: left center; animation: ds-draw 220ms cubic-bezier(0.16,1,0.3,1) both; } .ds-dim--pending .ds-dim__l::before { border-top-style: dashed; } .ds-dim--unsure .ds-dim__l::before { border-top: 2px dotted var(--c); } .ds-dim__l::after { content: ''; position: absolute; inset-inline-end: -1px; top: 1px; height: 10px; border-left: 1.75px solid var(--c); transform: rotate(45deg); } .ds-dim__k { font-family: var(--font-mono); font-size: 0.6875rem; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-3, #566c82); } @keyframes ds-draw { from { transform: scaleX(0); } } @media (prefers-reduced-motion: reduce) { .ds-dim__l::before { animation: none; } }"
+    },
+    {
+      "name": "Revision Cloud (mismatch)",
+      "kind": "custom",
+      "refersTo": "figure",
+      "description": "A mismatched pair inside a scalloped red outline: said in ink, translated in red and struck through.",
+      "html": "<span class=\"ds-cloud\"><svg class=\"ds-cloud__svg\" width=\"236\" height=\"64\" viewBox=\"0 0 236 64\"><path d=\"M6.5 6.5 A5.5 5.5 0 0 1 17.5 6.5 A5.5 5.5 0 0 1 28.5 6.5 A5.5 5.5 0 0 1 39.5 6.5 A5.5 5.5 0 0 1 50.5 6.5 A5.5 5.5 0 0 1 61.5 6.5 A5.5 5.5 0 0 1 72.5 6.5 A5.5 5.5 0 0 1 83.5 6.5 A5.5 5.5 0 0 1 94.5 6.5 A5.5 5.5 0 0 1 105.5 6.5 A5.5 5.5 0 0 1 116.5 6.5 A5.5 5.5 0 0 1 127.5 6.5 A5.5 5.5 0 0 1 138.5 6.5 A5.5 5.5 0 0 1 149.5 6.5 A5.5 5.5 0 0 1 160.5 6.5 A5.5 5.5 0 0 1 171.5 6.5 A5.5 5.5 0 0 1 182.5 6.5 A5.5 5.5 0 0 1 193.5 6.5 A5.5 5.5 0 0 1 204.5 6.5 A5.5 5.5 0 0 1 215.5 6.5 A5.5 5.5 0 0 1 229.5 6.5 A8.5 8.5 0 0 1 229.5 23.5 A8.5 8.5 0 0 1 229.5 40.5 A8.5 8.5 0 0 1 229.5 57.5 A5.5 5.5 0 0 1 218.5 57.5 A5.5 5.5 0 0 1 207.5 57.5 A5.5 5.5 0 0 1 196.5 57.5 A5.5 5.5 0 0 1 185.5 57.5 A5.5 5.5 0 0 1 174.5 57.5 A5.5 5.5 0 0 1 163.5 57.5 A5.5 5.5 0 0 1 152.5 57.5 A5.5 5.5 0 0 1 141.5 57.5 A5.5 5.5 0 0 1 130.5 57.5 A5.5 5.5 0 0 1 119.5 57.5 A5.5 5.5 0 0 1 108.5 57.5 A5.5 5.5 0 0 1 97.5 57.5 A5.5 5.5 0 0 1 86.5 57.5 A5.5 5.5 0 0 1 75.5 57.5 A5.5 5.5 0 0 1 64.5 57.5 A5.5 5.5 0 0 1 53.5 57.5 A5.5 5.5 0 0 1 42.5 57.5 A5.5 5.5 0 0 1 31.5 57.5 A5.5 5.5 0 0 1 20.5 57.5 A7 7 0 0 1 6.5 57.5 A8.5 8.5 0 0 1 6.5 40.5 A8.5 8.5 0 0 1 6.5 23.5 A8.5 8.5 0 0 1 6.5 6.5Z\" pathLength=\"1\"/></svg><span class=\"ds-cloud__pair\"><span class=\"said\">12. November</span><span class=\"ne\">≠</span><s class=\"got\">13. November</s></span><span class=\"ds-cloud__k\">Datum</span></span>",
+      "css": ".ds-cloud { position: relative; display: inline-grid; justify-items: center; width: 222px; padding: 10px 8px 6px; margin: 7px; } .ds-cloud__svg { position: absolute; left: -7px; top: -7px; overflow: visible; } .ds-cloud__svg path { fill: none; stroke: var(--bad, #c01d2c); stroke-width: 1.6; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: ds-cloud 520ms cubic-bezier(0.16,1,0.3,1) forwards; } .ds-cloud__pair { position: relative; display: inline-flex; gap: 8px; font-family: var(--font-mono); font-weight: 680; font-size: 1rem; white-space: nowrap; } .ds-cloud__pair .said { color: var(--ink, #0a1d30); } .ds-cloud__pair .ne, .ds-cloud__pair .got { color: var(--bad, #c01d2c); } .ds-cloud__pair .got { text-decoration-thickness: 1.5px; } .ds-cloud__k { position: relative; font-family: var(--font-mono); font-size: 0.6875rem; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-3, #566c82); } @keyframes ds-cloud { to { stroke-dashoffset: 0; } } @media (prefers-reduced-motion: reduce) { .ds-cloud__svg path { animation: none; stroke-dashoffset: 0; } }"
+    },
+    {
+      "name": "Verify Mark",
+      "kind": "chip",
+      "refersTo": "verify-mark",
+      "description": "Check state of one sentence; border line type and text name the state, colour follows.",
+      "html": "<span class=\"ds-vm-row\"><span class=\"ds-vm ds-vm--pending\"><span class=\"ring\"></span>Prüfe</span><button class=\"ds-vm ds-vm--ok\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.25\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5 12.5l4.5 4.5L19 7.5\"/></svg>Geprüft <span class=\"ms\">640 ms</span></button><span class=\"ds-vm ds-vm--unsure\"><span class=\"ring\"></span>Unsicher</span><span class=\"ds-vm ds-vm--bad\">Abweichung <span class=\"ms\">780 ms</span></span></span>",
+      "css": ".ds-vm-row { display: flex; flex-wrap: wrap; gap: 8px; } .ds-vm { --c: var(--ink-3, #566c82); display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 2px 10px 2px 6px; border: 1.5px solid var(--c); border-radius: 2px; background: transparent; color: var(--c); font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.07em; text-transform: uppercase; font-weight: 640; line-height: 1; } button.ds-vm { cursor: pointer; } button.ds-vm:hover { background: var(--paper-2, #eaf0f5); } button.ds-vm:focus-visible { outline: 2px solid var(--focus, #1b6fd1); outline-offset: 2px; } .ds-vm--pending { border-style: dashed; } .ds-vm--ok { --c: var(--ok, #157347); } .ds-vm--unsure { --c: var(--unsure, #925400); border: 2px dotted var(--c); } .ds-vm--bad { --c: var(--bad, #c01d2c); border-width: 2px; } .ds-vm .ring { width: 11px; height: 11px; border-radius: 50%; border: 1.5px dashed currentColor; } .ds-vm--unsure .ring { border: 2px dotted currentColor; } .ds-vm .ms { color: var(--ink-3, #566c82); font-weight: 500; letter-spacing: 0.02em; text-transform: none; }"
+    },
+    {
+      "name": "Talk Control",
+      "kind": "button",
+      "refersTo": "talk-control",
+      "description": "The one dominant control: a 96 px circle whose live level is drawn as solid, dashed and dotted contour lines.",
+      "html": "<div class=\"ds-talk\"><svg class=\"ds-talk__c\" viewBox=\"0 0 200 200\"><circle cx=\"100\" cy=\"100\" r=\"58\"/><circle cx=\"100\" cy=\"100\" r=\"74\"/><circle cx=\"100\" cy=\"100\" r=\"90\"/></svg><button class=\"ds-talk__btn\" aria-pressed=\"true\"><svg width=\"36\" height=\"36\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"9\" y=\"3\" width=\"6\" height=\"11\" rx=\"3\"/><path d=\"M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21\"/></svg></button></div>",
+      "css": ".ds-talk { position: relative; width: 112px; height: 112px; display: grid; place-items: center; margin: 44px; } .ds-talk__c { position: absolute; inset: -44px; width: 200px; height: 200px; pointer-events: none; } .ds-talk__c circle { fill: none; stroke: var(--brand-2, #164f82); stroke-width: 1; } .ds-talk__c circle:nth-child(2) { stroke-dasharray: 5 4; } .ds-talk__c circle:nth-child(3) { stroke-dasharray: 1.5 4; } .ds-talk__btn { position: relative; width: 96px; height: 96px; border-radius: 50%; border: 2px solid var(--brand, #0d3a61); background: var(--paper, #f6f9fb); color: var(--brand, #0d3a61); display: grid; place-items: center; box-shadow: 0 1px 2px rgb(10 29 48 / 0.06), 0 8px 24px rgb(10 29 48 / 0.08); transition: background 160ms cubic-bezier(0.16,1,0.3,1), color 160ms cubic-bezier(0.16,1,0.3,1), transform 120ms cubic-bezier(0.16,1,0.3,1); } .ds-talk__btn[aria-pressed='true'] { background: var(--brand, #0d3a61); color: var(--brand-ink, #eef6fc); } .ds-talk__btn:active { transform: scale(0.97); } .ds-talk__btn:focus-visible { outline: 2px solid var(--focus, #1b6fd1); outline-offset: 2px; }"
+    },
+    {
+      "name": "Burn Stamp",
+      "kind": "custom",
+      "refersTo": "burn-stamp",
+      "description": "The signature moment: the key-destroyed impression pressed onto the title block's top rule.",
+      "html": "<div class=\"ds-stamp\"><span class=\"t\">Schlüssel vernichtet</span><span class=\"m\">14:59 · 13:59:36 UTC</span><span class=\"m\">audit c46a6eff50bebe22…</span></div>",
+      "css": ".ds-stamp { display: inline-grid; justify-items: center; gap: 2px; padding: 8px 16px 12px; border: 3px solid var(--bad, #c01d2c); border-radius: 3px; color: var(--bad, #c01d2c); background: color-mix(in oklab, var(--paper, #f6f9fb) 88%, transparent); transform: rotate(-3deg); box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--bad, #c01d2c) 35%, transparent); animation: ds-stamp 420ms cubic-bezier(0.16,1,0.3,1) both; font-family: var(--font-mono); } .ds-stamp .t { font-size: 1.5rem; letter-spacing: 0.07em; text-transform: uppercase; font-weight: 800; line-height: 1.1; } .ds-stamp .m { font-size: 0.8125rem; letter-spacing: 0.02em; } @keyframes ds-stamp { from { opacity: 0; transform: rotate(-3deg) scale(1.18); } } @media (prefers-reduced-motion: reduce) { .ds-stamp { animation: none; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Architect's Floor Plan in Berliner Blau",
+    "overview": "RAUM draws a conversation the way an architect draws a room. Every surface is a drawing sheet: line work in Prussian blue on drafting-film white (the Lichtpause, light theme), or pale cyan-white line work on a Prussian ground (the Blaupause, dark theme). Metadata sits in title-block cells (the Schriftfeld). Every checked fact is dimensioned like a wall, with a value lettered above a line that ends in 45° architectural ticks. A fact that does not close gets a revision cloud, the way a drawing marks a change. Each room is a material hatch with one layer colour. At the end the session is erased stroke by stroke and the title block is stamped \"Schlüssel vernichtet\".\n\nThe system is dense and technical where it reports, and calm where it speaks. On a phone, the other person's newest sentence is the largest thing on screen and everything else steps down one fixed recency ramp. Verification state is drawn as DIN 1356 line types before it is coloured, so every state reads in greyscale. Colour is held back: Berliner Blau for the shell, three semantic pens for check state, three layer colours for rooms, and nothing decorative. It rejects the category default of chat bubbles on clinical white with a teal accent and a glowing AI badge.\n\n**What transfers to every future surface** (landing page, slides, video, print): both prints and their palettes; the Prussian title band as the header of any frame; Atkinson Hyperlegible Next for words and Mono for every figure and label; the dimension line for any number that is claimed (latency, bytes, doses), drawn to scale against the 1.0 s dash-dot budget wherever time is shown; the revision cloud for anything caught; the room hatch and layer colour as the room's identity; the drawing border (a 2 px ink frame with a 1 px inner margin line 6 px in); and the burn (erase, then stamp) as the closing beat. Motion on video follows the same grammar: lines draw from tick to tick and nothing bounces.",
+    "keyCharacteristics": [
+      "Two prints of one drawing: Lichtpause light, Blaupause dark, same structure.",
+      "State is line form first (solid, dashed, dotted, revision cloud), colour second.",
+      "One recency ramp carries hierarchy; nothing else decorates rank.",
+      "Every figure in mono, dimensioned, with its unit.",
+      "Corners are drawn corners (2 px); only round objects are round.",
+      "Logical (inline-start/end) geometry throughout, so the drawing mirrors in RTL."
+    ],
+    "rules": [
+      {
+        "name": "The Colour Quarantine Rule",
+        "body": "Check-state colour lives only on the line, cloud, mark or stamp that carries the fact. A verified, unsure or mismatched fact never tints its row or its card.",
+        "section": "colors"
+      },
+      {
+        "name": "The Greyscale Test Rule",
+        "body": "Every state must read with colour removed: solid = verified, dashed = checking, dotted = unsure, revision cloud = mismatch, greyed-out drawing = off the record.",
+        "section": "colors"
+      },
+      {
+        "name": "The Separate Pens Rule",
+        "body": "Semantic pens never stand in for the brand, and Berliner Blau never signals a check state.",
+        "section": "colors"
+      },
+      {
+        "name": "The Recency Ramp Rule",
+        "body": "Hierarchy in the conversation is carried by one fixed ramp (34, 21, 18, 16 px). The newest sentence of the other person is largest; each older turn steps down. Weight, colour and boxes never add rank.",
+        "section": "typography"
+      },
+      {
+        "name": "The Mono Figures Rule",
+        "body": "Every figure, unit, id, timing and label is set in Atkinson Hyperlegible Mono. Words are never set in mono, except the uppercase lettering of labels.",
+        "section": "typography"
+      },
+      {
+        "name": "The Arabic Lettering Rule",
+        "body": "Arabic, Persian and Urdu text gets zero letter-spacing (forced) and a 1.6 line height in turns.",
+        "section": "typography"
+      },
+      {
+        "name": "The Paper Objects Rule",
+        "body": "A shadow means \"a sheet of paper lies on top\". Line work, marks and panels never cast one.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do dimension every checked figure: value above, line with 45° ticks, kind below, in mono.",
+      "Do carry state in line type first (solid, dashed, dotted, revision cloud) and in the semantic pen second, with the state named in text on the verify mark.",
+      "Do keep the newest sentence of the other person the largest text on the phone, on the fixed ramp (34, 21, 18, 16 px).",
+      "Do use the band layer colours on the Prussian title band and the room layer colours on the light sheet.",
+      "Do use logical properties and isolate mixed-direction values, so the whole drawing mirrors in RTL.",
+      "Do keep shadows for paper objects only (summary sheet, talk control, rising sheets).",
+      "Do letter labels in mono uppercase at 0.07em, and only when they name the value next to them."
+    ],
+    "donts": [
+      "Don't draw chat bubbles, avatars, or a glowing AI badge; turns are lines of text on the sheet, separated by hairlines.",
+      "Don't tint a fact's row, card or background with its check colour; washes belong to system banners only.",
+      "Don't use colour as the only signal of a state.",
+      "Don't use Berliner Blau to mean verified, or a semantic pen as a brand accent.",
+      "Don't round rectangles beyond the 2 px drawing corner; only round objects are round.",
+      "Don't letter-space Arabic, Persian or Urdu.",
+      "Don't load fonts or assets from a third party; the privacy meter must stay at zero with the cable pulled."
+    ]
+  }
+}

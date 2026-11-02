@@ -22,6 +22,7 @@ export interface ParticipantInfo {
   device: string;
   path: Path;
   rtt_ms?: number | null;
+  audio_out?: "headphones" | "speaker" | "room";
 }
 
 export interface FactCheck {
@@ -50,11 +51,12 @@ export interface EventData {
   "utterance.end": { speaker: string; lang: string };
   "transcript.partial": { speaker: string; lang: string; text: string; seq: number };
   "transcript.final": { speaker: string; lang: string; text: string; asr_conf: number };
-  "translation.delta": { target_lang: string; delta: string; seq?: number | null };
-  "translation.final": { target_lang: string; text: string };
-  "verify.facts": { target_lang: string; facts: FactCheck[]; red?: boolean; ms?: number | null };
+  "translation.delta": { target_lang: string; delta: string; seq?: number | null; seg?: number | null };
+  "translation.final": { target_lang: string; text: string; seg?: number | null; segs?: number | null };
+  "verify.facts": { target_lang: string; facts: FactCheck[]; red?: boolean; ms?: number | null; seg?: number | null };
   "verify.result": {
     target_lang: string;
+    seg?: number | null;
     similarity: number | null;
     badge: Badge;
     reasons: string[];
@@ -90,6 +92,7 @@ export interface EventData {
     denoise_ms?: number | null;
     models?: Record<string, string> | null;
   };
+  "voice.state": { target_lang: string; playing: boolean; paused?: string[] };
   "session.state": {
     off_record: boolean;
     sealed: boolean;
@@ -132,6 +135,7 @@ export const EVENT_TYPES = [
   "explain.draft",
   "explain.sent",
   "pipeline.timing",
+  "voice.state",
   "session.state",
   "privacy.meter",
   "gpu.stats",
