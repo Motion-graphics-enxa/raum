@@ -9,9 +9,10 @@
 # containers (172.16/12, e.g. a Chatterbox container). LiveKit and Caddy use the host network,
 # so they are covered by the output chain (LiveKit runs as `raum`; Caddy only answers inbound).
 #
-# Sealed mode drops exactly that traffic instead of only counting it. The drop rules always
-# exist (comment "raum-seal") but only match while the set `seal` holds {ipv4, ipv6}, so sealing
-# is one atomic command and nothing has to be added, found or deleted by handle.
+# Sealed mode drops exactly that traffic instead of only counting it: all of it passes
+# `jump seal` before the third_party counter. The chain `seal` is empty while open; sealing adds
+# one drop rule (comment "raum-seal"), unsealing flushes the chain, so only that rule goes away.
+# Each is one atomic nft transaction (raum-core privacy/seal.py); nothing is found by handle.
 #
 # Exact commands (all need CAP_NET_ADMIN: root, or raum-core.service's AmbientCapabilities):
 #
@@ -27,16 +28,17 @@
 #     (match counters by "name", never by handle)
 #     third_party.bytes  = bytes that reached a third party (privacy.meter third_party_bytes)
 #     sealed_drops.packets = attempts blocked while sealed (nice to show: "12 attempts blocked")
-#   seal on:
-#       nft add element inet raum seal '{ ipv4, ipv6 }'
-#     (subprocess: ["nft", "add", "element", "inet", "raum", "seal", "{ ipv4, ipv6 }"])
+#   seal on (one transaction, stdin of `nft -f -`):
+#       flush chain inet raum seal
+#       add rule inet raum seal counter name "sealed_drops" drop comment "raum-seal"
 #   seal off:
-#       nft flush set inet raum seal
-#   seal state (sealed = the set has an "elem" list):
-#       nft -j list set inet raum seal
-#     sealed -> {"nftables": [{"metainfo": {...}}, {"set": {"family": "inet", "name": "seal",
-#                 "table": "raum", "type": "nf_proto", "handle": 8, "elem": ["ipv4", "ipv6"]}}]}
-#     open   -> same, without the "elem" key
+#       nft flush chain inet raum seal
+#   seal state (sealed = a rule with a drop verdict in the chain):
+#       nft -j list chain inet raum seal
+#     sealed -> {"nftables": [{"metainfo": {...}}, {"chain": {... "name": "seal" ...}},
+#                {"rule": {... "chain": "seal", "comment": "raum-seal",
+#                          "expr": [{"counter": "sealed_drops"}, {"drop": null}]}}]}
+#     open   -> same, without the "rule"
 #   (all of the above verified on nftables 1.0.9, the Ubuntu 24.04 / DGX OS version)
 #   reset the meter (e.g. after model downloads, before the demo):
 #       nft reset counters table inet raum
@@ -82,26 +84,26 @@ table inet raum {
 		elements = { 172.16.0.0/12 }
 	}
 
-	# sealed mode gate: empty = open, { ipv4, ipv6 } = sealed
-	set seal {
-		typeof meta nfproto
+	# sealed mode: empty = open; sealed = one rule, added and flushed by raum-core:
+	#   counter name "sealed_drops" drop comment "raum-seal"
+	chain seal {
+	}
+
+	# traffic from RAUM: private and tailnet destinations return, the rest is third party
+	chain egress {
+		ip daddr @private4 return
+		ip6 daddr @private6 return
+		jump seal
+		counter name "third_party" comment "raum-meter"
 	}
 
 	chain output {
 		type filter hook output priority filter; policy accept;
-
-		meta nfproto @seal meta skuid { raum, ollama } ip daddr != @private4 counter name "sealed_drops" drop comment "raum-seal"
-		meta nfproto @seal meta skuid { raum, ollama } ip6 daddr != @private6 counter name "sealed_drops" drop comment "raum-seal"
-
-		meta skuid { raum, ollama } ip daddr != @private4 counter name "third_party" comment "raum-meter"
-		meta skuid { raum, ollama } ip6 daddr != @private6 counter name "third_party" comment "raum-meter"
+		meta skuid { raum, ollama } jump egress
 	}
 
 	chain forward {
 		type filter hook forward priority filter; policy accept;
-
-		meta nfproto @seal ip saddr @docker4 ip daddr != @private4 counter name "sealed_drops" drop comment "raum-seal"
-
-		ip saddr @docker4 ip daddr != @private4 counter name "third_party" comment "raum-meter"
+		ip saddr @docker4 jump egress
 	}
 }

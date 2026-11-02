@@ -12,7 +12,7 @@ from raum.events import make_event
 from raum.gpu import GpuMonitor, parse_nvidia_smi
 from raum.privacy import meter as meter_mod
 from raum.privacy.meter import PrivacyMeterReader, parse_nft_counters
-from raum.privacy.seal import SealController, find_seal_rule, flip_expr, replace_command
+from raum.privacy.seal import SealController, chain_sealed, seal_command
 from raum.publisher import LiveKitPublisher, http_url
 
 pytestmark = pytest.mark.filterwarnings("ignore:The HMAC key")
@@ -29,8 +29,8 @@ NFT_COUNTERS = {"nftables": [
 
 
 def test_parse_nft_counters():
-    assert parse_nft_counters(json.dumps(NFT_COUNTERS)) == (200, 60)
-    assert parse_nft_counters({"nftables": []}) == (0, 0)
+    assert parse_nft_counters(json.dumps(NFT_COUNTERS)) == (200, 60, 9000)
+    assert parse_nft_counters({"nftables": []}) == (0, 0, None)  # no tunnel counter: sysfs is used
 
 
 async def test_meter_stub_and_tunnel(tmp_path, monkeypatch):
@@ -56,28 +56,25 @@ async def test_meter_nft(monkeypatch, tmp_path):
     monkeypatch.setattr(meter_mod, "nft", fake_nft)
     m = await PrivacyMeterReader(sysfs=tmp_path).read(sealed=False)
     assert m.source == "nft" and m.third_party_bytes == 200 and m.model_extra["blocked_bytes"] == 60
+    assert m.tunnel_bytes == 9000  # RAUM's own tailscale0 bytes, not the whole interface
 
 
-RULESET = {"nftables": [
-    {"table": {"family": "inet", "name": "raum", "handle": 1}},
-    {"rule": {"family": "inet", "table": "raum", "chain": "output", "handle": 7, "comment": "count",
-              "expr": [{"counter": {"packets": 0, "bytes": 0}}]}},
-    {"rule": {"family": "inet", "table": "raum", "chain": "output", "handle": 9, "comment": "raum-seal",
-              "expr": [{"match": {"op": "==", "left": {"meta": {"key": "skuid"}}, "right": "raum"}},
-                       {"counter": {"packets": 0, "bytes": 0}}]}},
+SEAL_OPEN = {"nftables": [
+    {"metainfo": {"version": "1.0.9", "json_schema_version": 1}},
+    {"chain": {"family": "inet", "table": "raum", "name": "seal", "handle": 6}},
+]}
+SEAL_ON = {"nftables": SEAL_OPEN["nftables"] + [
+    {"rule": {"family": "inet", "table": "raum", "chain": "seal", "handle": 31, "comment": "raum-seal",
+              "expr": [{"counter": "sealed_drops"}, {"drop": None}]}},
 ]}
 
 
-def test_seal_rule_flip():
-    rule = find_seal_rule(json.dumps(RULESET))
-    assert rule["handle"] == 9
-    sealed = flip_expr(rule["expr"], True)
-    assert sealed[-1] == {"drop": None} and len(sealed) == 3
-    assert flip_expr(sealed, False) == rule["expr"]
-    assert flip_expr(flip_expr(sealed, True), True).count({"drop": None}) == 1
-    cmd = replace_command(rule, True)["nftables"][0]["replace"]["rule"]
-    assert cmd["handle"] == 9 and cmd["chain"] == "output" and cmd["comment"] == "raum-seal"
-    assert find_seal_rule({"nftables": []}) is None
+def test_seal_command_and_state():
+    assert seal_command(True) == ('flush chain inet raum seal; '
+                                  'add rule inet raum seal counter name "sealed_drops" drop comment "raum-seal"')
+    assert seal_command(False) == "flush chain inet raum seal"  # unseal removes only that rule
+    assert chain_sealed(json.dumps(SEAL_ON)) is True
+    assert chain_sealed(SEAL_OPEN) is False
 
 
 async def test_seal_state_only_off_linux(monkeypatch):
@@ -93,19 +90,37 @@ async def test_seal_applies_with_nft(monkeypatch):
     import raum.privacy.seal as seal_mod
 
     calls = []
+    state = {"sealed": False}
 
     async def fake_nft(*args, timeout=1.0, stdin=None):
         calls.append((args, stdin))
-        if args[:2] == ("-j", "-a"):
-            return 0, json.dumps(RULESET), ""
-        return 0, "", ""
+        if len(args) == 1:  # the batch, as one argv string (no stdin: uvloop gives nft a socket)
+            assert stdin is None
+            state["sealed"] = " drop " in args[0]
+            return 0, "", ""
+        assert args == ("-j", "list", "chain", "inet", "raum", "seal")
+        return 0, json.dumps(SEAL_ON if state["sealed"] else SEAL_OPEN), ""
+
+    monkeypatch.setattr(seal_mod, "nft_available", lambda: True)
+    monkeypatch.setattr(seal_mod, "nft", fake_nft)
+    s = SealController()
+    r = await s.set(True)
+    assert r == {"sealed": True, "applied": True, "method": "nft", "error": None}
+    assert calls[0][0] == (seal_command(True),)
+    r = await s.set(False)
+    assert r["applied"] is True and r["sealed"] is False and calls[-2][0] == (seal_command(False),)
+
+
+async def test_seal_not_applied_when_table_missing(monkeypatch):
+    import raum.privacy.seal as seal_mod
+
+    async def fake_nft(*args, timeout=1.0, stdin=None):
+        return 1, "", "Error: No such file or directory; did you mean table 'raum' in family inet?"
 
     monkeypatch.setattr(seal_mod, "nft_available", lambda: True)
     monkeypatch.setattr(seal_mod, "nft", fake_nft)
     r = await SealController().set(True)
-    assert r["applied"] is True and r["method"] == "nft"
-    payload = json.loads(calls[-1][1])
-    assert payload["nftables"][0]["replace"]["rule"]["expr"][-1] == {"drop": None}
+    assert r["applied"] is False and r["sealed"] is True and "No such file" in r["error"]
 
 
 def test_parse_nvidia_smi():

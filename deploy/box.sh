@@ -9,6 +9,11 @@
 # Env: sourced first from $RAUM_ENV_FILE (default ~/Desktop/HackathonRaum/runtime/raum.env) if present.
 #      RAUM_RUN (pid + log dir, default ~/Desktop/HackathonRaum/runtime/run),
 #      RAUM_CORE_PORT (8000), LIVEKIT_URL / LIVEKIT_API_KEY / LIVEKIT_API_SECRET (agent).
+#      Shared box, privacy meter + sealed mode scoped to RAUM's own processes (T-06/T-07):
+#      RAUM_NET_UP   command run before the services start, e.g. "runtime/raum-net.sh up"
+#                    (creates the cgroup, reloads table inet raum: counters 0, seal off)
+#      RAUM_CGROUP   cgroup v2 dir every service joins (sudo -n), e.g.
+#                    /sys/fs/cgroup/user.slice/user-1000.slice/raum; nft matches its sockets
 set -euo pipefail
 cd "$(dirname "$0")/.."
 ROOT=$PWD
@@ -34,10 +39,17 @@ alive() { local p; p=$(pidof_svc "$1"); [ -n "$p" ] && kill -0 "$p" 2>/dev/null;
 SETSID=""
 command -v setsid >/dev/null 2>&1 && SETSID=setsid
 
+join_cgroup() {  # move this (sub)shell into $RAUM_CGROUP; the service it execs and its children inherit it
+  local pid=${BASHPID:-}
+  [ -n "${RAUM_CGROUP:-}" ] && [ -n "$pid" ] || return 0
+  echo "$pid" | sudo -n tee "$RAUM_CGROUP/cgroup.procs" >/dev/null 2>&1 ||
+    echo "box.sh: could not join $RAUM_CGROUP (privacy meter/seal won't see this service)" >&2
+}
+
 start_svc() {
   local name=$1; shift
   if alive "$name"; then echo "$name: already running (pid $(pidof_svc "$name"))"; return; fi
-  ( cd "$ROOT/$1" && shift && exec $SETSID nohup "$@" ) >>"$RUN/$name.log" 2>&1 &
+  ( cd "$ROOT/$1" && shift && join_cgroup && exec $SETSID nohup "$@" ) >>"$RUN/$name.log" 2>&1 &
   echo $! >"$RUN/$name.pid"
   echo "$name: started (pid $!, log $RUN/$name.log)"
 }
@@ -65,6 +77,10 @@ stop_svc() {
 }
 
 start_all() {
+  if [ -n "${RAUM_NET_UP:-}" ] && ! alive core; then  # never reset counters/seal under a running core
+    # shellcheck disable=SC2086
+    $RAUM_NET_UP || echo "box.sh: RAUM_NET_UP failed; privacy meter falls back to the stub" >&2
+  fi
   # shellcheck disable=SC2086
   (cd core && uv sync --frozen --quiet ${RAUM_UV_EXTRAS:-})
   start_svc core core uv run raum core --host 0.0.0.0 --port "$PORT"
