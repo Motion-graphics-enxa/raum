@@ -1,12 +1,12 @@
 # Verhandlungsraum: CEO and foreign partner.
 id: verhandlungsraum
 prefix: vr                     # room ids: vr-3305
-name: { de: Verhandlungsraum, en: Negotiation room }
-tagline: { de: Jedes Angebot festgehalten, en: Every offer on record }
+name: { de: Verhandlungsraum, en: Negotiation room, tr: Müzakere odası, ru: Переговорная, ar: غرفة التفاوض }
+tagline: { de: Jedes Angebot festgehalten, en: Every offer on record, tr: Her teklif kayıtta, ru: Каждое предложение зафиксировано, ar: كل عرض موثق }
 icon: handshake
 roles:
-  a: { label: { de: Geschäftsführung, en: CEO }, default_lang: de }
-  b: { label: { de: Partner/in, en: Partner }, default_lang: auto }
+  a: { label: { de: Geschäftsführung, en: CEO, tr: Genel müdür, ru: Руководитель, ar: المدير التنفيذي }, default_lang: de }
+  b: { label: { de: Partner/in, en: Partner, tr: Ortak, ru: Партнёр, ar: الشريك }, default_lang: auto }
 register: formal
 guard:
   kinds: [amount, currency, percent, number, date, deadline, name, negation]

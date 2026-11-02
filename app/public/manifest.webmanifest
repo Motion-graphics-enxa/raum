@@ -1,0 +1,10 @@
+{
+  "name": "RAUM",
+  "short_name": "RAUM",
+  "description": "A private AI interpreter that lives in the room. Translates. Checks. Forgets.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f9fb",
+  "theme_color": "#0d3a61",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

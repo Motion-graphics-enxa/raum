@@ -1,0 +1,232 @@
+.turn {
+  display: grid;
+  gap: var(--s-2);
+  padding: var(--s-4) 0 var(--s-4);
+  border-top: var(--line) solid var(--rule);
+  animation: turn-in 240ms var(--ease-out) both;
+}
+.turn:first-child {
+  border-top: 0;
+}
+@keyframes turn-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.turn__gutter {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 28px;
+}
+.turn__who {
+  font-family: var(--font-mono);
+  font-size: var(--label);
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+  font-weight: 650;
+  color: var(--ink-2);
+}
+.turn--mine .turn__who {
+  color: var(--ink-3);
+}
+.turn__time {
+  font-size: var(--label);
+  color: var(--ink-3);
+}
+.turn__spacer {
+  flex: 1;
+}
+
+/* recency ramp: the newest sentence of the other person is the hero */
+.turn__main {
+  font-size: var(--ramp-3);
+  line-height: 1.35;
+  font-weight: 560;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.turn--r0 .turn__main {
+  font-size: var(--ramp-0);
+  line-height: 1.2;
+  font-weight: 640;
+  letter-spacing: -0.012em;
+}
+.turn--r1 .turn__main {
+  font-size: var(--ramp-1);
+  line-height: 1.3;
+}
+.turn--r2 .turn__main {
+  font-size: var(--ramp-2);
+}
+.turn--mine .turn__main {
+  font-size: var(--ramp-2);
+  color: var(--ink-2);
+  font-weight: 520;
+}
+.turn__main.is-source {
+  color: var(--ink-3);
+}
+.turn__main[lang="ar"],
+.turn__sub[lang="ar"],
+.turn__main[lang="fa"],
+.turn__sub[lang="fa"] {
+  line-height: 1.6;
+}
+
+.turn__caret {
+  display: inline-block;
+  width: 0.5em;
+  height: 2px;
+  margin-inline-start: 0.15em;
+  vertical-align: baseline;
+  background: var(--brand-2);
+  animation: caret 900ms steps(2, start) infinite;
+}
+@keyframes caret {
+  to {
+    visibility: hidden;
+  }
+}
+
+.turn__sub {
+  font-size: var(--source);
+  line-height: 1.45;
+  color: var(--ink-3);
+  overflow-wrap: anywhere;
+}
+.turn--r2 .turn__sub,
+.turn--r3 .turn__sub {
+  font-size: 0.9375rem;
+}
+.turn__sublabel {
+  font-family: var(--font-mono);
+  font-size: var(--label);
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+}
+
+.turn__struck {
+  color: var(--ink-3);
+  font-size: var(--ramp-3);
+}
+.turn__struck s {
+  text-decoration-color: var(--bad);
+  text-decoration-thickness: 1.5px;
+}
+
+.turn__facts {
+  margin-top: var(--s-2);
+}
+
+.turn__again {
+  font-size: var(--ramp-1);
+  font-weight: 620;
+  color: var(--unsure);
+}
+
+.turn__action {
+  justify-self: start;
+  border: 0;
+  background: none;
+  padding: var(--s-1) 0;
+  color: var(--brand-2);
+  font-family: var(--font-mono);
+  font-size: var(--label);
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 0.3em;
+}
+
+.turn__explain,
+.turn__rb {
+  display: grid;
+  gap: var(--s-2);
+  justify-items: start;
+  padding: var(--s-3) var(--s-4);
+  border: 1.5px dashed var(--rule-strong);
+  border-radius: var(--radius);
+}
+.turn__explain.is-sent {
+  border-style: solid;
+  border-color: var(--brand-2);
+}
+.turn__explain p {
+  font-size: var(--ramp-1);
+  line-height: 1.35;
+}
+
+/* ---------------------------------------------------------------- proof */
+.proof {
+  display: grid;
+  gap: var(--s-3);
+  margin-top: var(--s-2);
+  padding: var(--s-4);
+  background: var(--paper-2);
+  border: var(--line) solid var(--rule);
+  border-radius: var(--radius);
+  animation: turn-in 200ms var(--ease-out) both;
+}
+.proof__facts {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.9375rem;
+}
+.proof__facts th,
+.proof__facts td {
+  text-align: start;
+  padding: 6px var(--s-2) 6px 0;
+  border-bottom: var(--line) solid var(--rule);
+}
+.proof__facts th {
+  font-family: var(--font-mono);
+  font-size: var(--label);
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 600;
+}
+.proof__facts tr.is-bad td {
+  color: var(--bad);
+  font-weight: 650;
+}
+.proof__ok {
+  font-family: var(--font-mono);
+  text-align: end !important;
+}
+.proof__dl {
+  display: grid;
+  gap: var(--s-2);
+  margin: 0;
+}
+.proof__dl div {
+  display: grid;
+  grid-template-columns: minmax(7.5rem, auto) 1fr;
+  gap: var(--s-3);
+}
+.proof__dl dt {
+  font-family: var(--font-mono);
+  font-size: var(--label);
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  padding-top: 2px;
+}
+.proof__dl dd {
+  margin: 0;
+  color: var(--ink-2);
+}
+.proof__chain {
+  display: grid;
+  gap: var(--s-2);
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.proof__total {
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+}

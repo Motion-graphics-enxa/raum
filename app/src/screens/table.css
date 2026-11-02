@@ -1,0 +1,319 @@
+/* Table screen: laptop or monitor, read from 3 m. Everything scales with the viewport. */
+.screen--table {
+  height: 100dvh;
+  overflow: hidden;
+  font-size: clamp(16px, 0.55rem + 0.75vw, 22px);
+}
+.ttop {
+  padding: var(--s-3) clamp(16px, 2vw, 40px);
+  border-bottom: 0;
+}
+.ttop .tblock__row {
+  gap: clamp(12px, 1.5vw, 28px);
+}
+.ttop__name {
+  font-size: clamp(1.25rem, 0.8rem + 1.2vw, 2rem);
+}
+.ttop__room,
+.ttop__langs {
+  font-size: clamp(0.875rem, 0.6rem + 0.5vw, 1.125rem);
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  padding-inline-start: clamp(12px, 1.5vw, 28px);
+  border-inline-start: var(--line) solid var(--brand-rule);
+}
+.ttop .tblock__status {
+  font-size: clamp(0.75rem, 0.55rem + 0.4vw, 1rem);
+  padding-inline-start: clamp(12px, 1.5vw, 28px);
+  border-inline-start: var(--line) solid var(--brand-rule);
+}
+
+.tgrid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr);
+}
+
+/* ---------------------------------------------------------------- conversation */
+.tconv {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-inline-end: var(--line-2) solid var(--ink);
+}
+.tconv__head {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(16px, 2vw, 40px);
+  padding: var(--s-2) clamp(16px, 2vw, 40px);
+  border-bottom: var(--line) solid var(--ink);
+  background: var(--paper-2);
+}
+.tconv__head .label {
+  font-size: clamp(0.75rem, 0.5rem + 0.5vw, 1rem);
+}
+.tconv__scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 clamp(16px, 2vw, 40px) var(--s-6);
+}
+.trow {
+  display: grid;
+  gap: var(--s-2);
+  padding: clamp(12px, 1.4vw, 24px) 0;
+  border-bottom: var(--line) solid var(--rule);
+  animation: turn-in 240ms var(--ease-out) both;
+}
+.trow__gutter {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+.trow__who {
+  font-family: var(--font-mono);
+  font-size: 0.8em;
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.trow__cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(16px, 2vw, 40px);
+}
+.trow__text {
+  font-size: 1.1em;
+  line-height: 1.35;
+  font-weight: 560;
+  overflow-wrap: anywhere;
+}
+.trow__text.is-src {
+  color: var(--ink-2);
+}
+.trow.is-hero .trow__text {
+  font-size: clamp(1.5rem, 0.8rem + 1.6vw, 2.75rem);
+  line-height: 1.22;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+.trow__empty {
+  color: var(--ink-3);
+}
+.trow__facts {
+  padding-top: var(--s-2);
+}
+.trow.is-hero .trow__facts .dim__value,
+.trow.is-hero .trow__facts .cloud__pair {
+  font-size: 1.25em;
+}
+
+.tjoin {
+  display: grid;
+  gap: var(--s-5);
+  justify-items: start;
+  padding: clamp(24px, 4vw, 64px) 0;
+}
+.tjoin__lead {
+  font-size: clamp(1.5rem, 0.8rem + 1.6vw, 2.5rem);
+  font-weight: 700;
+  line-height: 1.2;
+  max-width: 22ch;
+}
+.tjoin__codes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(24px, 3vw, 56px);
+}
+.tjoin__code {
+  margin: 0;
+  display: grid;
+  gap: var(--s-2);
+}
+.tjoin__code figcaption {
+  display: grid;
+}
+.tjoin__role {
+  font-weight: 700;
+  font-size: 1.15em;
+}
+.tjoin__url {
+  font-size: 0.75em;
+  color: var(--ink-3);
+}
+
+/* ---------------------------------------------------------------- glass box */
+.glass {
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  align-content: start;
+  background: var(--paper-2);
+}
+.glass__block {
+  padding: clamp(14px, 1.5vw, 28px) clamp(16px, 1.8vw, 32px);
+  border-bottom: var(--line) solid var(--rule-strong);
+  display: grid;
+  gap: var(--s-3);
+  min-width: 0;
+}
+.glass__h {
+  font-family: var(--font-mono);
+  font-size: 0.75em;
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--ink-3);
+}
+.glass__total {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+.glass__big {
+  font-size: clamp(2.25rem, 1rem + 3vw, 4.5rem);
+  font-weight: 750;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.glass__idle {
+  color: var(--ink-3);
+}
+.glass__row {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.stat {
+  display: grid;
+  gap: 2px;
+}
+.stat__v {
+  font-size: clamp(1.25rem, 0.7rem + 1.2vw, 2rem);
+  font-weight: 700;
+}
+.stat.is-warn .stat__v {
+  color: var(--unsure);
+}
+.glass__privacy {
+  background: var(--paper);
+}
+.glass__meter {
+  display: grid;
+  gap: 0;
+}
+.glass__meter-n {
+  font-size: clamp(3rem, 1.5rem + 4vw, 6rem);
+  font-weight: 800;
+  line-height: 0.95;
+  color: var(--ok);
+  letter-spacing: -0.03em;
+}
+.glass__meter-l {
+  font-weight: 650;
+  font-size: 1em;
+}
+.glass__meter--small .mono {
+  font-size: 1.4em;
+  font-weight: 700;
+}
+.glass__meter--small .glass__meter-l {
+  font-weight: 500;
+  color: var(--ink-2);
+  font-size: 0.85em;
+}
+.glass__seal {
+  font-family: var(--font-mono);
+  font-size: 0.75em;
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.glass__seal.is-sealed {
+  color: var(--ok);
+  font-weight: 700;
+}
+.glass__src {
+  color: var(--ink-3);
+}
+.plates {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s-2);
+}
+.plate {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  gap: var(--s-3);
+  align-items: baseline;
+  padding: var(--s-2) var(--s-3);
+  border: 1.5px solid var(--ink-2);
+  border-radius: var(--radius);
+  background: var(--paper);
+}
+.plate--tunnel {
+  border-style: dashed;
+}
+.plate--relayed {
+  border-style: dotted;
+}
+.plate__who {
+  font-weight: 700;
+}
+.plate__lang,
+.plate__dev,
+.plate__path {
+  font-size: 0.8em;
+  color: var(--ink-2);
+}
+.plate__path {
+  color: var(--ink);
+  font-weight: 650;
+}
+.models {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+.models div {
+  display: grid;
+  grid-template-columns: 6.5rem 1fr;
+  gap: var(--s-3);
+}
+.models dt {
+  font-family: var(--font-mono);
+  font-size: 0.75em;
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+  color: var(--ink-3);
+  padding-top: 2px;
+}
+.models dd {
+  margin: 0;
+  font-size: 0.875em;
+  overflow-wrap: anywhere;
+}
+.glass__models {
+  font-size: 0.8em;
+  color: var(--ink-2);
+}
+.glass .stamp {
+  padding: var(--s-5) var(--s-3);
+}
+
+@media (max-width: 860px) {
+  .screen--table {
+    height: auto;
+    overflow: visible;
+  }
+  .tgrid {
+    grid-template-columns: 1fr;
+  }
+  .tconv {
+    border-inline-end: 0;
+    border-bottom: var(--line-2) solid var(--ink);
+    max-height: 70dvh;
+  }
+}

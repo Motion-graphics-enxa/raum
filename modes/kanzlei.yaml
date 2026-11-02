@@ -1,12 +1,12 @@
 # Kanzlei: lawyer and client.
 id: kanzlei
 prefix: kz                     # room ids: kz-1170
-name: { de: Kanzlei, en: Law office }
-tagline: { de: Fristen und Daten geprüft, en: Deadlines and dates checked }
+name: { de: Kanzlei, en: Law office, tr: Hukuk bürosu, ru: Адвокатское бюро, ar: مكتب المحاماة }
+tagline: { de: Fristen und Daten geprüft, en: Deadlines and dates checked, tr: Süreler ve tarihler kontrol edilir, ru: Сроки и даты проверяются, ar: المواعيد والتواريخ تحت التحقق }
 icon: scale
 roles:
-  a: { label: { de: Anwältin/Anwalt, en: Lawyer }, default_lang: de }
-  b: { label: { de: Mandant/in, en: Client }, default_lang: auto }
+  a: { label: { de: Anwältin/Anwalt, en: Lawyer, tr: Avukat, ru: Адвокат, ar: المحامي }, default_lang: de }
+  b: { label: { de: Mandant/in, en: Client, tr: Müvekkil, ru: Клиент, ar: الموكل }, default_lang: auto }
 register: formal
 guard:
   kinds: [deadline, date, time, duration, amount, currency, number, name, negation]
