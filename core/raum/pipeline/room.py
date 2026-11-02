@@ -57,7 +57,7 @@ from raum.events import (
     make_event,
     now_ms,
 )
-from raum.glossary import Glossary
+from raum.glossary import Glossary, GlossaryError, parse_terms
 from raum.modes.schema import ModeConfig
 from raum.pipeline import texts as T
 from raum.pipeline._util import int16_to_float, lang_code, lang_name, load_prompt, render_prompt
@@ -76,7 +76,20 @@ ASR_TIMEOUT_S = 15.0
 PARTIAL_TIMEOUT_S = 5.0
 MT_TIMEOUT_S = 30.0
 CHECK_TIMEOUT_S = 20.0
+EXPLAIN_TIMEOUT_S = 30.0  # a whole plain-language rewrite (K-02), off the live path
 _FLAG_KINDS = set(get_args(FlagKind))
+_WRAP_QUOTES = ('"', "'", "„", "“", "”", "«", "»")
+
+
+def _strip_wrapping(text: str) -> str:
+    """A model's rewrite without wrapping quotes or a leading label line ("Plain language:")."""
+    t = (text or "").strip()
+    first, nl, rest = t.partition("\n")
+    if nl and first.rstrip().endswith(":") and len(first) < 40:
+        t = rest.strip()
+    if len(t) >= 2 and t[0] in _WRAP_QUOTES and t[-1] in _WRAP_QUOTES:
+        t = t[1:-1].strip()
+    return t
 
 _NAME_PATTERNS = [
     re.compile(r"\b(?:Herr|Frau|Dr\.|Prof\.|Mr\.?|Mrs\.?|Ms\.?|Rechtsanwältin|Rechtsanwalt|Bay|Bayan)"
@@ -728,11 +741,14 @@ class RoomPipeline:
             elif action == "repeat_back":
                 self._repeat_back = True
             elif action == "explain_simply":
-                await self._explain(control)
+                # a model call of seconds: never hold up the link (state, off_record) while it runs
+                self._spawn(self._explain(control))
             elif action == "explain_approve":
                 await self._explain_approve(control)
             elif action == "correct_term":
                 self._correct_term(control.value)
+            elif action == "glossary":
+                self._merge_glossary(control.value)
             elif action == "burn":
                 self._burn()
             # confirm, human_interpreter, end, approve_summary, mute: handled by core / the devices
@@ -748,26 +764,62 @@ class RoomPipeline:
         return self._role_lang("b") or "en"
 
     async def _explain(self, control: Control) -> None:
+        """K-02: a plain-language draft for the professional (``explain.draft``); sent only on approve.
+        The second model rewrites with ``prompts/explain-simply.md``; if it is off, still loading or
+        fails, the draft is the faithful translation, so the professional is never left waiting."""
         rec = self._find_turn(control.utt) if control.utt else next(
             (r for r in reversed(self._turns) if r.role == "a"), None)
         if rec is None:
             log.info("explain_simply: utterance %s not found", control.utt)
             return
         tgt = self._explain_target(control)
-        verifier = self.engines.verify
-        simple = getattr(verifier, "simple_version", None)
-        if callable(simple):
-            text = await simple(rec.text, rec.lang, tgt, self.mode.id)
-        elif verifier is not None:
-            prompt = render_prompt(load_prompt(self.mode.prompts.explain_simply or "prompts/explain-simply.md"),
-                                   lang_a=lang_name(rec.lang), lang_b=lang_name(tgt), text=rec.text)
-            async with self.sched.slot("background"):
-                text = await asyncio.wait_for(verifier.complete_text(prompt, purpose="explain_simply"),
-                                              CHECK_TIMEOUT_S)
-        else:
-            text = rec.translations.get(tgt, "")
+        text = ""
+        try:
+            text = await self._simple_text(rec, tgt)
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:  # noqa: BLE001 - WarmingUp, timeout, model server down
+            log.warning("explain simply via the second model failed (%s): drafting the translation", e.__class__.__name__)
+        if not text.strip():
+            text = await self._faithful(rec, tgt)
+        if self._closed:
+            return
         self._drafts[rec.utt] = (tgt, text)
         await self.emit("explain.draft", {"source_utt": rec.utt, "target_lang": tgt, "text": text}, utt=rec.utt)
+
+    async def _simple_text(self, rec: _Turn, tgt: str) -> str:
+        verifier = self.engines.verify
+        if verifier is None:
+            return ""
+        simple = getattr(verifier, "simple_version", None)
+        if callable(simple):  # mock: canned plain-language lines
+            return str(await simple(rec.text, rec.lang, tgt, self.mode.id))
+        prompt = render_prompt(load_prompt(self.mode.prompts.explain_simply or "prompts/explain-simply.md"),
+                               lang_a=lang_name(rec.lang), lang_b=lang_name(tgt), text=rec.text)
+        async with self.sched.slot("background"):
+            text = await asyncio.wait_for(verifier.complete_text(prompt, purpose="explain_simply"), EXPLAIN_TIMEOUT_S)
+        return _strip_wrapping(text)
+
+    async def _faithful(self, rec: _Turn, tgt: str) -> str:
+        """The turn's translation into ``tgt``; translated now if that language was not a target."""
+        if rec.translations.get(tgt):
+            return rec.translations[tgt]
+        if tgt == rec.lang:
+            return rec.text
+        parts: list[str] = []
+
+        async def run() -> None:
+            async for delta in self.engines.translate.stream(self._request(rec, tgt, self._context())):
+                parts.append(delta)
+
+        try:
+            async with self.sched.slot("background"):
+                await asyncio.wait_for(run(), MT_TIMEOUT_S)
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:  # noqa: BLE001
+            log.warning("explain simply: translation into %s failed (%s)", tgt, e.__class__.__name__)
+        return "".join(parts).strip()
 
     async def _explain_approve(self, control: Control) -> None:
         utt = control.utt
@@ -785,6 +837,18 @@ class RoomPipeline:
             return
         src_lang = str(value.get("src_lang") or self._default_lang("a"))
         self.glossary.add_correction(str(value["src"]), str(value["tgt"]), str(value["lang"]), src_lang=src_lang)
+
+    def _merge_glossary(self, value: Any) -> None:
+        """N-02: an uploaded glossary (``{"terms": [...]}`` in the glossaries/*.yaml shape) applies to the
+        translation prompt and the fact guard for the rest of the session; a burn forgets it."""
+        raw = value.get("terms") if isinstance(value, dict) else value
+        try:
+            terms = parse_terms(raw)
+        except GlossaryError as e:
+            log.info("glossary control: %s", e)
+            return
+        added, updated = self.glossary.merge(terms)
+        log.info("session glossary: %d terms added, %d updated", added, updated)
 
     def _burn(self) -> None:
         """Forget the conversation: memory, names, drafts, session glossary corrections."""

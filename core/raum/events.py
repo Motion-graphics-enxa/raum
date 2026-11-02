@@ -170,6 +170,24 @@ class ExplainSent(_Data):  # extension (K-02)
     text: str
 
 
+class DocumentFact(_Data):  # extension (F-07)
+    kind: str  # date | amount | dose | deadline (also time, duration, percent, number)
+    value: str  # in the reader's language
+    source: str | None = None  # extension: the figure exactly as printed on the paper
+    uncertain: bool = False  # extension: the model was unsure, or the fact guard found other figures than printed
+
+
+class DocumentReady(_Data):  # extension (F-07): a photographed document read by the vision model
+    by: str  # role that photographed it
+    lang: str  # the reader's language: title, text and fact values are in it
+    title: str
+    text: str  # plain-language account; parts the model could not read are marked "(?)"
+    facts: list[DocumentFact] = Field(default_factory=list)
+    ms: float | None = None  # reading time
+    source_lang: str | None = None  # extension: language the document is written in
+    model: str | None = None  # extension: e.g. "ollama:gemma4:26b"
+
+
 # ---------------------------------------------------------------- glass box, session
 
 
@@ -263,6 +281,7 @@ EVENT_TYPES: dict[str, type[BaseModel]] = {
     "offer.update": OfferUpdate,
     "explain.draft": ExplainDraft,
     "explain.sent": ExplainSent,
+    "document.ready": DocumentReady,
     "pipeline.timing": PipelineTiming,
     "voice.state": VoiceState,
     "session.state": SessionState,
@@ -289,6 +308,7 @@ EventType = Literal[
     "offer.update",
     "explain.draft",
     "explain.sent",
+    "document.ready",
     "pipeline.timing",
     "voice.state",
     "session.state",
@@ -310,6 +330,7 @@ CONTENT_EVENTS = frozenset(
         "repeat_back.result",
         "offer.update",
         "explain.sent",
+        "document.ready",
         "summary.ready",
     }
 )
@@ -365,6 +386,7 @@ ControlAction = Literal[
     "explain_simply",  # utt: the professional's utterance to rewrite (K-02)
     "explain_approve",  # utt + text: send the approved draft (K-02)
     "correct_term",  # V-05: value: {"src": "...", "tgt": "...", "lang": "ar"}
+    "glossary",  # N-02 (core -> agent): value: {"terms": [<glossaries/*.yaml term>, ...]} merged for the session
     "end",  # end conversation -> summary
     "approve_summary",  # by role
     "burn",

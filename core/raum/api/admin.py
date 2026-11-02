@@ -70,4 +70,5 @@ async def burn_all(core: CoreDep) -> dict[str, Any]:
 @router.get("/health")
 async def health(core: CoreDep) -> dict[str, Any]:
     return {"ok": True, "service": "raum-core", "profile": core.cfg.profile, "version": _version(),
-            "rooms": len(core.sessions.rooms), "uptime_s": round(time.time() - core.started_at, 1)}
+            "rooms": len(core.sessions.rooms), "uptime_s": round(time.time() - core.started_at, 1),
+            "features": {"document_camera": core.cfg.models.vision.enabled}}

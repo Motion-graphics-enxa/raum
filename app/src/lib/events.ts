@@ -32,6 +32,14 @@ export interface FactCheck {
   match: boolean;
 }
 
+/** F-07: one figure read off a photographed document. */
+export interface DocumentFact {
+  kind: string; // date | amount | dose | deadline (also time, duration, percent, number)
+  value: string; // in the reader's language
+  source?: string | null; // as printed on the paper
+  uncertain?: boolean; // the model was unsure, or the fact guard found other figures than printed
+}
+
 export interface SummaryItem {
   text: Record<string, string>;
   uncertain?: boolean;
@@ -81,6 +89,16 @@ export interface EventData {
   "offer.update": { amount: number; currency: string; by: string; ts: number; text?: string | null };
   "explain.draft": { source_utt: string; target_lang: string; text: string };
   "explain.sent": { source_utt: string; target_lang: string; text: string };
+  "document.ready": {
+    by: string;
+    lang: string;
+    title: string;
+    text: string;
+    facts: DocumentFact[];
+    ms?: number | null;
+    source_lang?: string | null;
+    model?: string | null;
+  };
   "pipeline.timing": {
     vad_ms?: number | null;
     asr_ms?: number | null;
@@ -134,6 +152,7 @@ export const EVENT_TYPES = [
   "offer.update",
   "explain.draft",
   "explain.sent",
+  "document.ready",
   "pipeline.timing",
   "voice.state",
   "session.state",
@@ -185,6 +204,7 @@ export type ControlAction =
   | "explain_simply"
   | "explain_approve"
   | "correct_term"
+  | "glossary"
   | "end"
   | "approve_summary"
   | "burn"

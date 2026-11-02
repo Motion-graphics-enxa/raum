@@ -1,6 +1,7 @@
 """raum-core: FastAPI app (tokens, rooms, sessions, events, admin). ``raum core`` runs it.
 
-OpenAPI docs at ``/api/docs``. Routers: ``join``, ``rooms``, ``events_ws``, ``admin``, ``internal``.
+OpenAPI docs at ``/api/docs``. Routers: ``join``, ``rooms``, ``uploads`` (document camera, glossary),
+``events_ws``, ``admin``, ``internal``.
 Background tasks: privacy meter + GPU stats every second to ``/api/events`` subscribers, and the
 auto-burn sweep (T-03).
 """
@@ -16,7 +17,7 @@ from collections.abc import AsyncIterator
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from raum.api import admin, events_ws, internal, join, rooms
+from raum.api import admin, events_ws, internal, join, rooms, uploads
 from raum.api.deps import Core
 from raum.config import RaumConfig, get_config
 from raum.gpu import GpuMonitor
@@ -24,7 +25,7 @@ from raum.modes import ModeError
 from raum.privacy.meter import PrivacyMeterReader
 from raum.privacy.seal import SealController
 from raum.publisher import LiveKitPublisher
-from raum.sessions import BadRequest, Conflict, NotFound, SessionManager
+from raum.sessions import BadRequest, Conflict, NotFound, SessionManager, Unavailable, UpstreamError
 
 log = logging.getLogger("raum.api")
 
@@ -105,7 +106,15 @@ def create_app(config: RaumConfig | None = None) -> FastAPI:
     async def _bad_request(request: Request, exc: BadRequest) -> JSONResponse:
         return JSONResponse({"detail": str(exc)}, status_code=400)
 
-    for r in (join.router, rooms.router, events_ws.router, admin.router, internal.router):
+    @app.exception_handler(Unavailable)
+    async def _unavailable(request: Request, exc: Unavailable) -> JSONResponse:
+        return JSONResponse({"detail": str(exc)}, status_code=503)
+
+    @app.exception_handler(UpstreamError)
+    async def _upstream(request: Request, exc: UpstreamError) -> JSONResponse:
+        return JSONResponse({"detail": str(exc)}, status_code=502)
+
+    for r in (join.router, rooms.router, uploads.router, events_ws.router, admin.router, internal.router):
         app.include_router(r)
     return app
 

@@ -18,6 +18,7 @@ from raum.pipeline.embed import MockEmbedder, OllamaEmbedder
 from raum.pipeline.translate import MockTranslator, OllamaTranslator
 from raum.pipeline.tts import make_tts
 from raum.pipeline.verifier import MockVerifier, OllamaVerifier
+from raum.pipeline.vision import MockVision, OllamaVision
 
 log = logging.getLogger("raum.pipeline.engines")
 
@@ -86,3 +87,16 @@ def build_engines(cfg: RaumConfig, *, seed: int | None = None) -> Engines:
         names["embed"] = "off"
     return Engines(denoise=denoise, asr=asr, translate=translate, verify=verify, embed=embed, tts=tts,
                    names=names)
+
+
+def build_vision(cfg: RaumConfig, *, seed: int | None = None) -> MockVision | OllamaVision | None:
+    """The document camera engine (F-07, ``models.vision``); ``None`` when the profile turns it off.
+    Built by raum-core (not the agent): a photo is uploaded to core, read once and dropped."""
+    ec = cfg.models.vision
+    if not ec.enabled:
+        return None
+    if ec.engine == "mock":
+        return MockVision(ec.options, model=ec.model, rng=random.Random(seed))
+    if ec.engine == "ollama":
+        return OllamaVision(ec.url or OLLAMA_URL, model=_model(ec, "gemma4:26b"), options=ec.options)
+    raise ValueError(f"unknown vision engine: {ec.engine!r}")

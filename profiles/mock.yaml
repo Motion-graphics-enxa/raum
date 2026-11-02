@@ -9,7 +9,7 @@ models:
   translate: { engine: mock, model: mock-gemma, options: { first_token_ms: [180, 260], token_ms: 28 } }
   verify:    { engine: mock, model: mock-gpt-oss, options: { latency_ms: [700, 1100] } }
   embed:     { engine: mock, model: mock-bge-m3 }
-  vision:    { engine: off }
+  vision:    { engine: mock, model: mock-gemma-vision, options: { latency_ms: [900, 1400] } }
   tts:       { engine: mock, model: mock-piper, options: { first_audio_ms: [120, 200] } }
 scheduler: { live_slots: 4, check_slots: 2, background_slots: 2 }
 security:  { data_dir: data }

@@ -258,6 +258,7 @@ async def test_explain_simply_draft_then_send(no_guard):
     await h.say(lawyer.id)
     utt = await h.say(lawyer.id)  # kz-03: Die Klagefrist endet am 24. November.
     await h.p.handle_control(Control(action="explain_simply", utt=utt, by="a"))
+    await h.p.drain()  # runs in the background: the link keeps reading controls meanwhile
     draft = h.one("explain.draft", utt)
     assert draft == {"source_utt": utt, "target_lang": "ar", "text": line("kanzlei", "kz-03").simple["ar"]}
     await h.p.handle_control(Control(action="explain_approve", utt=utt, by="a"))
@@ -387,8 +388,9 @@ async def test_irrelevant_or_bad_controls_are_harmless(no_guard):
     h = Harness()
     for c in [Control(action="end"), Control(action="mute", value=True), Control(action="confirm", accepted=True),
               Control(action="correct_term", value="nonsense"), Control(action="explain_simply", utt="u-0099"),
-              Control(action="explain_approve", utt="u-0099")]:
+              Control(action="explain_approve", utt="u-0099"), Control(action="glossary", value={"terms": "x"})]:
         await h.p.handle_control(c)
+    await h.p.drain()
     assert h.events == []
     await h.p.aclose()
     assert await h.p.speech_start(DOC.id) is None

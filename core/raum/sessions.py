@@ -35,12 +35,15 @@ from typing import Any, Literal
 from pydantic import BaseModel
 
 from raum.config import RaumConfig
+from raum.documents import to_event
 from raum.events import (
     CONTENT_EVENTS,
     BurnDone,
     Confirm,
     Control,
+    DocumentReady,
     Envelope,
+    ExplainSent,
     ParticipantInfo,
     SessionState,
     SummaryReady,
@@ -48,6 +51,7 @@ from raum.events import (
     make_event,
     now_ms,
 )
+from raum.glossary import Glossary, GlossaryError, Term, parse_terms, term_to_dict
 from raum.link import ControlMsg, StateMsg
 from raum.modes import ModeConfig, get_mode, mode_for_room, new_room_id
 from raum.publisher import NullPublisher, Publisher
@@ -61,6 +65,7 @@ log = logging.getLogger("raum.sessions")
 EVENT_BUFFER = 5000  # envelopes kept per session for replay
 SUBSCRIBER_QUEUE = 2000
 CONSENT_VERSION = "ai-act-50-v1"
+VISION_TIMEOUT_S = 150.0  # one document reading, including a cold model load
 SessionStatus = Literal["live", "ended", "burned"]
 
 
@@ -74,6 +79,14 @@ class Conflict(RuntimeError):
 
 class BadRequest(ValueError):
     pass
+
+
+class Unavailable(RuntimeError):
+    """A feature switched off in this profile (HTTP 503)."""
+
+
+class UpstreamError(RuntimeError):
+    """A model server failed or timed out (HTTP 502)."""
 
 
 # ---------------------------------------------------------------- in-memory fallbacks
@@ -238,6 +251,10 @@ class Session:
     ended_at: int | None = None
     burn: BurnDone | None = None
     last_activity: float = field(default_factory=time.monotonic)
+    # N-02: the room's glossary for this session (mode file + uploads + V-05 corrections), in memory
+    # only and dropped on burn; the uploads are re-sent to an agent that (re)links.
+    glossary: Glossary | None = None
+    glossary_uploads: list[dict[str, Any]] = field(default_factory=list)
 
     def touch(self) -> None:
         self.last_activity = time.monotonic()
@@ -263,7 +280,7 @@ def _participant(data: dict[str, Any]) -> ParticipantInfo:
 
 class SessionManager:
     def __init__(self, cfg: RaumConfig, *, publisher: Publisher | None = None, audit: Any = None,
-                 engines: Any = None) -> None:
+                 engines: Any = None, vision: Any = None) -> None:
         self.cfg = cfg
         self.publisher: Publisher = publisher or NullPublisher()
         self.audit = audit if audit is not None else open_audit(cfg.audit_path())
@@ -273,6 +290,10 @@ class SessionManager:
         self.sealed = False
         self._engines = engines
         self._engines_ready = engines is not None
+        self._vision = vision
+        self._vision_ready = vision is not None
+        # document readings share the GPU with live translation: at most background_slots at a time
+        self._vision_slots = asyncio.Semaphore(max(1, cfg.scheduler.background_slots))
 
     # ------------------------------------------------------------ helpers
 
@@ -521,6 +542,9 @@ class SessionManager:
         if room.session is None:
             self._start_session(room, reason="agent")
         await conn.send(StateMsg(state=self.state(room)))
+        s = room.session
+        if s is not None and s.status != "burned" and s.glossary_uploads:  # N-02: a fresh agent knows the mode file only
+            await conn.send(ControlMsg(control=Control(action="glossary", value={"terms": list(s.glossary_uploads)})))
         return room
 
     def detach_agent(self, room_id: str, conn: AgentConn) -> None:
@@ -583,8 +607,24 @@ class SessionManager:
             self.emit(room, "confirm", Confirm(by=by or "?", accepted=accepted, flag_id=ctl.flag_id), utt=ctl.utt,
                       persist=True)
             self._audit("confirm", s.id, by=by, accepted=accepted, flag_id=ctl.flag_id)
+        elif a == "glossary":  # same as POST /glossary with terms in the YAML shape
+            raw = ctl.value.get("terms") if isinstance(ctl.value, dict) else ctl.value
+            try:
+                terms = parse_terms(raw)
+            except GlossaryError as e:
+                raise BadRequest(str(e)) from None
+            forwarded = bool((await self.upload_glossary(room_id, terms, by=ctl.by))["forwarded"])
         elif a in ("repeat_back", "explain_simply", "explain_approve", "correct_term"):
             forwarded = await self.forward(room, ctl)
+            if a == "explain_approve":
+                self._audit("explain_approved", s.id, by=by)
+                if not forwarded and ctl.text:
+                    # K-02: the agent is away (restarting); the approved text is in the request, so send it
+                    self.emit(room, "explain.sent", ExplainSent(source_utt=ctl.utt or "",
+                                                                target_lang=self._explain_lang(room, ctl),
+                                                                text=ctl.text), utt=ctl.utt, persist=True)
+            elif a == "correct_term":
+                self._mirror_correction(room, s, ctl.value)
         elif a == "human_interpreter":
             req = True if ctl.value is None else bool(ctl.value)
             if req != s.human_interpreter_requested:
@@ -602,6 +642,105 @@ class SessionManager:
                 room.participants[i] = _participant({**room.participants[i].model_dump(), "muted": muted})
             await self.state_changed(room)
         return {"ok": True, "action": a, "forwarded": forwarded, "state": self.state(room)}
+
+    def _explain_lang(self, room: Room, ctl: Control) -> str:
+        v = ctl.value
+        if isinstance(v, dict) and v.get("lang"):
+            return str(v["lang"])
+        if isinstance(v, str) and v:
+            return v
+        for p in [*room.participants.values(), *reversed(list(room.issued.values()))]:
+            if p.role == "b" and p.lang not in ("", "auto"):
+                return p.lang
+        return "en"
+
+    # ------------------------------------------------------------ glossary (N-02, V-05)
+
+    def session_glossary(self, s: Session) -> Glossary:
+        """The session's glossary as the agent has it: mode file, then uploads and corrections."""
+        if s.glossary is None:
+            try:
+                s.glossary = Glossary.load(s.mode.glossary)
+            except Exception:
+                log.exception("glossary %s failed to load", s.mode.glossary)
+                s.glossary = Glossary()
+        return s.glossary
+
+    def _mirror_correction(self, room: Room, s: Session, value: Any) -> None:
+        if not isinstance(value, dict) or not all(value.get(k) for k in ("src", "tgt", "lang")):
+            return
+        default = room.mode.roles["a"].default_lang
+        src_lang = str(value.get("src_lang") or (default if default != "auto" else "de"))
+        self.session_glossary(s).add_correction(str(value["src"]), str(value["tgt"]), str(value["lang"]),
+                                                src_lang=src_lang)
+
+    async def upload_glossary(self, room_id: str, terms: list[Term], *, by: str | None = None) -> dict[str, Any]:
+        """N-02: merge an uploaded glossary into the room's session glossary and forward it to the agent.
+        Works before anyone joined (the session starts here; the agent gets the terms when it links)."""
+        room = self.room(room_id)
+        s, new = self.ensure_session(room, reason="glossary")
+        role = self.role_of(room, by)
+        g = self.session_glossary(s)
+        added, updated = g.merge(terms)
+        wire = [term_to_dict(t) for t in terms]
+        s.glossary_uploads.extend(wire)
+        s.touch()
+        self._audit("glossary_upload", s.id, by=role, terms=len(terms), added=added, updated=updated)
+        forwarded = await self.forward(room, Control(action="glossary", by=role, value={"terms": wire}))
+        if new:
+            await self.state_changed(room)
+        return {"ok": True, "room": room.id, "terms": len(terms), "added": added, "updated": updated,
+                "total": len(g.terms), "langs": sorted({"de", *(lang for t in terms for lang in t.forms)}),
+                "forwarded": forwarded, "uploaded": wire}
+
+    def glossary_info(self, room_id: str) -> dict[str, Any]:
+        room = self.room(room_id)
+        s = room.session
+        if s is not None and s.status != "burned":
+            g = self.session_glossary(s)
+        else:
+            try:
+                g = Glossary.load(room.mode.glossary)
+            except Exception:  # noqa: BLE001
+                g = Glossary()
+        return {"room": room.id, "source": room.mode.glossary,
+                "uploaded": len(s.glossary_uploads) if s is not None else 0,
+                "langs": g.langs(), "terms": [term_to_dict(t) for t in g.terms]}
+
+    # ------------------------------------------------------------ document camera (F-07)
+
+    def vision(self) -> Any:
+        if not self._vision_ready:
+            from raum.pipeline.engines import build_vision
+
+            self._vision, self._vision_ready = build_vision(self.cfg), True
+        return self._vision
+
+    async def document(self, room_id: str, image: bytes, *, by: str, lang: str) -> DocumentReady:
+        """Read a photographed document for ``lang`` and send ``document.ready`` to the room (stored
+        encrypted like any content event). ``image`` stays in memory and is never stored or logged."""
+        room = self.find_room(room_id)
+        s = self.live_session(room)
+        role = self.role_of(room, by) or by
+        engine = self.vision()
+        if engine is None:
+            raise Unavailable("the document camera is off in this profile (models.vision.engine: off)")
+        t0 = time.monotonic()
+        try:
+            async with self._vision_slots:
+                reading = await asyncio.wait_for(engine.read(image, lang=lang, mode=room.mode.id), VISION_TIMEOUT_S)
+        except TimeoutError:
+            log.warning("document reading timed out in %s", room_id)
+            raise UpstreamError("reading the document took too long") from None
+        except Exception as e:  # noqa: BLE001 - the model server failed; say so, keep the room going
+            log.warning("document reading failed in %s: %s: %s", room_id, e.__class__.__name__, str(e)[:200])
+            raise UpstreamError("the document could not be read") from None
+        doc = to_event(reading, by=role, lang=lang, ms=(time.monotonic() - t0) * 1000.0,
+                       model=getattr(engine, "name", None), glossary=self.session_glossary(s))
+        s.touch()
+        self.emit(room, "document.ready", doc, persist=True)
+        self._audit("document", s.id, by=role, lang=lang, facts=len(doc.facts), ms=doc.ms, model=doc.model)
+        return doc
 
     # ------------------------------------------------------------ end, summary
 
@@ -714,6 +853,8 @@ class SessionManager:
             s.summary = None
             s.off_record = False
             s.events.clear()
+            s.glossary = None
+            s.glossary_uploads.clear()
             log.info("session %s in %s burned (%s)", s.id, room_id, reason)
             self.emit(room, "burn.done", done)
             await self.forward(room, Control(action="burn", by=by))
@@ -850,9 +991,13 @@ class SessionManager:
         if self._engines is not None:
             with contextlib.suppress(Exception):
                 await self._engines.aclose()
+        close = getattr(self._vision, "aclose", None)
+        if close is not None:
+            with contextlib.suppress(Exception):
+                await close()
 
 
 __all__ = [
     "AgentConn", "BadRequest", "Conflict", "MemoryAudit", "MemoryStore", "NotFound", "Room", "Session", "SessionManager",
-    "Subscriber",
+    "Subscriber", "Unavailable", "UpstreamError",
 ]

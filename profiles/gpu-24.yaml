@@ -7,6 +7,6 @@ models:
   translate: { engine: ollama, url: http://127.0.0.1:11434, model: gemma4:26b, options: { think: false, temperature: 0.1, num_predict: 256, num_ctx: 8192 } }
   verify:    { engine: ollama, url: http://127.0.0.1:11434, model: gpt-oss:20b, options: { reasoning: low } }
   embed:     { engine: ollama, url: http://127.0.0.1:11434, model: bge-m3 }
-  vision:    { engine: ollama, url: http://127.0.0.1:11434, model: gemma4:26b }
+  vision:    { engine: ollama, url: http://127.0.0.1:11434, model: gemma4:26b, options: { think: false, temperature: 0.1, num_predict: 1024, num_ctx: 8192, timeout_s: 120 } }
   tts:       { engine: piper }
 scheduler: { live_slots: 2, check_slots: 1, background_slots: 1 }

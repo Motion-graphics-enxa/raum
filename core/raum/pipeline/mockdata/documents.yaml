@@ -1,0 +1,117 @@
+# Canned documents for the mock document camera (F-07), one per room mode. The mock "reads" the
+# room's demo paper whatever is photographed: the doctor's letter (demo step 4), the dismissal letter,
+# the term sheet. Facts carry the figure as printed (source, German) and in the reader's language;
+# the fact guard compares the two in core. Languages: de, en, tr, ru, ar (others fall back to en).
+documents:
+  sprechzimmer:
+    source_lang: de
+    title:
+      de: "Arztbrief von Dr. Weber"
+      en: "Letter from Dr. Weber"
+      tr: "Dr. Weber'in mektubu"
+      ru: "Письмо от врача, д-ра Вебер"
+      ar: "رسالة من الطبيب د. فيبر"
+    text:
+      de: "Dr. Weber schreibt an Frau Demir. Nehmen Sie weiter zweimal täglich 500 mg Metformin, morgens und abends zum Essen. Sie sind allergisch gegen Penicillin. Ihr nächster Termin ist am Donnerstag, dem 12. November 2026, um 9 Uhr. Bringen Sie diesen Brief mit."
+      en: "Dr. Weber is writing to Ms Demir. Keep taking 500 mg of metformin twice a day, in the morning and in the evening with food. You are allergic to penicillin. Your next appointment is on Thursday, 12 November 2026, at 9:00. Bring this letter with you."
+      tr: "Dr. Weber, Demir Hanım'a yazıyor. Günde iki kez 500 mg metformin almaya devam edin, sabah ve akşam yemekle birlikte. Penisiline alerjiniz var. Bir sonraki randevunuz 12 Kasım 2026 Perşembe, saat 9:00'da. Bu mektubu yanınızda getirin."
+      ru: "Доктор Вебер пишет госпоже Демир. Продолжайте принимать 500 мг метформина два раза в день, утром и вечером во время еды. У вас аллергия на пенициллин. Ваш следующий приём — в четверг, 12 ноября 2026 года, в 9:00. Возьмите это письмо с собой."
+      ar: "يكتب الطبيب د. فيبر إلى السيدة دمير. استمري في تناول 500 ملغ من الميتفورمين مرتين يوميًا، صباحًا ومساءً مع الطعام. لديك حساسية من البنسلين. موعدك القادم يوم الخميس 12 نوفمبر 2026 الساعة 9:00. أحضري هذه الرسالة معك."
+    facts:
+      - kind: dose
+        source: "Metformin 500 mg, 2 x täglich"
+        value:
+          de: "500 mg Metformin, zweimal täglich"
+          en: "500 mg metformin, twice a day"
+          tr: "500 mg metformin, günde iki kez"
+          ru: "500 мг метформина, два раза в день"
+          ar: "500 ملغ ميتفورمين، مرتين يوميًا"
+      - kind: date
+        source: "Donnerstag, 12.11.2026, 9:00 Uhr"
+        value:
+          de: "Donnerstag, 12. November 2026, 9:00 Uhr"
+          en: "Thursday, 12 November 2026, 9:00"
+          tr: "12 Kasım 2026 Perşembe, saat 9:00"
+          ru: "четверг, 12 ноября 2026, 9:00"
+          ar: "الخميس 12 نوفمبر 2026، الساعة 9:00"
+
+  kanzlei:
+    source_lang: de
+    title:
+      de: "Kündigung von Ihrem Arbeitgeber"
+      en: "Notice of dismissal from your employer"
+      tr: "İşvereninizden fesih bildirimi"
+      ru: "Уведомление об увольнении от работодателя"
+      ar: "إشعار فصل من صاحب العمل"
+    text:
+      de: "Ihr Arbeitgeber, die Nordbau GmbH, kündigt Ihren Arbeitsvertrag. Der Brief ist vom 3. November 2026. Ihr Arbeitsverhältnis endet am 31. Dezember 2026. Ihr letztes Gehalt von 3.250,00 Euro (?) wird mit der Dezemberabrechnung gezahlt. Über eine Abfindung steht nichts im Brief."
+      en: "Your employer, Nordbau GmbH, is ending your employment contract. The letter is dated 3 November 2026. Your employment ends on 31 December 2026. Your last salary of EUR 3,250.00 (?) is paid with the December payslip. The letter says nothing about a severance payment."
+      tr: "İşvereniniz Nordbau GmbH iş sözleşmenizi feshediyor. Mektup 3 Kasım 2026 tarihli. İş ilişkiniz 31 Aralık 2026'da sona eriyor. Son maaşınız olan 3.250,00 avro (?) aralık bordrosuyla ödenecek. Mektupta kıdem tazminatı hakkında bir şey yazmıyor."
+      ru: "Ваш работодатель, Nordbau GmbH, расторгает ваш трудовой договор. Письмо датировано 3 ноября 2026 года. Трудовые отношения заканчиваются 31 декабря 2026 года. Последняя зарплата в размере 3250,00 евро (?) будет выплачена с декабрьским расчётом. О выходном пособии в письме ничего не сказано."
+      ar: "صاحب العمل، شركة Nordbau GmbH، ينهي عقد عملك. الرسالة مؤرخة في 3 نوفمبر 2026. ينتهي عملك في 31 ديسمبر 2026. يُدفع راتبك الأخير البالغ 3250.00 يورو (?) مع كشف راتب ديسمبر. لا تذكر الرسالة شيئًا عن تعويض نهاية الخدمة."
+    facts:
+      - kind: date
+        source: "03.11.2026"
+        value:
+          de: "3. November 2026"
+          en: "3 November 2026"
+          tr: "3 Kasım 2026"
+          ru: "3 ноября 2026"
+          ar: "3 نوفمبر 2026"
+      - kind: deadline
+        source: "zum 31.12.2026"
+        value:
+          de: "31. Dezember 2026"
+          en: "31 December 2026"
+          tr: "31 Aralık 2026"
+          ru: "31 декабря 2026"
+          ar: "31 ديسمبر 2026"
+      - kind: amount
+        source: "3.250,00 EUR"
+        uncertain: true   # the demo shows a figure the model could not read for sure
+        value:
+          de: "3.250,00 Euro"
+          en: "EUR 3,250.00"
+          tr: "3.250,00 avro"
+          ru: "3250,00 евро"
+          ar: "3250.00 يورو"
+
+  verhandlungsraum:
+    source_lang: de
+    title:
+      de: "Angebot zum Rahmenvertrag 2027"
+      en: "Term sheet: framework agreement 2027"
+      tr: "Teklif: 2027 çerçeve sözleşmesi"
+      ru: "Предложение по рамочному договору на 2027 год"
+      ar: "عرض: الاتفاقية الإطارية لعام 2027"
+    text:
+      de: "Angebot für den Rahmenvertrag 2027. Preis: 1,05 Millionen Euro. Lieferung bis zum 31. März 2027. Zahlung innerhalb von 60 Tagen, 2 Prozent Skonto bei Zahlung innerhalb von 10 Tagen. Das Angebot gilt bis zum 20. November 2026."
+      en: "Offer for the framework agreement 2027. Price: EUR 1.05 million. Delivery by 31 March 2027. Payment within 60 days, 2 percent discount for payment within 10 days. The offer is valid until 20 November 2026."
+      tr: "2027 çerçeve sözleşmesi için teklif. Fiyat: 1,05 milyon avro. Teslimat 31 Mart 2027'ye kadar. Ödeme 60 gün içinde, 10 gün içinde ödemede yüzde 2 indirim. Teklif 20 Kasım 2026'ya kadar geçerli."
+      ru: "Предложение по рамочному договору на 2027 год. Цена: 1,05 млн евро. Поставка до 31 марта 2027 года. Оплата в течение 60 дней, скидка 2 процента при оплате в течение 10 дней. Предложение действует до 20 ноября 2026 года."
+      ar: "عرض للاتفاقية الإطارية لعام 2027. السعر: 1.05 مليون يورو. التسليم حتى 31 مارس 2027. الدفع خلال 60 يومًا، وخصم 2 بالمئة عند الدفع خلال 10 أيام. العرض صالح حتى 20 نوفمبر 2026."
+    facts:
+      - kind: amount
+        source: "1.050.000,00 EUR"
+        value:
+          de: "1,05 Millionen Euro"
+          en: "EUR 1.05 million"
+          tr: "1,05 milyon avro"
+          ru: "1,05 млн евро"
+          ar: "1.05 مليون يورو"
+      - kind: deadline
+        source: "Lieferung bis 31.03.2027"
+        value:
+          de: "Lieferung bis 31. März 2027"
+          en: "Delivery by 31 March 2027"
+          tr: "Teslimat 31 Mart 2027'ye kadar"
+          ru: "Поставка до 31 марта 2027"
+          ar: "التسليم حتى 31 مارس 2027"
+      - kind: deadline
+        source: "gültig bis 20.11.2026"
+        value:
+          de: "gültig bis 20. November 2026"
+          en: "valid until 20 November 2026"
+          tr: "20 Kasım 2026'ya kadar geçerli"
+          ru: "действует до 20 ноября 2026"
+          ar: "صالح حتى 20 نوفمبر 2026"
