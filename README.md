@@ -24,11 +24,32 @@ Everyone joins with their own device by scanning a QR code. Each sentence moves 
 
 Sessions are encrypted with a key held only in memory. Burn destroys the key. A hash-chained audit log records what happened, never what was said.
 
-Reference hardware: NVIDIA DGX Spark. Hardware profiles for RTX PCs, Apple Silicon, Jetson and laptops are defined in `profiles/`.
+Reference hardware: ASUS Ascent GX10 (NVIDIA GB10). Hardware profiles for RTX PCs, Apple Silicon, Jetson and laptops are defined in `profiles/`.
+
+## Run it
+
+On any laptop, with mock models (real microphones, real voice detection, canned translations):
+
+```bash
+brew install livekit            # or any livekit-server binary
+scripts/dev.sh                  # LiveKit --dev, raum-core :8000, raum-agent, app :5180
+open http://localhost:5180/     # open a room: QR codes for both phones and the table screen
+```
+
+Use `scripts/dev.sh --https` so phones on the same network can use the microphone. On the box, switch `raum.yaml` to `profile: spark` and deploy with `deploy/push.sh`. Tests: `cd core && uv run pytest -q`.
+
+| Path | What |
+|---|---|
+| `core/` | raum-core (FastAPI) and raum-agent (LiveKit Agents worker), Python 3.12 + uv |
+| `app/` | phone and table-screen app (React, Vite, livekit-client) |
+| `modes/` | the three rooms as YAML files |
+| `raum.yaml`, `profiles/` | model registry and hardware profiles |
+| `eval/` | test sets, evaluation, model bake-off, load test |
+| `deploy/` | Caddy, LiveKit, nftables privacy meter, services, push script |
 
 ## Status
 
-Hackathon build in progress (Macromedia Berlin Hackathon, 2–3 November 2026). The full build plan is in [plan.md](plan.md).
+Hackathon build in progress (Macromedia Berlin Hackathon, 2–3 November 2026). The full build plan is in [plan.md](plan.md); live status in [STATUS.md](STATUS.md).
 
 ## License
 
