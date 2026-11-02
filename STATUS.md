@@ -1,33 +1,37 @@
 # RAUM build status
 
-_Read by the ops session. Updated at every milestone. Last update: Mon 2 Nov, ~14:45._
+_Read by the ops session. Updated at every milestone. Last update: Mon 2 Nov, ~15:30._
 
-## What works (on `main`, verified on the M2 Mac)
-- **Full loop with real microphones (mock engines):** two Chrome phones join a room; the doctor's mic audio goes through LiveKit -> raum-agent -> Silero VAD -> mock ASR -> streamed mock translation -> second check. The patient's phone shows the Arabic translation with a green check about 1.2 s after the speaker stopped, and the table screen shows the stage timings. The pipeline's own bot test: first words p50 ~0.8 s, full sentence ~1.1 s (mock latencies from the §3 table).
-- **raum-core** (`uv run raum core`): join + LiveKit tokens (role/lang/device/path metadata), rooms, sessions, control (off-record, confirm, repeat-back, explain-simply, human interpreter), presence (RTT badge), end -> summary (mock), approve, burn, compliance export, events WS mirror + backlog, privacy meter (nft or stub), seal, GPU stats, admin, agent link. Docs: `/api/docs`.
-- **raum-agent** (`uv run raum agent start`): LiveKit Agents worker, auto-dispatch to every room, Silero VAD per speaker, RoomPipeline (§6.4 events, partials, per-language streaming, uncertain flag, confirm flags, offer tracker, repeat-back, explain-simply, V-04/V-05), link to core with reconnect. Capacity = rooms (`RAUM_AGENT_MAX_ROOMS`, default 12), not CPU.
-- **Engines** (`core/raum/pipeline/`): mock for every stage; real `whisper.cpp` (`/inference`, verbose_json), Ollama translate/verify/embed, Piper TTS, DeepFilterNet (optional). **Real engines are only tested against mocked HTTP**; expect small fixes on the first real run.
-- **App** (port **5180**): Join, Talk, Summary (approve, print, take-home QR, burn), Table (bilingual + glass box + privacy meter + device plates + join QR codes), Admin, listen-only `/l/:room`, setup `/`. Design via impeccable (`PRODUCT.md`, `.impeccable/surfaces/`). Self-hosted fonts, no third-party requests. RTL verified with Arabic. Light (Lichtpause) and dark (Blaupause).
-- **Eval** (`eval/`): 90 records (ru, tr, ar), `run_eval.py`, `bakeoff.py`, `load_test.py`, `report.py`.
-- **Deploy** (`deploy/`): `push.sh` -> `gx10:~/Desktop/HackathonRaum/raum`, `box.sh` (user-space core + agent + optional app preview), Caddyfile, compose, raum.nft, systemd units (dedicated box only), `install.sh`.
-- **Tests:** `cd core && uv run pytest -q` -> 257 passed.
+## What works (on `main`)
+- **Live on the GX10 (ops):** real engines (whisper.cpp large-v3-turbo, gemma4:26b, gpt-oss:120b, bge-m3, Piper binary), fact guard, encrypted sessions + audit chain. Measured warm: vad 320 / asr 249 / first words 677 / sentence 888 / voice 1399 / check 1425 ms.
+- **Mac, mock profile:** full loop with real mics (two Chrome phones with fake-mic WAVs via `scripts/e2e/`): partial captions, streamed translation, fact-guard dimensions, confirm prompts, glass box, summary, burn.
+- **raum-core:** join (LiveKit token, metadata role/lang/device/path/audio_out), rooms, control, presence, **participant update** (`POST /api/rooms/{room}/participant {identity, lang?, audio_out?}`), end -> summary, approve, burn, compliance, events WS + backlog, privacy meter/seal, admin, agent link.
+- **raum-agent:** Silero VAD, RoomPipeline (§6.4 events), clause-by-clause voice, cold-load-safe warm-ups (checker answers amber "warming up" until resident), room-based capacity, questions/`present` facts don't interrupt.
+- **Fact guard + security:** guard ~0.2 ms, eval 100% caught / 0% false alarms (ar, ru, tr, 90 records); AES-256-GCM store, burn by key deletion, hash-chained audit, `raum audit verify|show`.
+- **App (port 5180):** Join (one-tap language chips, the whole field taps, headphones/speaker), Talk (language + voice output in the menu, same-language warning, voice-playing cue), Summary, Table (to-scale timeline + 1.0 s budget), Admin, Listen, setup `/`.
+- **Design:** impeccable only. PRODUCT.md, direction contract `.impeccable/surfaces/`, finish review (fix -> verdict -> final batch), **DESIGN.md** + `.impeccable/design.json`.
+- **Deploy:** `deploy/push.sh` -> `gx10:~/Desktop/HackathonRaum/raum`; `deploy/box.sh` (sources `runtime/raum.env`; process groups); `RAUM_UV_EXTRAS="--extra denoise"` for DeepFilterNet.
+- **Tests:** `cd core && uv run pytest -q` -> 569 passed.
 
-## In progress
-- **Fact guard + security** (AES-256-GCM session store, burn, hash-chained audit, `raum audit verify`) on a branch. Until merged, core keeps sessions and audit in memory and `verify.facts` is empty (no fact dimensions on real runs; the replay script shows them).
-- impeccable finish review -> fixes -> DESIGN.md.
+## In flight (parallel agents, worktree branches; the integrator merges)
+1. Echo control per device (C-14), agent applies live lang/audio_out changes (participant metadata events), resident Piper binary per voice.
+2. Simultaneous mode (segments committed while speaking; `seg`/`segs` on translation.* / verify.*; headphones listeners only; `pipeline.simultaneous: auto|off`).
+3. F-07 document camera (vision engine, `POST /api/rooms/{room}/document`, `document.ready`, `DocumentCamera.tsx`), N-02 glossary upload (`GlossaryUpload.tsx`), K-02 check.
+4. A-03 speakerphone participant (`raum speakerphone`), C-12 reconnect, F-05 admin completeness, F-03 install.sh dry-run proof + `--user-space`.
+
+## Integrator TODO after merges
+- Wire `DocumentCamera` into Talk (menu or dock, Sprechzimmer/Kanzlei) and `GlossaryUpload` into Admin + Verhandlungsraum menu.
+- App store: concatenate `seg` segments per language (translation.delta/final with `seg`; facts per segment).
+- Then P2: F-11 three people / three languages, F-08 Tauri, F-09 Android TWA, F-10 voice lock.
+- Rerun `scripts/e2e/two-phones.mjs` + `replay-shots.mjs` after merges; ping ops at every merge.
 
 ## How to run on a laptop
 ```bash
-scripts/dev.sh            # livekit-server --dev (reused if running), core :8000, agent, app :5180
-scripts/dev.sh --https    # self-signed https so phones on the LAN can use the mic
-cd core && uv run python ../scripts/replay.py --room sz-1234   # scripted conversation into a room (UI test, no models)
-cd core && uv run python ../scripts/bot.py --room sz-1234 --role a --lang de --wav x.wav   # speaking bot
+scripts/dev.sh            # livekit-server --dev (reused), core :8000, agent, app :5180
+scripts/dev.sh --https    # phones on the LAN need https for the mic
+cd core && uv run python ../scripts/replay.py --room sz-1234     # scripted conversation (UI test, no models)
+cd scripts/e2e && npm i && npm run audio && node two-phones.mjs  # two Chrome phones, fake mics
 ```
 
-## Going live on the GX10 (ops)
-1. `deploy/push.sh` (from a clean worktree of origin/main). Restarts via `deploy/box.sh` on the shared box.
-2. Real engines: `RAUM_PROFILE=spark deploy/box.sh restart` (or `profile: spark` in raum.yaml). Needs whisper-server :8081, Ollama :11434 with gemma4:26b, gpt-oss:120b, bge-m3. If gpt-oss:120b isn't pulled yet, override `models.verify.model: gpt-oss:20b` or `engine: off` in raum.yaml.
-3. App for phones: `RAUM_APP=1 RAUM_HTTPS=1 deploy/box.sh restart` serves the build on :5180 (proxies /api and /rtc). Port 443 on the box is taken; don't bind it.
-
 ## Blockers
-- None on this side. Real-engine response formats untested until the box runs them.
+- None. Real-engine paths are verified by ops on the box; new features land on `main` behind the mock profile first.
