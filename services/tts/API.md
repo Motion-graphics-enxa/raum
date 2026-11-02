@@ -101,8 +101,9 @@ X-Channels: 1
 X-Cfg-Weight: 0.5
 X-Sentences: 1
 X-Priority: live
+X-Queue-Ms: 0
 ```
-The first chunk arrives after 0.18–0.5 s, depending on GPU load. Later chunks arrive faster than real time, so a player that starts on the first chunk does not run dry. Errors:
+`X-Queue-Ms` is how long the request waited for the GPU (admission) before its job started; RAUM notes it as the `tts` stage's `queue_ms`. The first chunk arrives after 0.18–0.5 s, depending on GPU load. Later chunks arrive faster than real time, so a player that starts on the first chunk does not run dry. Errors:
 - `404`: unknown `voice_id`.
 - `422`: unsupported `lang` or empty text.
 

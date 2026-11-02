@@ -359,10 +359,12 @@ async def _serve(request: Request, job: Job, headers: dict):
     return StreamingResponse(body(), media_type=f"audio/L16;rate={SR};channels=1", headers=headers)
 
 
-def _audio_headers(cfg, n_parts, cap_s, priority=LIVE):
+def _audio_headers(cfg, n_parts, cap_s, priority=LIVE, queue_s=0.0):
+    """``X-Queue-Ms``: how long this request waited for the GPU (admission), known before the headers go out."""
     return {"X-Sample-Rate": str(SR), "X-Audio-Format": "s16le", "X-Channels": "1",
             "X-Cfg-Weight": str(cfg), "X-Sentences": str(n_parts), "X-Max-Audio-S": f"{cap_s:.1f}",
-            "X-Priority": priority, "Cache-Control": "no-store", "X-Accel-Buffering": "no"}
+            "X-Priority": priority, "X-Queue-Ms": f"{max(0.0, queue_s) * 1000:.0f}",
+            "Cache-Control": "no-store", "X-Accel-Buffering": "no"}
 
 
 # ---------------- API ----------------
@@ -469,7 +471,9 @@ async def speak(req: SpeakReq, request: Request):
         cfg = req.cfg_weight
     cap = max_audio_s(text, lang, AUDIO_CAP_SPEAK_S)
     bg = req.priority == BACKGROUND
+    t_adm = time.perf_counter()
     ticket, why = await _admit(request, expected_job_s(text, lang), req.priority, len(req.text))
+    queue_s = time.perf_counter() - t_adm
     if why:
         return _unavailable(why, background=bg)
     try:
@@ -480,7 +484,7 @@ async def speak(req: SpeakReq, request: Request):
     except Exception:
         gate.release(ticket)
         raise
-    return await _serve(request, job, _audio_headers(cfg, len(parts), cap, req.priority))
+    return await _serve(request, job, _audio_headers(cfg, len(parts), cap, req.priority, queue_s))
 
 
 # ---------------- RAUM compatibility API (core/raum/pipeline/tts_http.py) ----------------
@@ -586,7 +590,9 @@ async def tts_compat(request: Request):
             wall = max(0.05, float(fields["_cap_wall_s"]))
     except (TypeError, ValueError):
         pass
+    t_adm = time.perf_counter()
     ticket, why = await _admit(request, expected_job_s(text, lang), priority, chars)
+    queue_s = time.perf_counter() - t_adm
     if why:
         log.info("tts %s refused (%s) lang=%s chars=%d", priority, why, lang, chars)
         return _unavailable(why, background=bg)
@@ -597,7 +603,7 @@ async def tts_compat(request: Request):
     except Exception:
         gate.release(ticket)
         raise
-    return await _serve(request, job, _audio_headers(cfg, len(parts), cap, priority))
+    return await _serve(request, job, _audio_headers(cfg, len(parts), cap, priority, queue_s))
 
 
 @app.delete("/tts/voices/{voice_id}")

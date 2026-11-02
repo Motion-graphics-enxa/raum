@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import hashlib
 import math
+import time
 from typing import Any
 
 import httpx
 
-from raum.pipeline._ollama import WarmGate, warm_request
+from raum.pipeline._ollama import WarmGate, note_ollama, warm_request
 from raum.pipeline._util import sample_ms, sleep_ms
 
 
@@ -59,12 +60,21 @@ class OllamaEmbedder(WarmGate):
         self.ready = True
 
     async def embed(self, texts: list[str]) -> list[list[float]]:
+        """Stage ``embed`` (pipeline/stats.py): ``wall_ms``, plus ``load_ms`` / ``server_ms`` (and ``queue_ms`` =
+        wall − server) when the response carries ``load_duration`` / ``total_duration``."""
         self._check_gate()
-        r = await self._client.post(f"{self.url}/api/embed",
-                                    json={"model": self.model, "input": texts, "keep_alive": -1})
+        t0 = time.monotonic()
+        try:
+            r = await self._client.post(f"{self.url}/api/embed",
+                                        json={"model": self.model, "input": texts, "keep_alive": -1})
+        except BaseException:
+            note_ollama("embed", None, (time.monotonic() - t0) * 1000.0, self.model, error=1)
+            raise
         if r.status_code >= 400:
+            note_ollama("embed", None, (time.monotonic() - t0) * 1000.0, self.model, error=1)
             raise RuntimeError(f"ollama embed {r.status_code}: {r.text[:200]}")
         j = r.json()
+        note_ollama("embed", j if isinstance(j, dict) else None, (time.monotonic() - t0) * 1000.0, self.model)
         emb = j.get("embeddings")
         if not isinstance(emb, list) or len(emb) != len(texts):
             raise RuntimeError(f"ollama embed: unexpected response {str(j)[:200]}")

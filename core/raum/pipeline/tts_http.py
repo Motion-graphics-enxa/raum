@@ -29,6 +29,8 @@ request or response bodies.
 from __future__ import annotations
 
 import base64
+import contextlib
+import contextvars
 import hashlib
 import inspect
 import logging
@@ -39,6 +41,8 @@ from typing import Any
 
 import httpx
 import numpy as np
+
+from raum.pipeline import stats
 
 log = logging.getLogger("raum.pipeline.tts.http")
 
@@ -271,9 +275,11 @@ class HttpTTS:
         if not self._skip_service():
             spoke = False
             try:
-                async for chunk in self._stream(text, lang, voice_ref, rate):
-                    spoke = True
-                    yield chunk
+                # aclosing: a listener that stops (barge-in) closes the request now, not when GC finds it
+                async with contextlib.aclosing(self._stream(text, lang, voice_ref, rate)) as stream:
+                    async for chunk in stream:
+                        spoke = True
+                        yield chunk
                 self.ready = True
                 return
             except (httpx.HTTPError, TtsServiceError, OSError, ValueError) as e:
@@ -295,31 +301,65 @@ class HttpTTS:
             raise VoiceBusy("service put aside" if time.monotonic() < self._down_until else "service not warm")
         if self.priorities is False:
             raise VoiceBusy("service without priorities")
-        async for chunk in self._stream(text, lang, voice_ref, rate, background=True):
-            yield chunk
+        async with contextlib.aclosing(self._stream(text, lang, voice_ref, rate, background=True)) as stream:
+            async for chunk in stream:
+                yield chunk
         self.ready = True
 
     async def _stream(self, text: str, lang: str, voice_ref: bytes | None, rate: float | None,
                       background: bool = False) -> AsyncIterator[np.ndarray]:
+        """Stage ``tts`` / ``tts.bg`` (pipeline/stats.py): ``ttfb_ms`` (request to the first audio chunk),
+        ``wall_ms``, ``audio_ms``, ``queue_ms`` (the service's GPU wait, ``X-Queue-Ms``); a refusal (409 etc.)
+        notes ``refused=1`` only; a cut background stream ``cut=1``, a consumer that stopped ``cancelled=1``,
+        another failure ``error=1``."""
         req = tts_request(text, lang, voice_ref=voice_ref, rate=rate, model=self.model, options=self.options,
                           background=background)
-        async with self._client.stream("POST", self.url + self.path, **req) as r:
-            if r.status_code >= 400:
-                if background and r.status_code in BUSY_STATUSES:
-                    raise VoiceBusy(f"HTTP {r.status_code}")
-                raise TtsServiceError(f"HTTP {r.status_code}")  # no body: it could echo the request
-            self.priorities = "x-priority" in r.headers
-            pcm = PcmStream(stream_rate(r.headers), self.sample_rate)
-            try:
-                async for b in r.aiter_bytes():
-                    for chunk in pcm.feed(b):
-                        yield chunk
-            except httpx.HTTPError as e:
-                if background:  # the service cuts a background stream when live speech needs the voice
-                    raise VoiceBusy("stream cut") from e
-                raise
-            for chunk in pcm.flush():
-                yield chunk
+        ctx = contextvars.copy_context()  # a generator closed late (by GC) still notes into this utterance
+        t0 = time.monotonic()
+        m: dict[str, float | None] = {}
+        n = 0
+        done = False
+        try:
+            async with self._client.stream("POST", self.url + self.path, **req) as r:
+                if r.status_code >= 400:
+                    if background and r.status_code in BUSY_STATUSES:
+                        m["refused"] = 1
+                        raise VoiceBusy(f"HTTP {r.status_code}")
+                    raise TtsServiceError(f"HTTP {r.status_code}")  # no body: it could echo the request
+                self.priorities = "x-priority" in r.headers
+                q = r.headers.get("x-queue-ms", "")
+                m["queue_ms"] = float(q) if q.replace(".", "", 1).isdigit() else None
+                pcm = PcmStream(stream_rate(r.headers), self.sample_rate)
+                try:
+                    async for b in r.aiter_bytes():
+                        for chunk in pcm.feed(b):
+                            if not n:
+                                m["ttfb_ms"] = (time.monotonic() - t0) * 1000.0
+                            n += len(chunk)
+                            yield chunk
+                except httpx.HTTPError as e:
+                    if background:  # the service cuts a background stream when live speech needs the voice
+                        m["cut"] = 1
+                        raise VoiceBusy("stream cut") from e
+                    raise
+                for chunk in pcm.flush():
+                    if not n:
+                        m["ttfb_ms"] = (time.monotonic() - t0) * 1000.0
+                    n += len(chunk)
+                    yield chunk
+            done = True
+        except Exception:
+            if not m.get("refused") and not m.get("cut"):
+                m["error"] = 1
+            raise
+        finally:
+            if m.get("refused"):
+                m = {"refused": 1}  # a refusal is no work: its round trip stays out of the sums
+            else:
+                if not done and "error" not in m and "cut" not in m:
+                    m["cancelled"] = 1
+                m.update(wall_ms=(time.monotonic() - t0) * 1000.0, audio_ms=n / self.sample_rate * 1000.0)
+            ctx.run(stats.note, "tts.bg" if background else "tts", **m)
 
     async def _fallback(self, text: str, lang: str, voice_ref: bytes | None, rate: float | None) -> AsyncIterator[np.ndarray]:
         fb = self.fallback

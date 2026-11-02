@@ -2,16 +2,18 @@
 
 from __future__ import annotations
 
+import contextvars
 import json
 import logging
 import random
+import time
 from collections.abc import AsyncIterator
 from typing import Any
 
 import httpx
 
 from raum.pipeline import mockdata
-from raum.pipeline._ollama import warm_request
+from raum.pipeline._ollama import note_ollama, warm_request
 from raum.pipeline._util import engine_options, lang_name, load_prompt, render_prompt, sample_ms, sleep_ms
 from raum.pipeline.base import TranslateRequest
 
@@ -117,31 +119,54 @@ class OllamaTranslator:
         return body
 
     async def stream(self, req: TranslateRequest) -> AsyncIterator[str]:
+        """Stage ``mt`` (pipeline/stats.py): ``wall_ms`` (request to stream end), ``ttft_ms`` (to the first
+        non-empty delta) and the final chunk's server timings (``_ollama.note_ollama``: queue_ms = wall − server).
+        No final chunk (cancelled, stopped early, failed): ``wall_ms``, ``ttft_ms`` and ``cancelled=1`` (or
+        ``error=1``)."""
         started = False
-        async with self._client.stream("POST", f"{self.url}/api/chat", json=self.body(req)) as r:
-            if r.status_code >= 400:
-                await r.aread()
-                if "think" in r.text and not getattr(self, "_no_think", False):
-                    # the model has no thinking switch: drop the field and retry once
-                    self._no_think = True
-                    async for d in self.stream(req):
-                        yield d
-                    return
-                raise RuntimeError(f"ollama {r.status_code}: {r.text[:200]}")
-            async for line in r.aiter_lines():
-                if not line.strip():
-                    continue
-                j = json.loads(line)
-                if j.get("error"):
-                    raise RuntimeError(f"ollama: {j['error']}")
-                content = (j.get("message") or {}).get("content") or ""
-                if content and not started:
-                    content = content.lstrip()
-                    started = bool(content)
-                if content:
-                    yield content
-                if j.get("done"):
-                    break
+        ctx = contextvars.copy_context()  # a generator closed late (by GC) still notes into this utterance
+        t0 = time.monotonic()
+        ttft: float | None = None
+        final: dict[str, Any] | None = None
+        retried = failed = False
+        try:
+            async with self._client.stream("POST", f"{self.url}/api/chat", json=self.body(req)) as r:
+                if r.status_code >= 400:
+                    await r.aread()
+                    if "think" in r.text and not getattr(self, "_no_think", False):
+                        # the model has no thinking switch: drop the field and retry once (that call notes itself)
+                        self._no_think = True
+                        retried = True
+                        async for d in self.stream(req):
+                            yield d
+                        return
+                    raise RuntimeError(f"ollama {r.status_code}: {r.text[:200]}")
+                async for line in r.aiter_lines():
+                    if not line.strip():
+                        continue
+                    j = json.loads(line)
+                    if j.get("error"):
+                        raise RuntimeError(f"ollama: {j['error']}")
+                    content = (j.get("message") or {}).get("content") or ""
+                    if content and not started:
+                        content = content.lstrip()
+                        started = bool(content)
+                    if content:
+                        if ttft is None:
+                            ttft = (time.monotonic() - t0) * 1000.0
+                        yield content
+                    if j.get("done"):
+                        final = j
+                        break
+        except Exception:
+            failed = True
+            raise
+        finally:
+            if not retried:
+                end: dict[str, float | None] = {"ttft_ms": ttft}
+                if final is None:
+                    end["error" if failed else "cancelled"] = 1
+                ctx.run(note_ollama, "mt", final, (time.monotonic() - t0) * 1000.0, self.model, **end)
 
     async def warmup(self) -> None:
         """Load the model (keep_alive -1) with an empty request (plan §6.4: models warmed at boot)."""

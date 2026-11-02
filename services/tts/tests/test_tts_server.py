@@ -233,3 +233,26 @@ def test_too_long_background_text_is_refused(srv):
             await tts.aclose()
 
     asyncio.run(main())
+
+
+def test_live_reports_its_gpu_wait_in_x_queue_ms(srv):
+    """``X-Queue-Ms``: the admission wait for the GPU, known before the headers go out; HttpTTS notes it as the
+    ``tts`` stage's ``queue_ms`` (core/raum/pipeline/stats.py)."""
+    from raum.pipeline import stats
+
+    async def main():
+        async with serving(srv.app) as url:
+            tts = client(url)
+            s = stats.Stages()
+            stats.use(s)
+            assert srv.gate.lock.acquire(blocking=False)  # the GPU busy for 0.1 s (inside the 0.25 s grace)
+            asyncio.get_running_loop().call_later(0.1, srv.gate.lock.release)
+            assert sum(len(c) for c in [c async for c in tts.synthesize(SHORT, "de")]) == samples(SHORT)
+            t = s.snapshot()["tts"]
+            assert 80 <= t["queue_ms"] < 240 and t["ttfb_ms"] >= t["queue_ms"]
+            async with httpx.AsyncClient() as c, c.stream("POST", url + "/tts", json={"text": SHORT, "lang": "de"}) as r:
+                await r.aread()
+            assert r.status_code == 200 and 0 <= int(r.headers["x-queue-ms"]) < 80  # the GPU free: no wait
+            await tts.aclose()
+
+    asyncio.run(main())

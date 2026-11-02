@@ -15,7 +15,7 @@ from typing import Any
 import httpx
 import numpy as np
 
-from raum.pipeline import mockdata
+from raum.pipeline import mockdata, stats
 from raum.pipeline._util import float_to_wav, lang_code, sample_ms, sleep_ms
 from raum.pipeline.base import AsrResult, TurnContext
 
@@ -134,9 +134,18 @@ class WhisperCppASR:
         if prompt:
             data["prompt"] = prompt
         files = {"file": ("audio.wav", float_to_wav(audio, ASR_SAMPLE_RATE), "audio/wav")}
-        r = await self._client.post(f"{self.url}/inference", data=data, files=files)
-        r.raise_for_status()
-        j = r.json()
+        # stage "asr" / "asr.partial" (pipeline/stats.py): wall_ms and audio_ms only. whisper.cpp's verbose_json
+        # carries no processing timings (its server holds one mutex per request; a wait for it is inside wall_ms).
+        t_post = time.monotonic()
+        failed = 1
+        try:
+            r = await self._client.post(f"{self.url}/inference", data=data, files=files)
+            r.raise_for_status()
+            j = r.json()
+            failed = 0
+        finally:
+            stats.note("asr.partial" if partial else "asr", wall_ms=(time.monotonic() - t_post) * 1000.0,
+                       audio_ms=len(audio) / ASR_SAMPLE_RATE * 1000.0, error=failed or None)
         if isinstance(j, dict) and j.get("error"):
             raise RuntimeError(f"whisper.cpp: {j['error']}")
         text = _whisper_text(j)
