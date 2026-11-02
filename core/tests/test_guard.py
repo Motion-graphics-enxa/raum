@@ -22,7 +22,9 @@ VR = get_mode("verhandlungsraum")
 
 
 def values(text: str, lang: str, kind: str | None = None, glossary: Glossary | None = MED) -> list[str]:
-    return [f.value for f in extract(text, lang, glossary=glossary) if kind is None or f.kind == kind]
+    """Values of ``kind`` (default: every kind except the currency an amount also reports)."""
+    return [f.value for f in extract(text, lang, glossary=glossary)
+            if (kind is None and f.kind != "currency") or f.kind == kind]
 
 
 def kinds_of(text: str, lang: str) -> list[tuple[str, str]]:
@@ -165,6 +167,8 @@ def test_demo_facts_are_found_in_every_language():
         assert [(f.kind, f.value) for f in extract(text, lang)] == [("number", "3")], lang
     for lang, text in [("de", DEMO["verhandlungsraum"][0][0]), *DEMO["verhandlungsraum"][0][1].items()]:
         assert values(text, lang) == ["1200000 EUR"], lang
+    for lang, text in [("de", DEMO["verhandlungsraum"][0][0]), *DEMO["verhandlungsraum"][0][1].items()]:
+        assert values(text, lang, "currency") == ["EUR"], lang
     for lang, text in [("de", DEMO["verhandlungsraum"][1][0]), *DEMO["verhandlungsraum"][1][1].items()]:
         assert sorted((f.kind, f.value) for f in extract(text, lang)) == [("amount", "1050000"),
                                                                          ("deadline", "--03")], lang
@@ -261,7 +265,7 @@ def test_arabic_digits_and_units():
     assert values("٥٠٠ ملغ", "ar") == ["500 mg"] == values("500 mg", "en")
     assert not check("٥٠٠ ملغ", "ar", "500 mg", "de").red
     assert values("خذ ٢\u066b٥ مل", "ar") == ["2.5 ml"] == values("Nehmen Sie 2,5 ml", "de")
-    assert values("١٢/١١/٢٠٢٦", "ar") == ["2026-11-12"]
+    assert values("١٢/١١/٢٠٢٦", "ar") == ["--11-12"]
 
 
 def test_scales():
@@ -319,7 +323,7 @@ def test_no_double_counting():
     assert kinds_of("Ich nehme zweimal täglich 500 mg Metformin.", "de") == [
         ("frequency", "2/day"), ("dose", "500 mg"), ("medication", "Metformin")]
     assert [k for k, _ in kinds_of("Kommen Sie am 12.11.2026 um 9:30 Uhr.", "de")] == ["date", "time"]
-    assert [k for k, _ in kinds_of("Wir geben 20 % auf 1.200 €.", "de")] == ["percent", "amount"]
+    assert [k for k, _ in kinds_of("Wir geben 20 % auf 1.200 €.", "de")] == ["percent", "amount", "currency"]
     assert [k for k, _ in kinds_of("Sie haben 7 Tage Zeit.", "de")] == ["duration"]
 
 
@@ -329,10 +333,16 @@ def test_no_double_counting():
 def test_unit_synonyms():
     for text, lang in [("500 mg", "de"), ("500 Milligramm", "de"), ("500 milligrams", "en"), ("500 мг", "ru"),
                        ("500 миллиграммов", "ru"), ("500 ملغ", "ar"), ("500 مجم", "ar"), ("500 ملليغرام", "ar"),
-                       ("500 miligram", "tr"), ("0,5 g", "de"), ("500.000 µg", "de"), ("500000 mcg", "en")]:
+                       ("500 miligram", "tr")]:
         assert values(text, lang) == ["500 mg"], (text, lang)
-    assert values("100 IE", "de") == ["100 IU"] == values("100 IU", "en") == values("100 МЕ", "ru")
-    assert values("10 Mikrogramm", "de") == ["0.01 mg"] == values("10 µg", "en") == values("10 μg", "en")
+    # the value keeps the stated unit, the comparison converts: 0,5 g == 500 mg == 500 000 µg
+    assert values("0,5 g", "de") == ["0.5 g"] and values("500.000 µg", "de") == ["500000 µg"]
+    for text, lang in [("0,5 g", "de"), ("0.5 grams", "en"), ("500.000 µg", "de"), ("500000 mcg", "en"),
+                       ("0,5 г", "ru"), ("0.5 غرام", "ar")]:
+        assert not check("500 mg", "de", text, lang).red, (text, lang)
+    assert check("500 mg", "de", "5 g", "en").red
+    assert values("100 IE", "de") == ["100 IE"] == values("100 IU", "en") == values("100 МЕ", "ru")
+    assert values("10 Mikrogramm", "de") == ["10 µg"] == values("10 µg", "en") == values("10 μg", "en")
     assert values("5 ml", "en") == ["5 ml"] == values("5 мл", "ru") == values("5 مل", "ar")
     assert values("in Milligramm", "de", "unit") == ["mg"]
 
@@ -358,19 +368,26 @@ def test_frequency(text, lang, value):
 
 
 @pytest.mark.parametrize(("text", "lang", "value"), [
-    ("am 12. November", "de", "--11-12"), ("12.11.", "de", "--11-12"), ("12.11.2026", "de", "2026-11-12"),
+    ("am 12. November", "de", "--11-12"), ("12.11.", "de", "--11-12"), ("12.11.2026", "de", "--11-12"),
     ("12/11", "en", "--11-12"), ("12 November", "en", "--11-12"), ("November 12th", "en", "--11-12"),
-    ("the 12th of November", "en", "--11-12"), ("November 12, 2026", "en", "2026-11-12"),
-    ("12 Kasım", "tr", "--11-12"), ("12 Kasım'da", "tr", "--11-12"), ("12.11.2026", "tr", "2026-11-12"),
-    ("12 ноября", "ru", "--11-12"), ("12 ноября 2026 г.", "ru", "2026-11-12"), ("12-го ноября", "ru", "--11-12"),
+    ("the 12th of November", "en", "--11-12"), ("November 12, 2026", "en", "--11-12"),
+    ("12 Kasım", "tr", "--11-12"), ("12 Kasım'da", "tr", "--11-12"), ("12.11.2026", "tr", "--11-12"),
+    ("12 ноября", "ru", "--11-12"), ("12 ноября 2026 г.", "ru", "--11-12"), ("12-го ноября", "ru", "--11-12"),
     ("12 نوفمبر", "ar", "--11-12"), ("12 تشرين الثاني", "ar", "--11-12"), ("١٢ نوفمبر", "ar", "--11-12"),
-    ("2026-11-12", "en", "2026-11-12"), ("am 12.", "de", "---12"), ("on the 12th.", "en", "---12"),
+    ("2026-11-12", "en", "--11-12"), ("am 12.", "de", "---12"), ("on the 12th.", "en", "---12"),
     ("Donnerstag", "de", "wd:thu"), ("Thursday", "en", "wd:thu"), ("Perşembe", "tr", "wd:thu"),
     ("в четверг", "ru", "wd:thu"), ("يوم الخميس", "ar", "wd:thu"), ("im März", "de", "--03"),
     ("in March", "en", "--03"), ("до марта", "ru", "--03"), ("في مارس", "ar", "--03"),
 ])
 def test_dates(text, lang, value):
     assert values(text, lang, None)[-1:] == [value] or value in values(text, lang), values(text, lang)
+
+
+def test_dates_compare_the_year_when_both_sides_have_one():
+    assert not check("am 12.11.2026", "de", "on 12 November 2026", "en").red
+    assert not check("am 12.11.2026", "de", "on 12 November", "en").red  # year left out: same day
+    assert check("am 12.11.2026", "de", "on 12 November 2025", "en").red
+    assert check("am 12.11.2026", "de", "on 11/12/2026", "en").red  # slash dates are read day-first
 
 
 def test_dates_do_not_fire_on_ordinary_words():
@@ -445,6 +462,12 @@ def test_allergy():
     assert values("I take metformin twice a day, and I'm allergic to penicillin.", "en", "allergy") == ["Penicillin"]
     assert values("Ich bin allergisch gegen Penicillin, aber Metformin vertrage ich.", "de", "allergy") == [
         "Penicillin"]
+    assert values("Gegen Penicillin bin ich allergisch.", "de", "allergy") == ["Penicillin"]
+    assert values("Penisiline ve amoksisiline alerjim var.", "tr", "allergy") == ["Penicillin", "Amoxicillin"]
+    # Turkish puts the allergen in front: a drug later in the sentence is not one
+    assert values("Penisiline alerjiniz olduğu için size amoksisilin verilmeyecek.", "tr", "allergy") == [
+        "Penicillin"]
+    assert values("I'm allergic to penicillin, so you won't get amoxicillin.", "en", "allergy") == ["Penicillin"]
 
 
 @pytest.mark.parametrize(("text", "lang"), [
@@ -452,19 +475,21 @@ def test_allergy():
     ("I'm not allergic.", "en"), ("I don't take it.", "en"), ("No allergies.", "en"), ("I never smoke.", "en"),
     ("Alerjim yok.", "tr"), ("Bu doğru değil.", "tr"), ("Metformin almıyorum.", "tr"), ("Almayın.", "tr"),
     ("Almamalısınız.", "tr"), ("Hiç sigara içmedim.", "tr"), ("Alkol içmeyeceksiniz.", "tr"),
+    ("Bu fiyatı koruyamayız.", "tr"), ("Bunu almam.", "tr"), ("Gelemem.", "tr"),
     ("У меня нет аллергии.", "ru"), ("Я не курю.", "ru"), ("Вам нельзя пить.", "ru"),
     ("لا أدخن.", "ar"), ("لم آخذ الدواء.", "ar"), ("ليس لدي حساسية.", "ar"), ("لن آتي.", "ar"),
     ("يجب ألا تشرب الكحول.", "ar"),
 ])
 def test_negation_cues(text, lang):
-    assert values(text, lang, "negation") == ["negated"]
+    assert values(text, lang, "negation") == ["not"]
 
 
 @pytest.mark.parametrize(("text", "lang"), [
     ("Ich nehme Metformin.", "de"), ("Nicht mehr als 2 Tabletten? Spätestens morgen.", "de"),
     ("No later than 3 March.", "en"), ("Metformin alıyorum.", "tr"), ("Orada beş yıldır çalışıyorum.", "tr"),
     ("Dava açma süresi 24 Kasım'da sona eriyor.", "tr"), ("Lütfen getirin.", "tr"), ("Не позднее 3 марта.", "ru"),
-    ("لاحقا", "ar"), ("في موعد لا يتجاوز 3 مارس", "ar"), ("Kommen Sie wieder.", "de"),
+    ("لاحقا", "ar"), ("في موعد لا يتجاوز 3 مارس", "ar"), ("Kommen Sie wieder.", "de"), ("Tamam.", "tr"),
+    ("Sözleşme olmadan.", "tr"),
 ])
 def test_no_negation(text, lang):
     assert values(text, lang, "negation") == []
@@ -493,6 +518,12 @@ def test_deadlines_and_confirm():
                        ("срок истекает 24 ноября", "ru"), ("حتى 24 نوفمبر", "ar"), ("آخر موعد 24 نوفمبر", "ar")]:
         assert [(f.kind, f.value) for f in extract(text, lang, glossary=kz)] == [("deadline", "--11-24")], (text, lang)
     assert [f.kind for f in extract("Kommen Sie am 24. November.", "de")] == ["date"]
+    for text, lang in [("Das Angebot gilt bis Freitag, den 6. November.", "de"),
+                       ("Предложение действует до пятницы, 6 ноября.", "ru"),
+                       ("Teklif 6 Kasım Cuma gününe kadar geçerli.", "tr"),
+                       ("The offer is valid until Friday, 6 November.", "en")]:
+        assert sorted((f.kind, f.value) for f in extract(text, lang)) == [("deadline", "--11-06"),
+                                                                         ("deadline", "wd:fri")], (text, lang)
     r = room_check(KZ, "Die Klagefrist endet am 24. November.", "de",
                    "The deadline for filing the claim ends on 24 November.", "en")
     assert not r.red and [(c.kind, c.src, c.tgt) for c in r.confirm] == [("deadline", "24. November", "24 November")]
@@ -525,6 +556,15 @@ def test_rows_one_per_source_value_and_unmatched_target():
     assert r.red and r.ms > 0
 
 
+def test_currency_of_an_amount_is_weak():
+    assert values("Wir zahlen 500 Euro.", "de", "currency") == ["EUR"]
+    assert not check("Wir können auf 1,05 Millionen gehen.", "de", "We can go to 1.05 million euros.", "en").red
+    assert not check("Zahlen Sie in Euro?", "de", "Do you pay in euros?", "en").red  # standalone: compared
+    assert check("Zahlen Sie in Euro?", "de", "Do you pay in dollars?", "en").red
+    r = check("Wir bieten 950.000 Euro.", "de", "Мы предлагаем 950 000 долларов.", "ru", kinds=VR.guard.kinds)
+    assert r.red and ("amount", "950.000 Euro", "950 000 долларов") in bad_rows(r)
+
+
 def test_kinds_restrict_and_fall_back_to_number():
     assert values("Nehmen Sie 500 mg.", "de") == ["500 mg"]
     assert [(f.kind, f.value) for f in extract("Nehmen Sie 500 mg.", "de", kinds=KZ.guard.kinds)] == [
@@ -543,7 +583,7 @@ def test_extract_contract():
     for f in extract(text, "ar", glossary=MED):  # spans point into the original (diacritics and all)
         assert text[f.span[0]:f.span[1]].strip() == f.surface
     assert extract("", "de") == [] and extract("Hallo", "xx") == []
-    assert values("Take 500 mg on 12.11.2026 at 9:00.", "pl") == ["500 mg", "2026-11-12", "09:00"]
+    assert values("Take 500 mg on 12.11.2026 at 9:00.", "pl") == ["500 mg", "--11-12", "09:00"]
 
 
 def test_summary_tests_sentences_are_green():

@@ -23,19 +23,23 @@ run in a fixed order, each consuming its span so a number is counted once:
     currency / unit words; then glossary medications and names, allergy, negation, and the
     deadline promotion of dates.
 
-Normalised values (``Fact.value``): dose "500 mg" (mass in mg, volume in ml, "IU"),
-frequency "2/day" | "1/week" | "q8h", date "--11-12" | "2026-11-12" | "--03" (month) | "---12"
-(day) | "wd:thu", time "09:00", duration "P7D" | "PT8H", amount "1200000 EUR" (or "1050000"
-without a currency), percent "20%", number "3" | "2.5", medication/name/allergen = the
-glossary's German key, allergy "present" when no allergen is named, negation "negated".
+Normalised values (``Fact.value``, the convention of ``eval/sets/README.md``): dose "500 mg" /
+"0.5 g" / "10 µg" / "5 ml" / "100 IE" (the stated unit; the comparison converts to mg / ml, so 0,5 g
+== 500 mg), frequency "2/day" | "1/week" | "q8h", date "--11-12" | "--03" (month) | "---12" (day) |
+"wd:thu" (a stated year is kept for the comparison: 12.11.2026 != 12.11.2025, but == "12 November"),
+time "09:00", duration "P7D" | "PT8H", amount "1200000 EUR" (or "1050000" without a currency) plus a
+currency fact "EUR", percent "20%", number "3" | "2.5", medication/name/allergen = the glossary's
+German key, allergy "present" when no allergen is named, negation "not".
 
 Matching (``check``): exact multiset match per value, then lenient pairs that are the same fact
 said differently — a date with a year vs the same day without one, a deadline vs a plain date, an
-amount with a currency vs the same number without one. Weak facts (number words for 1 that double
-as articles: "ein", "a", "bir", "один", "واحد"; Arabic dual nouns = 2) only ever *satisfy* the
-other side, never raise an alarm. Medication, allergy, name, negation, currency and unit are
-compared as sets (a drug named twice in the source and once in the translation is fine).
-FactCheck ``src``/``tgt`` carry the surface form as written (what the patient reads).
+amount with a currency vs the same number without one. Weak facts only ever *satisfy* the other
+side, never raise an alarm: number words for 1 that double as articles ("ein", "a", "bir", "один",
+"واحد"; not reported by ``extract``), Arabic dual nouns (= 2), and the currency that comes with an
+amount (a currency swap already shows on the amount row; a currency named on one side only is not
+an error). Medication, allergy, name, negation, currency and unit are compared as sets (a drug
+named twice in the source and once in the translation is fine). FactCheck ``src``/``tgt`` carry the
+surface form as written (what the patient reads).
 
 Known limits (deliberate, to keep false alarms down)
 ----------------------------------------------------
@@ -44,7 +48,7 @@ Known limits (deliberate, to keep false alarms down)
   "at most / at the latest / at least" ("nicht mehr als", "no later than", "не позднее",
   "لا يتجاوز") are not counted as negation.
 - Turkish verb negation is best effort from suffixes (-mıyor, -mayın, -mamalı, -madı, -mayacak,
-  -maz, -mamış) plus değil/yok/hiç/asla/hayır. Bare -ma/-me (informal "alma!") is not counted
+  -maz, -mam, -mayız, -mamış) plus değil/yok/hiç/asla/hayır. Bare -ma/-me ("alma!") is not counted
   because it collides with verbal nouns ("açma"). A positive verb whose stem ends in m
   ("gömüyor") can read as negated.
 - Proper names: only glossary ``kind: name`` terms are checked strictly. Other capitalised Latin
@@ -60,6 +64,7 @@ Known limits (deliberate, to keep false alarms down)
 
 from __future__ import annotations
 
+import itertools
 import re
 import time
 from collections.abc import Callable, Iterable
@@ -306,31 +311,33 @@ _CURRENCIES: dict[str, list[tuple[str, str]]] = {
 _D = Decimal
 _UNITS_COMMON: list[tuple[str, str, Decimal]] = [
     (r"mg", "mg", _D(1)), (r"µg|mcg|ug", "mg", _D("0.001")), (r"kg", "mg", _D(10**6)), (r"g|gr", "mg", _D(1000)),
-    (r"ml", "ml", _D(1)), (r"l", "ml", _D(1000)), (r"i\.\s?e\.|i\.\s?u\.|ie|iu", "IU", _D(1)),
+    (r"ml", "ml", _D(1)), (r"l", "ml", _D(1000)), (r"i\.\s?e\.|i\.\s?u\.|ie|iu", "IE", _D(1)),
 ]
 _UNITS: dict[str, list[tuple[str, str, Decimal]]] = {
     "de": [(r"milligramm", "mg", _D(1)), (r"mikrogramm", "mg", _D("0.001")), (r"kilogramm|kilo", "mg", _D(10**6)),
            (r"gramm", "mg", _D(1000)), (r"milliliter", "ml", _D(1)), (r"liter", "ml", _D(1000)),
-           (r"einheiten|einheit", "IU", _D(1))],
+           (r"einheiten|einheit", "IE", _D(1))],
     "en": [(r"milligrams?|milligrammes?", "mg", _D(1)), (r"micrograms?", "mg", _D("0.001")),
            (r"kilograms?|kilos?", "mg", _D(10**6)), (r"grams?|grammes?", "mg", _D(1000)),
            (r"millilit(?:er|re)s?", "ml", _D(1)), (r"lit(?:er|re)s?", "ml", _D(1000)),
-           (r"(?:international )?units?", "IU", _D(1))],
+           (r"(?:international )?units?", "IE", _D(1))],
     "tr": [(r"miligram\w*", "mg", _D(1)), (r"mikrogram\w*", "mg", _D("0.001")), (r"kilogram\w*|kilo", "mg", _D(10**6)),
            (r"gram\w*", "mg", _D(1000)), (r"mililitre\w*", "ml", _D(1)), (r"litre\w*", "ml", _D(1000)),
-           (r"ünite\w*", "IU", _D(1))],
+           (r"ünite\w*", "IE", _D(1))],
     "ru": [(r"мг|миллиграмм\w*", "mg", _D(1)), (r"мкг|микрограмм\w*", "mg", _D("0.001")),
            (r"кг|килограмм\w*", "mg", _D(10**6)), (r"г|гр|грамм\w*", "mg", _D(1000)),
-           (r"мл|миллилитр\w*", "ml", _D(1)), (r"л|литр\w*", "ml", _D(1000)), (r"ме|ед\.?|единиц\w*", "IU", _D(1))],
+           (r"мл|миллилитр\w*", "ml", _D(1)), (r"л|литр\w*", "ml", _D(1000)), (r"ме|ед\.?|единиц\w*", "IE", _D(1))],
     "uk": [(r"мг|міліграм\w*", "mg", _D(1)), (r"мкг|мікрограм\w*", "mg", _D("0.001")), (r"кг", "mg", _D(10**6)),
            (r"г|грам\w*", "mg", _D(1000)), (r"мл|мілілітр\w*", "ml", _D(1)), (r"л|літр\w*", "ml", _D(1000)),
-           (r"од\.?|одиниц\w*", "IU", _D(1))],
+           (r"од\.?|одиниц\w*", "IE", _D(1))],
     "ar": [(r"ملغ|ملغم|مغ|مجم|ملجم|ملليغرام|مليغرام|ميليغرام|ملغرام|ملليجرام|مليجرام", "mg", _D(1)),
            (r"ميكروغرام|ميكروجرام|مكغ", "mg", _D("0.001")), (r"كغ|كجم|كيلوغرام|كيلوجرام|كيلو", "mg", _D(10**6)),
            (r"غرام|غرامات|جرام|جرامات|غم|جم|غ", "mg", _D(1000)),
            (r"مل|ملل|مليلتر|ملليلتر|ميليلتر|مليلترات", "ml", _D(1)), (r"لتر|لترات", "ml", _D(1000)),
-           (r"وحدة دولية|وحدات دولية|وحدة|وحدات", "IU", _D(1))],
+           (r"وحدة دولية|وحدات دولية|وحدة|وحدات", "IE", _D(1))],
 }
+_UNIT_SYMBOL = {("mg", _D(1)): "mg", ("mg", _D(1000)): "g", ("mg", _D("0.001")): "µg", ("mg", _D(10**6)): "kg",
+                ("ml", _D(1)): "ml", ("ml", _D(1000)): "l", ("IE", _D(1)): "IE"}
 _SOLO_UNIT_MIN_LEN = 4  # standalone unit words ("in Milligramm"), never bare symbols like "g"
 
 _DUR: dict[str, list[tuple[str, str]]] = {
@@ -402,8 +409,9 @@ _WD_NAMES = {1: "mon", 2: "tue", 3: "wed", 4: "thu", 5: "fri", 6: "sat", 7: "sun
 
 _ALLERGY = {"de": r"\w*allergi\w*|unverträglich\w*", "en": r"allerg\w*", "tr": r"alerj\w*", "ru": r"аллерги\w*",
             "uk": r"алергі\w*", "ar": r"حساسي\w*|تحسس\w*"}
-_CONTRAST = {"de": r"aber|jedoch|sondern", "en": r"but|however", "tr": r"ama|fakat|ancak", "ru": r"но|однако",
-             "uk": r"але|однак", "ar": r"لكن|ولكن|لكنني|ولكنني"}
+_CONTRAST = {"de": r"aber|jedoch|sondern|deshalb|daher|darum|weil|denn", "en": r"but|however|so|therefore|because",
+             "tr": r"ama|fakat|ancak|çünkü|için|bu yüzden|bu nedenle", "ru": r"но|однако|поэтому|потому|так что",
+             "uk": r"але|однак|тому", "ar": r"لكن|ولكن|لكنني|ولكنني|لذلك|لذا|لأن"}
 
 _NEG = {
     "de": r"nicht|kein\w*|nie|niemals|nichts|niemand\w*|nein|weder|nirgend\w*",
@@ -411,7 +419,7 @@ _NEG = {
           r"wasnt|werent|shouldnt|wouldnt|couldnt|mustnt|havent|hasnt|hadnt",
     "tr": r"değil\w*|yok\w*|hiç\w*|asla|hayır|\w+m[ıiuü]yor\w*|\w+m[ae]y[ıi]n(?:[ıi]z)?|\w+m[ae]m[ae]l[ıi]\w*|"
           r"\w+m[ae]d[ıiuü]\w*|\w+m[ae]y[ae]c[ae]k\w*|\w+m[ae]z(?:s[ae]\w*|l[ae]r\w*|s[ıi]n\w*)?|"
-          r"\w+m[ae]m[ıiuü]ş\w*|\w+m[ae]m[ae]k\w*",
+          r"\w+m[ae]m[ıiuü]ş\w*|\w+m[ae]m[ae]k\w*|\w+m[ae]y[ıi]z\w*|(?!(?:tamam|hamam|imam)(?!\w))\w+m[ae]m",
     "ru": r"не|нет|ни|нельзя|никогда|ничего|ничто|никто|никак\w*|нигде",
     "uk": r"не|ні|ніколи|нічого|немає|нема",
     "ar": r"[وف]?(?:لا|لم|لن|ليس|ليست|لست|لسنا|ليسوا|لستم|غير|أبدا|مش|مو|بلاش|أليس)",
@@ -441,8 +449,10 @@ _DL_WEAK_BEFORE = {  # must be right in front of the date
     "uk": r"до",
     "ar": r"حتى|بحلول|لغاية|قبل",
 }
-_DL_AFTER = {"tr": r"kadar"}
+_DL_AFTER = {"tr": r"(?:gün\w*\s+|ay\w*\s+)?kadar"}
 
+_JOIN = re.compile(r"[\s\-]*(?:(?:,|\u060c|und|and|ve|ile|и|или|oder|or|veya|و)\s*)?[\s\-]*")
+_DATE_GLUE = re.compile(r"[\s,]*(?:den|dem|der|the|le)?[\s,]*")
 _TITLES = r"herr|herrn|frau|dr\.|prof\.|mr\.?|mrs\.?|ms\.?|miss|sayın|bay|bayan|господин|госпожа|السيد|السيدة"
 
 
@@ -744,6 +754,7 @@ class _F:
     surface: str = ""
     span: tuple[int, int] = (0, 0)
     heur: bool = False  # heuristic name (title + capitalised token): reported by extract, never compared
+    hidden: bool = False  # weak fact that extract() does not report (an article read as "1")
 
 
 _AR_DUAL_LEX: list[_Lex] = []
@@ -784,8 +795,9 @@ def _date(kind: str, y: int | None, mo: int | None, d: int | None, a: int, b: in
     if d is not None and not 1 <= d <= 31:
         return None
     if y is not None and mo and d:
-        v = f"{y:04d}-{mo:02d}-{d:02d}"
-        return _mk(kind, v, a, b, key="date", alts=(("date", f"--{mo:02d}-{d:02d}"),))
+        f = _mk(kind, f"--{mo:02d}-{d:02d}", a, b, key="date", alts=(("date", f"--{mo:02d}-{d:02d}"),))
+        f.key = ("date", f"{y:04d}-{mo:02d}-{d:02d}")
+        return f
     if mo and d:
         v = f"--{mo:02d}-{d:02d}"
     elif mo:
@@ -1026,6 +1038,11 @@ def _scan(text: str, lang: str, glossary: Glossary | None) -> tuple[_Text, list[
             num = _fmt(nv)
             code = p.cur.get(g["cur"]) if g.get("cur") else None
             if code:
+                # the currency is also a (weak) fact of its own: "Euro" -> "dollars" shows as its own row via
+                # the amount; a currency named on one side only ("1,05 Millionen" -> "1.05 million euros")
+                # never alarms
+                ca, cb = m.span("cur")
+                out.append(_F(kind="currency", value=code, a=ca, b=cb, key=("currency", code), weak=True))
                 return _mk("amount", f"{num} {code}", *m.span(), key="amt", alts=(("num", num),), num=nv)
             return _mk("amount", num, *m.span(), key="num", num=nv)
         return fn
@@ -1039,10 +1056,12 @@ def _scan(text: str, lang: str, glossary: Glossary | None) -> tuple[_Text, list[
         u = p.units.get(m.group("u"))
         if nv is None or u is None:
             return None
-        canon, factor = u
+        base, factor = u
         if lang in ("ru", "uk") and m.group("u") in ("г", "л") and 1900 <= nv <= 2100:
             return None  # "2026 г." is a year
-        return _mk("dose", f"{_fmt(nv * factor)} {canon}", *m.span(), num=nv)
+        f = _mk("dose", f"{_fmt(nv)} {_UNIT_SYMBOL[(base, factor)]}", *m.span(), num=nv)
+        f.key = ("dose", f"{_fmt(nv * factor)} {base}")  # 0,5 g == 500 mg
+        return f
 
     _run(t, p.rx["dose"], dose_fn, out)
 
@@ -1076,7 +1095,11 @@ def _scan(text: str, lang: str, glossary: Glossary | None) -> tuple[_Text, list[
 
     def weak_fn(m: re.Match[str]) -> _F | None:
         v = p.weak.get(m.group(0))
-        return _mk("number", str(v), *m.span(), key="num", weak=True, num=Decimal(v)) if v else None
+        if not v:
+            return None
+        f = _mk("number", str(v), *m.span(), key="num", weak=True, num=Decimal(v))
+        f.hidden = True
+        return f
 
     _run(t, p.rx["weak"], weak_fn, out)
 
@@ -1108,32 +1131,40 @@ def _scan(text: str, lang: str, glossary: Glossary | None) -> tuple[_Text, list[
         if len(m.group(0)) < _SOLO_UNIT_MIN_LEN or lang == "ar":
             return None
         u = p.units.get(m.group(0))
-        return _mk("unit", u[0], *m.span()) if u else None
+        return _mk("unit", _UNIT_SYMBOL[u], *m.span()) if u else None
 
     _run(t, p.rx["unit_solo"], unit_fn, out)
 
     # -------------------------------------------------- allergy
+    # The allergen slot of each keyword, in this order: (1) written right in front of it or inside the
+    # same word ("Penicillin-Allergie", "penisiline alerjim", "X ve Y'ye alerjim"); (2) after it in the
+    # same clause ("allergisch gegen X", "аллергия на X", "حساسية من X"); (3) earlier in the clause
+    # ("Gegen Penicillin bin ich allergisch").
     seen_allergens: set[str] = set()
     present: tuple[int, int] | None = None
+    cands = sorted((h for h in gl_hits if h[0].kind in ("medication", "term")), key=lambda h: h[1])
     for m in p.rx["allergy"].finditer(norm):
         ka, kb = m.span()
-        stop = _boundary_after(t, kb, 60, ",")
-        c = p.rx["contrast"].search(norm, kb, stop)
-        if c:
-            stop = c.start()
-        found = False
-        for term, a, b in gl_hits:
-            if term.kind not in ("medication", "term"):
-                continue
-            after = kb <= a < stop
-            adjacent = a <= ka and ka - b <= 2 and not re.search(r"[.!?;,؟]", norm[b:ka])
-            inside = a <= ka < b or ka <= a < kb
-            if after or adjacent or inside:
-                found = True
-                if term.de not in seen_allergens:
-                    seen_allergens.add(term.de)
-                    out.append(_mk("allergy", term.de, a, b))
-        if not found and present is None:
+        picked = [h for h in cands if h[1] <= ka < h[2] or ka <= h[1] < kb]
+        edge = min([ka, *(h[1] for h in picked)])
+        for h in reversed([h for h in cands if h[2] <= edge]):
+            if not _JOIN.fullmatch(norm[h[2]:edge]):
+                break
+            picked.append(h)
+            edge = h[1]
+        if not picked:
+            stop = _boundary_after(t, kb, 60, ",\u060c")
+            c = p.rx["contrast"].search(norm, kb, stop)
+            picked = [h for h in cands if kb <= h[1] < (c.start() if c else stop)]
+        if not picked:
+            start = max(_boundary_before(t, ka, 30), *(i + 1 for i in range(max(0, ka - 30), ka) if norm[i] in ",\u060c"),
+                        0)
+            picked = [h for h in cands if start <= h[1] and h[2] <= ka]
+        for term, a, b in sorted(picked, key=lambda h: h[1]):
+            if term.de not in seen_allergens:
+                seen_allergens.add(term.de)
+                out.append(_mk("allergy", term.de, a, b))
+        if not picked and present is None:
             present = (ka, kb)
     if present is not None and not seen_allergens:
         out.append(_mk("allergy", "present", *present))
@@ -1148,10 +1179,10 @@ def _scan(text: str, lang: str, glossary: Glossary | None) -> tuple[_Text, list[
     if cue is None and lang == "ar":
         mo = re.search(r"(?<!\w)[وف]?ألا(?!\w)", text)  # "that ... not" (not إلا "except"): read the original
         if mo:
-            out.append(_F(kind="negation", value="negated", a=0, b=0, key=("negation", "negated"),
+            out.append(_F(kind="negation", value="not", a=0, b=0, key=("negation", "not"),
                           surface=mo.group(0), span=mo.span()))
     if cue is not None:
-        out.append(_mk("negation", "negated", *cue))
+        out.append(_mk("negation", "not", *cue))
 
     # -------------------------------------------------- deadlines: dates inside a deadline phrase
     for f in out:
@@ -1164,6 +1195,11 @@ def _scan(text: str, lang: str, glossary: Glossary | None) -> tuple[_Text, list[
         if (p.rx["dl_strong"].search(before) or p.rx["dl_before"].search(before)
                 or p.rx["dl_after"].search(after) or p.rx["dl_strong"].search(after)):
             f.kind = "deadline"
+    # "bis Freitag, den 6. November" / "до пятницы, 6 ноября": one deadline said twice
+    dated = sorted((f for f in out if f.kind in ("date", "deadline")), key=lambda f: f.a)
+    for x, y_ in itertools.pairwise(dated):
+        if "deadline" in (x.kind, y_.kind) and _DATE_GLUE.fullmatch(norm[x.b:y_.a]):
+            x.kind = y_.kind = "deadline"
 
     for f in out:
         if not f.span or f.span == (0, 0):
@@ -1199,12 +1235,12 @@ def _kinds(kinds: Iterable[str] | None) -> frozenset[str]:
 
 def extract(text: str, lang: str, *, kinds: Iterable[str] | None = None,
             glossary: Glossary | None = None) -> list[Fact]:
-    """All facts in ``text`` (weak ones excluded), in text order, restricted to ``kinds``."""
+    """All facts in ``text`` in text order, restricted to ``kinds`` (articles read as "1" are left out)."""
     if not text:
         return []
     _t, facts = _scan(text, lang, glossary)
     return [Fact(kind=f.kind, value=f.value, surface=f.surface, span=f.span)
-            for f in _select(facts, _kinds(kinds)) if not f.weak]
+            for f in _select(facts, _kinds(kinds)) if not f.hidden]
 
 
 # ================================================================ comparison
