@@ -55,7 +55,7 @@ async function phone(role, lang, wav, w = 390, h = 844) {
 
 const t0 = Date.now();
 const A = await phone("a", "de", speaker === "a" ? "de1_loop.wav" : "silence.wav");
-const B = await phone("b", "ar", speaker === "b" ? "ar1_loop.wav" : "silence.wav");
+const B = await phone("b", speaker === "b" ? "ar" : "ru", speaker === "b" ? "ar1_loop.wav" : "silence.wav"); // ru listener; only the recorded speaker clip is Arabic
 console.log(`both joined in ${((Date.now() - t0) / 1000).toFixed(1)} s`);
 
 const tableBrowser = await puppeteer.launch({ executablePath: CHROME, headless: "new", args: ["--no-first-run"] });

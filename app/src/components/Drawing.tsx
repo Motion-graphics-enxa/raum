@@ -13,6 +13,11 @@ import { t } from "../lib/i18n";
 import { Check, RevisionMark } from "./Icons";
 import "./drawing.css";
 
+/** Sofia Sans draws Bulgarian letterforms unless Cyrillic is marked Russian: mark Cyrillic figures "ru". */
+function cyr(v: ReactNode): string | undefined {
+  return typeof v === "string" && /[\u0400-\u04FF]/.test(v) ? "ru" : undefined;
+}
+
 export type DimState = "ok" | "pending" | "unsure" | "bad";
 
 export function Dimension({
@@ -30,7 +35,7 @@ export function Dimension({
 }) {
   return (
     <span className={`dim dim--${state}`} style={{ "--dim-delay": `${delay}ms` } as React.CSSProperties}>
-      <span className="dim__value mono" dir="auto">{value}</span>
+      <span className="dim__value mono" dir="auto" lang={cyr(value)}>{value}</span>
       <span className="dim__line" aria-hidden="true">
         <span className="dim__end dim__end--s" />
         <span className="dim__end dim__end--e" />
@@ -196,9 +201,9 @@ export function FactDims({
         ) : (
           <RevisionCloud key={`${f.kind}-${i}`} label={t(lang, "talk.mismatch")}>
             <span className="cloud__pair mono">
-              <span className="cloud__said" dir="auto">{f.src ?? "—"}</span>
+              <span className="cloud__said" dir="auto" lang={cyr(f.src)}>{f.src ?? "—"}</span>
               <span className="cloud__ne" aria-hidden="true">≠</span>
-              <span className="cloud__got" dir="auto">{f.tgt ?? "—"}</span>
+              <span className="cloud__got" dir="auto" lang={cyr(f.tgt)}>{f.tgt ?? "—"}</span>
             </span>
             <span className="dim__kind">{t(lang, `kind.${f.kind}`)}</span>
           </RevisionCloud>

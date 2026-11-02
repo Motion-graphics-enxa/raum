@@ -41,7 +41,7 @@ async function phone(role, lang) {
 }
 
 const A = await phone("a", "de");
-const B = await phone("b", "ar");
+const B = await phone("b", "ru");
 const tctx = await browser.createBrowserContext();
 const T = await tctx.newPage();
 await T.emulateMediaFeatures([{ name: "prefers-color-scheme", value: scheme }]);

@@ -391,7 +391,7 @@ function CheckDemo({ lang }: { lang: Lang }) {
         <p className={`demo__tr ${translated ? "is-on" : ""}`} lang={lang} aria-live="polite">
           {translated ? (fixed ? DEMO.right[lang] : DEMO.wrong[lang]) : " "}
         </p>
-        <div className={`demo__facts ${translated ? "is-on" : ""}`}>
+        <div className={`demo__facts ${translated ? "is-on" : ""}`} lang={lang}>
           <span className="demo__chip demo__chip--ok">
             <b>{lang === "en" ? "Thursday" : "четверг"}</b>
             <small>Day</small>
@@ -449,7 +449,7 @@ function RoomStory({ room, lang }: { room: Room; lang: Lang }) {
         <p className="lroom__tr" lang={lang}>
           {room.tr[lang]}
         </p>
-        <ul className="lroom__facts" aria-label="Checked facts">
+        <ul className="lroom__facts" aria-label="Checked facts" lang={lang}>
           {room.facts.map((f, i) => (
             <li key={f.kind} style={{ "--d": `${i * 90}ms` } as React.CSSProperties}>
               <b>{f.value[lang]}</b>

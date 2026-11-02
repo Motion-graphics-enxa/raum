@@ -41,7 +41,7 @@ SCRIPT = {
           "tr": "İyi günler. Bugün sizi buraya ne getirdi?", "ru": "Добрый день. Что привело вас ко мне сегодня?"},
          "green"),
         # green: noted on the doctor's screen, nobody asked
-        ("b", "ar", "أتناول 500 ملغ من ميتفورمين مرتين يوميًا، وعندي حساسية من البنسلين.",
+        ("b", "ru", "Я принимаю 500 мг метформина два раза в день, и у меня аллергия на пенициллин.",
          {"de": "Ich nehme zweimal täglich 500 mg Metformin, und ich bin allergisch gegen Penicillin."}, "green"),
         # the checker is unsure (amber): read back to the patient
         ("a", "de", "Gut. Dann bleiben wir bei 500 mg Metformin, zweimal täglich nach dem Essen.",
@@ -50,14 +50,14 @@ SCRIPT = {
           "tr": "Peki. O zaman günde iki kez yemekten sonra 500 mg Metformin ile devam ediyoruz.",
           "ru": "Хорошо. Тогда остаёмся на Метформине по 500 мг два раза в день после еды."}, "amber"),
         # not an answer: the dose stays unconfirmed, nobody asks again
-        ("b", "ar", "شكرًا. هل يمكنني أن أشرب القهوة؟", {"de": "Danke. Darf ich Kaffee trinken?"}, "green"),
+        ("b", "ru", "Спасибо. Можно мне пить кофе?", {"de": "Danke. Darf ich Kaffee trinken?"}, "green"),
         # the translation says the 13th: a guard mismatch, read back at once
         ("a", "de", "Kommen Sie am Donnerstag, dem 12. November, um 9 Uhr wieder.",
          {"ar": "عودي يوم الخميس، 13 نوفمبر، الساعة 9.", "en": "Come back on Thursday, 13 November, at 9 o'clock.",
           "tr": "13 Kasım Perşembe günü saat 9'da tekrar gelin.", "ru": "Приходите снова в четверг, 13 ноября, в 9 часов."},
          "red"),
         # the patient's spoken yes confirms the date
-        ("b", "ar", "نعم.", {"de": "Ja."}, "green"),
+        ("b", "ru", "Да.", {"de": "Ja."}, "green"),
     ],
 }
 SIMILARITY = {"green": 0.93, "amber": 0.84, "red": 0.71}
@@ -70,7 +70,7 @@ def pipeline(room: str, mode_id: str, emit, who: dict[str, str], langs: dict[str
     for stage in ("asr", "translate", "verify", "embed", "tts"):
         getattr(cfg.models, stage).engine = "mock"
     p = RoomPipeline(room, get_mode(mode_id), build_engines(cfg, seed=0), emit, cfg)  # mock voice: no sink
-    p.set_participants([ParticipantInfo(id=who[r], role=r, lang=langs[r] or ("de" if r == "a" else "ar"))
+    p.set_participants([ParticipantInfo(id=who[r], role=r, lang=langs[r] or ("de" if r == "a" else "ru"))
                         for r in ("a", "b")])
     return p
 
@@ -125,7 +125,7 @@ async def main() -> None:
             speaker = who[role]
             src_lang = langs[role] if role == "a" and langs[role] == "de" else src_lang
             listener = "b" if role == "a" else "a"
-            tgt = langs[listener] or ("de" if listener == "a" else "ar")
+            tgt = langs[listener] or ("de" if listener == "a" else "ru")
             tr = trs.get(tgt) or trs.get("en") or next(iter(trs.values()))
             await emit("utterance.start", {"speaker": speaker, "lang": src_lang}, utt)
             words = src.split()
