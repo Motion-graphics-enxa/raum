@@ -82,7 +82,7 @@
   height: 2px;
   margin-inline-start: 0.15em;
   vertical-align: baseline;
-  background: var(--brand-2);
+  background: var(--link);
   animation: caret 900ms steps(2, start) infinite;
 }
 @keyframes caret {
@@ -132,7 +132,7 @@
   border: 0;
   background: none;
   padding: var(--s-1) 0;
-  color: var(--brand-2);
+  color: var(--link);
   font-family: var(--font-mono);
   font-size: var(--label);
   letter-spacing: var(--label-track);
@@ -153,7 +153,7 @@
 }
 .turn__explain.is-sent {
   border-style: solid;
-  border-color: var(--brand-2);
+  border-color: var(--link);
 }
 .turn__explain p {
   font-size: var(--ramp-1);

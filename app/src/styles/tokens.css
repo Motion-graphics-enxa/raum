@@ -27,6 +27,7 @@
   --brand-ink: #eef6fc;
   --brand-ink-2: #b9d3e8;
   --brand-rule: #2f5f8a;
+  --link: #164f82; /* interactive ink on the sheet: links, hints, caret, selected seat */
 
   /* semantic pens */
   --ok: #157347;
@@ -91,6 +92,7 @@
     --brand-ink: #eaf4fb;
     --brand-ink-2: #9fc2dc;
     --brand-rule: #24507a;
+    --link: #9fd3ff;
     --ok: #63d69e;
     --ok-wash: #0f3b3d;
     --unsure: #f3b85b;
@@ -120,6 +122,7 @@
   --brand-ink: #eaf4fb;
   --brand-ink-2: #9fc2dc;
   --brand-rule: #24507a;
+  --link: #9fd3ff;
   --ok: #63d69e;
   --ok-wash: #0f3b3d;
   --unsure: #f3b85b;

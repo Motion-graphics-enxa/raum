@@ -124,7 +124,7 @@
   border: 0;
   background: none;
   padding: 0;
-  color: var(--brand-2);
+  color: var(--link);
   text-decoration: underline;
   text-underline-offset: 0.18em;
   font: inherit;

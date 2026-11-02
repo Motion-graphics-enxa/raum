@@ -23,7 +23,7 @@ body {
   font-optical-sizing: auto;
   -webkit-font-smoothing: antialiased;
   font-variant-numeric: tabular-nums;
-  caret-color: var(--brand-2);
+  caret-color: var(--link);
 }
 
 #root {
@@ -31,7 +31,7 @@ body {
 }
 
 ::selection {
-  background: color-mix(in oklab, var(--brand-2) 28%, transparent);
+  background: color-mix(in oklab, var(--link) 28%, transparent);
   color: var(--ink);
 }
 
@@ -64,7 +64,7 @@ button:disabled {
 }
 
 a {
-  color: var(--brand-2);
+  color: var(--link);
   text-underline-offset: 0.18em;
   text-decoration-thickness: 1px;
 }

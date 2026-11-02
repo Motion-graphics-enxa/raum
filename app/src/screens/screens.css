@@ -82,7 +82,7 @@
   width: 34px;
   height: 34px;
   stroke-width: 1.5;
-  color: var(--brand-2);
+  color: var(--link);
 }
 .join__lang {
   display: grid;
@@ -121,7 +121,7 @@
   font-size: var(--label);
   letter-spacing: var(--label-track);
   text-transform: uppercase;
-  color: var(--brand-2);
+  color: var(--link);
   pointer-events: none;
 }
 .join__consent {
@@ -173,6 +173,13 @@
 .join__go {
   display: grid;
   gap: var(--s-3);
+  /* the one action stays in reach on a phone: pinned to the bottom of the sheet */
+  position: sticky;
+  bottom: 0;
+  margin: 0 calc(var(--s-5) * -1) calc((env(safe-area-inset-bottom, 0px) + var(--s-5)) * -1);
+  padding: var(--s-4) var(--s-5) calc(env(safe-area-inset-bottom, 0px) + var(--s-4));
+  background: var(--paper);
+  border-top: var(--line) solid var(--rule);
 }
 .join__note {
   font-size: 0.875rem;
@@ -263,9 +270,9 @@
   transition: stroke 200ms var(--ease-out);
 }
 .plan__seat.is-in rect {
-  stroke: var(--brand-2);
+  stroke: var(--link);
   stroke-dasharray: none;
-  fill: color-mix(in oklab, var(--brand-2) 14%, transparent);
+  fill: color-mix(in oklab, var(--link) 14%, transparent);
 }
 .plan__seat text,
 .plan__dimtext {
@@ -380,7 +387,7 @@
   text-align: start;
 }
 .menu__list .icon {
-  color: var(--brand-2);
+  color: var(--link);
 }
 
 /* ---------------------------------------------------------------- summary */
