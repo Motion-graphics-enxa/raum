@@ -293,7 +293,7 @@ def targets(s: dict[str, Any]) -> list[dict[str, Any]]:
                 "value": g["numbers_rate"], "pass": None if g["numbers_rate"] is None
                 else g["numbers_rate"] >= TARGETS["guard_numbers"]})
     sem = s.get("check", {}).get("semantic_rate")
-    out.append({"metric": "Checker on semantic perturbations (negation, allergy omitted)", "target": ">= 80%",
+    out.append({"metric": "Checker on semantic perturbations (negation, allergy omitted, semantic)", "target": ">= 80%",
                 "value": sem, "pass": None if sem is None else sem >= TARGETS["check_semantic"]})
     fa_src = s.get("combined", s["guard"])["false_alarms"]
     out.append({"metric": "False alarms on clean set" + (" (guard + checker)" if "combined" in s else " (guard)"),

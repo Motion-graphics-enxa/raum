@@ -449,7 +449,7 @@ _NEG = {
           r"\w+m[ae]m[ıiuü]ş\w*|\w+m[ae]m[ae]k\w*|\w+m[ae]y[ıi]z\w*|(?!(?:tamam|hamam|imam)(?!\w))\w+m[ae]m",
     "ru": r"не|нет|ни|нельзя|никогда|ничего|ничто|никто|никак\w*|нигде",
     "uk": r"не|ні|ніколи|нічого|немає|нема",
-    "ar": r"[وف]?(?:لا|لم|لن|ليس|ليست|لست|لسنا|ليسوا|لستم|غير|أبدا|مش|مو|بلاش|أليس)",
+    "ar": r"[وف]?(?:لا|لم|لن|ليس|ليست|لست|لسنا|ليسوا|لستم|غير|عدم|أبدا|مش|مو|بلاش|أليس)",
 }
 _NEG_EXCL = {  # "at most / at the latest / at least": not a negation of the fact
     "de": r"nicht (?:mehr|später|länger|weniger|früher) als|nicht nur",

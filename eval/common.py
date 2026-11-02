@@ -29,9 +29,9 @@ if str(ROOT / "core") not in sys.path:  # same trick as core/tests/conftest.py
     sys.path.insert(0, str(ROOT / "core"))
 os.environ.setdefault("RAUM_HOME", str(ROOT))
 
-PERTURBATIONS = ("wrong_number", "wrong_unit", "negation", "allergy_omitted", "date_shifted")
+PERTURBATIONS = ("wrong_number", "wrong_unit", "negation", "allergy_omitted", "date_shifted", "semantic")
 GUARD_TYPES = ("wrong_number", "wrong_unit", "date_shifted")  # §12.2: "fact guard on perturbed numbers"
-SEMANTIC_TYPES = ("negation", "allergy_omitted")  # §12.2: "checker on semantic perturbations"
+SEMANTIC_TYPES = ("negation", "allergy_omitted", "semantic")  # §12.2: "checker on semantic perturbations"
 
 LANG_NAMES = {
     "de": "German", "en": "English", "ru": "Russian", "tr": "Turkish", "ar": "Arabic", "uk": "Ukrainian",

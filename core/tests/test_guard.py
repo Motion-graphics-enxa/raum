@@ -746,5 +746,7 @@ def test_eval_sets():
             r = _run_item(it, it["ref"])
             assert not r.red, (it["_where"], bad_rows(r))
         pert = it.get("perturbed") or {}
+        if it.get("perturbation") == "semantic":
+            continue  # facts unchanged by design: that one is the second-model check's job (§6.9)
         if pert.get("tgt_text") and pert.get("expect", "red") == "red":
             assert _run_item(it, pert["tgt_text"]).red, it["_where"]
