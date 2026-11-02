@@ -400,12 +400,13 @@
 .budget__mark {
   position: absolute;
   top: 24px;
+  width: 3px;
   height: 24px;
-  border-inline-start: 3px solid var(--ok);
+  background: var(--ok);
   transform: translateX(-1.5px);
 }
 .budget__mark.is-over {
-  border-color: var(--unsure);
+  background: var(--unsure);
 }
 .budget__mlabel {
   position: absolute;
