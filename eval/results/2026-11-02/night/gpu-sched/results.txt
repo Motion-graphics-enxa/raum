@@ -1,0 +1,27 @@
+Voice under GPU contention, GX10, 2 Nov ~20:35-20:45 (friends live on :8090; someone else also used :8091).
+TTS = raum-tts-svc2 :8091, priority background, default voice, 4 clauses (de/en, ~2.5-3 s audio each), seq.
+ttfa = request -> first audio; stall = playback underrun if playback starts at first audio; rtf = synth wall/audio.
+Script: bench.py (box: ~/Desktop/HackathonRaum/runtime/gpu-sched/, JSON per run there).
+
+condition                     ttfa med  maxstall  stall tot  rtf med   load during the burst
+alone (x2)                    233-251       0-2       0-2   0.37-0.41
++partials 1 room (8081/500ms)     315       280       424      0.52   whisper 362 ms/req
++partials 2 rooms                 540       282       828      0.83   whisper ~840 ms/req
++gemma4:e4b x1 (live MT only)     319         0         0      0.58
++gemma4:e4b x2 (live + spec)      535       301       615      0.91
++gpt-oss:20b check                571       249       505      0.88
++other room's voice (8090 bg)     604       357      1050      0.95
+ALL (2x partials, 8082 final/echo 1s, 2x gemma, gpt-oss, other voice)
+                                 1192      1035      1611      2.17
+ALL - partials                   1008      1145      2754      1.62
+ALL - gpt-oss & echo ASR          924      1074      2584      1.58
+ALL - spec MT (1 gemma)           987       930      2593      1.64
+ALL - other room's voice          759       565      1727      1.20
+POLICY (voice-gate: only live MT runs under the voice)
+                                  319         0         0      0.58
+POLICY + other room's voice       563       498       978      0.96
+
+Reading: time-slicing between CUDA contexts gives each process ~1/N of the GPU, so the loads add up.
+Removing any ONE class from ALL leaves rtf > 1 (stalls guaranteed). Only removing all deferrable work
+under the voice (POLICY) brings it back near alone: ttfa 1192 -> 319 ms, max stall 1035 -> 0 ms, rtf 2.17 -> 0.58.
+The second-biggest single factor is a second room's voice on the other TTS process (rtf +0.55 on its own).

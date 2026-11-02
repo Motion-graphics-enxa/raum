@@ -1,0 +1,11 @@
+{
+ "model": "gpt-oss:20b",
+ "tag": "oss20-judge",
+ "mode": "judge",
+ "think": "low",
+ "num_predict": 256,
+ "judge_system": "You check an interpreter's translation. Compare the MEANING of the translation with the source.\nIgnore wording, synonyms, word order, style, formal/informal address, punctuation, and how numbers, dates, units and currencies are written.\nReport a difference only if the meaning changed: a negation added or dropped; a different person, subject or institution; a changed number, unit, dose, date, time, duration or amount; before/after, from/until, at least/at most, more/less, over/under, gross/net, discount/surcharge swapped; content left out or added.\nAnswer only JSON: {\"same_meaning\": true or false, \"diff\": \"the changed words of the translation, or empty\"}",
+ "started": 1793643728.3628201,
+ "items": [],
+ "load_s": 9.93
+}

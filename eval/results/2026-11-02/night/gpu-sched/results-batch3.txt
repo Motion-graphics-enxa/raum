@@ -1,0 +1,8 @@
+all                ttfa med  1192 max  1207 | stall tot max  1611 maxstall  1035 | gap max 1515 | rtf med 2.17 max 2.23 | n=4/4 refused=[] | load whisper:8x2560 whisper:7x2610 whisper:8x2305 gemma:2x7172 gemma:2x7172 gptoss:1x14373 other_voice:4x200
+all-nocheck        ttfa med   924 max   947 | stall tot max  2584 maxstall  1074 | gap max 2274 | rtf med 1.58 max 1.60 | n=4/4 refused=[] | load whisper:17x1410 whisper:17x1467 gemma:9x2661 gemma:9x2661 other_voice:4x200
+all-1mt            ttfa med   987 max  1001 | stall tot max  2593 maxstall   930 | gap max 1781 | rtf med 1.64 max 1.65 | n=4/4 refused=[] | load whisper:17x1668 whisper:16x1718 whisper:20x1440 gemma:10x2648 gptoss:2x14348 other_voice:4x200
+all-noother        ttfa med   759 max   806 | stall tot max  1727 maxstall   565 | gap max 1685 | rtf med 1.20 max 1.22 | n=4/4 refused=[] | load whisper:17x1269 whisper:16x1304 whisper:19x1110 gemma:8x2757 gemma:8x2620 gptoss:2x10501
+policy             ttfa med   319 max   502 | stall tot max     0 maxstall     0 | gap max  900 | rtf med 0.58 max 0.59 | n=4/4 refused=[] | load gemma:16x712
+policy+other       ttfa med   563 max   685 | stall tot max   978 maxstall   498 | gap max 1258 | rtf med 0.96 max 1.07 | n=4/4 refused=[] | load gemma:10x1635 other_voice:19x397
+
+[exited with code 0]

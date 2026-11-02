@@ -1,0 +1,11 @@
+{
+ "model": "gpt-oss:20b",
+ "tag": "oss20-bt",
+ "mode": "bt",
+ "think": "low",
+ "num_predict": 256,
+ "judge_system": null,
+ "started": 1793643728.362621,
+ "items": [],
+ "load_s": 10.07
+}

@@ -1,0 +1,2588 @@
+{
+  "generated_at": "2026-11-02T15:51:02+0100",
+  "profile": "spark",
+  "mode": "full",
+  "engines": "raum.pipeline.engines",
+  "models": {
+    "vad": "silero",
+    "denoise": "passthrough",
+    "asr": "whisper.cpp:large-v3-turbo",
+    "translate": "ollama:gemma4:26b",
+    "verify": "ollama:gpt-oss:120b",
+    "embed": "ollama:bge-m3",
+    "tts": "piper"
+  },
+  "thresholds": {
+    "green": 0.86,
+    "amber": 0.83
+  },
+  "langs": [
+    "en"
+  ],
+  "n_records": 30,
+  "n_approved": 0,
+  "guard_available": true,
+  "guard_reason": "",
+  "summary": {
+    "n": 30,
+    "guard": {
+      "by_type": {
+        "wrong_number": {
+          "n": 3,
+          "evaluated": 3,
+          "caught": 3,
+          "rate": 1.0
+        },
+        "wrong_unit": {
+          "n": 2,
+          "evaluated": 2,
+          "caught": 2,
+          "rate": 1.0
+        },
+        "negation": {
+          "n": 2,
+          "evaluated": 2,
+          "caught": 2,
+          "rate": 1.0
+        },
+        "allergy_omitted": {
+          "n": 2,
+          "evaluated": 2,
+          "caught": 2,
+          "rate": 1.0
+        },
+        "date_shifted": {
+          "n": 1,
+          "evaluated": 1,
+          "caught": 1,
+          "rate": 1.0
+        },
+        "semantic": {
+          "n": 10,
+          "evaluated": 10,
+          "caught": 0,
+          "rate": 0.0
+        }
+      },
+      "numbers_rate": 1.0,
+      "semantic_rate": 0.2857142857142857,
+      "false_alarms": {
+        "n": 30,
+        "red": 0,
+        "rate": 0.0
+      },
+      "extraction": {
+        "expected": 54,
+        "hit": 54,
+        "recall": 1.0,
+        "by_kind": {
+          "allergy": {
+            "expected": 3,
+            "hit": 3,
+            "recall": 1.0
+          },
+          "amount": {
+            "expected": 5,
+            "hit": 5,
+            "recall": 1.0
+          },
+          "currency": {
+            "expected": 4,
+            "hit": 4,
+            "recall": 1.0
+          },
+          "date": {
+            "expected": 5,
+            "hit": 5,
+            "recall": 1.0
+          },
+          "deadline": {
+            "expected": 3,
+            "hit": 3,
+            "recall": 1.0
+          },
+          "dose": {
+            "expected": 4,
+            "hit": 4,
+            "recall": 1.0
+          },
+          "duration": {
+            "expected": 2,
+            "hit": 2,
+            "recall": 1.0
+          },
+          "frequency": {
+            "expected": 4,
+            "hit": 4,
+            "recall": 1.0
+          },
+          "medication": {
+            "expected": 6,
+            "hit": 6,
+            "recall": 1.0
+          },
+          "negation": {
+            "expected": 5,
+            "hit": 5,
+            "recall": 1.0
+          },
+          "number": {
+            "expected": 7,
+            "hit": 7,
+            "recall": 1.0
+          },
+          "percent": {
+            "expected": 3,
+            "hit": 3,
+            "recall": 1.0
+          },
+          "time": {
+            "expected": 3,
+            "hit": 3,
+            "recall": 1.0
+          }
+        }
+      },
+      "ms": {
+        "p50": 0.3665,
+        "p95": 0.7821999999999998,
+        "max": 6.889
+      }
+    },
+    "check": {
+      "by_type": {
+        "wrong_number": {
+          "n": 3,
+          "evaluated": 3,
+          "caught": 0,
+          "rate": 0.0,
+          "flagged": 0,
+          "flag_rate": 0.0
+        },
+        "wrong_unit": {
+          "n": 2,
+          "evaluated": 2,
+          "caught": 0,
+          "rate": 0.0,
+          "flagged": 0,
+          "flag_rate": 0.0
+        },
+        "negation": {
+          "n": 2,
+          "evaluated": 2,
+          "caught": 2,
+          "rate": 1.0,
+          "flagged": 2,
+          "flag_rate": 1.0
+        },
+        "allergy_omitted": {
+          "n": 2,
+          "evaluated": 2,
+          "caught": 2,
+          "rate": 1.0,
+          "flagged": 2,
+          "flag_rate": 1.0
+        },
+        "date_shifted": {
+          "n": 1,
+          "evaluated": 1,
+          "caught": 0,
+          "rate": 0.0,
+          "flagged": 1,
+          "flag_rate": 1.0
+        },
+        "semantic": {
+          "n": 10,
+          "evaluated": 10,
+          "caught": 2,
+          "rate": 0.2,
+          "flagged": 3,
+          "flag_rate": 0.3
+        }
+      },
+      "semantic_rate": 0.42857142857142855,
+      "numbers_rate": 0.0,
+      "false_alarms": {
+        "n": 30,
+        "red": 0,
+        "amber": 1,
+        "rate": 0.0
+      },
+      "similarity": {
+        "clean_p50": 0.98285,
+        "clean_min": 0.8458,
+        "perturbed_p50": 0.89975
+      },
+      "ms": {
+        "p50": 2343.3500000000004,
+        "p95": 8695.835
+      },
+      "calibration": {
+        "red_below": 0.9281,
+        "catch": 0.8571428571428571,
+        "false_alarm": 0.16666666666666666,
+        "j": 0.6905
+      }
+    },
+    "combined": {
+      "by_type": {
+        "wrong_number": {
+          "n": 3,
+          "evaluated": 3,
+          "caught": 3,
+          "rate": 1.0
+        },
+        "wrong_unit": {
+          "n": 2,
+          "evaluated": 2,
+          "caught": 2,
+          "rate": 1.0
+        },
+        "negation": {
+          "n": 2,
+          "evaluated": 2,
+          "caught": 2,
+          "rate": 1.0
+        },
+        "allergy_omitted": {
+          "n": 2,
+          "evaluated": 2,
+          "caught": 2,
+          "rate": 1.0
+        },
+        "date_shifted": {
+          "n": 1,
+          "evaluated": 1,
+          "caught": 1,
+          "rate": 1.0
+        },
+        "semantic": {
+          "n": 10,
+          "evaluated": 10,
+          "caught": 2,
+          "rate": 0.2
+        }
+      },
+      "all_rate": 0.6,
+      "false_alarms": {
+        "n": 30,
+        "red": 0,
+        "rate": 0.0
+      }
+    },
+    "mt": {
+      "n": 30,
+      "errors": 0,
+      "first_ms": {
+        "p50": 415.70000000000005,
+        "p95": 881.0
+      },
+      "full_ms": {
+        "p50": 729.8,
+        "p95": 1305.2150000000001
+      },
+      "guard_pass": 1.0,
+      "similarity_p50": 0.9851000000000001,
+      "badges": {
+        "green": 29,
+        "amber": 1,
+        "red": 0,
+        "grey": 0
+      }
+    }
+  },
+  "by_lang": {
+    "en": {
+      "n": 30,
+      "guard": {
+        "by_type": {
+          "wrong_number": {
+            "n": 3,
+            "evaluated": 3,
+            "caught": 3,
+            "rate": 1.0
+          },
+          "wrong_unit": {
+            "n": 2,
+            "evaluated": 2,
+            "caught": 2,
+            "rate": 1.0
+          },
+          "negation": {
+            "n": 2,
+            "evaluated": 2,
+            "caught": 2,
+            "rate": 1.0
+          },
+          "allergy_omitted": {
+            "n": 2,
+            "evaluated": 2,
+            "caught": 2,
+            "rate": 1.0
+          },
+          "date_shifted": {
+            "n": 1,
+            "evaluated": 1,
+            "caught": 1,
+            "rate": 1.0
+          },
+          "semantic": {
+            "n": 10,
+            "evaluated": 10,
+            "caught": 0,
+            "rate": 0.0
+          }
+        },
+        "numbers_rate": 1.0,
+        "semantic_rate": 0.2857142857142857,
+        "false_alarms": {
+          "n": 30,
+          "red": 0,
+          "rate": 0.0
+        },
+        "extraction": {
+          "expected": 54,
+          "hit": 54,
+          "recall": 1.0,
+          "by_kind": {
+            "allergy": {
+              "expected": 3,
+              "hit": 3,
+              "recall": 1.0
+            },
+            "amount": {
+              "expected": 5,
+              "hit": 5,
+              "recall": 1.0
+            },
+            "currency": {
+              "expected": 4,
+              "hit": 4,
+              "recall": 1.0
+            },
+            "date": {
+              "expected": 5,
+              "hit": 5,
+              "recall": 1.0
+            },
+            "deadline": {
+              "expected": 3,
+              "hit": 3,
+              "recall": 1.0
+            },
+            "dose": {
+              "expected": 4,
+              "hit": 4,
+              "recall": 1.0
+            },
+            "duration": {
+              "expected": 2,
+              "hit": 2,
+              "recall": 1.0
+            },
+            "frequency": {
+              "expected": 4,
+              "hit": 4,
+              "recall": 1.0
+            },
+            "medication": {
+              "expected": 6,
+              "hit": 6,
+              "recall": 1.0
+            },
+            "negation": {
+              "expected": 5,
+              "hit": 5,
+              "recall": 1.0
+            },
+            "number": {
+              "expected": 7,
+              "hit": 7,
+              "recall": 1.0
+            },
+            "percent": {
+              "expected": 3,
+              "hit": 3,
+              "recall": 1.0
+            },
+            "time": {
+              "expected": 3,
+              "hit": 3,
+              "recall": 1.0
+            }
+          }
+        },
+        "ms": {
+          "p50": 0.3665,
+          "p95": 0.7821999999999998,
+          "max": 6.889
+        }
+      },
+      "check": {
+        "by_type": {
+          "wrong_number": {
+            "n": 3,
+            "evaluated": 3,
+            "caught": 0,
+            "rate": 0.0,
+            "flagged": 0,
+            "flag_rate": 0.0
+          },
+          "wrong_unit": {
+            "n": 2,
+            "evaluated": 2,
+            "caught": 0,
+            "rate": 0.0,
+            "flagged": 0,
+            "flag_rate": 0.0
+          },
+          "negation": {
+            "n": 2,
+            "evaluated": 2,
+            "caught": 2,
+            "rate": 1.0,
+            "flagged": 2,
+            "flag_rate": 1.0
+          },
+          "allergy_omitted": {
+            "n": 2,
+            "evaluated": 2,
+            "caught": 2,
+            "rate": 1.0,
+            "flagged": 2,
+            "flag_rate": 1.0
+          },
+          "date_shifted": {
+            "n": 1,
+            "evaluated": 1,
+            "caught": 0,
+            "rate": 0.0,
+            "flagged": 1,
+            "flag_rate": 1.0
+          },
+          "semantic": {
+            "n": 10,
+            "evaluated": 10,
+            "caught": 2,
+            "rate": 0.2,
+            "flagged": 3,
+            "flag_rate": 0.3
+          }
+        },
+        "semantic_rate": 0.42857142857142855,
+        "numbers_rate": 0.0,
+        "false_alarms": {
+          "n": 30,
+          "red": 0,
+          "amber": 1,
+          "rate": 0.0
+        },
+        "similarity": {
+          "clean_p50": 0.98285,
+          "clean_min": 0.8458,
+          "perturbed_p50": 0.89975
+        },
+        "ms": {
+          "p50": 2343.3500000000004,
+          "p95": 8695.835
+        },
+        "calibration": {
+          "red_below": 0.9281,
+          "catch": 0.8571428571428571,
+          "false_alarm": 0.16666666666666666,
+          "j": 0.6905
+        }
+      },
+      "combined": {
+        "by_type": {
+          "wrong_number": {
+            "n": 3,
+            "evaluated": 3,
+            "caught": 3,
+            "rate": 1.0
+          },
+          "wrong_unit": {
+            "n": 2,
+            "evaluated": 2,
+            "caught": 2,
+            "rate": 1.0
+          },
+          "negation": {
+            "n": 2,
+            "evaluated": 2,
+            "caught": 2,
+            "rate": 1.0
+          },
+          "allergy_omitted": {
+            "n": 2,
+            "evaluated": 2,
+            "caught": 2,
+            "rate": 1.0
+          },
+          "date_shifted": {
+            "n": 1,
+            "evaluated": 1,
+            "caught": 1,
+            "rate": 1.0
+          },
+          "semantic": {
+            "n": 10,
+            "evaluated": 10,
+            "caught": 2,
+            "rate": 0.2
+          }
+        },
+        "all_rate": 0.6,
+        "false_alarms": {
+          "n": 30,
+          "red": 0,
+          "rate": 0.0
+        }
+      },
+      "mt": {
+        "n": 30,
+        "errors": 0,
+        "first_ms": {
+          "p50": 415.70000000000005,
+          "p95": 881.0
+        },
+        "full_ms": {
+          "p50": 729.8,
+          "p95": 1305.2150000000001
+        },
+        "guard_pass": 1.0,
+        "similarity_p50": 0.9851000000000001,
+        "badges": {
+          "green": 29,
+          "amber": 1,
+          "red": 0,
+          "grey": 0
+        }
+      }
+    }
+  },
+  "targets": [
+    {
+      "metric": "Fact guard on perturbed numbers/units/dates",
+      "target": "100% caught",
+      "value": 1.0,
+      "pass": true
+    },
+    {
+      "metric": "Checker on semantic perturbations (negation, allergy omitted)",
+      "target": ">= 80%",
+      "value": 0.42857142857142855,
+      "pass": false
+    },
+    {
+      "metric": "False alarms on clean set (guard + checker)",
+      "target": "< 10%",
+      "value": 0.0,
+      "pass": true
+    }
+  ],
+  "records": [
+    {
+      "id": "kz-01-en",
+      "sid": "kz-01",
+      "lang": "en",
+      "room": "kanzlei",
+      "direction": "de>en",
+      "perturbation": "date_shifted",
+      "approved": false,
+      "src": "Die Klagefrist endet am 24. November.",
+      "extract": {
+        "expected": 1,
+        "hit": 1,
+        "missing": [],
+        "found": [
+          {
+            "kind": "deadline",
+            "value": "--11-24"
+          }
+        ]
+      },
+      "guard_ref": {
+        "red": false,
+        "mismatches": [],
+        "ms": 6.889,
+        "error": null
+      },
+      "guard_pert": {
+        "red": true,
+        "mismatches": [
+          {
+            "kind": "deadline",
+            "src": "24. November",
+            "tgt": "25 November",
+            "match": false
+          }
+        ],
+        "ms": 0.188,
+        "error": null
+      },
+      "check_ref": {
+        "similarity": 0.8889,
+        "badge": "green",
+        "combined": "green",
+        "back": "Die Frist für die Einreichung des Anspruchs endet am 24. November.",
+        "ms": 2730.5,
+        "bt_ms": 2615.0,
+        "embed_ms": 115.6
+      },
+      "check_pert": {
+        "similarity": 0.8524,
+        "badge": "amber",
+        "combined": "red",
+        "back": "Die Frist für die Einreichung des Anspruchs endet am 25. November.",
+        "ms": 2696.3,
+        "bt_ms": 2631.8,
+        "embed_ms": 64.5
+      },
+      "mt": {
+        "text": "The deadline for filing the claim ends on November 24.",
+        "first_ms": 943.2,
+        "full_ms": 1353.5,
+        "guard_red": false,
+        "mismatches": [],
+        "similarity": 0.8889,
+        "badge": "green",
+        "combined": "green",
+        "back": "Die Frist für die Einreichung des Anspruchs endet am 24. November.",
+        "ms": 2468.1,
+        "bt_ms": 2321.7,
+        "embed_ms": 146.4
+      }
+    },
+    {
+      "id": "kz-02-en",
+      "sid": "kz-02",
+      "lang": "en",
+      "room": "kanzlei",
+      "direction": "de>en",
+      "perturbation": "wrong_number",
+      "approved": false,
+      "src": "Bringen Sie bitte Ihren Arbeitsvertrag und die letzten drei Lohnabrechnungen mit.",
+      "extract": {
+        "expected": 1,
+        "hit": 1,
+        "missing": [],
+        "found": [
+          {
+            "kind": "number",
+            "value": "3"
+          }
+        ]
+      },
+      "guard_ref": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.355,
+        "error": null
+      },
+      "guard_pert": {
+        "red": true,
+        "mismatches": [
+          {
+            "kind": "number",
+            "src": "drei",
+            "tgt": "four",
+            "match": false
+          }
+        ],
+        "ms": 0.198,
+        "error": null
+      },
+      "check_ref": {
+        "similarity": 0.9823,
+        "badge": "green",
+        "combined": "green",
+        "back": "Bitte bringen Sie Ihren Arbeitsvertrag und Ihre letzten drei Gehaltsabrechnungen mit.",
+        "ms": 1854.0,
+        "bt_ms": 1767.8,
+        "embed_ms": 86.3
+      },
+      "check_pert": {
+        "similarity": 0.9473,
+        "badge": "green",
+        "combined": "red",
+        "back": "Bitte bringen Sie Ihren Arbeitsvertrag und Ihre letzten vier Gehaltsabrechnungen mit.",
+        "ms": 1824.1,
+        "bt_ms": 1764.8,
+        "embed_ms": 59.2
+      },
+      "mt": {
+        "text": "Please bring your employment contract and the last three payslips with you.",
+        "first_ms": 328.1,
+        "full_ms": 616.0,
+        "guard_red": false,
+        "mismatches": [],
+        "similarity": 0.9837,
+        "badge": "green",
+        "combined": "green",
+        "back": "Bitte bringen Sie Ihren Arbeitsvertrag und die letzten drei Gehaltsabrechnungen mit.",
+        "ms": 1334.4,
+        "bt_ms": 1314.4,
+        "embed_ms": 20.0
+      }
+    },
+    {
+      "id": "kz-03-en",
+      "sid": "kz-03",
+      "lang": "en",
+      "room": "kanzlei",
+      "direction": "de>en",
+      "perturbation": "semantic",
+      "approved": false,
+      "src": "Unterschreiben Sie die Aufhebungsvereinbarung nicht, bevor wir sie geprüft haben.",
+      "extract": {
+        "expected": 1,
+        "hit": 1,
+        "missing": [],
+        "found": [
+          {
+            "kind": "negation",
+            "value": "not"
+          }
+        ]
+      },
+      "guard_ref": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.319,
+        "error": null
+      },
+      "guard_pert": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.196,
+        "error": null
+      },
+      "check_ref": {
+        "similarity": 0.9071,
+        "badge": "green",
+        "combined": "green",
+        "back": "Unterschreiben Sie die Kündigungsvereinbarung nicht, bis wir sie geprüft haben.",
+        "ms": 1668.2,
+        "bt_ms": 1596.8,
+        "embed_ms": 71.4
+      },
+      "check_pert": {
+        "similarity": 0.8186,
+        "badge": "red",
+        "combined": "red",
+        "back": "Unterschreiben Sie die Kündigungsvereinbarung nicht, bis Ihr Arbeitgeber sie geprüft hat.",
+        "ms": 2654.4,
+        "bt_ms": 2624.7,
+        "embed_ms": 29.7
+      },
+      "mt": {
+        "text": "Do not sign the termination agreement before we have reviewed it.",
+        "first_ms": 257.1,
+        "full_ms": 498.0,
+        "guard_red": false,
+        "mismatches": [],
+        "similarity": 0.9167,
+        "badge": "green",
+        "combined": "green",
+        "back": "Unterschreiben Sie die Kündigungsvereinbarung nicht, bevor wir sie geprüft haben.",
+        "ms": 5703.4,
+        "bt_ms": 5669.5,
+        "embed_ms": 34.0
+      }
+    },
+    {
+      "id": "kz-04-en",
+      "sid": "kz-04",
+      "lang": "en",
+      "room": "kanzlei",
+      "direction": "en>de",
+      "perturbation": "semantic",
+      "approved": false,
+      "src": "I received my notice of dismissal on November 3.",
+      "extract": {
+        "expected": 1,
+        "hit": 1,
+        "missing": [],
+        "found": [
+          {
+            "kind": "date",
+            "value": "--11-03"
+          }
+        ]
+      },
+      "guard_ref": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.33,
+        "error": null
+      },
+      "guard_pert": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.171,
+        "error": null
+      },
+      "check_ref": {
+        "similarity": 0.935,
+        "badge": "green",
+        "combined": "green",
+        "back": "I received the termination on November 3.",
+        "ms": 3779.8,
+        "bt_ms": 3711.8,
+        "embed_ms": 68.0
+      },
+      "check_pert": {
+        "similarity": 0.9068,
+        "badge": "green",
+        "combined": "green",
+        "back": "I submitted the termination on November 3.",
+        "ms": 1268.8,
+        "bt_ms": 1194.2,
+        "embed_ms": 74.6
+      },
+      "mt": {
+        "text": "Ich habe meine Kündigung am 3. November erhalten.",
+        "first_ms": 652.2,
+        "full_ms": 831.6,
+        "guard_red": false,
+        "mismatches": [],
+        "similarity": 0.9198,
+        "badge": "green",
+        "combined": "green",
+        "back": "I received my termination on 3. November.",
+        "ms": 6349.2,
+        "bt_ms": 6305.1,
+        "embed_ms": 44.1
+      }
+    },
+    {
+      "id": "kz-05-en",
+      "sid": "kz-05",
+      "lang": "en",
+      "room": "kanzlei",
+      "direction": "en>de",
+      "perturbation": "semantic",
+      "approved": false,
+      "src": "I've worked there for six years and I earn 3,200 euros gross a month.",
+      "extract": {
+        "expected": 3,
+        "hit": 3,
+        "missing": [],
+        "found": [
+          {
+            "kind": "duration",
+            "value": "P6Y"
+          },
+          {
+            "kind": "amount",
+            "value": "3200 EUR"
+          },
+          {
+            "kind": "currency",
+            "value": "EUR"
+          }
+        ]
+      },
+      "guard_ref": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.538,
+        "error": null
+      },
+      "guard_pert": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.419,
+        "error": null
+      },
+      "check_ref": {
+        "similarity": 0.9907,
+        "badge": "green",
+        "combined": "green",
+        "back": "I have been working there for six years and earn 3.200 euros gross per month.",
+        "ms": 7682.8,
+        "bt_ms": 7652.1,
+        "embed_ms": 30.7
+      },
+      "check_pert": {
+        "similarity": 0.9659,
+        "badge": "green",
+        "combined": "green",
+        "back": "I have been working there for six years and earn 3.200 euros net per month.",
+        "ms": 2837.4,
+        "bt_ms": 2772.2,
+        "embed_ms": 65.1
+      },
+      "mt": {
+        "text": "Ich habe dort sechs Jahre lang gearbeitet und verdiene 3.200 Euro brutto im Monat.",
+        "first_ms": 291.3,
+        "full_ms": 846.7,
+        "guard_red": false,
+        "mismatches": [],
+        "similarity": 0.98,
+        "badge": "green",
+        "combined": "green",
+        "back": "I worked there for six years and earn €3,200 gross per month.",
+        "ms": 1168.3,
+        "bt_ms": 1141.0,
+        "embed_ms": 27.3
+      }
+    },
+    {
+      "id": "kz-06-en",
+      "sid": "kz-06",
+      "lang": "en",
+      "room": "kanzlei",
+      "direction": "de>en",
+      "perturbation": null,
+      "approved": false,
+      "src": "Die Frist für die Kündigungsschutzklage beträgt drei Wochen ab Zugang der Kündigung.",
+      "extract": {
+        "expected": 1,
+        "hit": 1,
+        "missing": [],
+        "found": [
+          {
+            "kind": "duration",
+            "value": "P3W"
+          }
+        ]
+      },
+      "guard_ref": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.714,
+        "error": null
+      },
+      "check_ref": {
+        "similarity": 0.8458,
+        "badge": "amber",
+        "combined": "amber",
+        "back": "Die Frist für einen Anspruch auf ungerechtfertigte Kündigung beträgt drei Wochen ab Erhalt der Kündigungsmitteilung.",
+        "ms": 2243.3,
+        "bt_ms": 2184.4,
+        "embed_ms": 58.9
+      },
+      "mt": {
+        "text": "The deadline for filing the unfair dismissal claim is three weeks from the receipt of the termination.",
+        "first_ms": 387.5,
+        "full_ms": 607.1,
+        "guard_red": false,
+        "mismatches": [],
+        "similarity": 0.8441,
+        "badge": "amber",
+        "combined": "amber",
+        "back": "Die Frist für die Einreichung der Klage wegen unrechtmäßiger Kündigung beträgt drei Wochen ab dem Erhalt der Kündigung.",
+        "ms": 1732.7,
+        "bt_ms": 1708.2,
+        "embed_ms": 24.5
+      }
+    },
+    {
+      "id": "kz-07-en",
+      "sid": "kz-07",
+      "lang": "en",
+      "room": "kanzlei",
+      "direction": "de>en",
+      "perturbation": "semantic",
+      "approved": false,
+      "src": "Der Termin beim Arbeitsgericht ist am 15. Dezember um 10:30 Uhr.",
+      "extract": {
+        "expected": 2,
+        "hit": 2,
+        "missing": [],
+        "found": [
+          {
+            "kind": "date",
+            "value": "--12-15"
+          },
+          {
+            "kind": "time",
+            "value": "10:30"
+          }
+        ]
+      },
+      "guard_ref": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.704,
+        "error": null
+      },
+      "guard_pert": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.517,
+        "error": null
+      },
+      "check_ref": {
+        "similarity": 0.9541,
+        "badge": "green",
+        "combined": "green",
+        "back": "Die Verhandlung am Arbeitsgericht findet am 15. Dezember um 10:30 Uhr statt.",
+        "ms": 2328.3,
+        "bt_ms": 2257.1,
+        "embed_ms": 71.2
+      },
+      "check_pert": {
+        "similarity": 0.8424,
+        "badge": "amber",
+        "combined": "amber",
+        "back": "Das Treffen mit Ihrem Arbeitgeber ist am 15. Dezember um 10:30.",
+        "ms": 1506.7,
+        "bt_ms": 1483.8,
+        "embed_ms": 22.8
+      },
+      "mt": {
+        "text": "The appointment at the labour court is on December 15 at 10:30 a.m.",
+        "first_ms": 247.0,
+        "full_ms": 586.8,
+        "guard_red": false,
+        "mismatches": [],
+        "similarity": 1.0,
+        "badge": "green",
+        "combined": "green",
+        "back": "Der Termin beim Arbeitsgericht ist am 15. Dezember um 10:30 Uhr.",
+        "ms": 6765.3,
+        "bt_ms": 6699.4,
+        "embed_ms": 65.9
+      }
+    },
+    {
+      "id": "kz-08-en",
+      "sid": "kz-08",
+      "lang": "en",
+      "room": "kanzlei",
+      "direction": "en>de",
+      "perturbation": "negation",
+      "approved": false,
+      "src": "My boss didn't give me a formal warning.",
+      "extract": {
+        "expected": 1,
+        "hit": 1,
+        "missing": [],
+        "found": [
+          {
+            "kind": "negation",
+            "value": "not"
+          }
+        ]
+      },
+      "guard_ref": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.4,
+        "error": null
+      },
+      "guard_pert": {
+        "red": true,
+        "mismatches": [
+          {
+            "kind": "negation",
+            "src": "didn't",
+            "tgt": null,
+            "match": false
+          }
+        ],
+        "ms": 0.261,
+        "error": null
+      },
+      "check_ref": {
+        "similarity": 0.9759,
+        "badge": "green",
+        "combined": "green",
+        "back": "My boss did not give me a warning.",
+        "ms": 1466.0,
+        "bt_ms": 1444.1,
+        "embed_ms": 22.0
+      },
+      "check_pert": {
+        "similarity": 0.8038,
+        "badge": "red",
+        "combined": "red",
+        "back": "My boss gave me a warning.",
+        "ms": 929.3,
+        "bt_ms": 893.5,
+        "embed_ms": 35.9
+      },
+      "mt": {
+        "text": "Mein Chef hat mir keine Abmahnung erteilt.",
+        "first_ms": 441.7,
+        "full_ms": 598.6,
+        "guard_red": false,
+        "mismatches": [],
+        "similarity": 0.9697,
+        "badge": "green",
+        "combined": "green",
+        "back": "My boss did not issue me a warning.",
+        "ms": 3856.5,
+        "bt_ms": 3835.7,
+        "embed_ms": 20.7
+      }
+    },
+    {
+      "id": "kz-09-en",
+      "sid": "kz-09",
+      "lang": "en",
+      "room": "kanzlei",
+      "direction": "de>en",
+      "perturbation": null,
+      "approved": false,
+      "src": "Die Erstberatung kostet 250 Euro.",
+      "extract": {
+        "expected": 2,
+        "hit": 2,
+        "missing": [],
+        "found": [
+          {
+            "kind": "amount",
+            "value": "250 EUR"
+          },
+          {
+            "kind": "currency",
+            "value": "EUR"
+          }
+        ]
+      },
+      "guard_ref": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.256,
+        "error": null
+      },
+      "check_ref": {
+        "similarity": 1.0,
+        "badge": "green",
+        "combined": "green",
+        "back": "Die Erstberatung kostet 250 Euro.",
+        "ms": 1404.4,
+        "bt_ms": 1370.4,
+        "embed_ms": 34.0
+      },
+      "mt": {
+        "text": "The initial consultation costs 250 euros.",
+        "first_ms": 478.5,
+        "full_ms": 713.5,
+        "guard_red": false,
+        "mismatches": [],
+        "similarity": 1.0,
+        "badge": "green",
+        "combined": "green",
+        "back": "Die Erstberatung kostet 250 Euro.",
+        "ms": 957.2,
+        "bt_ms": 937.2,
+        "embed_ms": 20.0
+      }
+    },
+    {
+      "id": "kz-10-en",
+      "sid": "kz-10",
+      "lang": "en",
+      "room": "kanzlei",
+      "direction": "en>de",
+      "perturbation": null,
+      "approved": false,
+      "src": "Can I come in on Monday, 9 November, at 2 p.m.?",
+      "extract": {
+        "expected": 2,
+        "hit": 2,
+        "missing": [],
+        "found": [
+          {
+            "kind": "date",
+            "value": "wd:mon"
+          },
+          {
+            "kind": "date",
+            "value": "--11-09"
+          },
+          {
+            "kind": "time",
+            "value": "14:00"
+          }
+        ]
+      },
+      "guard_ref": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.312,
+        "error": null
+      },
+      "check_ref": {
+        "similarity": 0.9236,
+        "badge": "green",
+        "combined": "green",
+        "back": "Can I come by on Monday, the 9th of November, at 14 o'clock?",
+        "ms": 9919.4,
+        "bt_ms": 9812.9,
+        "embed_ms": 106.4
+      },
+      "mt": {
+        "text": "Kann ich am Montag, dem 9. November, um 14:00 Uhr vorbeikommen?",
+        "first_ms": 597.9,
+        "full_ms": 1140.8,
+        "guard_red": false,
+        "mismatches": [],
+        "similarity": 0.9183,
+        "badge": "green",
+        "combined": "green",
+        "back": "Can I stop by on Monday, November 9, at 2:00 PM?",
+        "ms": 1757.3,
+        "bt_ms": 1690.5,
+        "embed_ms": 66.7
+      }
+    },
+    {
+      "id": "sz-01-en",
+      "sid": "sz-01",
+      "lang": "en",
+      "room": "sprechzimmer",
+      "direction": "de>en",
+      "perturbation": "wrong_number",
+      "approved": false,
+      "src": "Nehmen Sie zweimal täglich 500 mg Metformin.",
+      "extract": {
+        "expected": 3,
+        "hit": 3,
+        "missing": [],
+        "found": [
+          {
+            "kind": "frequency",
+            "value": "2/day"
+          },
+          {
+            "kind": "dose",
+            "value": "500 mg"
+          },
+          {
+            "kind": "medication",
+            "value": "Metformin"
+          }
+        ]
+      },
+      "guard_ref": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.82,
+        "error": null
+      },
+      "guard_pert": {
+        "red": true,
+        "mismatches": [
+          {
+            "kind": "dose",
+            "src": "500 mg",
+            "tgt": "50 mg",
+            "match": false
+          }
+        ],
+        "ms": 0.332,
+        "error": null
+      },
+      "check_ref": {
+        "similarity": 0.9961,
+        "badge": "green",
+        "combined": "green",
+        "back": "Nehmen Sie 500 mg Metformin zweimal täglich.",
+        "ms": 4475.8,
+        "bt_ms": 4388.7,
+        "embed_ms": 87.1
+      },
+      "check_pert": {
+        "similarity": 0.9664,
+        "badge": "green",
+        "combined": "red",
+        "back": "Nehmen Sie 50 mg Metformin zweimal täglich.",
+        "ms": 5414.4,
+        "bt_ms": 5376.4,
+        "embed_ms": 38.0
+      },
+      "mt": {
+        "text": "Take 500 mg Metformin twice a day.",
+        "first_ms": 883.7,
+        "full_ms": 1681.5,
+        "guard_red": false,
+        "mismatches": [],
+        "similarity": 0.9961,
+        "badge": "green",
+        "combined": "green",
+        "back": "Nehmen Sie 500 mg Metformin zweimal täglich.",
+        "ms": 5012.0,
+        "bt_ms": 4946.5,
+        "embed_ms": 65.5
+      }
+    },
+    {
+      "id": "sz-02-en",
+      "sid": "sz-02",
+      "lang": "en",
+      "room": "sprechzimmer",
+      "direction": "en>de",
+      "perturbation": "semantic",
+      "approved": false,
+      "src": "I take 500 mg of metformin twice a day.",
+      "extract": {
+        "expected": 3,
+        "hit": 3,
+        "missing": [],
+        "found": [
+          {
+            "kind": "dose",
+            "value": "500 mg"
+          },
+          {
+            "kind": "medication",
+            "value": "Metformin"
+          },
+          {
+            "kind": "frequency",
+            "value": "2/day"
+          }
+        ]
+      },
+      "guard_ref": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.426,
+        "error": null
+      },
+      "guard_pert": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.316,
+        "error": null
+      },
+      "check_ref": {
+        "similarity": 0.9922,
+        "badge": "green",
+        "combined": "green",
+        "back": "I take 500 mg Metformin twice daily.",
+        "ms": 4142.1,
+        "bt_ms": 4094.0,
+        "embed_ms": 48.1
+      },
+      "check_pert": {
+        "similarity": 0.8772,
+        "badge": "green",
+        "combined": "green",
+        "back": "My husband takes 500 mg Metformin twice daily.",
+        "ms": 1367.0,
+        "bt_ms": 1340.1,
+        "embed_ms": 26.9
+      },
+      "mt": {
+        "text": "Ich nehme 500 mg Metformin zweimal täglich.",
+        "first_ms": 749.2,
+        "full_ms": 901.1,
+        "guard_red": false,
+        "mismatches": [],
+        "similarity": 0.9922,
+        "badge": "green",
+        "combined": "green",
+        "back": "I take 500 mg Metformin twice daily.",
+        "ms": 1790.5,
+        "bt_ms": 1718.2,
+        "embed_ms": 72.3
+      }
+    },
+    {
+      "id": "sz-03-en",
+      "sid": "sz-03",
+      "lang": "en",
+      "room": "sprechzimmer",
+      "direction": "en>de",
+      "perturbation": null,
+      "approved": false,
+      "src": "I'm allergic to penicillin.",
+      "extract": {
+        "expected": 1,
+        "hit": 1,
+        "missing": [],
+        "found": [
+          {
+            "kind": "medication",
+            "value": "Penicillin"
+          },
+          {
+            "kind": "allergy",
+            "value": "Penicillin"
+          }
+        ]
+      },
+      "guard_ref": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.299,
+        "error": null
+      },
+      "check_ref": {
+        "similarity": 0.9971,
+        "badge": "green",
+        "combined": "green",
+        "back": "I am allergic to penicillin.",
+        "ms": 1228.6,
+        "bt_ms": 1172.6,
+        "embed_ms": 56.0
+      },
+      "mt": {
+        "text": "Ich bin allergisch gegen Penicillin.",
+        "first_ms": 363.4,
+        "full_ms": 508.3,
+        "guard_red": false,
+        "mismatches": [],
+        "similarity": 0.9971,
+        "badge": "green",
+        "combined": "green",
+        "back": "I am allergic to penicillin.",
+        "ms": 574.8,
+        "bt_ms": 551.7,
+        "embed_ms": 23.1
+      }
+    },
+    {
+      "id": "sz-04-en",
+      "sid": "sz-04",
+      "lang": "en",
+      "room": "sprechzimmer",
+      "direction": "de>en",
+      "perturbation": "semantic",
+      "approved": false,
+      "src": "Kommen Sie am Donnerstag, dem 12. November, um 9 Uhr wieder.",
+      "extract": {
+        "expected": 2,
+        "hit": 2,
+        "missing": [],
+        "found": [
+          {
+            "kind": "date",
+            "value": "wd:thu"
+          },
+          {
+            "kind": "date",
+            "value": "--11-12"
+          },
+          {
+            "kind": "time",
+            "value": "09:00"
+          }
+        ]
+      },
+      "guard_ref": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.273,
+        "error": null
+      },
+      "guard_pert": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.21,
+        "error": null
+      },
+      "check_ref": {
+        "similarity": 0.9754,
+        "badge": "green",
+        "combined": "green",
+        "back": "Bitte kommen Sie am Donnerstag, den 12. November, um 9 Uhr zurück.",
+        "ms": 8682.7,
+        "bt_ms": 8609.7,
+        "embed_ms": 73.0
+      },
+      "check_pert": {
+        "similarity": 0.8952,
+        "badge": "green",
+        "combined": "green",
+        "back": "Bitte rufen Sie uns am Donnerstag, den 12. November, um 9 Uhr an.",
+        "ms": 3397.7,
+        "bt_ms": 3372.9,
+        "embed_ms": 24.8
+      },
+      "mt": {
+        "text": "Come back on Thursday, November 12, at 9 a.m.",
+        "first_ms": 252.8,
+        "full_ms": 424.4,
+        "guard_red": false,
+        "mismatches": [],
+        "similarity": 0.9768,
+        "badge": "green",
+        "combined": "green",
+        "back": "Kommen Sie am Donnerstag, den 12. November, um 9 Uhr zurück.",
+        "ms": 4529.6,
+        "bt_ms": 4484.7,
+        "embed_ms": 44.9
+      }
+    },
+    {
+      "id": "sz-05-en",
+      "sid": "sz-05",
+      "lang": "en",
+      "room": "sprechzimmer",
+      "direction": "de>en",
+      "perturbation": "negation",
+      "approved": false,
+      "src": "Nehmen Sie die Tabletten nicht nüchtern ein.",
+      "extract": {
+        "expected": 1,
+        "hit": 1,
+        "missing": [],
+        "found": [
+          {
+            "kind": "negation",
+            "value": "not"
+          }
+        ]
+      },
+      "guard_ref": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.193,
+        "error": null
+      },
+      "guard_pert": {
+        "red": true,
+        "mismatches": [
+          {
+            "kind": "negation",
+            "src": "nicht",
+            "tgt": null,
+            "match": false
+          }
+        ],
+        "ms": 0.135,
+        "error": null
+      },
+      "check_ref": {
+        "similarity": 0.9336,
+        "badge": "green",
+        "combined": "green",
+        "back": "Nehmen Sie die Tabletten nicht auf nüchternen Magen.",
+        "ms": 1835.7,
+        "bt_ms": 1790.5,
+        "embed_ms": 45.3
+      },
+      "check_pert": {
+        "similarity": 0.8221,
+        "badge": "red",
+        "combined": "red",
+        "back": "Nehmen Sie die Tabletten auf nüchternen Magen.",
+        "ms": 4422.9,
+        "bt_ms": 4389.5,
+        "embed_ms": 33.5
+      },
+      "mt": {
+        "text": "Do not take the tablets on an empty stomach.",
+        "first_ms": 241.5,
+        "full_ms": 349.7,
+        "guard_red": false,
+        "mismatches": [],
+        "similarity": 0.9336,
+        "badge": "green",
+        "combined": "green",
+        "back": "Nehmen Sie die Tabletten nicht auf nüchternen Magen.",
+        "ms": 1695.7,
+        "bt_ms": 1654.2,
+        "embed_ms": 41.6
+      }
+    },
+    {
+      "id": "sz-06-en",
+      "sid": "sz-06",
+      "lang": "en",
+      "room": "sprechzimmer",
+      "direction": "en>de",
+      "perturbation": "allergy_omitted",
+      "approved": false,
+      "src": "I take ibuprofen, but I'm allergic to penicillin.",
+      "extract": {
+        "expected": 2,
+        "hit": 2,
+        "missing": [],
+        "found": [
+          {
+            "kind": "medication",
+            "value": "Ibuprofen"
+          },
+          {
+            "kind": "medication",
+            "value": "Penicillin"
+          },
+          {
+            "kind": "allergy",
+            "value": "Penicillin"
+          }
+        ]
+      },
+      "guard_ref": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.341,
+        "error": null
+      },
+      "guard_pert": {
+        "red": true,
+        "mismatches": [
+          {
+            "kind": "medication",
+            "src": "penicillin",
+            "tgt": null,
+            "match": false
+          },
+          {
+            "kind": "allergy",
+            "src": "penicillin",
+            "tgt": null,
+            "match": false
+          }
+        ],
+        "ms": 0.231,
+        "error": null
+      },
+      "check_ref": {
+        "similarity": 0.9989,
+        "badge": "green",
+        "combined": "green",
+        "back": "I take ibuprofen, but I am allergic to penicillin.",
+        "ms": 3808.7,
+        "bt_ms": 3775.1,
+        "embed_ms": 33.6
+      },
+      "check_pert": {
+        "similarity": 0.6825,
+        "badge": "red",
+        "combined": "red",
+        "back": "I take ibuprofen.",
+        "ms": 1047.3,
+        "bt_ms": 1006.9,
+        "embed_ms": 40.4
+      },
+      "mt": {
+        "text": "Ich nehme Ibuprofen, aber ich bin allergisch gegen Penicillin.",
+        "first_ms": 364.9,
+        "full_ms": 585.4,
+        "guard_red": false,
+        "mismatches": [],
+        "similarity": 0.9989,
+        "badge": "green",
+        "combined": "green",
+        "back": "I take ibuprofen, but I am allergic to penicillin.",
+        "ms": 3597.9,
+        "bt_ms": 3557.9,
+        "embed_ms": 39.9
+      }
+    },
+    {
+      "id": "sz-07-en",
+      "sid": "sz-07",
+      "lang": "en",
+      "room": "sprechzimmer",
+      "direction": "de>en",
+      "perturbation": "wrong_unit",
+      "approved": false,
+      "src": "Geben Sie Ihrem Kind dreimal täglich 5 ml Ibuprofen-Saft.",
+      "extract": {
+        "expected": 3,
+        "hit": 3,
+        "missing": [],
+        "found": [
+          {
+            "kind": "frequency",
+            "value": "3/day"
+          },
+          {
+            "kind": "dose",
+            "value": "5 ml"
+          },
+          {
+            "kind": "medication",
+            "value": "Ibuprofen"
+          }
+        ]
+      },
+      "guard_ref": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.419,
+        "error": null
+      },
+      "guard_pert": {
+        "red": true,
+        "mismatches": [
+          {
+            "kind": "dose",
+            "src": "5 ml",
+            "tgt": "5 mg",
+            "match": false
+          }
+        ],
+        "ms": 0.396,
+        "error": null
+      },
+      "check_ref": {
+        "similarity": 0.929,
+        "badge": "green",
+        "combined": "green",
+        "back": "Geben Sie Ihrem Kind 5 ml Ibuprofen‑Sirup dreimal täglich.",
+        "ms": 1640.5,
+        "bt_ms": 1601.6,
+        "embed_ms": 38.9
+      },
+      "check_pert": {
+        "similarity": 0.9202,
+        "badge": "green",
+        "combined": "red",
+        "back": "Geben Sie Ihrem Kind 5 mg Ibuprofen‑Sirup dreimal am Tag.",
+        "ms": 3912.4,
+        "bt_ms": 3874.0,
+        "embed_ms": 38.4
+      },
+      "mt": {
+        "text": "Give your child 5 ml of ibuprofen syrup three times a day.",
+        "first_ms": 287.3,
+        "full_ms": 431.9,
+        "guard_red": false,
+        "mismatches": [],
+        "similarity": 0.929,
+        "badge": "green",
+        "combined": "green",
+        "back": "Geben Sie Ihrem Kind 5 ml Ibuprofen‑Sirup dreimal täglich.",
+        "ms": 1564.1,
+        "bt_ms": 1539.6,
+        "embed_ms": 24.4
+      }
+    },
+    {
+      "id": "sz-08-en",
+      "sid": "sz-08",
+      "lang": "en",
+      "room": "sprechzimmer",
+      "direction": "de>en",
+      "perturbation": null,
+      "approved": false,
+      "src": "Nehmen Sie 7 Tage lang dreimal täglich 1000 mg Amoxicillin.",
+      "extract": {
+        "expected": 4,
+        "hit": 4,
+        "missing": [],
+        "found": [
+          {
+            "kind": "number",
+            "value": "7"
+          },
+          {
+            "kind": "frequency",
+            "value": "3/day"
+          },
+          {
+            "kind": "dose",
+            "value": "1000 mg"
+          },
+          {
+            "kind": "medication",
+            "value": "Amoxicillin"
+          }
+        ]
+      },
+      "guard_ref": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.445,
+        "error": null
+      },
+      "check_ref": {
+        "similarity": 0.9865,
+        "badge": "green",
+        "combined": "green",
+        "back": "Nehmen Sie 1000 mg Amoxicillin dreimal täglich für 7 Tage.",
+        "ms": 1643.5,
+        "bt_ms": 1619.9,
+        "embed_ms": 23.6
+      },
+      "mt": {
+        "text": "Take 1000 mg of amoxicillin three times a day for 7 days.",
+        "first_ms": 236.7,
+        "full_ms": 439.5,
+        "guard_red": false,
+        "mismatches": [],
+        "similarity": 0.9865,
+        "badge": "green",
+        "combined": "green",
+        "back": "Nehmen Sie 1000 mg Amoxicillin dreimal täglich für 7 Tage.",
+        "ms": 1472.3,
+        "bt_ms": 1451.7,
+        "embed_ms": 20.7
+      }
+    },
+    {
+      "id": "sz-09-en",
+      "sid": "sz-09",
+      "lang": "en",
+      "room": "sprechzimmer",
+      "direction": "de>en",
+      "perturbation": "allergy_omitted",
+      "approved": false,
+      "src": "Sie sind allergisch gegen Penicillin, deshalb bekommen Sie kein Amoxicillin.",
+      "extract": {
+        "expected": 3,
+        "hit": 3,
+        "missing": [],
+        "found": [
+          {
+            "kind": "medication",
+            "value": "Penicillin"
+          },
+          {
+            "kind": "allergy",
+            "value": "Penicillin"
+          },
+          {
+            "kind": "negation",
+            "value": "not"
+          },
+          {
+            "kind": "medication",
+            "value": "Amoxicillin"
+          }
+        ]
+      },
+      "guard_ref": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.404,
+        "error": null
+      },
+      "guard_pert": {
+        "red": true,
+        "mismatches": [
+          {
+            "kind": "medication",
+            "src": "Penicillin",
+            "tgt": null,
+            "match": false
+          },
+          {
+            "kind": "allergy",
+            "src": "Penicillin",
+            "tgt": null,
+            "match": false
+          }
+        ],
+        "ms": 0.294,
+        "error": null
+      },
+      "check_ref": {
+        "similarity": 0.9534,
+        "badge": "green",
+        "combined": "green",
+        "back": "Sie sind gegen Penicillin allergisch, daher wird Ihnen Amoxicillin nicht verabreicht.",
+        "ms": 1085.7,
+        "bt_ms": 1052.5,
+        "embed_ms": 33.2
+      },
+      "check_pert": {
+        "similarity": 0.7526,
+        "badge": "red",
+        "combined": "red",
+        "back": "Sie werden kein Amoxicillin erhalten.",
+        "ms": 781.1,
+        "bt_ms": 755.3,
+        "embed_ms": 25.8
+      },
+      "mt": {
+        "text": "You are allergic to penicillin, therefore you are not getting amoxicillin.",
+        "first_ms": 246.0,
+        "full_ms": 493.6,
+        "guard_red": false,
+        "mismatches": [],
+        "similarity": 0.9974,
+        "badge": "green",
+        "combined": "green",
+        "back": "Sie sind allergisch gegen Penicillin, deshalb erhalten Sie kein Amoxicillin.",
+        "ms": 3603.1,
+        "bt_ms": 3558.7,
+        "embed_ms": 44.4
+      }
+    },
+    {
+      "id": "sz-10-en",
+      "sid": "sz-10",
+      "lang": "en",
+      "room": "sprechzimmer",
+      "direction": "en>de",
+      "perturbation": "semantic",
+      "approved": false,
+      "src": "I've had a fever of over 39 degrees for three days.",
+      "extract": {
+        "expected": 2,
+        "hit": 2,
+        "missing": [],
+        "found": [
+          {
+            "kind": "number",
+            "value": "39"
+          },
+          {
+            "kind": "number",
+            "value": "3"
+          }
+        ]
+      },
+      "guard_ref": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.378,
+        "error": null
+      },
+      "guard_pert": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.32,
+        "error": null
+      },
+      "check_ref": {
+        "similarity": 0.997,
+        "badge": "green",
+        "combined": "green",
+        "back": "I have had a fever over 39 degrees for three days.",
+        "ms": 4177.0,
+        "bt_ms": 4151.6,
+        "embed_ms": 25.3
+      },
+      "check_pert": {
+        "similarity": 0.9281,
+        "badge": "green",
+        "combined": "green",
+        "back": "I have had a fever under 39 degrees for three days.",
+        "ms": 4378.5,
+        "bt_ms": 4357.4,
+        "embed_ms": 21.1
+      },
+      "mt": {
+        "text": "Ich habe seit drei Tagen Fieber von über 39 Grad.",
+        "first_ms": 311.1,
+        "full_ms": 495.7,
+        "guard_red": false,
+        "mismatches": [],
+        "similarity": 0.9982,
+        "badge": "green",
+        "combined": "green",
+        "back": "I have had a fever of over 39 degrees for three days.",
+        "ms": 7780.9,
+        "bt_ms": 7705.6,
+        "embed_ms": 75.3
+      }
+    },
+    {
+      "id": "vr-01-en",
+      "sid": "vr-01",
+      "lang": "en",
+      "room": "verhandlungsraum",
+      "direction": "de>en",
+      "perturbation": null,
+      "approved": false,
+      "src": "Unser Angebot liegt bei 1,2 Millionen Euro.",
+      "extract": {
+        "expected": 2,
+        "hit": 2,
+        "missing": [],
+        "found": [
+          {
+            "kind": "amount",
+            "value": "1200000 EUR"
+          },
+          {
+            "kind": "currency",
+            "value": "EUR"
+          }
+        ]
+      },
+      "guard_ref": {
+        "red": false,
+        "mismatches": [],
+        "ms": 1.338,
+        "error": null
+      },
+      "check_ref": {
+        "similarity": 0.9932,
+        "badge": "green",
+        "combined": "green",
+        "back": "Unser Angebot beträgt 1,2 Millionen Euro.",
+        "ms": 2027.0,
+        "bt_ms": 1937.5,
+        "embed_ms": 89.4
+      },
+      "mt": {
+        "text": "Our offer is 1.2 million euros.",
+        "first_ms": 877.7,
+        "full_ms": 1122.5,
+        "guard_red": false,
+        "mismatches": [],
+        "similarity": 0.9932,
+        "badge": "green",
+        "combined": "green",
+        "back": "Unser Angebot beträgt 1,2 Millionen Euro.",
+        "ms": 1905.6,
+        "bt_ms": 1866.2,
+        "embed_ms": 39.4
+      }
+    },
+    {
+      "id": "vr-02-en",
+      "sid": "vr-02",
+      "lang": "en",
+      "room": "verhandlungsraum",
+      "direction": "de>en",
+      "perturbation": "wrong_number",
+      "approved": false,
+      "src": "Wir können auf 1,05 Millionen gehen, wenn die Lieferung bis März erfolgt.",
+      "extract": {
+        "expected": 2,
+        "hit": 2,
+        "missing": [],
+        "found": [
+          {
+            "kind": "amount",
+            "value": "1050000"
+          },
+          {
+            "kind": "deadline",
+            "value": "--03"
+          }
+        ]
+      },
+      "guard_ref": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.684,
+        "error": null
+      },
+      "guard_pert": {
+        "red": true,
+        "mismatches": [
+          {
+            "kind": "amount",
+            "src": "1,05 Millionen",
+            "tgt": "1.5 million",
+            "match": false
+          }
+        ],
+        "ms": 0.482,
+        "error": null
+      },
+      "check_ref": {
+        "similarity": 0.9313,
+        "badge": "green",
+        "combined": "green",
+        "back": "Wir können auf 1,05 Millionen sinken, wenn die Lieferung bis März erfolgt.",
+        "ms": 2419.0,
+        "bt_ms": 2335.6,
+        "embed_ms": 83.4
+      },
+      "check_pert": {
+        "similarity": 0.9043,
+        "badge": "green",
+        "combined": "red",
+        "back": "Wir können auf 1,5 Millionen sinken, wenn die Lieferung bis März erfolgt.",
+        "ms": 2021.3,
+        "bt_ms": 1991.7,
+        "embed_ms": 29.6
+      },
+      "mt": {
+        "text": "We can go up to 1.05 million if the delivery is made by March.",
+        "first_ms": 420.6,
+        "full_ms": 797.6,
+        "guard_red": false,
+        "mismatches": [],
+        "similarity": 0.9834,
+        "badge": "green",
+        "combined": "green",
+        "back": "Wir können bis zu 1,05 Millionen gehen, wenn die Lieferung bis März erfolgt.",
+        "ms": 2169.0,
+        "bt_ms": 2101.2,
+        "embed_ms": 67.8
+      }
+    },
+    {
+      "id": "vr-03-en",
+      "sid": "vr-03",
+      "lang": "en",
+      "room": "verhandlungsraum",
+      "direction": "en>de",
+      "perturbation": "semantic",
+      "approved": false,
+      "src": "We need at least 5,000 units a month.",
+      "extract": {
+        "expected": 1,
+        "hit": 1,
+        "missing": [],
+        "found": [
+          {
+            "kind": "number",
+            "value": "5000"
+          }
+        ]
+      },
+      "guard_ref": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.408,
+        "error": null
+      },
+      "guard_pert": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.291,
+        "error": null
+      },
+      "check_ref": {
+        "similarity": 0.9212,
+        "badge": "green",
+        "combined": "green",
+        "back": "We need at least 5.000 pieces per month.",
+        "ms": 8945.4,
+        "bt_ms": 8889.0,
+        "embed_ms": 56.4
+      },
+      "check_pert": {
+        "similarity": 0.9174,
+        "badge": "green",
+        "combined": "green",
+        "back": "We need at most 5.000 pieces per month.",
+        "ms": 10422.7,
+        "bt_ms": 10367.2,
+        "embed_ms": 55.5
+      },
+      "mt": {
+        "text": "Wir benötigen mindestens 5.000 Einheiten pro Monat.",
+        "first_ms": 793.1,
+        "full_ms": 1246.2,
+        "guard_red": false,
+        "mismatches": [],
+        "similarity": 0.9976,
+        "badge": "green",
+        "combined": "green",
+        "back": "We need at least 5,000 units per month.",
+        "ms": 1793.7,
+        "bt_ms": 1747.5,
+        "embed_ms": 46.2
+      }
+    },
+    {
+      "id": "vr-04-en",
+      "sid": "vr-04",
+      "lang": "en",
+      "room": "verhandlungsraum",
+      "direction": "en>de",
+      "perturbation": "wrong_unit",
+      "approved": false,
+      "src": "We're offering 950,000 euros for payment within 30 days.",
+      "extract": {
+        "expected": 3,
+        "hit": 3,
+        "missing": [],
+        "found": [
+          {
+            "kind": "amount",
+            "value": "950000 EUR"
+          },
+          {
+            "kind": "currency",
+            "value": "EUR"
+          },
+          {
+            "kind": "number",
+            "value": "30"
+          }
+        ]
+      },
+      "guard_ref": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.457,
+        "error": null
+      },
+      "guard_pert": {
+        "red": true,
+        "mismatches": [
+          {
+            "kind": "amount",
+            "src": "950,000 euros",
+            "tgt": "950.000 Dollar",
+            "match": false
+          }
+        ],
+        "ms": 0.208,
+        "error": null
+      },
+      "check_ref": {
+        "similarity": 0.9928,
+        "badge": "green",
+        "combined": "green",
+        "back": "We offer 950,000 euros for payment within 30 days.",
+        "ms": 2358.4,
+        "bt_ms": 2328.5,
+        "embed_ms": 30.0
+      },
+      "check_pert": {
+        "similarity": 0.9516,
+        "badge": "green",
+        "combined": "red",
+        "back": "We offer $950,000 for payment within 30 days.",
+        "ms": 2259.9,
+        "bt_ms": 2203.4,
+        "embed_ms": 56.5
+      },
+      "mt": {
+        "text": "Wir bieten 950.000 Euro bei einem Zahlungsziel von 30 Tagen an.",
+        "first_ms": 439.8,
+        "full_ms": 992.3,
+        "guard_red": false,
+        "mismatches": [],
+        "similarity": 0.968,
+        "badge": "green",
+        "combined": "green",
+        "back": "We offer 950,000 euros with a payment term of 30 days.",
+        "ms": 6080.6,
+        "bt_ms": 6034.4,
+        "embed_ms": 46.2
+      }
+    },
+    {
+      "id": "vr-05-en",
+      "sid": "vr-05",
+      "lang": "en",
+      "room": "verhandlungsraum",
+      "direction": "de>en",
+      "perturbation": "semantic",
+      "approved": false,
+      "src": "Wir gewähren 3 % Rabatt bei einer Mindestabnahme von 10.000 Stück.",
+      "extract": {
+        "expected": 2,
+        "hit": 2,
+        "missing": [],
+        "found": [
+          {
+            "kind": "percent",
+            "value": "3%"
+          },
+          {
+            "kind": "number",
+            "value": "10000"
+          }
+        ]
+      },
+      "guard_ref": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.736,
+        "error": null
+      },
+      "guard_pert": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.455,
+        "error": null
+      },
+      "check_ref": {
+        "similarity": 0.9514,
+        "badge": "green",
+        "combined": "green",
+        "back": "Wir gewähren einen Rabatt von 3 % bei einer Mindestbestellmenge von 10.000 Einheiten.",
+        "ms": 3077.8,
+        "bt_ms": 3008.1,
+        "embed_ms": 69.8
+      },
+      "check_pert": {
+        "similarity": 0.787,
+        "badge": "red",
+        "combined": "red",
+        "back": "Wir erheben einen Aufschlag von 3 % auf eine Mindestbestellmenge von 10.000 Einheiten.",
+        "ms": 2959.0,
+        "bt_ms": 2927.5,
+        "embed_ms": 31.5
+      },
+      "mt": {
+        "text": "We grant a 3% discount for a minimum order quantity of 10,000 units.",
+        "first_ms": 467.5,
+        "full_ms": 1194.0,
+        "guard_red": false,
+        "mismatches": [],
+        "similarity": 0.9514,
+        "badge": "green",
+        "combined": "green",
+        "back": "Wir gewähren einen Rabatt von 3 % bei einer Mindestbestellmenge von 10.000 Einheiten.",
+        "ms": 3083.4,
+        "bt_ms": 3016.3,
+        "embed_ms": 67.2
+      }
+    },
+    {
+      "id": "vr-06-en",
+      "sid": "vr-06",
+      "lang": "en",
+      "room": "verhandlungsraum",
+      "direction": "de>en",
+      "perturbation": null,
+      "approved": false,
+      "src": "Die Vertragsstrafe beträgt 5 % des Auftragswerts.",
+      "extract": {
+        "expected": 1,
+        "hit": 1,
+        "missing": [],
+        "found": [
+          {
+            "kind": "percent",
+            "value": "5%"
+          }
+        ]
+      },
+      "guard_ref": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.65,
+        "error": null
+      },
+      "check_ref": {
+        "similarity": 0.9975,
+        "badge": "green",
+        "combined": "green",
+        "back": "Die Vertragsstrafe beträgt 5 % des Auftragswertes.",
+        "ms": 2264.0,
+        "bt_ms": 2207.5,
+        "embed_ms": 56.5
+      },
+      "mt": {
+        "text": "The contractual penalty is 5% of the order value.",
+        "first_ms": 410.8,
+        "full_ms": 746.1,
+        "guard_red": false,
+        "mismatches": [],
+        "similarity": 0.9975,
+        "badge": "green",
+        "combined": "green",
+        "back": "Die Vertragsstrafe beträgt 5 % des Auftragswertes.",
+        "ms": 1703.1,
+        "bt_ms": 1654.7,
+        "embed_ms": 48.4
+      }
+    },
+    {
+      "id": "vr-07-en",
+      "sid": "vr-07",
+      "lang": "en",
+      "room": "verhandlungsraum",
+      "direction": "en>de",
+      "perturbation": null,
+      "approved": false,
+      "src": "The first delivery can be made on January 15.",
+      "extract": {
+        "expected": 1,
+        "hit": 1,
+        "missing": [],
+        "found": [
+          {
+            "kind": "date",
+            "value": "--01-15"
+          }
+        ]
+      },
+      "guard_ref": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.352,
+        "error": null
+      },
+      "check_ref": {
+        "similarity": 1.0,
+        "badge": "green",
+        "combined": "green",
+        "back": "The first delivery can be made on January 15.",
+        "ms": 2791.2,
+        "bt_ms": 2738.1,
+        "embed_ms": 53.0
+      },
+      "mt": {
+        "text": "Die erste Lieferung kann am 15. Januar erfolgen.",
+        "first_ms": 488.5,
+        "full_ms": 819.2,
+        "guard_red": false,
+        "mismatches": [],
+        "similarity": 1.0,
+        "badge": "green",
+        "combined": "green",
+        "back": "The first delivery can be made on January 15.",
+        "ms": 2596.8,
+        "bt_ms": 2565.2,
+        "embed_ms": 31.6
+      }
+    },
+    {
+      "id": "vr-08-en",
+      "sid": "vr-08",
+      "lang": "en",
+      "room": "verhandlungsraum",
+      "direction": "de>en",
+      "perturbation": "semantic",
+      "approved": false,
+      "src": "Das Angebot gilt bis Freitag, den 6. November.",
+      "extract": {
+        "expected": 1,
+        "hit": 1,
+        "missing": [],
+        "found": [
+          {
+            "kind": "deadline",
+            "value": "wd:fri"
+          },
+          {
+            "kind": "deadline",
+            "value": "--11-06"
+          }
+        ]
+      },
+      "guard_ref": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.479,
+        "error": null
+      },
+      "guard_pert": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.326,
+        "error": null
+      },
+      "check_ref": {
+        "similarity": 0.9917,
+        "badge": "green",
+        "combined": "green",
+        "back": "Das Angebot ist bis Freitag, den 6. November, gültig.",
+        "ms": 2212.4,
+        "bt_ms": 2180.7,
+        "embed_ms": 31.8
+      },
+      "check_pert": {
+        "similarity": 0.9528,
+        "badge": "green",
+        "combined": "green",
+        "back": "Das Angebot ist gültig ab Freitag, 6. November.",
+        "ms": 10505.1,
+        "bt_ms": 10468.1,
+        "embed_ms": 37.0
+      },
+      "mt": {
+        "text": "The offer is valid until Friday, November 6.",
+        "first_ms": 495.1,
+        "full_ms": 836.6,
+        "guard_red": false,
+        "mismatches": [],
+        "similarity": 0.9917,
+        "badge": "green",
+        "combined": "green",
+        "back": "Das Angebot ist bis Freitag, den 6. November, gültig.",
+        "ms": 2274.0,
+        "bt_ms": 2222.3,
+        "embed_ms": 51.7
+      }
+    },
+    {
+      "id": "vr-09-en",
+      "sid": "vr-09",
+      "lang": "en",
+      "room": "verhandlungsraum",
+      "direction": "en>de",
+      "perturbation": null,
+      "approved": false,
+      "src": "Without a framework agreement, we can't hold this price.",
+      "extract": {
+        "expected": 1,
+        "hit": 1,
+        "missing": [],
+        "found": [
+          {
+            "kind": "negation",
+            "value": "not"
+          }
+        ]
+      },
+      "guard_ref": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.586,
+        "error": null
+      },
+      "check_ref": {
+        "similarity": 0.9834,
+        "badge": "green",
+        "combined": "green",
+        "back": "Without a framework agreement, we cannot maintain this price.",
+        "ms": 3255.7,
+        "bt_ms": 3206.4,
+        "embed_ms": 49.3
+      },
+      "mt": {
+        "text": "Ohne einen Rahmenvertrag können wir diesen Preis nicht halten.",
+        "first_ms": 538.6,
+        "full_ms": 835.5,
+        "guard_red": false,
+        "mismatches": [],
+        "similarity": 0.9596,
+        "badge": "green",
+        "combined": "green",
+        "back": "Without a framework contract, we cannot maintain this price.",
+        "ms": 2987.2,
+        "bt_ms": 2968.3,
+        "embed_ms": 18.8
+      }
+    },
+    {
+      "id": "vr-10-en",
+      "sid": "vr-10",
+      "lang": "en",
+      "room": "verhandlungsraum",
+      "direction": "de>en",
+      "perturbation": null,
+      "approved": false,
+      "src": "Wir zahlen 30 % bei Vertragsunterzeichnung und den Rest bei Lieferung.",
+      "extract": {
+        "expected": 1,
+        "hit": 1,
+        "missing": [],
+        "found": [
+          {
+            "kind": "percent",
+            "value": "30%"
+          }
+        ]
+      },
+      "guard_ref": {
+        "red": false,
+        "mismatches": [],
+        "ms": 0.543,
+        "error": null
+      },
+      "check_ref": {
+        "similarity": 1.0,
+        "badge": "green",
+        "combined": "green",
+        "back": "Wir zahlen 30 % bei Vertragsunterzeichnung und den Rest bei Lieferung.",
+        "ms": 1018.1,
+        "bt_ms": 987.1,
+        "embed_ms": 31.1
+      },
+      "mt": {
+        "text": "We will pay 30% upon contract signing and the rest upon delivery.",
+        "first_ms": 275.8,
+        "full_ms": 466.2,
+        "guard_red": false,
+        "mismatches": [],
+        "similarity": 0.9883,
+        "badge": "green",
+        "combined": "green",
+        "back": "Wir werden 30 % bei Vertragsunterzeichnung und den Rest bei Lieferung zahlen.",
+        "ms": 1042.6,
+        "bt_ms": 1016.2,
+        "embed_ms": 26.4
+      }
+    }
+  ]
+}

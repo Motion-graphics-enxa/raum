@@ -8,3 +8,6 @@ global firewall, the system Tailscale or other containers.
 - `raum-net.sh {load|seal|unseal|status}`: our own nft table `inet raum` scoped to the RAUM cgroup
   (`user.slice/user-1000.slice/raum`): egress counters for the privacy meter and the Seal chain.
   On a dedicated box use `deploy/raum.nft` instead.
+
+## After a reboot
+`raum-up.sh` brings everything back in order: Ollama with gemma4:e4b, gpt-oss:20b and bge-m3 (num_ctx 8192, keep_alive -1); whisper on :8081 and :8082 (-nlp); LiveKit and `raum-net.sh load`; both voice instances; our tailscale; the app; the cgroup weight. The box copy is runtime/raum-up.sh. Pass `--no-app` to leave the app stopped.

@@ -1,0 +1,1622 @@
+[
+ {
+  "sid": "kz-01",
+  "room": "kanzlei",
+  "src_lang": "de",
+  "tgt_lang": "en",
+  "src": "Die Klagefrist endet am 24. November.",
+  "ref": "The time limit for filing the claim ends on 24 November.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-02",
+  "room": "kanzlei",
+  "src_lang": "de",
+  "tgt_lang": "en",
+  "src": "Bringen Sie bitte Ihren Arbeitsvertrag und die letzten drei Lohnabrechnungen mit.",
+  "ref": "Please bring your employment contract and your last three payslips.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-03",
+  "room": "kanzlei",
+  "src_lang": "de",
+  "tgt_lang": "en",
+  "src": "Unterschreiben Sie die Aufhebungsvereinbarung nicht, bevor wir sie geprüft haben.",
+  "ref": "Do not sign the termination agreement until we have reviewed it.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-04",
+  "room": "kanzlei",
+  "src_lang": "de",
+  "tgt_lang": "en",
+  "src": "Ich habe die Kündigung am 3. November erhalten.",
+  "ref": "I received my notice of dismissal on November 3.",
+  "orig": "xx"
+ },
+ {
+  "sid": "kz-05",
+  "room": "kanzlei",
+  "src_lang": "de",
+  "tgt_lang": "en",
+  "src": "Ich arbeite seit sechs Jahren dort und verdiene 3.200 Euro brutto im Monat.",
+  "ref": "I've worked there for six years and I earn 3,200 euros gross a month.",
+  "orig": "xx"
+ },
+ {
+  "sid": "kz-06",
+  "room": "kanzlei",
+  "src_lang": "de",
+  "tgt_lang": "en",
+  "src": "Die Frist für die Kündigungsschutzklage beträgt drei Wochen ab Zugang der Kündigung.",
+  "ref": "The time limit for an unfair dismissal claim is three weeks from receipt of the notice of dismissal.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-07",
+  "room": "kanzlei",
+  "src_lang": "de",
+  "tgt_lang": "en",
+  "src": "Der Termin beim Arbeitsgericht ist am 15. Dezember um 10:30 Uhr.",
+  "ref": "The hearing at the labour court is on 15 December at 10:30.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-08",
+  "room": "kanzlei",
+  "src_lang": "de",
+  "tgt_lang": "en",
+  "src": "Mein Chef hat mir keine Abmahnung gegeben.",
+  "ref": "My boss didn't give me a formal warning.",
+  "orig": "xx"
+ },
+ {
+  "sid": "kz-09",
+  "room": "kanzlei",
+  "src_lang": "de",
+  "tgt_lang": "en",
+  "src": "Die Erstberatung kostet 250 Euro.",
+  "ref": "The initial consultation costs 250 euros.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-10",
+  "room": "kanzlei",
+  "src_lang": "de",
+  "tgt_lang": "en",
+  "src": "Kann ich am Montag, dem 9. November, um 14 Uhr vorbeikommen?",
+  "ref": "Can I come in on Monday, 9 November, at 2 p.m.?",
+  "orig": "xx"
+ },
+ {
+  "sid": "sz-01",
+  "room": "sprechzimmer",
+  "src_lang": "de",
+  "tgt_lang": "en",
+  "src": "Nehmen Sie zweimal täglich 500 mg Metformin.",
+  "ref": "Take 500 mg of metformin twice a day.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-02",
+  "room": "sprechzimmer",
+  "src_lang": "de",
+  "tgt_lang": "en",
+  "src": "Ich nehme zweimal täglich 500 mg Metformin.",
+  "ref": "I take 500 mg of metformin twice a day.",
+  "orig": "xx"
+ },
+ {
+  "sid": "sz-03",
+  "room": "sprechzimmer",
+  "src_lang": "de",
+  "tgt_lang": "en",
+  "src": "Ich bin allergisch gegen Penicillin.",
+  "ref": "I'm allergic to penicillin.",
+  "orig": "xx"
+ },
+ {
+  "sid": "sz-04",
+  "room": "sprechzimmer",
+  "src_lang": "de",
+  "tgt_lang": "en",
+  "src": "Kommen Sie am Donnerstag, dem 12. November, um 9 Uhr wieder.",
+  "ref": "Please come back on Thursday, 12 November, at 9 a.m.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-05",
+  "room": "sprechzimmer",
+  "src_lang": "de",
+  "tgt_lang": "en",
+  "src": "Nehmen Sie die Tabletten nicht nüchtern ein.",
+  "ref": "Do not take the tablets on an empty stomach.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-06",
+  "room": "sprechzimmer",
+  "src_lang": "de",
+  "tgt_lang": "en",
+  "src": "Ich nehme Ibuprofen, aber ich bin allergisch gegen Penicillin.",
+  "ref": "I take ibuprofen, but I'm allergic to penicillin.",
+  "orig": "xx"
+ },
+ {
+  "sid": "sz-07",
+  "room": "sprechzimmer",
+  "src_lang": "de",
+  "tgt_lang": "en",
+  "src": "Geben Sie Ihrem Kind dreimal täglich 5 ml Ibuprofen-Saft.",
+  "ref": "Give your child 5 ml of ibuprofen syrup three times a day.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-08",
+  "room": "sprechzimmer",
+  "src_lang": "de",
+  "tgt_lang": "en",
+  "src": "Nehmen Sie 7 Tage lang dreimal täglich 1000 mg Amoxicillin.",
+  "ref": "Take 1000 mg of amoxicillin three times a day for 7 days.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-09",
+  "room": "sprechzimmer",
+  "src_lang": "de",
+  "tgt_lang": "en",
+  "src": "Sie sind allergisch gegen Penicillin, deshalb bekommen Sie kein Amoxicillin.",
+  "ref": "You're allergic to penicillin, so you won't be given amoxicillin.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-10",
+  "room": "sprechzimmer",
+  "src_lang": "de",
+  "tgt_lang": "en",
+  "src": "Ich habe seit drei Tagen Fieber über 39 Grad.",
+  "ref": "I've had a fever of over 39 degrees for three days.",
+  "orig": "xx"
+ },
+ {
+  "sid": "vr-01",
+  "room": "verhandlungsraum",
+  "src_lang": "de",
+  "tgt_lang": "en",
+  "src": "Unser Angebot liegt bei 1,2 Millionen Euro.",
+  "ref": "Our offer stands at €1.2 million.",
+  "orig": "de"
+ },
+ {
+  "sid": "vr-02",
+  "room": "verhandlungsraum",
+  "src_lang": "de",
+  "tgt_lang": "en",
+  "src": "Wir können auf 1,05 Millionen gehen, wenn die Lieferung bis März erfolgt.",
+  "ref": "We can go down to 1.05 million if delivery takes place by March.",
+  "orig": "de"
+ },
+ {
+  "sid": "vr-03",
+  "room": "verhandlungsraum",
+  "src_lang": "de",
+  "tgt_lang": "en",
+  "src": "Wir brauchen mindestens 5.000 Stück pro Monat.",
+  "ref": "We need at least 5,000 units a month.",
+  "orig": "xx"
+ },
+ {
+  "sid": "vr-04",
+  "room": "verhandlungsraum",
+  "src_lang": "de",
+  "tgt_lang": "en",
+  "src": "Wir bieten 950.000 Euro bei Zahlung innerhalb von 30 Tagen.",
+  "ref": "We're offering 950,000 euros for payment within 30 days.",
+  "orig": "xx"
+ },
+ {
+  "sid": "vr-05",
+  "room": "verhandlungsraum",
+  "src_lang": "de",
+  "tgt_lang": "en",
+  "src": "Wir gewähren 3 % Rabatt bei einer Mindestabnahme von 10.000 Stück.",
+  "ref": "We grant a 3% discount on a minimum order of 10,000 units.",
+  "orig": "de"
+ },
+ {
+  "sid": "vr-06",
+  "room": "verhandlungsraum",
+  "src_lang": "de",
+  "tgt_lang": "en",
+  "src": "Die Vertragsstrafe beträgt 5 % des Auftragswerts.",
+  "ref": "The contractual penalty is 5% of the order value.",
+  "orig": "de"
+ },
+ {
+  "sid": "vr-07",
+  "room": "verhandlungsraum",
+  "src_lang": "de",
+  "tgt_lang": "en",
+  "src": "Die erste Lieferung kann am 15. Januar erfolgen.",
+  "ref": "The first delivery can be made on January 15.",
+  "orig": "xx"
+ },
+ {
+  "sid": "vr-08",
+  "room": "verhandlungsraum",
+  "src_lang": "de",
+  "tgt_lang": "en",
+  "src": "Das Angebot gilt bis Freitag, den 6. November.",
+  "ref": "The offer is valid until Friday, 6 November.",
+  "orig": "de"
+ },
+ {
+  "sid": "vr-09",
+  "room": "verhandlungsraum",
+  "src_lang": "de",
+  "tgt_lang": "en",
+  "src": "Ohne Rahmenvertrag können wir diesen Preis nicht halten.",
+  "ref": "Without a framework agreement, we can't hold this price.",
+  "orig": "xx"
+ },
+ {
+  "sid": "vr-10",
+  "room": "verhandlungsraum",
+  "src_lang": "de",
+  "tgt_lang": "en",
+  "src": "Wir zahlen 30 % bei Vertragsunterzeichnung und den Rest bei Lieferung.",
+  "ref": "We pay 30% when the contract is signed and the rest on delivery.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-01",
+  "room": "kanzlei",
+  "src_lang": "en",
+  "tgt_lang": "de",
+  "src": "The time limit for filing the claim ends on 24 November.",
+  "ref": "Die Klagefrist endet am 24. November.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-02",
+  "room": "kanzlei",
+  "src_lang": "en",
+  "tgt_lang": "de",
+  "src": "Please bring your employment contract and your last three payslips.",
+  "ref": "Bringen Sie bitte Ihren Arbeitsvertrag und die letzten drei Lohnabrechnungen mit.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-03",
+  "room": "kanzlei",
+  "src_lang": "en",
+  "tgt_lang": "de",
+  "src": "Do not sign the termination agreement until we have reviewed it.",
+  "ref": "Unterschreiben Sie die Aufhebungsvereinbarung nicht, bevor wir sie geprüft haben.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-04",
+  "room": "kanzlei",
+  "src_lang": "en",
+  "tgt_lang": "de",
+  "src": "I received my notice of dismissal on November 3.",
+  "ref": "Ich habe die Kündigung am 3. November erhalten.",
+  "orig": "xx"
+ },
+ {
+  "sid": "kz-05",
+  "room": "kanzlei",
+  "src_lang": "en",
+  "tgt_lang": "de",
+  "src": "I've worked there for six years and I earn 3,200 euros gross a month.",
+  "ref": "Ich arbeite seit sechs Jahren dort und verdiene 3.200 Euro brutto im Monat.",
+  "orig": "xx"
+ },
+ {
+  "sid": "kz-06",
+  "room": "kanzlei",
+  "src_lang": "en",
+  "tgt_lang": "de",
+  "src": "The time limit for an unfair dismissal claim is three weeks from receipt of the notice of dismissal.",
+  "ref": "Die Frist für die Kündigungsschutzklage beträgt drei Wochen ab Zugang der Kündigung.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-07",
+  "room": "kanzlei",
+  "src_lang": "en",
+  "tgt_lang": "de",
+  "src": "The hearing at the labour court is on 15 December at 10:30.",
+  "ref": "Der Termin beim Arbeitsgericht ist am 15. Dezember um 10:30 Uhr.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-08",
+  "room": "kanzlei",
+  "src_lang": "en",
+  "tgt_lang": "de",
+  "src": "My boss didn't give me a formal warning.",
+  "ref": "Mein Chef hat mir keine Abmahnung gegeben.",
+  "orig": "xx"
+ },
+ {
+  "sid": "kz-09",
+  "room": "kanzlei",
+  "src_lang": "en",
+  "tgt_lang": "de",
+  "src": "The initial consultation costs 250 euros.",
+  "ref": "Die Erstberatung kostet 250 Euro.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-10",
+  "room": "kanzlei",
+  "src_lang": "en",
+  "tgt_lang": "de",
+  "src": "Can I come in on Monday, 9 November, at 2 p.m.?",
+  "ref": "Kann ich am Montag, dem 9. November, um 14 Uhr vorbeikommen?",
+  "orig": "xx"
+ },
+ {
+  "sid": "sz-01",
+  "room": "sprechzimmer",
+  "src_lang": "en",
+  "tgt_lang": "de",
+  "src": "Take 500 mg of metformin twice a day.",
+  "ref": "Nehmen Sie zweimal täglich 500 mg Metformin.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-02",
+  "room": "sprechzimmer",
+  "src_lang": "en",
+  "tgt_lang": "de",
+  "src": "I take 500 mg of metformin twice a day.",
+  "ref": "Ich nehme zweimal täglich 500 mg Metformin.",
+  "orig": "xx"
+ },
+ {
+  "sid": "sz-03",
+  "room": "sprechzimmer",
+  "src_lang": "en",
+  "tgt_lang": "de",
+  "src": "I'm allergic to penicillin.",
+  "ref": "Ich bin allergisch gegen Penicillin.",
+  "orig": "xx"
+ },
+ {
+  "sid": "sz-04",
+  "room": "sprechzimmer",
+  "src_lang": "en",
+  "tgt_lang": "de",
+  "src": "Please come back on Thursday, 12 November, at 9 a.m.",
+  "ref": "Kommen Sie am Donnerstag, dem 12. November, um 9 Uhr wieder.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-05",
+  "room": "sprechzimmer",
+  "src_lang": "en",
+  "tgt_lang": "de",
+  "src": "Do not take the tablets on an empty stomach.",
+  "ref": "Nehmen Sie die Tabletten nicht nüchtern ein.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-06",
+  "room": "sprechzimmer",
+  "src_lang": "en",
+  "tgt_lang": "de",
+  "src": "I take ibuprofen, but I'm allergic to penicillin.",
+  "ref": "Ich nehme Ibuprofen, aber ich bin allergisch gegen Penicillin.",
+  "orig": "xx"
+ },
+ {
+  "sid": "sz-07",
+  "room": "sprechzimmer",
+  "src_lang": "en",
+  "tgt_lang": "de",
+  "src": "Give your child 5 ml of ibuprofen syrup three times a day.",
+  "ref": "Geben Sie Ihrem Kind dreimal täglich 5 ml Ibuprofen-Saft.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-08",
+  "room": "sprechzimmer",
+  "src_lang": "en",
+  "tgt_lang": "de",
+  "src": "Take 1000 mg of amoxicillin three times a day for 7 days.",
+  "ref": "Nehmen Sie 7 Tage lang dreimal täglich 1000 mg Amoxicillin.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-09",
+  "room": "sprechzimmer",
+  "src_lang": "en",
+  "tgt_lang": "de",
+  "src": "You're allergic to penicillin, so you won't be given amoxicillin.",
+  "ref": "Sie sind allergisch gegen Penicillin, deshalb bekommen Sie kein Amoxicillin.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-10",
+  "room": "sprechzimmer",
+  "src_lang": "en",
+  "tgt_lang": "de",
+  "src": "I've had a fever of over 39 degrees for three days.",
+  "ref": "Ich habe seit drei Tagen Fieber über 39 Grad.",
+  "orig": "xx"
+ },
+ {
+  "sid": "vr-01",
+  "room": "verhandlungsraum",
+  "src_lang": "en",
+  "tgt_lang": "de",
+  "src": "Our offer stands at €1.2 million.",
+  "ref": "Unser Angebot liegt bei 1,2 Millionen Euro.",
+  "orig": "de"
+ },
+ {
+  "sid": "vr-02",
+  "room": "verhandlungsraum",
+  "src_lang": "en",
+  "tgt_lang": "de",
+  "src": "We can go down to 1.05 million if delivery takes place by March.",
+  "ref": "Wir können auf 1,05 Millionen gehen, wenn die Lieferung bis März erfolgt.",
+  "orig": "de"
+ },
+ {
+  "sid": "vr-03",
+  "room": "verhandlungsraum",
+  "src_lang": "en",
+  "tgt_lang": "de",
+  "src": "We need at least 5,000 units a month.",
+  "ref": "Wir brauchen mindestens 5.000 Stück pro Monat.",
+  "orig": "xx"
+ },
+ {
+  "sid": "vr-04",
+  "room": "verhandlungsraum",
+  "src_lang": "en",
+  "tgt_lang": "de",
+  "src": "We're offering 950,000 euros for payment within 30 days.",
+  "ref": "Wir bieten 950.000 Euro bei Zahlung innerhalb von 30 Tagen.",
+  "orig": "xx"
+ },
+ {
+  "sid": "vr-05",
+  "room": "verhandlungsraum",
+  "src_lang": "en",
+  "tgt_lang": "de",
+  "src": "We grant a 3% discount on a minimum order of 10,000 units.",
+  "ref": "Wir gewähren 3 % Rabatt bei einer Mindestabnahme von 10.000 Stück.",
+  "orig": "de"
+ },
+ {
+  "sid": "vr-06",
+  "room": "verhandlungsraum",
+  "src_lang": "en",
+  "tgt_lang": "de",
+  "src": "The contractual penalty is 5% of the order value.",
+  "ref": "Die Vertragsstrafe beträgt 5 % des Auftragswerts.",
+  "orig": "de"
+ },
+ {
+  "sid": "vr-07",
+  "room": "verhandlungsraum",
+  "src_lang": "en",
+  "tgt_lang": "de",
+  "src": "The first delivery can be made on January 15.",
+  "ref": "Die erste Lieferung kann am 15. Januar erfolgen.",
+  "orig": "xx"
+ },
+ {
+  "sid": "vr-08",
+  "room": "verhandlungsraum",
+  "src_lang": "en",
+  "tgt_lang": "de",
+  "src": "The offer is valid until Friday, 6 November.",
+  "ref": "Das Angebot gilt bis Freitag, den 6. November.",
+  "orig": "de"
+ },
+ {
+  "sid": "vr-09",
+  "room": "verhandlungsraum",
+  "src_lang": "en",
+  "tgt_lang": "de",
+  "src": "Without a framework agreement, we can't hold this price.",
+  "ref": "Ohne Rahmenvertrag können wir diesen Preis nicht halten.",
+  "orig": "xx"
+ },
+ {
+  "sid": "vr-10",
+  "room": "verhandlungsraum",
+  "src_lang": "en",
+  "tgt_lang": "de",
+  "src": "We pay 30% when the contract is signed and the rest on delivery.",
+  "ref": "Wir zahlen 30 % bei Vertragsunterzeichnung und den Rest bei Lieferung.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-01",
+  "room": "kanzlei",
+  "src_lang": "de",
+  "tgt_lang": "ru",
+  "src": "Die Klagefrist endet am 24. November.",
+  "ref": "Срок подачи иска истекает 24 ноября.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-02",
+  "room": "kanzlei",
+  "src_lang": "de",
+  "tgt_lang": "ru",
+  "src": "Bringen Sie bitte Ihren Arbeitsvertrag und die letzten drei Lohnabrechnungen mit.",
+  "ref": "Пожалуйста, принесите ваш трудовой договор и три последних расчётных листа.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-03",
+  "room": "kanzlei",
+  "src_lang": "de",
+  "tgt_lang": "ru",
+  "src": "Unterschreiben Sie die Aufhebungsvereinbarung nicht, bevor wir sie geprüft haben.",
+  "ref": "Не подписывайте соглашение о расторжении до того, как мы его проверим.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-04",
+  "room": "kanzlei",
+  "src_lang": "de",
+  "tgt_lang": "ru",
+  "src": "Ich habe die Kündigung am 3. November erhalten.",
+  "ref": "Я получил уведомление об увольнении 3 ноября.",
+  "orig": "xx"
+ },
+ {
+  "sid": "kz-05",
+  "room": "kanzlei",
+  "src_lang": "de",
+  "tgt_lang": "ru",
+  "src": "Ich arbeite seit sechs Jahren dort und verdiene 3.200 Euro brutto im Monat.",
+  "ref": "Я работаю там шесть лет и получаю 3 200 евро брутто в месяц.",
+  "orig": "xx"
+ },
+ {
+  "sid": "kz-06",
+  "room": "kanzlei",
+  "src_lang": "de",
+  "tgt_lang": "ru",
+  "src": "Die Frist für die Kündigungsschutzklage beträgt drei Wochen ab Zugang der Kündigung.",
+  "ref": "Срок подачи иска о защите от увольнения составляет три недели с момента получения уведомления об увольнении.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-07",
+  "room": "kanzlei",
+  "src_lang": "de",
+  "tgt_lang": "ru",
+  "src": "Der Termin beim Arbeitsgericht ist am 15. Dezember um 10:30 Uhr.",
+  "ref": "Заседание в суде по трудовым спорам состоится 15 декабря в 10:30.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-08",
+  "room": "kanzlei",
+  "src_lang": "de",
+  "tgt_lang": "ru",
+  "src": "Mein Chef hat mir keine Abmahnung gegeben.",
+  "ref": "Мой начальник не выносил мне предупреждения.",
+  "orig": "xx"
+ },
+ {
+  "sid": "kz-09",
+  "room": "kanzlei",
+  "src_lang": "de",
+  "tgt_lang": "ru",
+  "src": "Die Erstberatung kostet 250 Euro.",
+  "ref": "Первичная консультация стоит 250 евро.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-10",
+  "room": "kanzlei",
+  "src_lang": "de",
+  "tgt_lang": "ru",
+  "src": "Kann ich am Montag, dem 9. November, um 14 Uhr vorbeikommen?",
+  "ref": "Могу я прийти в понедельник, 9 ноября, в 14 часов?",
+  "orig": "xx"
+ },
+ {
+  "sid": "sz-01",
+  "room": "sprechzimmer",
+  "src_lang": "de",
+  "tgt_lang": "ru",
+  "src": "Nehmen Sie zweimal täglich 500 mg Metformin.",
+  "ref": "Принимайте метформин по 500 мг два раза в день.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-02",
+  "room": "sprechzimmer",
+  "src_lang": "de",
+  "tgt_lang": "ru",
+  "src": "Ich nehme zweimal täglich 500 mg Metformin.",
+  "ref": "Я принимаю метформин по 500 мг два раза в день.",
+  "orig": "xx"
+ },
+ {
+  "sid": "sz-03",
+  "room": "sprechzimmer",
+  "src_lang": "de",
+  "tgt_lang": "ru",
+  "src": "Ich bin allergisch gegen Penicillin.",
+  "ref": "У меня аллергия на пенициллин.",
+  "orig": "xx"
+ },
+ {
+  "sid": "sz-04",
+  "room": "sprechzimmer",
+  "src_lang": "de",
+  "tgt_lang": "ru",
+  "src": "Kommen Sie am Donnerstag, dem 12. November, um 9 Uhr wieder.",
+  "ref": "Приходите повторно в четверг, 12 ноября, в 9 часов.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-05",
+  "room": "sprechzimmer",
+  "src_lang": "de",
+  "tgt_lang": "ru",
+  "src": "Nehmen Sie die Tabletten nicht nüchtern ein.",
+  "ref": "Не принимайте таблетки натощак.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-06",
+  "room": "sprechzimmer",
+  "src_lang": "de",
+  "tgt_lang": "ru",
+  "src": "Ich nehme Ibuprofen, aber ich bin allergisch gegen Penicillin.",
+  "ref": "Я принимаю ибупрофен, но у меня аллергия на пенициллин.",
+  "orig": "xx"
+ },
+ {
+  "sid": "sz-07",
+  "room": "sprechzimmer",
+  "src_lang": "de",
+  "tgt_lang": "ru",
+  "src": "Geben Sie Ihrem Kind dreimal täglich 5 ml Ibuprofen-Saft.",
+  "ref": "Давайте ребёнку сироп ибупрофена по 5 мл три раза в день.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-08",
+  "room": "sprechzimmer",
+  "src_lang": "de",
+  "tgt_lang": "ru",
+  "src": "Nehmen Sie 7 Tage lang dreimal täglich 1000 mg Amoxicillin.",
+  "ref": "Принимайте амоксициллин по 1000 мг три раза в день в течение 7 дней.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-09",
+  "room": "sprechzimmer",
+  "src_lang": "de",
+  "tgt_lang": "ru",
+  "src": "Sie sind allergisch gegen Penicillin, deshalb bekommen Sie kein Amoxicillin.",
+  "ref": "У вас аллергия на пенициллин, поэтому вы не получите амоксициллин.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-10",
+  "room": "sprechzimmer",
+  "src_lang": "de",
+  "tgt_lang": "ru",
+  "src": "Ich habe seit drei Tagen Fieber über 39 Grad.",
+  "ref": "Уже три дня у меня температура выше 39 градусов.",
+  "orig": "xx"
+ },
+ {
+  "sid": "vr-01",
+  "room": "verhandlungsraum",
+  "src_lang": "de",
+  "tgt_lang": "ru",
+  "src": "Unser Angebot liegt bei 1,2 Millionen Euro.",
+  "ref": "Наше предложение составляет 1,2 миллиона евро.",
+  "orig": "de"
+ },
+ {
+  "sid": "vr-02",
+  "room": "verhandlungsraum",
+  "src_lang": "de",
+  "tgt_lang": "ru",
+  "src": "Wir können auf 1,05 Millionen gehen, wenn die Lieferung bis März erfolgt.",
+  "ref": "Мы можем опуститься до 1,05 миллиона, если поставка состоится до марта.",
+  "orig": "de"
+ },
+ {
+  "sid": "vr-03",
+  "room": "verhandlungsraum",
+  "src_lang": "de",
+  "tgt_lang": "ru",
+  "src": "Wir brauchen mindestens 5.000 Stück pro Monat.",
+  "ref": "Нам нужно минимум 5000 штук в месяц.",
+  "orig": "xx"
+ },
+ {
+  "sid": "vr-04",
+  "room": "verhandlungsraum",
+  "src_lang": "de",
+  "tgt_lang": "ru",
+  "src": "Wir bieten 950.000 Euro bei Zahlung innerhalb von 30 Tagen.",
+  "ref": "Мы предлагаем 950 000 евро при оплате в течение 30 дней.",
+  "orig": "xx"
+ },
+ {
+  "sid": "vr-05",
+  "room": "verhandlungsraum",
+  "src_lang": "de",
+  "tgt_lang": "ru",
+  "src": "Wir gewähren 3 % Rabatt bei einer Mindestabnahme von 10.000 Stück.",
+  "ref": "Мы предоставляем скидку 3 % при минимальном объёме заказа 10 000 штук.",
+  "orig": "de"
+ },
+ {
+  "sid": "vr-06",
+  "room": "verhandlungsraum",
+  "src_lang": "de",
+  "tgt_lang": "ru",
+  "src": "Die Vertragsstrafe beträgt 5 % des Auftragswerts.",
+  "ref": "Договорная неустойка составляет 5 % от стоимости заказа.",
+  "orig": "de"
+ },
+ {
+  "sid": "vr-07",
+  "room": "verhandlungsraum",
+  "src_lang": "de",
+  "tgt_lang": "ru",
+  "src": "Die erste Lieferung kann am 15. Januar erfolgen.",
+  "ref": "Первая поставка возможна 15 января.",
+  "orig": "xx"
+ },
+ {
+  "sid": "vr-08",
+  "room": "verhandlungsraum",
+  "src_lang": "de",
+  "tgt_lang": "ru",
+  "src": "Das Angebot gilt bis Freitag, den 6. November.",
+  "ref": "Предложение действует до пятницы, 6 ноября.",
+  "orig": "de"
+ },
+ {
+  "sid": "vr-09",
+  "room": "verhandlungsraum",
+  "src_lang": "de",
+  "tgt_lang": "ru",
+  "src": "Ohne Rahmenvertrag können wir diesen Preis nicht halten.",
+  "ref": "Без рамочного договора мы не сможем удержать эту цену.",
+  "orig": "xx"
+ },
+ {
+  "sid": "vr-10",
+  "room": "verhandlungsraum",
+  "src_lang": "de",
+  "tgt_lang": "ru",
+  "src": "Wir zahlen 30 % bei Vertragsunterzeichnung und den Rest bei Lieferung.",
+  "ref": "Мы платим 30 % при подписании договора, а остаток — при поставке.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-01",
+  "room": "kanzlei",
+  "src_lang": "ru",
+  "tgt_lang": "de",
+  "src": "Срок подачи иска истекает 24 ноября.",
+  "ref": "Die Klagefrist endet am 24. November.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-02",
+  "room": "kanzlei",
+  "src_lang": "ru",
+  "tgt_lang": "de",
+  "src": "Пожалуйста, принесите ваш трудовой договор и три последних расчётных листа.",
+  "ref": "Bringen Sie bitte Ihren Arbeitsvertrag und die letzten drei Lohnabrechnungen mit.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-03",
+  "room": "kanzlei",
+  "src_lang": "ru",
+  "tgt_lang": "de",
+  "src": "Не подписывайте соглашение о расторжении до того, как мы его проверим.",
+  "ref": "Unterschreiben Sie die Aufhebungsvereinbarung nicht, bevor wir sie geprüft haben.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-04",
+  "room": "kanzlei",
+  "src_lang": "ru",
+  "tgt_lang": "de",
+  "src": "Я получил уведомление об увольнении 3 ноября.",
+  "ref": "Ich habe die Kündigung am 3. November erhalten.",
+  "orig": "xx"
+ },
+ {
+  "sid": "kz-05",
+  "room": "kanzlei",
+  "src_lang": "ru",
+  "tgt_lang": "de",
+  "src": "Я работаю там шесть лет и получаю 3 200 евро брутто в месяц.",
+  "ref": "Ich arbeite seit sechs Jahren dort und verdiene 3.200 Euro brutto im Monat.",
+  "orig": "xx"
+ },
+ {
+  "sid": "kz-06",
+  "room": "kanzlei",
+  "src_lang": "ru",
+  "tgt_lang": "de",
+  "src": "Срок подачи иска о защите от увольнения составляет три недели с момента получения уведомления об увольнении.",
+  "ref": "Die Frist für die Kündigungsschutzklage beträgt drei Wochen ab Zugang der Kündigung.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-07",
+  "room": "kanzlei",
+  "src_lang": "ru",
+  "tgt_lang": "de",
+  "src": "Заседание в суде по трудовым спорам состоится 15 декабря в 10:30.",
+  "ref": "Der Termin beim Arbeitsgericht ist am 15. Dezember um 10:30 Uhr.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-08",
+  "room": "kanzlei",
+  "src_lang": "ru",
+  "tgt_lang": "de",
+  "src": "Мой начальник не выносил мне предупреждения.",
+  "ref": "Mein Chef hat mir keine Abmahnung gegeben.",
+  "orig": "xx"
+ },
+ {
+  "sid": "kz-09",
+  "room": "kanzlei",
+  "src_lang": "ru",
+  "tgt_lang": "de",
+  "src": "Первичная консультация стоит 250 евро.",
+  "ref": "Die Erstberatung kostet 250 Euro.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-10",
+  "room": "kanzlei",
+  "src_lang": "ru",
+  "tgt_lang": "de",
+  "src": "Могу я прийти в понедельник, 9 ноября, в 14 часов?",
+  "ref": "Kann ich am Montag, dem 9. November, um 14 Uhr vorbeikommen?",
+  "orig": "xx"
+ },
+ {
+  "sid": "sz-01",
+  "room": "sprechzimmer",
+  "src_lang": "ru",
+  "tgt_lang": "de",
+  "src": "Принимайте метформин по 500 мг два раза в день.",
+  "ref": "Nehmen Sie zweimal täglich 500 mg Metformin.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-02",
+  "room": "sprechzimmer",
+  "src_lang": "ru",
+  "tgt_lang": "de",
+  "src": "Я принимаю метформин по 500 мг два раза в день.",
+  "ref": "Ich nehme zweimal täglich 500 mg Metformin.",
+  "orig": "xx"
+ },
+ {
+  "sid": "sz-03",
+  "room": "sprechzimmer",
+  "src_lang": "ru",
+  "tgt_lang": "de",
+  "src": "У меня аллергия на пенициллин.",
+  "ref": "Ich bin allergisch gegen Penicillin.",
+  "orig": "xx"
+ },
+ {
+  "sid": "sz-04",
+  "room": "sprechzimmer",
+  "src_lang": "ru",
+  "tgt_lang": "de",
+  "src": "Приходите повторно в четверг, 12 ноября, в 9 часов.",
+  "ref": "Kommen Sie am Donnerstag, dem 12. November, um 9 Uhr wieder.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-05",
+  "room": "sprechzimmer",
+  "src_lang": "ru",
+  "tgt_lang": "de",
+  "src": "Не принимайте таблетки натощак.",
+  "ref": "Nehmen Sie die Tabletten nicht nüchtern ein.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-06",
+  "room": "sprechzimmer",
+  "src_lang": "ru",
+  "tgt_lang": "de",
+  "src": "Я принимаю ибупрофен, но у меня аллергия на пенициллин.",
+  "ref": "Ich nehme Ibuprofen, aber ich bin allergisch gegen Penicillin.",
+  "orig": "xx"
+ },
+ {
+  "sid": "sz-07",
+  "room": "sprechzimmer",
+  "src_lang": "ru",
+  "tgt_lang": "de",
+  "src": "Давайте ребёнку сироп ибупрофена по 5 мл три раза в день.",
+  "ref": "Geben Sie Ihrem Kind dreimal täglich 5 ml Ibuprofen-Saft.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-08",
+  "room": "sprechzimmer",
+  "src_lang": "ru",
+  "tgt_lang": "de",
+  "src": "Принимайте амоксициллин по 1000 мг три раза в день в течение 7 дней.",
+  "ref": "Nehmen Sie 7 Tage lang dreimal täglich 1000 mg Amoxicillin.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-09",
+  "room": "sprechzimmer",
+  "src_lang": "ru",
+  "tgt_lang": "de",
+  "src": "У вас аллергия на пенициллин, поэтому вы не получите амоксициллин.",
+  "ref": "Sie sind allergisch gegen Penicillin, deshalb bekommen Sie kein Amoxicillin.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-10",
+  "room": "sprechzimmer",
+  "src_lang": "ru",
+  "tgt_lang": "de",
+  "src": "Уже три дня у меня температура выше 39 градусов.",
+  "ref": "Ich habe seit drei Tagen Fieber über 39 Grad.",
+  "orig": "xx"
+ },
+ {
+  "sid": "vr-01",
+  "room": "verhandlungsraum",
+  "src_lang": "ru",
+  "tgt_lang": "de",
+  "src": "Наше предложение составляет 1,2 миллиона евро.",
+  "ref": "Unser Angebot liegt bei 1,2 Millionen Euro.",
+  "orig": "de"
+ },
+ {
+  "sid": "vr-02",
+  "room": "verhandlungsraum",
+  "src_lang": "ru",
+  "tgt_lang": "de",
+  "src": "Мы можем опуститься до 1,05 миллиона, если поставка состоится до марта.",
+  "ref": "Wir können auf 1,05 Millionen gehen, wenn die Lieferung bis März erfolgt.",
+  "orig": "de"
+ },
+ {
+  "sid": "vr-03",
+  "room": "verhandlungsraum",
+  "src_lang": "ru",
+  "tgt_lang": "de",
+  "src": "Нам нужно минимум 5000 штук в месяц.",
+  "ref": "Wir brauchen mindestens 5.000 Stück pro Monat.",
+  "orig": "xx"
+ },
+ {
+  "sid": "vr-04",
+  "room": "verhandlungsraum",
+  "src_lang": "ru",
+  "tgt_lang": "de",
+  "src": "Мы предлагаем 950 000 евро при оплате в течение 30 дней.",
+  "ref": "Wir bieten 950.000 Euro bei Zahlung innerhalb von 30 Tagen.",
+  "orig": "xx"
+ },
+ {
+  "sid": "vr-05",
+  "room": "verhandlungsraum",
+  "src_lang": "ru",
+  "tgt_lang": "de",
+  "src": "Мы предоставляем скидку 3 % при минимальном объёме заказа 10 000 штук.",
+  "ref": "Wir gewähren 3 % Rabatt bei einer Mindestabnahme von 10.000 Stück.",
+  "orig": "de"
+ },
+ {
+  "sid": "vr-06",
+  "room": "verhandlungsraum",
+  "src_lang": "ru",
+  "tgt_lang": "de",
+  "src": "Договорная неустойка составляет 5 % от стоимости заказа.",
+  "ref": "Die Vertragsstrafe beträgt 5 % des Auftragswerts.",
+  "orig": "de"
+ },
+ {
+  "sid": "vr-07",
+  "room": "verhandlungsraum",
+  "src_lang": "ru",
+  "tgt_lang": "de",
+  "src": "Первая поставка возможна 15 января.",
+  "ref": "Die erste Lieferung kann am 15. Januar erfolgen.",
+  "orig": "xx"
+ },
+ {
+  "sid": "vr-08",
+  "room": "verhandlungsraum",
+  "src_lang": "ru",
+  "tgt_lang": "de",
+  "src": "Предложение действует до пятницы, 6 ноября.",
+  "ref": "Das Angebot gilt bis Freitag, den 6. November.",
+  "orig": "de"
+ },
+ {
+  "sid": "vr-09",
+  "room": "verhandlungsraum",
+  "src_lang": "ru",
+  "tgt_lang": "de",
+  "src": "Без рамочного договора мы не сможем удержать эту цену.",
+  "ref": "Ohne Rahmenvertrag können wir diesen Preis nicht halten.",
+  "orig": "xx"
+ },
+ {
+  "sid": "vr-10",
+  "room": "verhandlungsraum",
+  "src_lang": "ru",
+  "tgt_lang": "de",
+  "src": "Мы платим 30 % при подписании договора, а остаток — при поставке.",
+  "ref": "Wir zahlen 30 % bei Vertragsunterzeichnung und den Rest bei Lieferung.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-01",
+  "room": "kanzlei",
+  "src_lang": "en",
+  "tgt_lang": "ru",
+  "src": "The time limit for filing the claim ends on 24 November.",
+  "ref": "Срок подачи иска истекает 24 ноября.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-02",
+  "room": "kanzlei",
+  "src_lang": "en",
+  "tgt_lang": "ru",
+  "src": "Please bring your employment contract and your last three payslips.",
+  "ref": "Пожалуйста, принесите ваш трудовой договор и три последних расчётных листа.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-03",
+  "room": "kanzlei",
+  "src_lang": "en",
+  "tgt_lang": "ru",
+  "src": "Do not sign the termination agreement until we have reviewed it.",
+  "ref": "Не подписывайте соглашение о расторжении до того, как мы его проверим.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-04",
+  "room": "kanzlei",
+  "src_lang": "en",
+  "tgt_lang": "ru",
+  "src": "I received my notice of dismissal on November 3.",
+  "ref": "Я получил уведомление об увольнении 3 ноября.",
+  "orig": "xx"
+ },
+ {
+  "sid": "kz-05",
+  "room": "kanzlei",
+  "src_lang": "en",
+  "tgt_lang": "ru",
+  "src": "I've worked there for six years and I earn 3,200 euros gross a month.",
+  "ref": "Я работаю там шесть лет и получаю 3 200 евро брутто в месяц.",
+  "orig": "xx"
+ },
+ {
+  "sid": "kz-06",
+  "room": "kanzlei",
+  "src_lang": "en",
+  "tgt_lang": "ru",
+  "src": "The time limit for an unfair dismissal claim is three weeks from receipt of the notice of dismissal.",
+  "ref": "Срок подачи иска о защите от увольнения составляет три недели с момента получения уведомления об увольнении.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-07",
+  "room": "kanzlei",
+  "src_lang": "en",
+  "tgt_lang": "ru",
+  "src": "The hearing at the labour court is on 15 December at 10:30.",
+  "ref": "Заседание в суде по трудовым спорам состоится 15 декабря в 10:30.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-08",
+  "room": "kanzlei",
+  "src_lang": "en",
+  "tgt_lang": "ru",
+  "src": "My boss didn't give me a formal warning.",
+  "ref": "Мой начальник не выносил мне предупреждения.",
+  "orig": "xx"
+ },
+ {
+  "sid": "kz-09",
+  "room": "kanzlei",
+  "src_lang": "en",
+  "tgt_lang": "ru",
+  "src": "The initial consultation costs 250 euros.",
+  "ref": "Первичная консультация стоит 250 евро.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-10",
+  "room": "kanzlei",
+  "src_lang": "en",
+  "tgt_lang": "ru",
+  "src": "Can I come in on Monday, 9 November, at 2 p.m.?",
+  "ref": "Могу я прийти в понедельник, 9 ноября, в 14 часов?",
+  "orig": "xx"
+ },
+ {
+  "sid": "sz-01",
+  "room": "sprechzimmer",
+  "src_lang": "en",
+  "tgt_lang": "ru",
+  "src": "Take 500 mg of metformin twice a day.",
+  "ref": "Принимайте метформин по 500 мг два раза в день.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-02",
+  "room": "sprechzimmer",
+  "src_lang": "en",
+  "tgt_lang": "ru",
+  "src": "I take 500 mg of metformin twice a day.",
+  "ref": "Я принимаю метформин по 500 мг два раза в день.",
+  "orig": "xx"
+ },
+ {
+  "sid": "sz-03",
+  "room": "sprechzimmer",
+  "src_lang": "en",
+  "tgt_lang": "ru",
+  "src": "I'm allergic to penicillin.",
+  "ref": "У меня аллергия на пенициллин.",
+  "orig": "xx"
+ },
+ {
+  "sid": "sz-04",
+  "room": "sprechzimmer",
+  "src_lang": "en",
+  "tgt_lang": "ru",
+  "src": "Please come back on Thursday, 12 November, at 9 a.m.",
+  "ref": "Приходите повторно в четверг, 12 ноября, в 9 часов.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-05",
+  "room": "sprechzimmer",
+  "src_lang": "en",
+  "tgt_lang": "ru",
+  "src": "Do not take the tablets on an empty stomach.",
+  "ref": "Не принимайте таблетки натощак.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-06",
+  "room": "sprechzimmer",
+  "src_lang": "en",
+  "tgt_lang": "ru",
+  "src": "I take ibuprofen, but I'm allergic to penicillin.",
+  "ref": "Я принимаю ибупрофен, но у меня аллергия на пенициллин.",
+  "orig": "xx"
+ },
+ {
+  "sid": "sz-07",
+  "room": "sprechzimmer",
+  "src_lang": "en",
+  "tgt_lang": "ru",
+  "src": "Give your child 5 ml of ibuprofen syrup three times a day.",
+  "ref": "Давайте ребёнку сироп ибупрофена по 5 мл три раза в день.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-08",
+  "room": "sprechzimmer",
+  "src_lang": "en",
+  "tgt_lang": "ru",
+  "src": "Take 1000 mg of amoxicillin three times a day for 7 days.",
+  "ref": "Принимайте амоксициллин по 1000 мг три раза в день в течение 7 дней.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-09",
+  "room": "sprechzimmer",
+  "src_lang": "en",
+  "tgt_lang": "ru",
+  "src": "You're allergic to penicillin, so you won't be given amoxicillin.",
+  "ref": "У вас аллергия на пенициллин, поэтому вы не получите амоксициллин.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-10",
+  "room": "sprechzimmer",
+  "src_lang": "en",
+  "tgt_lang": "ru",
+  "src": "I've had a fever of over 39 degrees for three days.",
+  "ref": "Уже три дня у меня температура выше 39 градусов.",
+  "orig": "xx"
+ },
+ {
+  "sid": "vr-01",
+  "room": "verhandlungsraum",
+  "src_lang": "en",
+  "tgt_lang": "ru",
+  "src": "Our offer stands at €1.2 million.",
+  "ref": "Наше предложение составляет 1,2 миллиона евро.",
+  "orig": "de"
+ },
+ {
+  "sid": "vr-02",
+  "room": "verhandlungsraum",
+  "src_lang": "en",
+  "tgt_lang": "ru",
+  "src": "We can go down to 1.05 million if delivery takes place by March.",
+  "ref": "Мы можем опуститься до 1,05 миллиона, если поставка состоится до марта.",
+  "orig": "de"
+ },
+ {
+  "sid": "vr-03",
+  "room": "verhandlungsraum",
+  "src_lang": "en",
+  "tgt_lang": "ru",
+  "src": "We need at least 5,000 units a month.",
+  "ref": "Нам нужно минимум 5000 штук в месяц.",
+  "orig": "xx"
+ },
+ {
+  "sid": "vr-04",
+  "room": "verhandlungsraum",
+  "src_lang": "en",
+  "tgt_lang": "ru",
+  "src": "We're offering 950,000 euros for payment within 30 days.",
+  "ref": "Мы предлагаем 950 000 евро при оплате в течение 30 дней.",
+  "orig": "xx"
+ },
+ {
+  "sid": "vr-05",
+  "room": "verhandlungsraum",
+  "src_lang": "en",
+  "tgt_lang": "ru",
+  "src": "We grant a 3% discount on a minimum order of 10,000 units.",
+  "ref": "Мы предоставляем скидку 3 % при минимальном объёме заказа 10 000 штук.",
+  "orig": "de"
+ },
+ {
+  "sid": "vr-06",
+  "room": "verhandlungsraum",
+  "src_lang": "en",
+  "tgt_lang": "ru",
+  "src": "The contractual penalty is 5% of the order value.",
+  "ref": "Договорная неустойка составляет 5 % от стоимости заказа.",
+  "orig": "de"
+ },
+ {
+  "sid": "vr-07",
+  "room": "verhandlungsraum",
+  "src_lang": "en",
+  "tgt_lang": "ru",
+  "src": "The first delivery can be made on January 15.",
+  "ref": "Первая поставка возможна 15 января.",
+  "orig": "xx"
+ },
+ {
+  "sid": "vr-08",
+  "room": "verhandlungsraum",
+  "src_lang": "en",
+  "tgt_lang": "ru",
+  "src": "The offer is valid until Friday, 6 November.",
+  "ref": "Предложение действует до пятницы, 6 ноября.",
+  "orig": "de"
+ },
+ {
+  "sid": "vr-09",
+  "room": "verhandlungsraum",
+  "src_lang": "en",
+  "tgt_lang": "ru",
+  "src": "Without a framework agreement, we can't hold this price.",
+  "ref": "Без рамочного договора мы не сможем удержать эту цену.",
+  "orig": "xx"
+ },
+ {
+  "sid": "vr-10",
+  "room": "verhandlungsraum",
+  "src_lang": "en",
+  "tgt_lang": "ru",
+  "src": "We pay 30% when the contract is signed and the rest on delivery.",
+  "ref": "Мы платим 30 % при подписании договора, а остаток — при поставке.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-01",
+  "room": "kanzlei",
+  "src_lang": "ru",
+  "tgt_lang": "en",
+  "src": "Срок подачи иска истекает 24 ноября.",
+  "ref": "The time limit for filing the claim ends on 24 November.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-02",
+  "room": "kanzlei",
+  "src_lang": "ru",
+  "tgt_lang": "en",
+  "src": "Пожалуйста, принесите ваш трудовой договор и три последних расчётных листа.",
+  "ref": "Please bring your employment contract and your last three payslips.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-03",
+  "room": "kanzlei",
+  "src_lang": "ru",
+  "tgt_lang": "en",
+  "src": "Не подписывайте соглашение о расторжении до того, как мы его проверим.",
+  "ref": "Do not sign the termination agreement until we have reviewed it.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-04",
+  "room": "kanzlei",
+  "src_lang": "ru",
+  "tgt_lang": "en",
+  "src": "Я получил уведомление об увольнении 3 ноября.",
+  "ref": "I received my notice of dismissal on November 3.",
+  "orig": "xx"
+ },
+ {
+  "sid": "kz-05",
+  "room": "kanzlei",
+  "src_lang": "ru",
+  "tgt_lang": "en",
+  "src": "Я работаю там шесть лет и получаю 3 200 евро брутто в месяц.",
+  "ref": "I've worked there for six years and I earn 3,200 euros gross a month.",
+  "orig": "xx"
+ },
+ {
+  "sid": "kz-06",
+  "room": "kanzlei",
+  "src_lang": "ru",
+  "tgt_lang": "en",
+  "src": "Срок подачи иска о защите от увольнения составляет три недели с момента получения уведомления об увольнении.",
+  "ref": "The time limit for an unfair dismissal claim is three weeks from receipt of the notice of dismissal.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-07",
+  "room": "kanzlei",
+  "src_lang": "ru",
+  "tgt_lang": "en",
+  "src": "Заседание в суде по трудовым спорам состоится 15 декабря в 10:30.",
+  "ref": "The hearing at the labour court is on 15 December at 10:30.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-08",
+  "room": "kanzlei",
+  "src_lang": "ru",
+  "tgt_lang": "en",
+  "src": "Мой начальник не выносил мне предупреждения.",
+  "ref": "My boss didn't give me a formal warning.",
+  "orig": "xx"
+ },
+ {
+  "sid": "kz-09",
+  "room": "kanzlei",
+  "src_lang": "ru",
+  "tgt_lang": "en",
+  "src": "Первичная консультация стоит 250 евро.",
+  "ref": "The initial consultation costs 250 euros.",
+  "orig": "de"
+ },
+ {
+  "sid": "kz-10",
+  "room": "kanzlei",
+  "src_lang": "ru",
+  "tgt_lang": "en",
+  "src": "Могу я прийти в понедельник, 9 ноября, в 14 часов?",
+  "ref": "Can I come in on Monday, 9 November, at 2 p.m.?",
+  "orig": "xx"
+ },
+ {
+  "sid": "sz-01",
+  "room": "sprechzimmer",
+  "src_lang": "ru",
+  "tgt_lang": "en",
+  "src": "Принимайте метформин по 500 мг два раза в день.",
+  "ref": "Take 500 mg of metformin twice a day.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-02",
+  "room": "sprechzimmer",
+  "src_lang": "ru",
+  "tgt_lang": "en",
+  "src": "Я принимаю метформин по 500 мг два раза в день.",
+  "ref": "I take 500 mg of metformin twice a day.",
+  "orig": "xx"
+ },
+ {
+  "sid": "sz-03",
+  "room": "sprechzimmer",
+  "src_lang": "ru",
+  "tgt_lang": "en",
+  "src": "У меня аллергия на пенициллин.",
+  "ref": "I'm allergic to penicillin.",
+  "orig": "xx"
+ },
+ {
+  "sid": "sz-04",
+  "room": "sprechzimmer",
+  "src_lang": "ru",
+  "tgt_lang": "en",
+  "src": "Приходите повторно в четверг, 12 ноября, в 9 часов.",
+  "ref": "Please come back on Thursday, 12 November, at 9 a.m.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-05",
+  "room": "sprechzimmer",
+  "src_lang": "ru",
+  "tgt_lang": "en",
+  "src": "Не принимайте таблетки натощак.",
+  "ref": "Do not take the tablets on an empty stomach.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-06",
+  "room": "sprechzimmer",
+  "src_lang": "ru",
+  "tgt_lang": "en",
+  "src": "Я принимаю ибупрофен, но у меня аллергия на пенициллин.",
+  "ref": "I take ibuprofen, but I'm allergic to penicillin.",
+  "orig": "xx"
+ },
+ {
+  "sid": "sz-07",
+  "room": "sprechzimmer",
+  "src_lang": "ru",
+  "tgt_lang": "en",
+  "src": "Давайте ребёнку сироп ибупрофена по 5 мл три раза в день.",
+  "ref": "Give your child 5 ml of ibuprofen syrup three times a day.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-08",
+  "room": "sprechzimmer",
+  "src_lang": "ru",
+  "tgt_lang": "en",
+  "src": "Принимайте амоксициллин по 1000 мг три раза в день в течение 7 дней.",
+  "ref": "Take 1000 mg of amoxicillin three times a day for 7 days.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-09",
+  "room": "sprechzimmer",
+  "src_lang": "ru",
+  "tgt_lang": "en",
+  "src": "У вас аллергия на пенициллин, поэтому вы не получите амоксициллин.",
+  "ref": "You're allergic to penicillin, so you won't be given amoxicillin.",
+  "orig": "de"
+ },
+ {
+  "sid": "sz-10",
+  "room": "sprechzimmer",
+  "src_lang": "ru",
+  "tgt_lang": "en",
+  "src": "Уже три дня у меня температура выше 39 градусов.",
+  "ref": "I've had a fever of over 39 degrees for three days.",
+  "orig": "xx"
+ },
+ {
+  "sid": "vr-01",
+  "room": "verhandlungsraum",
+  "src_lang": "ru",
+  "tgt_lang": "en",
+  "src": "Наше предложение составляет 1,2 миллиона евро.",
+  "ref": "Our offer stands at €1.2 million.",
+  "orig": "de"
+ },
+ {
+  "sid": "vr-02",
+  "room": "verhandlungsraum",
+  "src_lang": "ru",
+  "tgt_lang": "en",
+  "src": "Мы можем опуститься до 1,05 миллиона, если поставка состоится до марта.",
+  "ref": "We can go down to 1.05 million if delivery takes place by March.",
+  "orig": "de"
+ },
+ {
+  "sid": "vr-03",
+  "room": "verhandlungsraum",
+  "src_lang": "ru",
+  "tgt_lang": "en",
+  "src": "Нам нужно минимум 5000 штук в месяц.",
+  "ref": "We need at least 5,000 units a month.",
+  "orig": "xx"
+ },
+ {
+  "sid": "vr-04",
+  "room": "verhandlungsraum",
+  "src_lang": "ru",
+  "tgt_lang": "en",
+  "src": "Мы предлагаем 950 000 евро при оплате в течение 30 дней.",
+  "ref": "We're offering 950,000 euros for payment within 30 days.",
+  "orig": "xx"
+ },
+ {
+  "sid": "vr-05",
+  "room": "verhandlungsraum",
+  "src_lang": "ru",
+  "tgt_lang": "en",
+  "src": "Мы предоставляем скидку 3 % при минимальном объёме заказа 10 000 штук.",
+  "ref": "We grant a 3% discount on a minimum order of 10,000 units.",
+  "orig": "de"
+ },
+ {
+  "sid": "vr-06",
+  "room": "verhandlungsraum",
+  "src_lang": "ru",
+  "tgt_lang": "en",
+  "src": "Договорная неустойка составляет 5 % от стоимости заказа.",
+  "ref": "The contractual penalty is 5% of the order value.",
+  "orig": "de"
+ },
+ {
+  "sid": "vr-07",
+  "room": "verhandlungsraum",
+  "src_lang": "ru",
+  "tgt_lang": "en",
+  "src": "Первая поставка возможна 15 января.",
+  "ref": "The first delivery can be made on January 15.",
+  "orig": "xx"
+ },
+ {
+  "sid": "vr-08",
+  "room": "verhandlungsraum",
+  "src_lang": "ru",
+  "tgt_lang": "en",
+  "src": "Предложение действует до пятницы, 6 ноября.",
+  "ref": "The offer is valid until Friday, 6 November.",
+  "orig": "de"
+ },
+ {
+  "sid": "vr-09",
+  "room": "verhandlungsraum",
+  "src_lang": "ru",
+  "tgt_lang": "en",
+  "src": "Без рамочного договора мы не сможем удержать эту цену.",
+  "ref": "Without a framework agreement, we can't hold this price.",
+  "orig": "xx"
+ },
+ {
+  "sid": "vr-10",
+  "room": "verhandlungsraum",
+  "src_lang": "ru",
+  "tgt_lang": "en",
+  "src": "Мы платим 30 % при подписании договора, а остаток — при поставке.",
+  "ref": "We pay 30% when the contract is signed and the rest on delivery.",
+  "orig": "de"
+ }
+]
