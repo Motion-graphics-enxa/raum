@@ -218,3 +218,46 @@ async def test_the_next_clause_is_made_while_one_plays_one_request_at_a_time():
     assert time.monotonic() - t_played < 0.02  # already there: no gap
     assert marks == {"voice_live": 1, "voice_ahead": 1} and tts.max_running == 1 and t0
     await h.p.drain()
+
+
+async def test_a_speculative_clause_a_listener_waits_for_goes_at_live_priority():
+    tts = Slow(n=4, chunk_s=0.02, background=True)
+    h, u = await spec_room(tts, {SRC: "مرحبًا سيدة دمير."})
+    live = asyncio.create_task(play(h, "Live clause."))
+    await until(lambda: tts.running)
+    h.p.spec.on_text(u, SRC, "de")  # waits: a live clause is being made
+    await until(lambda: h.p.spec._voices)
+    assert await play(h, "مرحبًا سيدة دمير.") == 4  # the turn ended: it is wanted now, not in the background
+    await live
+    kws = {x: kw for e, x, _, kw in tts.log if e == "start"}
+    assert kws["مرحبًا سيدة دمير."] == {"background": False}
+    await h.p.drain()
+
+
+class Busy(Slow):
+    """The voice service with live speech elsewhere: every background request is refused (409)."""
+
+    def __init__(self) -> None:
+        super().__init__(n=2, chunk_s=0.001, background=True)
+        self.refused = 0
+
+    async def _synth_bg(self, text, lang, *, background=False):
+        from raum.pipeline.tts_http import VoiceBusy
+
+        if background:
+            self.refused += 1
+            raise VoiceBusy("busy: live")
+        async for c in self._run(text, {"background": background}):
+            yield c
+
+
+async def test_a_refused_speculative_clause_is_made_live_at_the_end_of_turn():
+    tts = Busy()
+    h, u = await spec_room(tts, {SRC: "مرحبًا سيدة دمير."})
+    h.p.spec.on_text(u, SRC, "de")
+    await until(lambda: tts.refused)
+    await until(lambda: all(v.done.is_set() for v in h.p.spec._voices.values()))
+    marks: dict = {}
+    assert await play(h, "مرحبًا سيدة دمير.", marks=marks) == 2
+    assert marks == {"voice_live": 1} and h.p.spec.voice_hits == 0
+    await h.p.drain()

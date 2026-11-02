@@ -40,7 +40,7 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
-from raum.pipeline.base import TranslateRequest
+from raum.pipeline.base import TranslateRequest, takes_kwarg
 
 if TYPE_CHECKING:
     from raum.pipeline.room import RoomPipeline, _Utt
@@ -55,16 +55,6 @@ _VOICE_TTL_S = 60.0  # an unclaimed cached clause older than this is dropped
 
 def _vkey(lang: str, text: str) -> tuple[str, str]:
     return (lang, " ".join(text.split()).casefold())
-
-
-def _takes(fn: Any, name: str) -> bool:
-    import inspect
-
-    try:
-        params = inspect.signature(fn).parameters
-    except (TypeError, ValueError):
-        return False
-    return name in params or any(p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values())
 
 
 async def _either(a: asyncio.Event, b: asyncio.Event) -> None:
@@ -304,8 +294,9 @@ class Speculator:
                 self._live += 1
                 self._live_idle.clear()
             kw = dict(v.kw)
-            if background and _takes(tts.synthesize, "background"):
-                kw["background"] = True  # the voice service: rejected, never queued before a live request
+            if background and not v.claimed and takes_kwarg(tts.synthesize, "background"):
+                kw["background"] = True  # the voice service: refused or cut for live speech (tts_http.VoiceBusy)
+                # a clause a listener already waits for is live: it goes at the service's normal priority
             async for c in tts.synthesize(text, lang, **kw):
                 v.chunks.append(c)
                 v.samples += len(c)
