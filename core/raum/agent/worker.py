@@ -494,16 +494,19 @@ class RoomAgent:
         except Exception as e:  # noqa: BLE001
             log.debug("close tts-%s source: %s", lang, e)
 
-    async def _tts_sink(self, lang: str, pcm: np.ndarray, rate: int) -> None:
+    async def _tts_sink(self, lang: str, pcm: np.ndarray, rate: int) -> float | None:
         """Push one chunk of a clause into ``tts-<lang>``. Each source has exactly one writer at a
         time (``capture_frame`` assumes it: two writers overflow its queue with "InvalidState - failed
         to capture frame"), frames always carry the source's own rate, and a source that errors is
-        replaced by a fresh one (the clause is dropped by the pipeline; the voice carries on)."""
+        replaced by a fresh one (the clause is dropped by the pipeline; the voice carries on).
+        Returns when (``time.monotonic()``) ``capture_frame`` accepted the chunk's first frame, for
+        ``pipeline.timing`` ``tts_publish_first_ms``."""
         from livekit import rtc
 
         pcm = np.asarray(pcm, dtype=np.int16).reshape(-1)
         if pcm.size == 0:
-            return
+            return None
+        accepted: float | None = None
         lock = self._tts_locks.setdefault(lang, asyncio.Lock())
         async with lock:
             v = await self._tts_source(lang, rate)
@@ -518,12 +521,15 @@ class RoomAgent:
                     chunk = pcm[i:i + step]
                     await v.source.capture_frame(rtc.AudioFrame(data=chunk.tobytes(), sample_rate=rate,
                                                                 num_channels=1, samples_per_channel=chunk.size))
+                    if accepted is None:
+                        accepted = time.monotonic()
             except asyncio.CancelledError:
                 raise
             except Exception as e:
                 log.warning("tts-%s: capture failed (%s); replacing the voice track", lang, e)
                 await self._drop_tts_source(lang)
                 raise
+        return accepted
 
 
 class _VoiceTrack:

@@ -5,7 +5,7 @@ from __future__ import annotations
 import warnings
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 GuardKind = Literal[
     "dose", "frequency", "allergy", "date", "time", "duration", "number", "unit", "medication",
@@ -57,6 +57,19 @@ class RetentionConfig(_Strict):
     auto_burn_minutes: int | None = 30
 
 
+class PipelineModeConfig(_Strict):
+    """Per-room defaults for the live pipeline (raum.pipeline.simul). ``raum.yaml`` ``pipeline.simultaneous:
+    off`` still switches simultaneous mode off everywhere."""
+
+    simultaneous: Literal["auto", "off"] = "auto"
+    simultaneous_after_ms: float = 0.0  # simultaneous only once the turn has this much speech (long turns)
+
+    @field_validator("simultaneous", mode="before")
+    @classmethod
+    def _yaml_bool(cls, v: object) -> object:
+        return "off" if v is False or v is None else ("auto" if v is True else v)
+
+
 warnings.filterwarnings("ignore", message='Field name "register"')
 
 
@@ -74,6 +87,7 @@ class ModeConfig(_Strict):
     summary: SummaryConfig
     buttons: list[Button]
     retention: RetentionConfig = Field(default_factory=RetentionConfig)
+    pipeline: PipelineModeConfig = Field(default_factory=PipelineModeConfig)
 
     @model_validator(mode="after")
     def _roles(self) -> "ModeConfig":

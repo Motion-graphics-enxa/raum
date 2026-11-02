@@ -122,3 +122,106 @@ def find(text: str, mode: str | None = None) -> Match | None:
             if h.line.mode == mode:
                 return h
     return hits[0]
+
+
+# ---------------------------------------------------------------- segments (simultaneous mode)
+
+_PUNCT_END = re.compile(r"[.,;:!?…،؛؟。！？][\"'»«”’)]*$")
+_ABBREV_TOKEN = re.compile(r"^(?:Dr|Fr|Hr|Prof|Nr|ca|bzw|z\.B|u\.a|St|Mr|Mrs|Ms|No|vs)\.$|^\d+\.$", re.IGNORECASE)
+
+
+@dataclass(frozen=True)
+class Span:
+    """A run of whole words of a line, as said in ``lang`` (token indices into ``text.split()``)."""
+
+    line: MockLine
+    lang: str
+    mistranslated: bool  # found in the (wrong) translator output
+    start: int
+    end: int
+
+    def tokens(self) -> list[str]:
+        return _variant(self.line, self.lang, self.mistranslated).split()
+
+    def render(self, lang: str, *, faithful: bool = False) -> str:
+        """The same part of the line in ``lang``: the word span mapped proportionally, snapped to the
+        target's clause ends so that consecutive segments map to consecutive, non-empty parts."""
+        src = self.tokens()
+        tgt = self.line.target(lang, faithful=faithful).split()
+        a, b = map_span(self.start, self.end, src, tgt)
+        return " ".join(tgt[a:b])
+
+
+def _variant(line: MockLine, lang: str, mistranslated: bool) -> str:
+    text = line.text[lang]
+    return apply_mistranslation(text, line.mistranslate) if mistranslated else text
+
+
+def _clause_ends(tokens: list[str]) -> list[int]:
+    return [i + 1 for i, t in enumerate(tokens) if _PUNCT_END.search(t) and not _ABBREV_TOKEN.match(t)]
+
+
+def map_span(start: int, end: int, src: list[str], tgt: list[str]) -> tuple[int, int]:
+    """Token span [start, end) of ``src`` -> the matching span of ``tgt``: proportional; a cut at a source
+    clause end snaps to the nearest target clause end."""
+    n, n_src = len(tgt), len(src)
+    if n_src <= 0 or n == 0:
+        return 0, n
+    ends = sorted(set(_clause_ends(tgt) + [n]))
+    src_ends = set(_clause_ends(src))
+
+    def pos(k: int) -> int:
+        if k <= 0:
+            return 0
+        if k >= n_src:
+            return n
+        x = k * n / n_src
+        if k not in src_ends:  # cut mid-clause (a turn ended at a pause): plain proportion
+            return max(1, min(n - 1, round(x)))
+        return min(ends, key=lambda e: (abs(e - x), e))
+
+    a, b = pos(start), pos(end)
+    if b <= a:  # too short to reach a clause end: plain proportion
+        a, b = round(start * n / n_src), max(round(end * n / n_src), round(start * n / n_src) + 1)
+    return a, min(b, n)
+
+
+def _words(tokens: list[str]) -> list[tuple[str, int]]:
+    """(normalised word, token index); a token may hold 0..n words ("mg'ı" -> "mg", "ı")."""
+    return [(w, i) for i, t in enumerate(tokens) for w in normalize(t).split()]
+
+
+def locate(text: str, mode: str | None = None, *, after: str = "") -> Span | None:
+    """Find the line that contains ``text`` as a run of whole words (any language, also the mistranslated
+    translator output). ``after``: what the speaker said before it in the same utterance; the run must then
+    start right after it at the beginning of the line. Prefers ``mode``."""
+    needle = normalize(text).split()
+    head = normalize(after).split() if after.strip() else []
+    if not needle:
+        return None
+    best: Span | None = None
+    for m in sorted(available_modes(), key=lambda x: x != mode):
+        for line in load_script(m).lines:
+            for lang in line.text:
+                for wrong in (False, True):
+                    if wrong and not line.mistranslate:
+                        continue
+                    toks = _variant(line, lang, wrong).split()
+                    if wrong and toks == line.text[lang].split():
+                        continue
+                    words = _words(toks)
+                    flat = [w for w, _ in words]
+                    if head:
+                        if flat[:len(head)] != head or flat[len(head):len(head) + len(needle)] != needle:
+                            continue
+                        i = len(head)
+                    else:
+                        i = next((j for j in range(len(flat) - len(needle) + 1)
+                                  if flat[j:j + len(needle)] == needle), -1)
+                        if i < 0:
+                            continue
+                    span = Span(line, lang, wrong, words[i][1], words[i + len(needle) - 1][1] + 1)
+                    if head or span.start == 0:
+                        return span  # anchored at the utterance start: unambiguous
+                    best = best or span
+    return best

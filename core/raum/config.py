@@ -114,6 +114,24 @@ class VerifyThresholds(_Open):
     amber: float = 0.78
 
 
+class PipelineConfig(_Open):
+    # Simultaneous mode (raum.pipeline.simul): clauses are translated and spoken while the speaker is
+    # still talking. "auto" = for a target language whose listeners are all on headphones; "off" = always
+    # consecutive (translate and speak after the speaker stops). A mode can narrow it (modes/*.yaml).
+    simultaneous: Literal["auto", "off"] = "auto"
+    speculate: bool = True  # translate the latest stable text in the background; reused if the final matches
+
+    @field_validator("simultaneous", mode="before")
+    @classmethod
+    def _yaml_bool(cls, v: Any) -> Any:
+        # YAML 1.1 reads a bare `off` / `on` as a boolean
+        if v is False or v is None:
+            return "off"
+        if v is True:
+            return "auto"
+        return v
+
+
 class RaumConfig(_Open):
     profile: str = "mock"
     models: ModelsConfig = Field(default_factory=ModelsConfig)
@@ -121,6 +139,7 @@ class RaumConfig(_Open):
     security: SecurityConfig = Field(default_factory=SecurityConfig)
     network: NetworkConfig = Field(default_factory=NetworkConfig)
     thresholds: VerifyThresholds = Field(default_factory=VerifyThresholds)
+    pipeline: PipelineConfig = Field(default_factory=PipelineConfig)
     asr_min_conf: float = 0.55  # below: "please say that again" (V-03)
 
     def data_dir(self) -> Path:

@@ -10,3 +10,4 @@ models:
   vision:    { engine: off }
   tts:       { engine: off }
 scheduler: { live_slots: 1, check_slots: 0, background_slots: 1 }
+pipeline:  { simultaneous: auto }   # clauses spoken while the speaker talks, for headphone listeners (off = consecutive)

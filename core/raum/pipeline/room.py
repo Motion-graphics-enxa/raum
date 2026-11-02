@@ -48,11 +48,15 @@ Additions beyond the contract (all optional):
   that is not the owner's voice is dropped before ``transcript.final`` (not translated, spoken, stored or
   summarized). ``voice.lock`` carries the verdict and score. The voices are memory only and go with the voice
   samples (burn, session end, ``aclose``); control ``voice_lock_reset`` learns a device's voice again.
+- Simultaneous mode (simul.py) and speculative translation (speculate.py) hook in at marked lines.
 
 Timing (``pipeline.timing``, one per utterance and target language, after the check): ``vad_ms``
 is the endpoint delay; ``asr_ms`` the final transcription; ``mt_first_ms``, ``mt_full_ms`` and
 ``tts_first_ms`` are measured from the moment the speaker stopped (= endpoint - vad_ms), the
-numbers of the §3 table; ``check_ms`` is translation.final -> verify.result.
+numbers of the §3 table; ``check_ms`` is translation.final -> verify.result. Also: ``asr_from``
+(``partial`` = the stable last partial, ``early`` = the pause's early final, ``final`` = a final pass),
+``tts_synth_first_ms`` (stop -> first PCM from the voice engine) and ``tts_publish_first_ms`` (stop -> the
+first frame the worker's AudioSource accepted; the sink returns that moment).
 """
 
 from __future__ import annotations
@@ -85,6 +89,8 @@ from raum.pipeline import texts as T
 from raum.pipeline._util import int16_to_float, lang_code, lang_name, load_prompt, render_prompt
 from raum.pipeline.base import AsrResult, Engines, TranslateRequest, TurnContext
 from raum.pipeline.echo import EchoControl
+from raum.pipeline.simul import Simultaneous
+from raum.pipeline.speculate import Speculator
 from raum.pipeline.voice import SpeakingRate, VoiceArgs, VoiceRef, speech_seconds
 from raum.pipeline.voicelock import VoiceLock
 from raum.scheduler import Scheduler
@@ -92,7 +98,7 @@ from raum.verify import guard
 from raum.verify.backtranslate import CheckResult, second_check
 
 Emit = Callable[[Envelope], Awaitable[None]]
-TtsSink = Callable[[str, np.ndarray, int], Awaitable[None]]
+TtsSink = Callable[[str, np.ndarray, int], Awaitable[float | None]]  # -> monotonic time the 1st frame was accepted
 
 log = logging.getLogger("raum.pipeline.room")
 
@@ -231,6 +237,27 @@ def take_clause(buf: str) -> tuple[str, str]:
     return buf[:cut].strip(), buf[cut:]
 
 
+PHRASE_WORDS = 5  # the voice starts on a phrase of about 4-6 words (or the first clause boundary before that)
+_WORD = re.compile(r"\S+(?=\s)")  # a complete word: the next one has begun
+_CLOSE = "\"'»«”’)"
+
+
+def take_phrase(buf: str) -> tuple[str, str]:
+    """The voice's FIRST phrase, so it starts sooner: up to the first clause boundary (from the 2nd word; a
+    sentence end at once) or after ``PHRASE_WORDS`` complete words, whichever comes first; never right after
+    a number ("500 | mg"). Later clauses use ``take_clause``. Only where the voice starts changes: the fact
+    guard still checks the whole translation."""
+    for i, m in enumerate(_WORD.finditer(buf)):
+        head = buf[:m.end()].rstrip(_CLOSE)
+        c = head[-1:]
+        boundary = bool(c) and c in ".!?;:…。！？،؛؟," and not (c == "." and _ABBREV.search(head))
+        if boundary and (i >= 1 or c in ".!?…。！？؟"):
+            return buf[:m.end()].strip(), buf[m.end():]
+        if i + 1 >= PHRASE_WORDS and (not any(ch.isdigit() for ch in m.group(0)) or i + 1 >= PHRASE_WORDS + 2):
+            return buf[:m.end()].strip(), buf[m.end():]
+    return "", buf
+
+
 class RoomPipeline:
     def __init__(self, room: str, mode: ModeConfig, engines: Engines, emit: Emit, config: RaumConfig) -> None:
         self.room = room
@@ -273,6 +300,8 @@ class RoomPipeline:
         self._voice_fails: dict[str, int] = {}
         self._voice_paused_until: dict[str, float] = {}
         self._closed = False
+        self.simul = Simultaneous(self)  # simultaneous mode + stable partial as final (simul.py)
+        self.spec = Speculator(self)  # speculative translation (speculate.py)
 
     # ---------------------------------------------------------------- setup
 
@@ -349,6 +378,8 @@ class RoomPipeline:
 
     def _drop(self, u: _Utt) -> None:
         u.closed = True
+        for ext in (self.simul, self.spec):  # simul.py, speculate.py: forget it
+            ext.drop(u.id)
         u.frames.clear()
         u.parts.clear()
         if u.partial_task and not u.partial_task.done():
@@ -388,6 +419,7 @@ class RoomPipeline:
         u = self._active.get(speaker)
         if u is not None:
             self._cancel_hold(u)  # speech again within the end-of-turn wait: the same utterance goes on
+            self.spec.drop(u.id)  # speculate.py: what was translated / voiced ahead for that pause is discarded
             return u.id
         if self.echo.is_paused(speaker):  # C-14: the box's own voice from this device's speaker, not speech
             return None
@@ -442,6 +474,7 @@ class RoomPipeline:
         u.seq += 1
         await self.emit("transcript.partial", {"speaker": u.speaker, "lang": lang_code(res.lang) or u.lang,
                                                "text": res.text.strip(), "seq": u.seq}, utt=u.id)
+        await self.simul.on_partial(u, res, audio)  # simul.py: speculate, commit stable complete clauses
 
     async def speech_end(self, speaker: str, audio: np.ndarray | None, vad_ms: float, *,
                          asr: AsrResult | None = None, eot: Any = None) -> None:
@@ -471,7 +504,10 @@ class RoomPipeline:
         u.frames.clear()
         u.parts.clear()
         t0 = t_detect - max(0.0, float(vad_ms)) / 1000.0  # the moment the speaker stopped
-        await self._turn(u, final_audio, float(vad_ms), t0, asr=asr, eot=eot)
+        try:
+            await self._turn(u, final_audio, float(vad_ms), t0, asr=asr, eot=eot)
+        finally:
+            self.simul.release(u.id)  # simul.py: close segments of a turn that ended without a final
 
     async def speech_pause(self, speaker: str, audio: np.ndarray | None, vad_ms: float) -> None:
         """VAD END_OF_SPEECH with semantic end of turn: start the decision and return (see module doc)."""
@@ -495,11 +531,18 @@ class RoomPipeline:
         res: AsrResult | None = None
         t_asr = time.monotonic()
         try:
-            async with self.sched.slot("live"):
-                res = await asyncio.wait_for(self.engines.asr.transcribe(
-                    audio, lang_hint=u.hint, partial=False, turn=replace(u.turn, speech_ms=n * 1000.0 / SAMPLE_RATE)),
-                    ASR_TIMEOUT_S)
+            await self.simul.settle(u, n, PARTIAL_TIMEOUT_S)  # simul.py: a running partial may be the final
+            res = self.simul.reuse_final(u, n)  # simul.py: a stable last partial is the final
+            if res is None:
+                async with self.sched.slot("live"):
+                    res = await asyncio.wait_for(self.engines.asr.transcribe(
+                        audio, lang_hint=u.hint, partial=False, turn=replace(u.turn, speech_ms=n * 1000.0 / SAMPLE_RATE)),
+                        ASR_TIMEOUT_S)
             res.ms = (time.monotonic() - t_asr) * 1000.0
+            if res.text.strip():  # speculate.py: MT + first-phrase voice now, in parallel with the verdict
+                self.spec.on_text(u, res.text, lang_code(res.lang) or u.hint or self._default_lang(u.role),
+                                  slot="live", seconds=speech_seconds(n / SAMPLE_RATE, (time.monotonic() - t_stop)
+                                                                      * 1000.0, res.words, self.vad_pad_s))
             verdict = await self.eot.verdict(res.text, lang_code(res.lang) or u.hint, audio_p)
         except asyncio.CancelledError:
             audio_p.cancel()
@@ -541,9 +584,12 @@ class RoomPipeline:
         else:
             t_asr = time.monotonic()
             try:
-                async with self.sched.slot("live"):
-                    res = await asyncio.wait_for(
-                        self.engines.asr.transcribe(audio, lang_hint=u.hint, partial=False, turn=turn), ASR_TIMEOUT_S)
+                res = self.simul.reuse_final(u, len(audio))  # simul.py: a stable last partial stands in for it
+                if res is None:
+                    async with self.sched.slot("live"):
+                        res = await asyncio.wait_for(
+                            self.engines.asr.transcribe(audio, lang_hint=u.hint, partial=False, turn=turn),
+                            ASR_TIMEOUT_S)
             except asyncio.CancelledError:
                 raise
             except Exception as e:  # noqa: BLE001
@@ -552,6 +598,8 @@ class RoomPipeline:
                     await self._say_again(u, u.lang if u.lang != "und" else None)
                 return
             timing["asr_ms"] = round((time.monotonic() - t_asr) * 1000.0, 1)
+        # which transcript this is: the stable partial (simul.py), the early final of the pause, or a final pass
+        timing["asr_from"] = "partial" if res.from_partial else ("early" if asr is not None else "final")
         src_lang = lang_code(res.lang) or u.hint or self._default_lang(u.role)
         text = res.text.strip()
         # F-10 voice lock: not the device owner's voice -> dropped here, before anything of it is published
@@ -578,7 +626,9 @@ class RoomPipeline:
 
         voice = self._voice_args(u, audio, vad_ms, res.words, text)
         targets = self._targets(rec)
-        await asyncio.gather(*(self._translate(u, rec, tgt, t0, dict(timing), context, voice) for tgt in targets))
+        simul, targets = self.simul.finish_turn(u, rec, targets, t0, timing)  # simul.py: segmented langs: tail
+        await asyncio.gather(*simul, *(self._translate(u, rec, tgt, t0, dict(timing), context, voice)
+                                       for tgt in targets))
         if "offer_tracker" in self.mode.buttons:
             await self._offers(rec)
 
@@ -621,14 +671,16 @@ class RoomPipeline:
         req = self._request(rec, tgt, context)
         parts: list[str] = []
         first_ms: float | None = None
-        # C-13: voice starts on the first clause while the rest of the sentence still streams
+        # C-13: voice starts on the first phrase while the rest of the sentence still streams
         voice_q: asyncio.Queue[str | None] | None = asyncio.Queue() if self._tts_enabled() else None
-        tts_task = self._spawn(self._speak_stream(tgt, voice_q, t0, voice)) if voice_q is not None else None
+        marks: dict[str, float] = {}  # tts_synth_first_ms / tts_publish_first_ms
+        tts_task = self._spawn(self._speak_stream(tgt, voice_q, t0, voice, marks)) if voice_q is not None else None
         pending = ""
+        spoke = False
 
         async def run() -> None:
-            nonlocal first_ms, pending
-            async for delta in self.engines.translate.stream(req):
+            nonlocal first_ms, pending, spoke
+            async for delta in self.spec.stream(u.id, tgt, req):  # speculate.py: replayed if it matched
                 if not delta:
                     continue
                 if first_ms is None:
@@ -638,8 +690,9 @@ class RoomPipeline:
                                 utt=u.id)
                 if voice_q is not None:
                     pending += delta
-                    clause, pending = take_clause(pending)
+                    clause, pending = take_clause(pending) if spoke else take_phrase(pending)
                     if clause:
+                        spoke = True
                         voice_q.put_nowait(clause)
 
         try:
@@ -679,17 +732,20 @@ class RoomPipeline:
         flagged = await self._fact_flags(rec, tgt, res)
 
         # never blocks the live path: second check + voice, then the timing line
-        self._spawn(self._after_final(rec, tgt, text, res, ok, flagged, t0, t_final, timing, tts_task))
+        self._spawn(self._after_final(rec, tgt, text, res, ok, flagged, t0, t_final, timing, tts_task, marks))
 
     async def _after_final(self, rec: _Turn, tgt: str, text: str, gres: guard.GuardResult | None, guard_ok: bool,
                            flagged: bool, t0: float, t_final: float, timing: dict[str, Any],
-                           tts_task: asyncio.Task[float | None] | None = None) -> None:
+                           tts_task: asyncio.Task[float | None] | None = None,
+                           marks: dict[str, float] | None = None) -> None:
         check_ms: float | None = None
         try:
             check_ms = await self._check(rec, tgt, text, gres, guard_ok, flagged, t_final)
         finally:
             tts_first = await tts_task if tts_task else None
             timing.update(target_lang=tgt, check_ms=check_ms, tts_first_ms=tts_first)
+            if marks is not None:  # stop -> first PCM from the engine / first frame the worker's AudioSource took
+                timing.update(tts_synth_first_ms=marks.get("synth"), tts_publish_first_ms=marks.get("publish"))
             await self.emit("pipeline.timing", timing, utt=rec.utt)
 
     async def _check(self, rec: _Turn, tgt: str, text: str, gres: guard.GuardResult | None, guard_ok: bool,
@@ -725,7 +781,7 @@ class RoomPipeline:
         return time.monotonic() < self._voice_paused_until.get(tgt, 0.0)
 
     async def _speak_stream(self, tgt: str, q: asyncio.Queue[str | None], t0: float,
-                            voice: VoiceArgs | None = None) -> float | None:
+                            voice: VoiceArgs | None = None, marks: dict[str, float] | None = None) -> float | None:
         """Speak clauses in order as they arrive; returns ms from the speaker's stop to the first audio.
 
         Holds ``tgt``'s voice lane for the whole utterance: a second utterance into the same language
@@ -744,22 +800,29 @@ class RoomPipeline:
                     return first
                 if self._voice_paused(tgt) or self._closed:
                     continue
-                f = await self._speak(tgt, clause, t0, voice)
+                f = await self._speak(tgt, clause, t0, voice, marks)
                 if first is None:
                     first = f
 
-    async def _speak(self, tgt: str, text: str, t0: float, voice: VoiceArgs | None = None) -> float | None:
+    async def _speak(self, tgt: str, text: str, t0: float, voice: VoiceArgs | None = None,
+                     marks: dict[str, float] | None = None) -> float | None:
         tts = self.engines.tts
         if tts is None or not text:
             return None
         first: float | None = None
         try:
-            async for chunk in tts.synthesize(text, tgt, **self._voice_kwargs(tts, voice)):
+            # speculate.py: a pre-synthesised clause if it was made with these voice args
+            async for chunk in self.spec.synthesize(tts, text, tgt, **self._voice_kwargs(tts, voice)):
                 if first is None:
                     first = round((time.monotonic() - t0) * 1000.0, 1)
+                    if marks is not None:
+                        marks.setdefault("synth", first)
                 if self.tts_sink is not None and not self.off_record and len(chunk):
                     self._voice_out(tgt, len(chunk), tts.sample_rate)
-                    await self.tts_sink(tgt, chunk, tts.sample_rate)
+                    took = await self.tts_sink(tgt, chunk, tts.sample_rate)
+                    if marks is not None and "publish" not in marks:  # the sink says when its 1st frame went in
+                        at = took if isinstance(took, float) else time.monotonic()
+                        marks["publish"] = round((at - t0) * 1000.0, 1)
         except asyncio.CancelledError:
             raise
         except Exception as e:  # noqa: BLE001  §6.15: text continues; drop this clause, keep the voice
@@ -775,6 +838,8 @@ class RoomPipeline:
         self._voice_fails[tgt] = 0
         if first is None and getattr(tts, "simulated", False):
             first = round((time.monotonic() - t0) * 1000.0, 1)
+            if marks is not None:
+                marks.setdefault("synth", first)
         return first
 
     # ---------------------------------------------------------------- the speaker's voice (C-13)
@@ -852,7 +917,7 @@ class RoomPipeline:
         await self.emit("flag", {"kind": "uncertain", "text": T.pick(texts, lang), "needs_confirm": False,
                                  "id": f"{u.id}-uncertain", "target_lang": lang, "texts": texts}, utt=u.id)
 
-    async def _fact_flags(self, rec: _Turn, tgt: str, res: guard.GuardResult | None) -> bool:
+    async def _fact_flags(self, rec: _Turn, tgt: str, res: guard.GuardResult | None, seg: int | None = None) -> bool:
         """Confirm prompt on the listener's device: red mismatches, and ``confirm_on`` facts (§6.8.4)."""
         if res is None:
             return False
@@ -877,10 +942,11 @@ class RoomPipeline:
             joined = ", ".join(T.fact_text(f.kind, f.src or f.tgt, lang) for f in facts)
             texts[lang] = (T.pick(template, lang).format(facts=joined) if template
                            else f"{joined}. {T.pick(T.CORRECT, lang)}")
+        part, extra = ("", {}) if seg is None else (f"-s{seg}", {"seg": seg})  # simul.py: one per segment
         await self.emit("flag", {"kind": kind, "text": texts[tgt], "needs_confirm": True,
-                                 "id": f"{rec.utt}-{tgt}-{'mismatch' if res.red else 'confirm'}",
+                                 "id": f"{rec.utt}-{tgt}{part}-{'mismatch' if res.red else 'confirm'}",
                                  "confirm_by": self._listener_role(tgt, rec.role), "target_lang": tgt,
-                                 "texts": texts}, utt=rec.utt)
+                                 "texts": texts, **extra}, utt=rec.utt)
         return True
 
     # ---------------------------------------------------------------- memory (V-04)
@@ -983,6 +1049,8 @@ class RoomPipeline:
         try:
             if action == "off_record":
                 self._set_off_record(bool(control.value))
+            elif action == "confirm":
+                self.simul.confirm(control)  # simul.py: releases a held segment's voice
             elif action == "repeat_back":
                 self._repeat_back = True
             elif action == "explain_simply":
@@ -998,7 +1066,7 @@ class RoomPipeline:
                 self._burn()
             elif action == "voice_lock_reset":  # F-10
                 self.voicelock.reset(control.by, self.participants.values())
-            # confirm, human_interpreter, end, approve_summary, mute: handled by core / the devices
+            # human_interpreter, end, approve_summary, mute: handled by core / the devices
         except Exception:
             log.exception("control %s failed", action)
 

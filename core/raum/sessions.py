@@ -623,6 +623,8 @@ class SessionManager:
             self.emit(room, "confirm", Confirm(by=by or "?", accepted=accepted, flag_id=ctl.flag_id), utt=ctl.utt,
                       persist=True)
             self._audit("confirm", s.id, by=by, accepted=accepted, flag_id=ctl.flag_id)
+            # the agent releases (or skips) a segment's voice held for this flag (simultaneous mode)
+            forwarded = await self.forward(room, ctl.model_copy(update={"accepted": accepted}))
         elif a == "glossary":  # same as POST /glossary with terms in the YAML shape
             raw = ctl.value.get("terms") if isinstance(ctl.value, dict) else ctl.value
             try:

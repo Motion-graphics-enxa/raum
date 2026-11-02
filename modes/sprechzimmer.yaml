@@ -22,3 +22,6 @@ summary:
   file_note_for: a
 buttons: [off_record, repeat_back, human_interpreter, end]
 retention: { auto_burn_minutes: 30 }
+# Consecutive with smart endpointing; simultaneous (headphone listeners) only for long turns, at complete
+# sentence ends: a German clause never goes out before its finite verb or particle.
+pipeline: { simultaneous: auto, simultaneous_after_ms: 4000 }

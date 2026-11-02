@@ -5,7 +5,7 @@ profile: mock
 models:
   vad:       { engine: silero, options: { min_silence_duration: 0.35, activation_threshold: 0.5 } }
   denoise:   { engine: passthrough }
-  asr:       { engine: mock, model: mock-whisper, options: { latency_ms: [150, 300], partial_every_ms: 900 } }
+  asr:       { engine: mock, model: mock-whisper, options: { latency_ms: [150, 300], partial_every_ms: 500 } }
   translate: { engine: mock, model: mock-gemma, options: { first_token_ms: [180, 260], token_ms: 28 } }
   verify:    { engine: mock, model: mock-gpt-oss, options: { latency_ms: [700, 1100] } }
   embed:     { engine: mock, model: mock-bge-m3 }
@@ -14,4 +14,5 @@ models:
   # F-10 voice lock: off | mock (spectral fingerprint, for tests) | ecapa (SpeechBrain; needs --extra voicelock)
   voicelock: { engine: off }
 scheduler: { live_slots: 4, check_slots: 2, background_slots: 2 }
+pipeline:  { simultaneous: auto }   # clauses spoken while the speaker talks, for headphone listeners (off = consecutive)
 security:  { data_dir: data }

@@ -38,6 +38,15 @@ UNSURE = {
     "ar": "قد تكون هذه الترجمة خاطئة. يرجى التأكد من الطرف الآخر.",
 }
 
+# simultaneous mode: the second check turned red after this part was already shown and spoken
+CORRECTION = {
+    "de": "Korrektur: Dieser Teil wurde vielleicht falsch übersetzt. Bitte beim Gegenüber nachfragen.",
+    "en": "Correction: this part may have been translated wrongly. Please check with the other person.",
+    "tr": "Düzeltme: Bu kısım yanlış çevrilmiş olabilir. Lütfen karşınızdaki kişiye sorun.",
+    "ru": "Поправка: эта часть, возможно, переведена неверно. Пожалуйста, уточните у собеседника.",
+    "ar": "تصحيح: ربما تُرجم هذا الجزء بشكل خاطئ. يرجى التأكد من الطرف الآخر.",
+}
+
 LABELS = {
     "allergy": {"de": "Allergie", "en": "Allergy", "tr": "Alerji", "ru": "Аллергия", "ar": "حساسية"},
     "deadline": {"de": "Frist", "en": "Deadline", "tr": "Son tarih", "ru": "Срок", "ar": "المهلة"},

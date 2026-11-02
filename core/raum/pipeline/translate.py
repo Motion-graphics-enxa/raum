@@ -40,7 +40,9 @@ class MockTranslator:
         mode = req.turn.mode if req.turn else None
         m = mockdata.find(req.text, mode)
         if m is None:
-            return f"[{req.tgt_lang}] {req.text}"
+            # part of a line (a segment, or a turn cut at a pause): the same part in the target language
+            span = mockdata.locate(req.text, mode, after=" ".join(src for src, _ in req.earlier))
+            return span.render(req.tgt_lang) if span else f"[{req.tgt_lang}] {req.text}"
         return m.line.target(req.tgt_lang)
 
     async def stream(self, req: TranslateRequest) -> AsyncIterator[str]:
@@ -66,14 +68,22 @@ def translate_system_prompt(template: str, req: TranslateRequest) -> str:
 
 
 CONTEXT_PROMPT = "prompts/translate-context.md"
+SEGMENT_PROMPT = "prompts/translate-segment.md"
 
 
 def translate_messages(template: str, req: TranslateRequest) -> list[dict[str, str]]:
     """Fixed system prefix first (byte-identical per room and direction, so Ollama reuses its prompt
-    cache), then the per-turn context as its own short system note, then the utterance."""
+    cache), then the per-turn context as its own short system note, then the utterance.
+
+    A segment (simultaneous mode) adds a fixed note and the utterance's earlier segments as chat turns
+    (user: source, assistant: translation), so each request extends the previous one's prefix."""
     msgs = [{"role": "system", "content": translate_system_prompt(template, req)}]
     if req.context and req.context.strip() not in ("", "(none)"):
         msgs.append({"role": "system", "content": render_prompt(load_prompt(CONTEXT_PROMPT), context=req.context)})
+    if req.segment:
+        msgs.append({"role": "system", "content": load_prompt(SEGMENT_PROMPT)})
+        for src, tgt in req.earlier:
+            msgs += [{"role": "user", "content": src}, {"role": "assistant", "content": tgt}]
     msgs.append({"role": "user", "content": req.text})
     return msgs
 

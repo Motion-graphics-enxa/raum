@@ -18,4 +18,5 @@ models:
   # then set engine: ecapa. threshold = cosine with the owner's voice: lower lets more through.
   voicelock: { engine: off, model: speechbrain/spkrec-ecapa-voxceleb, options: { threshold: 0.35, enroll_s: 6, min_utt_s: 1.0, model_dir: ~/Desktop/HackathonRaum/runtime/models/spkrec-ecapa-voxceleb, device: cpu, threads: 1 } }
 scheduler: { live_slots: 2, check_slots: 1, background_slots: 1 }
+pipeline:  { simultaneous: auto }   # clauses spoken while the speaker talks, for headphone listeners (off = consecutive)
 security:  { data_dir: ~/Desktop/HackathonRaum/data }   # shared GX10: everything stays in our folder

@@ -15,7 +15,8 @@ core -> agent
      "utt_seq": 7}                                  session's highest utterance number (C-12 resume)
     {"kind": "control", "control": <Control>}       device actions the pipeline must act on:
                                                     off_record, repeat_back, explain_simply,
-                                                    explain_approve, correct_term, end, burn
+                                                    explain_approve, correct_term, end, burn,
+                                                    confirm (releases a held segment's voice)
 
 Core-originated events (session.state, confirm, summary.ready, burn.done) are published to the
 room's data channel by core itself via the LiveKit server API (RoomService.SendData, topic

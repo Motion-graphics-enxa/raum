@@ -55,6 +55,9 @@ class MockVerifier:
         await self._delay()
         m = mockdata.find(text, turn.mode if turn else None)
         if m is None:
+            span = mockdata.locate(text, turn.mode if turn else None)  # a segment (simultaneous mode)
+            if span is not None:
+                return span.render(into_lang, faithful=not span.mistranslated)
             return re.sub(r"^\[[a-z]{2,3}\]\s*", "", text)
         if m.mistranslated:
             return m.line.target(into_lang)

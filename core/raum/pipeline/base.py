@@ -36,6 +36,8 @@ class AsrResult:
     conf: float  # 0..1 (mean token probability or equivalent)
     ms: float = 0.0
     words: list[dict[str, Any]] = field(default_factory=list)
+    has_conf: bool = True  # False: the engine reported no scores and ``conf`` is a placeholder
+    from_partial: bool = False  # the stable last partial, reused as the final (no final ASR pass)
 
 
 @dataclass
@@ -52,6 +54,10 @@ class TranslateRequest:
     glossary: str = "(none)"  # rendered glossary lines
     context: str = "(none)"  # earlier turns, names/pronouns only
     turn: TurnContext | None = None
+    # simultaneous mode: ``text`` is one segment of an utterance; ``earlier`` = the utterance's earlier
+    # segments as (source, translation) pairs, in order
+    segment: bool = False
+    earlier: list[tuple[str, str]] = field(default_factory=list)
 
 
 @runtime_checkable

@@ -1,0 +1,1 @@
+The speaker is still talking: each message is the next part of one utterance, and your earlier messages are your translations of its earlier parts. Translate only the new part, so that it continues your earlier translation. Do not complete, repeat or summarise anything.

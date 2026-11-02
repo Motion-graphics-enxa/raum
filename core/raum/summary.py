@@ -148,6 +148,7 @@ def collect(records: list[dict[str, Any]]) -> tuple[list[Utterance], list[dict[s
     flag_utt: dict[str, str] = {}
     confirms: list[dict[str, Any]] = []
     offers: list[dict[str, Any]] = []
+    segments: dict[tuple[str, str], dict[int, str]] = {}
 
     def get(utt: str) -> Utterance:
         if utt not in by_utt:
@@ -174,7 +175,11 @@ def collect(records: list[dict[str, Any]]) -> tuple[list[Utterance], list[dict[s
                 u.conf = 1.0
         elif t == "translation.final":
             tl, tx = d.get("target_lang"), d.get("text")
-            if tl and tx:
+            if tl and isinstance(d.get("seg"), int):  # simultaneous mode: the utterance = segments in order
+                parts = segments.setdefault((utt, str(tl)), {})
+                parts[d["seg"]] = str(tx or "").strip()
+                get(utt).translations[str(tl)] = " ".join(parts[k] for k in sorted(parts) if parts[k])
+            elif tl and tx:
                 get(utt).translations[str(tl)] = str(tx).strip()
         elif t == "verify.result":
             if d.get("badge") == "red":
