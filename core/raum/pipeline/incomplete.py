@@ -18,6 +18,13 @@ longer (``max_s``); they never end a turn.
 * ``neg-scope`` (de): the last clause ends in a time adverb where a negation commonly follows
   ("Nehmen Sie das ab morgen" [pause] "nicht mehr").
 * ``aux-final`` (en): ends in a modal / auxiliary / "not" / "to" ("You may" [pause] "not take it").
+* ``verb-final`` (ru): ends in a modal / predicative without its infinitive ("Вам нельзя" [pause] "...");
+  ``neg-scope`` (ru): such a word, no infinitive after it, and a time phrase at the end ("Вам можно с
+  завтрашнего дня" [pause] "не принимать"); ``neg-open`` (ru): ends in "не" / "ни".
+* ``conj-open`` (de, en, ru): ends in a conjunction, a preposition or (en) an article ("und", "gegen",
+  "of the", "because", "потому что", "на"). Not when the text is a question ("Where are you from?").
+* ``number-open`` (de, en, ru), the only SOFT reason: ends in a number without a unit ("принимайте по
+  500"). It never makes a turn wait longer; it only keeps the fast path (turn.py ``fast-complete``) off.
 
 A false "unfinished" costs latency (the turn waits ``max_s``); a missed one falls back to the model.
 So the verb list errs on the side of "not a verb": an unknown word (e.g. ASR garbage "abnorgen") is not
@@ -106,7 +113,7 @@ _RX_PART_GE = re.compile(r"(?:" + "|".join(_SEP_PREFIXES) + r")?ge[a-zäöüß]{
 _RX_PART_INSEP = re.compile(r"(?:be|ver|er|ent|zer|emp|miss)[a-zäöüß]{3,}(?:t|en)")
 _RX_IEREN = re.compile(r"[a-zäöüß]{3,}ier(?:en|t)")
 
-_WORD = re.compile(r"[^\W\d_]+(?:['’-][^\W\d_]+)*")
+_WORD = re.compile(r"[^\W_]+(?:['’-][^\W_]+)*")  # numbers are words too ("Ich bin 45.")
 _CLAUSE_SPLIT = re.compile(r"[.!?;:…]+(?=\s|$)|,\s|\s[-–—]\s")
 
 
@@ -178,14 +185,22 @@ def _last_clause(text: str) -> tuple[list[str], bool]:
     return [], False
 
 
+_OPEN_DE = _set("""
+und oder aber sondern denn weil dass daß wenn ob obwohl damit falls sowie als
+von für gegen in im am zum zur vom beim bei ohne seit zwischen wegen trotz unter
+""")  # not the separable particles an, auf, aus, mit, nach, vor, zu, ab, durch, um ("Rufen Sie mich an.")
+
+
 def _unfinished_de(text: str) -> str | None:
-    """See the module doc. Returns ``verb-final``, ``aux-open`` (only haben / sein / werden, no modal) or
-    ``neg-scope``."""
+    """See the module doc. Returns ``conj-open``, ``verb-final``, ``aux-open`` (only haben / sein / werden,
+    no modal) or ``neg-scope``."""
     words, after_comma = _last_clause(text)
     if not words:
         return None
     lower = [w.lower() for w in words]
     last_raw, last = words[-1], lower[-1]
+    if last in _OPEN_DE and not _question(text):
+        return "conj-open"  # "Ich bin allergisch gegen" [pause] "Penicillin"
     if len(words) >= 2 and (last in _TIME_DE or (len(words) >= 3 and lower[-2] == "ab")):
         return "neg-scope"  # "ab morgen", "ab Montag" [pause] "nicht mehr"
     finite = [w for w in lower if w in _FINITE_DE]
@@ -222,11 +237,21 @@ had not to cannot can't won't don't doesn't didn't isn't aren't wasn't weren't s
 """)
 
 
+_ARTICLE_CONJ_EN = _set("the a an and or but nor because if unless although whereas my your our their")
+_PREP_EN = _set("of for with from into onto than about at per via")  # not in / on / off / up: "Come in."
+
+
 def _unfinished_en(text: str) -> str | None:
     words, _ = _last_clause(text)
-    if len(words) < 2:
+    if not words:
         return None
     last = words[-1].lower().replace("’", "'")
+    if last in _ARTICLE_CONJ_EN and (len(words) >= 2 or last not in ("a",)):
+        return "conj-open"  # "take 500 of the", "and", "because"
+    if last in _PREP_EN and not _question(text):
+        return "conj-open"  # but "Where are you from?" is finished
+    if len(words) < 2:
+        return None
     if last in _AUX_EN:
         if last in ("is", "are", "was", "were", "am", "do", "does", "did", "have", "has", "had", "can", "will",
                     "would", "should", "could", "may", "might", "must", "shall") and text.rstrip().endswith("?"):
@@ -235,11 +260,66 @@ def _unfinished_en(text: str) -> str | None:
     return None
 
 
-_RULES = {"de": _unfinished_de, "en": _unfinished_en}
+# ---------------------------------------------------------------- Russian
+
+_MODAL_RU = _set("""
+можно нельзя надо нужно должен должна должно должны могу можешь может можем можете могут
+хочу хочешь хочет хотим хотите хотят следует придётся придется
+""")
+_OPEN_RU = _set("""
+и но а или что чтобы если потому когда как чем так в во на с со по до после к ко у о об обо от из за для
+без при под над через про между перед
+""")
+_QWORDS_RU = _set("что как когда")  # "Простите, что?" is a question
+_TIME_RU = _set("""
+завтра сегодня теперь сейчас больше дня утра вечера понедельника вторника среды четверга пятницы субботы
+воскресенья недели месяца
+""")
+_INF_RU = re.compile(r"\w+(?:ть|ти|чь|ться|тись)$")
+
+
+def _unfinished_ru(text: str) -> str | None:
+    words, _ = _last_clause(text)
+    if not words:
+        return None
+    lower = [w.lower().replace("ё", "е") for w in words]
+    last = lower[-1]
+    question = _question(text)
+    if last in ("не", "ни"):
+        return "neg-open"  # "Вам можно" ... "не" [pause] "принимать"
+    if last in _OPEN_RU and not (question and last in _QWORDS_RU):
+        return "conj-open"
+    if len(words) < 2:
+        return None
+    modal = [i for i, w in enumerate(lower) if w in _MODAL_RU]
+    if not modal:
+        return None
+    if last in _MODAL_RU:
+        return None if question else "verb-final"  # "Вам нельзя" [pause]; but "Мне можно?" is finished
+    rest = lower[modal[-1] + 1:]
+    if not any(_INF_RU.fullmatch(w) for w in rest) and last in _TIME_RU:
+        return "neg-scope"  # "Вам можно с завтрашнего дня" [pause] "не принимать метформин"
+    return None
+
+
+_RULES = {"de": _unfinished_de, "en": _unfinished_en, "ru": _unfinished_ru}
+SOFT = frozenset({"number-open"})  # keeps the fast path off; never a longer wait
+_TRAILING_NUMBER = re.compile(r"\d(?:[\d.,]*\d)?\s*[.!?…]*$")
+
+
+def _question(text: str) -> bool:
+    return text.rstrip().rstrip("\"'»«”’)").endswith(("?", "？", "؟"))
 
 
 def unfinished(text: str, lang: str | None) -> str | None:
-    """A reason if a deterministic rule says the utterance cannot have ended here; None = no opinion."""
-    rule = _RULES.get((lang or "").split("-")[0].lower())
+    """A reason if a deterministic rule says the utterance cannot have ended here; None = no opinion.
+    Reasons in ``SOFT`` only keep the fast path off (see the module doc)."""
+    code = (lang or "").split("-")[0].lower()
+    rule = _RULES.get(code)
     text = (text or "").strip()
-    return rule(text) if rule and text else None
+    if not rule or not text:
+        return None
+    why = rule(text)
+    if why is None and _TRAILING_NUMBER.search(text):
+        return "number-open"  # "принимайте по 500", "take 500"
+    return why

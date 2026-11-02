@@ -28,6 +28,12 @@ ending in "?" with ASR confidence below ``q_conf`` (0.85) never ends the turn at
 for the text model and the verdict is at least ``unsure_s`` (whisper's "?" on a cut, misheard sentence is not
 evidence that it is finished).
 
+Fast path (de / en / ru, ``fast_langs``): where the verdict would be ``unsure_s`` (unsure, audio veto), a transcript
+ending in . ! ? ("?" only with asr_conf >= ``q_conf``), asr_conf >= ``fast_conf`` (0.90), >= ``fast_words`` (3)
+words, no rule (not even a SOFT one, e.g. a trailing number) and text P(end) >= ``fast_floor`` (0.02) ends at
+``fast_s`` (0.45 s total silence): ``why`` = ``fast-complete``. In simultaneous mode, clauses in ``commit_langs``
+(en, ru: verb before object, nothing dangling once the rules pass) commit at ``fast_floor`` instead of ``fast``.
+
 Every failure (model files missing, IPC error, timeout) degrades to ``unsure_s``: never a cut.
 Model files are fetched at install time (``python -m raum.pipeline.turn download``), never at runtime.
 """
@@ -45,7 +51,7 @@ import numpy as np
 from livekit.agents.inference_runner import _InferenceRunner
 
 from raum.pipeline._util import float_to_int16, lang_code, lang_name
-from raum.pipeline.incomplete import unfinished
+from raum.pipeline.incomplete import SOFT, unfinished
 
 log = logging.getLogger("raum.pipeline.turn")
 
@@ -205,6 +211,15 @@ class TurnDetector:
         self.rules = bool(o.get("rules", True))  # incomplete.py
         self.aux_s = float(o.get("aux_s", self.max_s))
         self.q_conf = float(o.get("q_conf", 0.85))
+        # fast path: a punctuated, confident, rule-clean transcript the text model does not reject ends at
+        # fast_s instead of unsure_s (eot.why "fast-complete")
+        self.fast_s = float(o.get("fast_s", 0.45))
+        self.fast_conf = float(o.get("fast_conf", 0.90))
+        self.fast_floor = float(o.get("fast_floor", 0.02))
+        self.fast_words = int(o.get("fast_words", 3))
+        self.fast_langs = frozenset(o.get("fast_langs", ("de", "en", "ru")))
+        # simultaneous mode: clauses in these (SVO) languages commit at fast_floor instead of fast
+        self.commit_langs = frozenset(o.get("commit_langs", ("en", "ru")))
         self._warned: set[str] = set()
 
     def _warn(self, what: str, e: BaseException) -> None:
@@ -233,11 +248,26 @@ class TurnDetector:
         return float(json.loads(out)["eou_probability"])
 
     def rule(self, text: str, lang: str | None) -> Verdict | None:
-        """The deterministic rules (incomplete.py): a wait, or None (no opinion)."""
+        """The deterministic rules (incomplete.py): a wait, or None (no opinion; also for a SOFT reason)."""
         why = unfinished(text, lang_code(lang)) if self.rules else None
-        if why is None:
+        if why is None or why in SOFT:
             return None
         return Verdict(self.aux_s if why == "aux-open" else self.max_s, why)
+
+    def commit_floor(self, lang: str | None) -> float:
+        """P(end) a clause needs in simultaneous mode before it is committed (the rules have run already)."""
+        return self.fast_floor if self.rules and (lang_code(lang) or "") in self.commit_langs else self.fast
+
+    def _fast_ok(self, text: str, code: str, conf: float | None) -> bool:
+        """Everything but the text model's floor: punctuated end, confident ASR, >= fast_words, no rule."""
+        if not self.rules or code not in self.fast_langs or conf is None or conf < self.fast_conf:
+            return False
+        end = text.rstrip().rstrip("\"'»«”’)")
+        if not end.endswith((".", "!", "?")) or end.endswith(("...", "…")):
+            return False
+        if end.endswith("?") and conf < self.q_conf:
+            return False
+        return len(text.split()) >= self.fast_words and unfinished(text, code) is None
 
     async def verdict(self, text: str, lang: str | None, audio: asyncio.Future[float | None] | None = None, *,
                       conf: float | None = None) -> Verdict:
@@ -246,6 +276,7 @@ class TurnDetector:
         if not text:
             return Verdict(0.0, "no-text")  # nothing to wait for; the pipeline drops an empty turn
         unsure_q = conf is not None and conf < self.q_conf and text.endswith("?")
+        fast = self._fast_ok(text, code, conf)
         if unsure_q:
             text = text.rstrip("?？؟ ").strip() or text
         ruled = self.rule(text, code)
@@ -254,6 +285,8 @@ class TurnDetector:
         v = await self._model_verdict(text, code, audio)
         if unsure_q and v.wait_s < self.unsure_s:
             return Verdict(self.unsure_s, "low-conf-question", v.p_text, v.p_audio)
+        if fast and v.why in ("unsure", "audio-veto") and v.p_text is not None and v.p_text >= self.fast_floor:
+            return Verdict(min(self.fast_s, v.wait_s), "fast-complete", v.p_text, v.p_audio)
         return v
 
     async def _model_verdict(self, text: str, code: str, audio: asyncio.Future[float | None] | None) -> Verdict:

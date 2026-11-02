@@ -183,3 +183,120 @@ async def test_pause_recording_waits_through_the_pause():
     assert [f.data["text"] for f in finals] == ["Sie dürfen das Metformin ab morgen nicht mehr nehmen."]
     timing = h.of("pipeline.timing")[0].data
     assert timing["eot"]["why"] == "complete"
+
+
+# ---------------------------------------------------------------- ru / en / de: more rules (gate the fast path)
+
+MORE = [
+    ("ru", "Вам нельзя", "verb-final"),
+    ("ru", "Вы должны", "verb-final"),
+    ("ru", "Вам можно с завтрашнего дня", "neg-scope"),
+    ("ru", "Вам можно не", "neg-open"),
+    ("ru", "Я принимаю метформин и", "conj-open"),
+    ("ru", "Я думаю, что", "conj-open"),
+    ("ru", "У меня аллергия на", "conj-open"),
+    ("ru", "Принимайте по 500", "number-open"),
+    ("en", "Take 500 of the", "conj-open"),
+    ("en", "I stopped because", "conj-open"),
+    ("en", "I'm allergic to", "aux-final"),
+    ("en", "I take it with", "conj-open"),
+    ("en", "Take 500", "number-open"),
+    ("de", "Ich bin allergisch gegen", "conj-open"),
+    ("de", "Ich nehme Metformin und", "conj-open"),
+    ("de", "Nehmen Sie 500", "number-open"),
+]
+NO_RULE = [
+    ("ru", "Мне можно?"),
+    ("ru", "Вам нельзя принимать метформин с завтрашнего дня."),
+    ("ru", "Принимайте по 500 мг."),
+    ("ru", "Простите, что?"),
+    ("ru", "У меня аллергия на пенициллин."),
+    ("ru", "Мне нужно лекарство."),
+    ("en", "Where are you from?"),
+    ("en", "Come in."),
+    ("en", "Take 500 mg twice a day."),
+    ("en", "I'm allergic to penicillin."),
+    ("de", "Rufen Sie mich an."),
+    ("de", "Für wen?"),
+    ("de", "Nehmen Sie 500 mg."),
+    ("de", "Ich habe 2 Kinder."),
+]
+
+
+@pytest.mark.parametrize(("lang", "text", "why"), MORE)
+def test_more_rules(lang, text, why):
+    assert unfinished(text, lang) == why
+
+
+@pytest.mark.parametrize(("lang", "text"), NO_RULE)
+def test_more_rules_no_opinion(lang, text):
+    assert unfinished(text, lang) is None
+
+
+# ---------------------------------------------------------------- fast-complete
+
+
+class AudioExecutor(Executor):
+    def __init__(self, p_text: float, p_audio: float = 0.9) -> None:
+        super().__init__(p_text)
+        self.p_audio = p_audio
+
+    async def do_inference(self, method: str, data: bytes) -> bytes | None:
+        if method == ST_METHOD:
+            return json.dumps({"p": self.p_audio}).encode()
+        return await super().do_inference(method, data)
+
+
+async def fast(text, lang="de", conf=0.95, p_text=0.05, p_audio=0.9, opts=None):
+    d = TurnDetector(AudioExecutor(p_text, p_audio), {**OPTS, **(opts or {})})
+    audio = asyncio.ensure_future(d.audio_p(np.zeros(16000, dtype=np.float32)))
+    return await d.verdict(text, lang, audio, conf=conf)
+
+
+async def test_fast_complete_ends_at_045():
+    for lang, text in (("de", "Ich nehme das Metformin."), ("en", "I take the metformin."),
+                       ("ru", "Я принимаю метформин."), ("de", "Haben Sie Schmerzen?")):
+        v = await fast(text, lang)
+        assert (v.wait_s, v.why) == (0.45, "fast-complete"), text
+    v = await fast("Ich nehme das Metformin.", p_text=0.5, p_audio=0.2)  # the audio veto is lifted too
+    assert (v.wait_s, v.why) == (0.45, "fast-complete")
+    v = await fast("Ich nehme das Metformin.", p_text=0.5)  # the "complete" tier stays at 0
+    assert (v.wait_s, v.why) == (0.0, "complete")
+
+
+@pytest.mark.parametrize(("text", "lang", "conf", "p_text"), [
+    ("Ich nehme das Metformin.", "de", 0.89, 0.05),  # asr_conf below 0.90
+    ("Ich nehme das Metformin.", "de", None, 0.05),  # no ASR scores
+    ("Ich nehme Metformin", "de", 0.95, 0.05),  # no end punctuation
+    ("Ich nehme Metformin,", "de", 0.95, 0.05),
+    ("Ich nehme Metformin...", "de", 0.95, 0.05),
+    ("Metformin, ja.", "de", 0.95, 0.05),  # < 3 words
+    ("Nehmen Sie 500.", "de", 0.95, 0.05),  # SOFT rule: trailing number
+    ("Принимайте по 500.", "ru", 0.95, 0.05),
+    ("Ich nehme das Metformin.", "de", 0.95, 0.01),  # text model below the fast floor 0.02
+    ("Ben metformin alıyorum.", "tr", 0.95, 0.05),  # not a fast language
+])
+async def test_fast_complete_negatives(text, lang, conf, p_text):
+    v = await fast(text, lang, conf=conf, p_text=p_text)
+    assert v.why != "fast-complete" and v.wait_s >= 1.0, (text, v)
+
+
+async def test_fast_path_never_overrides_a_rule():
+    for text, lang in (("Sie dürfen das Metformin ab morgen.", "de"), ("Вам нельзя.", "ru"),
+                       ("Ich bin allergisch gegen.", "de"), ("You may.", "en")):
+        v = await fast(text, lang, p_text=0.9)
+        assert v.wait_s == 1.6 and v.why != "fast-complete", text
+
+
+async def test_fast_options():
+    v = await fast("Ich nehme das Metformin.", opts={"fast_s": 0.6})
+    assert v.wait_s == 0.6
+    v = await fast("Ich nehme das Metformin.", opts={"fast_langs": ["en"]})
+    assert v.why == "unsure"
+
+
+def test_commit_floor_is_lower_for_svo_languages():
+    d = TurnDetector(Executor(), OPTS)
+    assert d.commit_floor("en") == d.commit_floor("ru") == 0.02
+    assert d.commit_floor("de") == 0.1  # verb-final: commit only what the model calls finished
+    assert TurnDetector(Executor(), {**OPTS, "rules": False}).commit_floor("en") == 0.1

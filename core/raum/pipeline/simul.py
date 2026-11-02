@@ -321,8 +321,9 @@ class Simultaneous:
         if unfinished(text, lang):  # incomplete.py: "Sie dürfen das Metformin ab morgen" is no clause to commit
             return False
         if eot is not None and _turn_model_covers(lang):
+            floor = eot.commit_floor(lang) if hasattr(eot, "commit_floor") else float(getattr(eot, "fast", 0.1))
             try:
-                return float(await eot.text_p(text)) >= float(getattr(eot, "fast", 0.1))
+                return float(await eot.text_p(text)) >= floor
             except asyncio.CancelledError:
                 raise
             except Exception as e:  # noqa: BLE001

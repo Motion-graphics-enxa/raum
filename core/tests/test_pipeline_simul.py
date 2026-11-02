@@ -8,6 +8,7 @@ exactly 0.5 s, 1.0 s, ... of audio: the commit points are deterministic.
 from __future__ import annotations
 
 import asyncio
+import json
 import time
 
 import numpy as np
@@ -207,6 +208,22 @@ async def test_clause_completeness_uses_the_turn_model_else_sentence_ends():
     assert await c("Keep taking 500 mg of Metformin twice a day,", "en")  # the model, not punctuation
     assert not await c("Ich bin Dr. Weber.", "de")  # the model says it goes on
     assert await c("مرحبًا سيدة دمير.", "ar")  # a language the text model lacks: sentence ends
+
+
+async def test_svo_clauses_commit_at_the_lower_floor_once_the_rules_pass():
+    from raum.pipeline.turn import TurnDetector
+
+    h = room([DOC_DE, PAT_AR_HP], complete_clauses=False)
+    c = h.p.simul.complete
+
+    class Ex:
+        async def do_inference(self, method, data):
+            return json.dumps({"eou_probability": 0.05}).encode()  # between fast_floor 0.02 and fast 0.1
+
+    h.p.eot = TurnDetector(Ex(), {"fast": 0.1})
+    assert await c("I take metformin twice a day,", "en") and await c("Я принимаю метформин два раза в день,", "ru")
+    assert not await c("Ich nehme Metformin zweimal täglich,", "de")  # verb-final German: the old floor
+    assert not await c("I take 500 of the", "en") and not await c("Принимайте по 500", "ru")  # rules first
 
 
 # ---------------------------------------------------------------- config
