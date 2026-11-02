@@ -382,6 +382,7 @@ class RoomPipeline:
         self._utt_n = 0
         self._turn_index = 0
         self._active: dict[str, _Utt] = {}
+        self._ptt_ended: dict[str, float] = {}  # end_turn: speaker -> released (monotonic) until they speak again
         self._tasks: set[asyncio.Task[Any]] = set()
         self._turns: deque[_Turn] = deque(maxlen=64)  # conversation memory (V-04), cleared on burn
         self._names: list[str] = []
@@ -543,6 +544,7 @@ class RoomPipeline:
     # ---------------------------------------------------------------- speech
 
     async def speech_start(self, speaker: str) -> str | None:
+        self._ptt_ended.pop(speaker, None)  # end_turn: speaking again, so the VAD's ends count again
         if self.off_record or self._closed:
             return None
         u = self._active.get(speaker)
@@ -616,6 +618,8 @@ class RoomPipeline:
 
     async def speech_end(self, speaker: str, audio: np.ndarray | None, vad_ms: float, *,
                          asr: AsrResult | None = None, eot: Any = None) -> None:
+        if eot is None and speaker in self._ptt_ended:  # end_turn: the VAD's own end of a released speech
+            return
         # detach synchronously (before any await): a new speech_start for this speaker starts a new utterance
         t_detect = time.monotonic()
         u = self._active.pop(speaker, None)
@@ -664,6 +668,31 @@ class RoomPipeline:
         self._cancel_hold(u)
         t_stop = time.monotonic() - max(0.0, float(vad_ms)) / 1000.0  # the moment the speaker stopped
         u.hold = self._spawn(self._hold(u, t_stop))
+
+    async def end_turn(self, speaker: str, reason: str = "ptt", *, tail_s: float = 0.0) -> str | None:
+        """Push-to-talk release: the speaker says the turn is over, and an explicit end beats the turn model.
+        No VAD silence and no end-of-turn verdict is waited for: after ``tail_s`` (the device keeps its mic
+        open that long after the release, so the last syllable is in) the utterance ends with all of its audio
+        so far. A running end-of-turn wait (``_hold``) is cancelled; ``simul``'s stable partial, speculation,
+        commit and voice then go on as after any end of turn. From the call on, the VAD's own end of this
+        speech (``speech_end`` / ``speech_pause`` from the worker) is ignored until the speaker starts again
+        (``speech_start``). ``pipeline.timing``: ``vad_ms`` = release -> end, ``eot.why`` = ``reason``.
+        Returns the id of the utterance it ended (after its turn ran), None if none was under way."""
+        t_release = time.monotonic()
+        self._ptt_ended[speaker] = t_release
+        if tail_s > 0:
+            await asyncio.sleep(tail_s)
+        u = self._active.get(speaker)
+        if u is None or u.closed or self.off_record or self._closed:
+            return None
+        if u.hold is not None and not u.hold.done():
+            self._cancel_hold(u)  # waiting out a pause: the audio up to that pause is all of it (u.parts)
+        elif u.parts:
+            u.parts.clear()  # went on after a pause: every frame so far, not only up to that pause
+        self._ptt_ended[speaker] = time.monotonic()  # also when the VAD's start came during the tail
+        wait_ms = (time.monotonic() - t_release) * 1000.0
+        await self.speech_end(speaker, None, wait_ms, eot={"why": reason, "wait_ms": round(wait_ms)})
+        return u.id
 
     async def _hold(self, u: _Utt, t_stop: float) -> None:
         """Speculative final ASR + verdict, then wait out the remaining silence; cancelled by speech_start."""

@@ -8,6 +8,8 @@
 
 export const PROTOCOL_VERSION = 1 as const;
 export const EVENTS_TOPIC = "raum.events";
+/** Device -> agent on the data channel (reliable, JSON): push-to-talk press / release (ptt.ts). */
+export const CONTROL_TOPIC = "raum.control";
 
 export type Role = "a" | "b" | "observer";
 export type Path = "direct" | "tunnel" | "relayed";

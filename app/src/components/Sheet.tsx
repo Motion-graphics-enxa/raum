@@ -3,6 +3,7 @@ import type { ModeConfig } from "../lib/api";
 import type { EventData, FactStatus, Path } from "../lib/events";
 import { isRtl, pick, t } from "../lib/i18n";
 import type { LinkState } from "../lib/live";
+import { withinSlop } from "../lib/ptt";
 import type { FactChip } from "../lib/store";
 import { Hatch, fmtMs } from "./Drawing";
 import { Check, Cross, Menu, Mic, MicOff, Speaker } from "./Icons";
@@ -95,7 +96,15 @@ export function TitleBlock({
   );
 }
 
-/** One dominant control. Open mic with Silero VAD on the box; tap toggles. Level drawn as contour lines. */
+/** Push-to-talk on the talk button (lib/ptt.ts): holders are "pointer:<id>"; the label under the button. */
+export interface TalkHold {
+  press: (holder: string) => void;
+  release: (holder: string) => void;
+  label: string;
+}
+
+/** One dominant control. Push-to-talk (`hold`): hold to speak, let go to send. Hands-free: the open mic with
+ * Silero VAD on the box; tap toggles. Level drawn as contour lines. */
 export function TalkControl({
   on,
   level,
@@ -103,6 +112,7 @@ export function TalkControl({
   lang,
   onToggle,
   error,
+  hold,
 }: {
   on: boolean;
   level: number;
@@ -110,10 +120,34 @@ export function TalkControl({
   lang: string;
   onToggle: () => void;
   error?: string | null;
+  hold?: TalkHold;
 }) {
   const rings = [0, 1, 2];
+  const holder = (e: React.PointerEvent) => `pointer:${e.pointerId}`;
+  // Pointer capture: a finger sliding a little keeps holding; leaving the button by more than the slop,
+  // lifting it, or the browser taking the pointer (scroll, call) lets go.
+  const input = hold
+    ? {
+        onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
+          if (disabled || (e.pointerType === "mouse" && e.button !== 0)) return;
+          try {
+            e.currentTarget.setPointerCapture(e.pointerId);
+          } catch {
+            /* capture is a nicety */
+          }
+          hold.press(holder(e));
+        },
+        onPointerUp: (e: React.PointerEvent) => hold.release(holder(e)),
+        onPointerCancel: (e: React.PointerEvent) => hold.release(holder(e)),
+        onLostPointerCapture: (e: React.PointerEvent) => hold.release(holder(e)),
+        onPointerMove: (e: React.PointerEvent<HTMLButtonElement>) => {
+          if (!withinSlop(e.clientX, e.clientY, e.currentTarget.getBoundingClientRect())) hold.release(holder(e));
+        },
+        onContextMenu: (e: React.MouseEvent) => e.preventDefault(), // iOS / Android long-press menu
+      }
+    : { onClick: onToggle };
   return (
-    <div className={`talk ${on ? "is-on" : ""} ${disabled ? "is-disabled" : ""}`}>
+    <div className={`talk ${hold ? "talk--hold" : ""} ${on ? "is-on" : ""} ${disabled ? "is-disabled" : ""}`}>
       <div className="talk__stage">
         <svg className="talk__contours" viewBox="0 0 200 200" aria-hidden="true">
           {rings.map((i) => {
@@ -124,16 +158,22 @@ export function TalkControl({
         <button
           type="button"
           className="talk__btn"
-          onClick={onToggle}
+          {...input}
           disabled={disabled}
           aria-pressed={on}
-          aria-label={on ? t(lang, "talk.tap_to_mute") : t(lang, "talk.tap_to_talk")}
+          aria-label={hold ? hold.label : on ? t(lang, "talk.tap_to_mute") : t(lang, "talk.tap_to_talk")}
         >
           {on ? <Mic /> : <MicOff />}
         </button>
       </div>
       <p className="talk__label" aria-live="polite">
-        {error ? t(lang, "talk.mic_denied") : on ? t(lang, "talk.listening") : t(lang, "talk.tap_to_talk")}
+        {error
+          ? t(lang, "talk.mic_denied")
+          : hold
+            ? hold.label
+            : on
+              ? t(lang, "talk.listening")
+              : t(lang, "talk.tap_to_talk")}
       </p>
     </div>
   );

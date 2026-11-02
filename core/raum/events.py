@@ -24,6 +24,9 @@ from pydantic import BaseModel, ConfigDict, Field
 
 PROTOCOL_VERSION = 1
 EVENTS_TOPIC = "raum.events"
+# device -> agent, LiveKit data channel, reliable, JSON: push-to-talk {"type": "ptt.press" | "ptt.release", "at": ms,
+# "tail_ms": n} (raum.agent.worker: a release ends that device's turn at once, RoomPipeline.end_turn)
+CONTROL_TOPIC = "raum.control"
 
 Role = Literal["a", "b", "observer"]
 Path = Literal["direct", "tunnel", "relayed"]

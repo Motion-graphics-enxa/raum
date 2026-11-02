@@ -12,6 +12,9 @@ export type AudioOut = "headphones" | "speaker";
 /** C-13: whose voice speaks my words when the box clones voices. */
 export type Voice = "own" | "standard";
 
+/** Push-to-talk (the default) or hands-free (the open mic with the box's VAD), remembered per device. */
+export type TalkMode = "ptt" | "hands_free";
+
 export function LanguagePicker({
   lang,
   onChange,
@@ -123,6 +126,35 @@ export function VoicePicker({
         >
           <span className="seg__name">{t(uiLang, `join.voice_${v}`)}</span>
           <span className="seg__hint">{t(uiLang, `join.voice_${v}_hint`)}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Hold the button while speaking (the default), or hands-free for long monologues and accessibility. */
+export function TalkModePicker({
+  value,
+  onChange,
+  uiLang,
+}: {
+  value: TalkMode;
+  onChange: (v: TalkMode) => void;
+  uiLang: string;
+}) {
+  return (
+    <div className="seg" role="radiogroup" aria-label={t(uiLang, "talk.talk_mode")}>
+      {(["ptt", "hands_free"] as const).map((v) => (
+        <button
+          key={v}
+          type="button"
+          role="radio"
+          aria-checked={value === v}
+          className={`seg__opt ${value === v ? "is-on" : ""}`}
+          onClick={() => onChange(v)}
+        >
+          <span className="seg__name">{t(uiLang, `talk.mode_${v}`)}</span>
+          <span className="seg__hint">{t(uiLang, `talk.mode_${v}_hint`)}</span>
         </button>
       ))}
     </div>

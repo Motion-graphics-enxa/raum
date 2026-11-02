@@ -14,7 +14,16 @@ import {
   rememberVoice,
   saveJoin,
 } from "../lib/session";
-import { AudioOutPicker, LanguagePicker, VoicePicker, type AudioOut, type Voice } from "../components/Pickers";
+import {
+  AudioOutPicker,
+  LanguagePicker,
+  TalkModePicker,
+  VoicePicker,
+  type AudioOut,
+  type TalkMode,
+  type Voice,
+} from "../components/Pickers";
+import { createPtt, deviceHandsFree, keyAction, rememberHandsFree, type PttPhase } from "../lib/ptt";
 import { tick, unlockSound } from "../lib/sound";
 import {
   RoomStore,
@@ -55,6 +64,26 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
   const [voice, setVoice] = useState<Voice>(() => deviceVoice());
   const voiceClone = !!useFeatures()?.voice_clone; // C-13: the choice only where the box copies voices
   const live = useLiveRoom(session, store, myLang);
+  const liveRef = useRef(live); // for the key handler, which outlives a render
+  useEffect(() => {
+    liveRef.current = live;
+  });
+  // Push-to-talk is the default (hold to speak, let go and the box ends the turn at once); hands-free is
+  // today's open mic with the box's VAD, for long monologues and accessibility. Per device.
+  const [talkMode, setTalkMode] = useState<TalkMode>(() => (deviceHandsFree() ? "hands_free" : "ptt"));
+  const [pttPhase, setPttPhase] = useState<PttPhase>("idle");
+  // live.hold / live.sendControl only touch the hook's refs: the first render's work for the whole session
+  const [ptt] = useState(() =>
+    createPtt({
+      setMic: live.hold,
+      send: live.sendControl,
+      now: () => Date.now(),
+      setTimeout: (fn, ms) => window.setTimeout(fn, ms),
+      clearTimeout: (id) => window.clearTimeout(id as number),
+      onPhase: setPttPhase,
+    }),
+  );
+  useEffect(() => () => ptt.dispose(), [ptt]);
   // Second source: core's WS mirror (deduplicated). Keeps the sheet whole if the data channel hiccups.
   const events = useEventSocket(room, store, eventsSocketUrl(room));
   const m = useRoomModel(store);
@@ -117,13 +146,28 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
   const roleLabel = (role: string | null) =>
     role === "a" || role === "b" ? pick(mode.roles[role].label, myLang) : "";
 
-  // Auto-start the microphone once connected (the consent tap was the gesture).
+  // Auto-start the microphone once connected (the consent tap was the gesture). Push-to-talk: published
+  // and muted now, so the first press only unmutes it.
   useEffect(() => {
     if (live.state === "connected" && !autoMic.current) {
       autoMic.current = true;
-      void live.setMic(true);
+      if (talkMode === "ptt") void live.pushToTalk(true);
+      else void live.setMic(true);
     }
-  }, [live.state, live]);
+  }, [live.state, live, talkMode]);
+
+  const changeTalkMode = (v: TalkMode) => {
+    if (v === talkMode) return;
+    setTalkMode(v);
+    rememberHandsFree(v === "hands_free");
+    if (live.state !== "connected") return; // the auto-start above picks it up
+    if (v === "ptt") {
+      void live.pushToTalk(true);
+    } else {
+      ptt.dispose();
+      void live.pushToTalk(false).then(() => live.setMic(true));
+    }
+  };
 
   // Every conversation ends on the summary.
   useEffect(() => {
@@ -238,6 +282,47 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
 
   const speakingOther = Object.keys(m.speaking).some((id) => id !== join.identity);
   const empty = turns.length === 0;
+
+  const holdToTalk = talkMode === "ptt";
+  const talkDisabled = offRecord || live.state !== "connected";
+  // a read-back question waits for my spoken yes / no
+  const askPending = !!newestAsk && !answered.has(newestAsk);
+  useEffect(() => {
+    if (talkDisabled) ptt.cancel(); // off the record or the link dropped mid-hold: let go
+  }, [talkDisabled, ptt]);
+  // Space holds on a desktop (not while typing, not under the menu); a lost focus lets go.
+  useEffect(() => {
+    if (!holdToTalk || talkDisabled || menu) return;
+    const down = (e: KeyboardEvent) => {
+      const a = keyAction(e, true);
+      if (!a) return;
+      e.preventDefault();
+      if (a === "press") {
+        unlockSound();
+        liveRef.current.startAudio();
+        ptt.press("key");
+      }
+    };
+    const up = (e: KeyboardEvent) => {
+      if (keyAction(e, false) === "release" && ptt.release("key")) e.preventDefault();
+    };
+    const away = () => ptt.cancel();
+    const hidden = () => {
+      if (document.visibilityState !== "visible") ptt.cancel();
+    };
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", up);
+    window.addEventListener("blur", away);
+    document.addEventListener("visibilitychange", hidden);
+    return () => {
+      window.removeEventListener("keydown", down);
+      window.removeEventListener("keyup", up);
+      window.removeEventListener("blur", away);
+      document.removeEventListener("visibilitychange", hidden);
+      ptt.release("key");
+    };
+  }, [holdToTalk, talkDisabled, menu, ptt]);
+  const holding = pttPhase !== "idle";
 
   return (
     <div
@@ -362,15 +447,30 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
           <span>{offRecord ? t(myLang, "talk.resume") : t(myLang, "talk.off_record")}</span>
         </button>
         <TalkControl
-          on={live.micOn && !offRecord}
+          on={(holdToTalk ? holding : live.micOn) && !offRecord}
           level={offRecord ? 0 : live.level}
-          disabled={offRecord || live.state !== "connected"}
+          disabled={talkDisabled}
           lang={myLang}
           error={live.micError}
           onToggle={() => {
             unlockSound();
             void live.setMic(!live.micOn);
           }}
+          hold={
+            holdToTalk
+              ? {
+                  press: (h) => {
+                    unlockSound();
+                    ptt.press(h);
+                  },
+                  release: (h) => void ptt.release(h),
+                  label: t(
+                    myLang,
+                    pttPhase === "held" ? "talk.release_to_send" : askPending ? "talk.hold_to_answer" : "talk.hold_to_talk",
+                  ),
+                }
+              : undefined
+          }
         />
         {myRole === "a" && mode.buttons.includes("repeat_back") ? (
           <button
@@ -405,6 +505,10 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
             <section className="menu__sec">
               <span className="label">{t(myLang, "talk.language")}</span>
               <LanguagePicker id="talk-lang" lang={myLang} onChange={(l) => void changeLang(l)} uiLang={myLang} />
+            </section>
+            <section className="menu__sec">
+              <span className="label">{t(myLang, "talk.talk_mode")}</span>
+              <TalkModePicker value={talkMode} onChange={changeTalkMode} uiLang={myLang} />
             </section>
             <section className="menu__sec">
               <span className="label">{t(myLang, "join.audio_out")}</span>

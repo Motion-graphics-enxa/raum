@@ -12,6 +12,11 @@
  *  - either way we then fetch core's backlog from just before the newest event we hold (the store
  *    deduplicates), turn the microphone back on if it was on, and keep the RoomStore: turns are
  *    never reset.
+ *
+ * Push-to-talk (./ptt.ts): the mic track is published once, muted, and from then on only unmuted while held
+ * (no getUserMedia per press; a muted track reaches the box as silence). Press and release go to the agent
+ * as reliable data messages (topic raum.control) from this participant. After a rejoin the track is
+ * published again, muted unless held.
  */
 import { useEffect, useRef, useState } from "react";
 import {
@@ -27,7 +32,7 @@ import {
   Track,
 } from "livekit-client";
 import { api, listOf, livekitUrl } from "./api";
-import { EVENTS_TOPIC, parseEnvelope, type AnyEnvelope } from "./events";
+import { CONTROL_TOPIC, EVENTS_TOPIC, parseEnvelope, type AnyEnvelope } from "./events";
 import { createEventLink, OVERLAP_MS, type LinkState } from "./link";
 import type { RoomStore } from "./store";
 
@@ -53,7 +58,15 @@ export interface LiveRoom {
   /** Start the voice from a user gesture. Text rendering never waits for it. */
   startAudio: () => void;
   disconnect: () => void;
+  /** Push-to-talk on: the mic published and muted (hold opens it). Off: back to `setMic` (hands-free). */
+  pushToTalk: (on: boolean) => Promise<void>;
+  /** Push-to-talk: open (unmute) or close (mute) the published mic, at once. */
+  hold: (open: boolean) => void;
+  /** A reliable data message to the agent (topic raum.control). */
+  sendControl: (msg: object) => void;
 }
+
+const MIC_OPTIONS = { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 };
 
 /** Envelopes that are not part of the session record (they never move the backlog cursor). */
 const EPHEMERAL = new Set<string>(["privacy.meter", "gpu.stats"]);
@@ -92,7 +105,40 @@ export function useLiveRoom(session: LiveSession | null, store: RoomStore, voice
   const roomRef = useRef<Room | null>(null);
   const analyser = useRef<{ ctx: AudioContext; node: AnalyserNode; raf: number } | null>(null);
   const micWanted = useRef(false); // what the user chose; restored after a reconnect or rejoin
+  const pttRef = useRef(false); // push-to-talk: published and muted except while held
+  const heldRef = useRef(false); // push-to-talk: held (or in the release tail): the mic is open
+  const micChain = useRef<Promise<void>>(Promise.resolve()); // one mic change at a time, in order
   const setMicRef = useRef<(on: boolean) => Promise<void>>(async () => undefined);
+  /** Push-to-talk: mute / unmute the published track (fast); publish it first if it is not there (or ended). */
+  const holdMic = (open: boolean): Promise<void> => {
+    heldRef.current = open;
+    const run = async () => {
+      const room = roomRef.current;
+      if (!room || room.state !== ConnectionState.Connected) return;
+      const want = heldRef.current; // the latest wish: a quick press-release while publishing ends muted
+      const track = room.localParticipant.getTrackPublication(Track.Source.Microphone)?.track;
+      try {
+        if (track && track.mediaStreamTrack?.readyState === "live") {
+          await (want ? track.unmute() : track.mute());
+        } else {
+          setMicError(null);
+          await room.localParticipant.setMicrophoneEnabled(true, MIC_OPTIONS);
+          const mst = room.localParticipant.getTrackPublication(Track.Source.Microphone)?.track;
+          stopAnalyser(analyser);
+          if (mst?.mediaStreamTrack) startAnalyser(mst.mediaStreamTrack, analyser, setLevel);
+          if (!heldRef.current) await mst?.mute();
+        }
+        setMicOn(heldRef.current);
+      } catch (err) {
+        console.warn("[raum] mic", err);
+        setMicOn(false);
+        setMicError(err instanceof Error ? err.name || err.message : String(err));
+      }
+    };
+    micChain.current = micChain.current.then(run, run);
+    return micChain.current;
+  };
+
   const voiceRef = useRef(voiceLang ?? session?.lang ?? "");
   voiceRef.current = voiceLang ?? session?.lang ?? "";
 
@@ -132,7 +178,9 @@ export function useLiveRoom(session: LiveSession | null, store: RoomStore, voice
     };
 
     const restoreMic = async () => {
-      if (!micWanted.current || room.state !== ConnectionState.Connected) return;
+      if (room.state !== ConnectionState.Connected) return;
+      if (pttRef.current) return holdMic(heldRef.current); // published again, muted unless held
+      if (!micWanted.current) return;
       const pub = room.localParticipant.getTrackPublication(Track.Source.Microphone);
       const mst = pub?.track?.mediaStreamTrack;
       if (pub && !pub.isMuted && mst && mst.readyState === "live") return;
@@ -290,12 +338,7 @@ export function useLiveRoom(session: LiveSession | null, store: RoomStore, voice
     micWanted.current = on;
     try {
       setMicError(null);
-      await room.localParticipant.setMicrophoneEnabled(on, {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
-        channelCount: 1,
-      });
+      await room.localParticipant.setMicrophoneEnabled(on, MIC_OPTIONS);
       setMicOn(on);
       stopAnalyser(analyser);
       if (on) {
@@ -330,6 +373,28 @@ export function useLiveRoom(session: LiveSession | null, store: RoomStore, voice
         .finally(() => setAudioBlocked(!room.canPlaybackAudio));
     },
     disconnect: () => void roomRef.current?.disconnect(),
+    pushToTalk: async (on: boolean) => {
+      pttRef.current = on;
+      if (on) {
+        micWanted.current = false;
+        await holdMic(false);
+      } else {
+        heldRef.current = false;
+      }
+    },
+    hold: (open: boolean) => void holdMic(open),
+    sendControl: (msg: object) => {
+      const room = roomRef.current;
+      if (!room || room.state !== ConnectionState.Connected) return;
+      const agents = [...room.remoteParticipants.values()].filter((p) => p.isAgent).map((p) => p.identity);
+      void room.localParticipant
+        .publishData(new TextEncoder().encode(JSON.stringify(msg)), {
+          reliable: true,
+          topic: CONTROL_TOPIC,
+          destinationIdentities: agents.length ? agents : undefined,
+        })
+        .catch((e) => console.warn("[raum] control", e));
+    },
   };
 }
 

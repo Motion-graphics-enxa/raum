@@ -26,6 +26,15 @@ Voice output is published as one track per language, ``tts-<lang>``. Echo contro
 (``RoomPipeline.mic_open``); an utterance already under way runs to its end. ``RoomPipeline.tts_stop`` cuts a
 language's voice track at once (``AudioSource.clear_queue``) when a cut sentence is merged again
 (raum.pipeline.merge). Resident Piper voices start at room join for the room's languages (``PiperTTS.prepare``).
+
+Push-to-talk (data topic ``raum.control``, reliable, from the device itself): ``{"type": "ptt.press"}`` while the
+button is held, ``{"type": "ptt.release", "tail_ms": 150}`` when it is let go (the phone keeps its mic open for the
+tail, then mutes it: a muted track reaches the VAD as silence). While held, a VAD pause is not the end of the turn
+(every frame goes on into the utterance). The release ends the turn after the tail (``RoomPipeline.end_turn``): no
+VAD silence or end-of-turn verdict is waited for, and the VAD's own end of that speech is ignored. Pressed again
+within the tail: the same turn goes on. The mic muted while held counts as the release (one lost in a
+reconnect). A device that never sends them (hands-free, ``raum speakerphone``) works on
+the VAD alone, as before; a speakerphone's (``audio_out: room``) are ignored.
 """
 
 from __future__ import annotations
@@ -36,12 +45,13 @@ import json
 import logging
 import os
 import time
+from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
 
 from raum.config import RaumConfig, get_config
-from raum.events import EVENTS_TOPIC, Envelope, ParticipantInfo, make_event
+from raum.events import CONTROL_TOPIC, EVENTS_TOPIC, Envelope, ParticipantInfo, make_event
 from raum.modes import ModeError, mode_for_room
 from raum.pipeline._util import float_to_int16, int16_to_float, lang_code
 from raum.pipeline.clean import cleaner_for
@@ -62,7 +72,20 @@ REJOIN_GRACE_S = float(os.environ.get("RAUM_REJOIN_GRACE_S", "120"))
 VAD_OPTIONS = {"min_speech_duration", "min_silence_duration", "prefix_padding_duration", "max_buffered_speech",
                "activation_threshold", "deactivation_threshold", "force_cpu"}
 
+PTT_MAX_TAIL_S = 0.5  # a release's tail_ms is clamped to this
+
 _vad_cache: Any = None
+
+
+@dataclass
+class _Ptt:
+    """Push-to-talk on one device (``raum.control`` ``ptt.press`` / ``ptt.release``)."""
+
+    held: bool = False
+    released: bool = False  # the release ended the turn: the VAD's own end of that speech is not one
+    bridged: bool = False  # held through a VAD pause: the utterance goes on and every frame is fed
+    ending: asyncio.Task[None] | None = None  # release -> tail -> end_turn
+    ending_started: bool = False  # past the tail: the turn is ending, a press no longer stops it
 
 
 def load_vad(cfg: RaumConfig) -> Any:
@@ -191,6 +214,7 @@ class RoomAgent:
         self.departed: dict[str, tuple[ParticipantInfo, float]] = {}  # identity -> (info, monotonic left)
         self.track_tasks: dict[str, asyncio.Task[None]] = {}
         self.turn_tasks: set[asyncio.Task[None]] = set()
+        self.ptt: dict[str, _Ptt] = {}  # identity -> push-to-talk state (raum.control)
         self.tts: dict[str, _VoiceTrack] = {}  # one AudioSource + track per voice language
         self._tts_locks: dict[str, asyncio.Lock] = {}  # one writer per source
         self._publish_errors = 0
@@ -225,6 +249,8 @@ class RoomAgent:
                 lambda _changed, p: self._on_participant_changed(p, prefer="attributes"))
         room.on("track_subscribed", self._on_track_subscribed)
         room.on("track_unsubscribed", self._on_track_unsubscribed)
+        room.on("data_received", self._on_data)
+        room.on("track_muted", self._on_track_muted)
         self.ctx.add_shutdown_callback(self.aclose)
         await self.ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
         self.link.start()
@@ -344,6 +370,7 @@ class RoomAgent:
             self.departed[p.identity] = (info, time.monotonic())
             asyncio.get_running_loop().call_later(REJOIN_GRACE_S + 0.1, self._sync_participants)
         self._sync_participants()
+        self.ptt.pop(p.identity, None)
         for sid, t in list(self.track_tasks.items()):
             if sid.startswith(p.identity + "/"):
                 t.cancel()
@@ -370,6 +397,63 @@ class RoomAgent:
         t = self.track_tasks.get(f"{p.identity}/{track.sid}")
         if t:
             t.cancel()
+
+    # ---------------------------------------------------------------- push-to-talk (raum.control)
+
+    def _on_data(self, packet: Any) -> None:
+        if getattr(packet, "topic", None) != CONTROL_TOPIC:
+            return
+        p = getattr(packet, "participant", None)
+        if p is None or is_agent(p):
+            return
+        try:
+            msg = json.loads(bytes(packet.data))
+        except ValueError:
+            return
+        if not isinstance(msg, dict):
+            return
+        info = self.infos.get(p.identity)
+        if info is not None and (info.audio_out == "room" or info.device == "speakerphone"):
+            return  # a speakerphone is always hands-free
+        kind = msg.get("type")
+        if kind == "ptt.press":
+            self.ptt_press(p.identity)
+        elif kind == "ptt.release":
+            try:
+                tail_s = min(PTT_MAX_TAIL_S, max(0.0, float(msg.get("tail_ms", 150)) / 1000.0))
+            except (TypeError, ValueError):
+                tail_s = 0.15
+            self.ptt_release(p.identity, tail_s)
+
+    def _on_track_muted(self, p: Any, pub: Any = None) -> None:
+        """The mic muted while held: the release was lost (a reconnect), and a muted mic is not held."""
+        ptt = self.ptt.get(getattr(p, "identity", ""))
+        if ptt is not None and ptt.held and not is_agent(p):
+            self.ptt_release(p.identity, 0.0)
+
+    def ptt_press(self, identity: str) -> None:
+        ptt = self.ptt.setdefault(identity, _Ptt())
+        ptt.held, ptt.released = True, False
+        if ptt.ending is not None and not ptt.ending.done() and not ptt.ending_started:
+            ptt.ending.cancel()  # let go for less than the tail: the same turn goes on
+            ptt.ending = None
+
+    def ptt_release(self, identity: str, tail_s: float) -> None:
+        ptt = self.ptt.setdefault(identity, _Ptt())
+        ptt.held = False
+        ptt.released = True
+        if ptt.ending is not None and not ptt.ending.done() and not ptt.ending_started:
+            ptt.ending.cancel()
+        ptt.ending_started = False
+        ptt.ending = asyncio.create_task(self._ptt_end(identity, ptt, tail_s), name=f"ptt-{identity}")
+        self.turn_tasks.add(ptt.ending)
+        ptt.ending.add_done_callback(self.turn_tasks.discard)
+
+    async def _ptt_end(self, identity: str, ptt: _Ptt, tail_s: float) -> None:
+        await asyncio.sleep(tail_s)  # the tail's audio is still on its way; a press within it cancels this
+        ptt.ending_started = True
+        ptt.bridged = False
+        await self.pipeline.end_turn(identity, "ptt")
 
     # ---------------------------------------------------------------- audio in
 
@@ -425,22 +509,35 @@ class RoomAgent:
             vad_stream.end_input()
 
         speaking = False
+        ptt = self.ptt.setdefault(identity, _Ptt())  # push-to-talk: no messages, no change (hands-free)
 
         async def events() -> None:
             nonlocal speaking
             async for ev in vad_stream:
                 if ev.type == VADEventType.START_OF_SPEECH:
+                    if ptt.ending is None or ptt.ending.done() or ptt.ending_started:
+                        ptt.released = False  # speaking again after the release ended the turn (not within its tail)
+                    if ptt.bridged:
+                        ptt.bridged = False
+                        if speaking and identity in self.pipeline._active:
+                            continue  # held through a pause: the same utterance, these frames are in it already
                     # None while off the record or paused for echo (C-14)
                     speaking = await self.pipeline.speech_start(identity) is not None
                     if speaking:
                         for f in ev.frames:
                             await self.pipeline.speech_audio(identity, int16_to_float(f.data))
                 elif ev.type == VADEventType.INFERENCE_DONE:
-                    if speaking and ev.speaking:
+                    if speaking and (ev.speaking or ptt.bridged):
                         for f in ev.frames:
                             await self.pipeline.speech_audio(identity, int16_to_float(f.data))
                 elif ev.type == VADEventType.END_OF_SPEECH and speaking:
+                    if ptt.held:  # push-to-talk: a pause while the button is held does not end the turn
+                        ptt.bridged = True
+                        continue
                     speaking = False
+                    ptt.bridged = False
+                    if ptt.released:  # the release ended this turn already (RoomPipeline.end_turn)
+                        continue
                     audio = np.concatenate([int16_to_float(f.data) for f in ev.frames]) if ev.frames else None
                     if audio is not None and cs is not None:
                         audio = cs.cleaned(audio, int(ev.samples_index))
