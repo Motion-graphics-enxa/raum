@@ -270,6 +270,7 @@ class EchoCheck:
         self._groups: dict[int, _Group] = {}
         self._pending: dict[str, list[_Repeat]] = {}
         self.epoch = 0  # +1 on burn: checks still running then repeat nothing
+        self._dropped: dict[str, None] = {}  # utterances whose voice merge.py stopped: never said again
         self.checks = 0  # transcriptions run (tests, glass box)
         self.repeats = 0  # clauses said again
 
@@ -345,7 +346,7 @@ class EchoCheck:
         if v.unclear:
             log.info("voice echo %s %s clause %d: %s not heard clearly", pr.tgt, g.utt, pr.clause,
                      ", ".join(v.unclear))
-        if not v.mismatches or p._closed or p.off_record or g.epoch != self.epoch:
+        if not v.mismatches or p._closed or p.off_record or g.epoch != self.epoch or g.utt in self._dropped:
             return
         log.warning("voice echo %s %s clause %d: the voice said another %s than written: saying it again in "
                     "the standard voice", pr.tgt, g.utt, pr.clause, ", ".join(m.kind for m in v.mismatches))
@@ -382,7 +383,8 @@ class EchoCheck:
 
     async def _say_again(self, r: _Repeat) -> None:
         p = self.p
-        if p._closed or p.off_record or p._voice_paused(r.tgt) or r.group.epoch != self.epoch:
+        if p._closed or p.off_record or p._voice_paused(r.tgt) or r.group.epoch != self.epoch \
+                or r.group.utt in self._dropped:
             return
         prefix = T.REPEAT.get(r.tgt)
         text = f"{prefix} {r.text}" if prefix else r.text
@@ -407,6 +409,15 @@ class EchoCheck:
         if g.echo_ms is not None:
             out["echo_ms"] = round(g.echo_ms, 1)
         return out
+
+    def drop(self, utt: str) -> None:
+        """merge.py stopped this utterance's voice (a sentence cut at a pause, merged into the next one): its
+        repeats are not said, and its checks still running repeat nothing."""
+        self._dropped[utt] = None
+        while len(self._dropped) > MAX_GROUPS:
+            self._dropped.pop(next(iter(self._dropped)))
+        for items in self._pending.values():
+            items[:] = [r for r in items if r.group.utt != utt]
 
     def clear(self) -> None:
         """Burn: repeats not yet said are dropped, and checks still running report nothing."""

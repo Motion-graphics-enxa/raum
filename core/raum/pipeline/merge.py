@@ -194,6 +194,7 @@ class Continuations:
         p.simul.drop(e.utt)
         p.simul.stop_lanes(e.lanes.values())
         p.spec.drop(e.utt)
+        p.echo_check.drop(e.utt)  # echo_check.py: no "I repeat: ..." of the cut half
         p.voicelock.start(e.speaker, e.utt, None, 0.0)  # F-10: no audio: drops and wipes its check still in flight
         e.audio = np.zeros(0, dtype=np.float32)  # the new utterance holds it now
         langs = list(self._voice.pop(e.utt, {}))

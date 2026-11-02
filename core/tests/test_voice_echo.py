@@ -456,3 +456,15 @@ async def test_simultaneous_segment_with_a_wrong_figure_is_repeated_and_timed():
 
 async def _quiet_sink(lang, pcm, rate):
     await asyncio.sleep(0)
+
+
+async def test_a_merged_cut_utterance_is_never_repeated():
+    """merge.py stopped the cut half's voice: its check (still running) and any repeat must not say it again."""
+    h, voice, asr, _ = echo_room(slips={"500 мг": "50 мг"}, delay_s=0.05)
+    h.set_next_line("a", 2)
+    utt = await h.say(DOC.id)
+    await until(lambda: asr.echo)  # the check is running
+    h.p.echo_check.drop(utt)
+    await h.p.drain()
+    assert not any(c.text.startswith("Повторяю") for c in voice.calls)
+    assert h.p.echo_check.repeats == 0
