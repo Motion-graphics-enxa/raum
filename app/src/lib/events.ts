@@ -13,7 +13,19 @@ export type Role = "a" | "b" | "observer";
 export type Path = "direct" | "tunnel" | "relayed";
 export type Badge = "green" | "amber" | "red";
 export type FlagKind =
-  | "dose" | "allergy" | "deadline" | "amount" | "uncertain" | "date" | "number" | "mismatch";
+  | "dose" | "allergy" | "deadline" | "amount" | "uncertain" | "date" | "number" | "mismatch" | "noted";
+/** A checked fact (core/raum/pipeline/readback.py): noted = guard and checker green, nobody was asked;
+ * unconfirmed = read back to the listener, no answer yet; confirmed / rejected = they said yes / no. */
+export type FactStatus = "noted" | "unconfirmed" | "confirmed" | "rejected";
+
+/** One fact of a noted / asked flag (a dose with its drug and frequency is one), its chip per language. */
+export interface FlagFact {
+  kind: string;
+  texts: Record<string, string>;
+  src?: string | null;
+  tgt?: string | null;
+  match?: boolean;
+}
 /** F-10: enrolling / short / unchecked pass; match passes; mismatch is dropped. */
 export type VoiceLockStatus = "enrolling" | "match" | "mismatch" | "short" | "unchecked";
 
@@ -54,6 +66,14 @@ export interface SummarySection {
   items: SummaryItem[];
 }
 
+/** A checked fact of the conversation and what became of it. */
+export interface SummaryFact {
+  kind: string;
+  text: Record<string, string>;
+  status: FactStatus;
+  utt?: string | null;
+}
+
 /** Payload ("data") per event type. */
 export interface EventData {
   "participant.joined": ParticipantInfo;
@@ -76,13 +96,25 @@ export interface EventData {
   flag: {
     kind: FlagKind;
     text: string;
-    needs_confirm: boolean;
+    needs_confirm: boolean; // a yes/no is asked: small buttons, never modal; a spoken yes/no answers too
     id?: string | null;
     confirm_by?: Role | null;
     target_lang?: string | null;
     texts?: Record<string, string> | null;
+    status?: "noted" | "unconfirmed" | null; // noted: nobody asked; unconfirmed: asked, no answer yet
+    facts?: FlagFact[] | null; // the checked facts, one chip each
+    show_to?: Role | null; // a flag nobody answers shows only on this role's screen (noted: "a")
+    spoken?: boolean | null; // the question was read back aloud in target_lang
+    why?: string[] | null; // "guard" | "check:amber" | "check:red" | "asr"
+    seg?: number | null;
   };
-  confirm: { by: string; accepted: boolean; flag_id?: string | null };
+  confirm: {
+    by: string;
+    accepted: boolean;
+    flag_id?: string | null;
+    via?: "button" | "voice" | null; // a tap, or a spoken yes/no
+    answer_utt?: string | null; // via voice: the utterance that carried the answer
+  };
   "repeat_back.result": {
     understood: "yes" | "partly" | "no";
     missing: string[];
@@ -154,6 +186,7 @@ export interface EventData {
     file_note?: Record<string, string> | null;
     approved_by?: string[];
     generated_ms?: number | null;
+    facts?: SummaryFact[]; // noted / unconfirmed / confirmed / rejected
   };
   "burn.done": { key_destroyed_at: number; audit_head_hash: string };
 }

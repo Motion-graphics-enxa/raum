@@ -8,7 +8,7 @@ CONTRACT (implemented by the security+guard workstream; signatures are fixed):
 ``check`` compares the multisets of normalised facts per kind between source and
 translation. Any missing, extra or different value is a mismatch (``red``), reported
 with the exact pair. Facts whose kind is in ``confirm_on`` and that are present in the
-source go to ``GuardResult.confirm`` (the listener gets "500 mg, twice a day. Correct?").
+source go to ``GuardResult.confirm`` (noted, or read back when unsure: raum.pipeline.readback).
 
 How it works
 ------------

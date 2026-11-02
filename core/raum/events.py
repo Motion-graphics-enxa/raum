@@ -28,7 +28,10 @@ EVENTS_TOPIC = "raum.events"
 Role = Literal["a", "b", "observer"]
 Path = Literal["direct", "tunnel", "relayed"]
 Badge = Literal["green", "amber", "red"]
-FlagKind = Literal["dose", "allergy", "deadline", "amount", "uncertain", "date", "number", "mismatch"]
+FlagKind = Literal["dose", "allergy", "deadline", "amount", "uncertain", "date", "number", "mismatch", "noted"]
+# A checked fact (raum.pipeline.readback): noted = guard and checker green, nobody was asked; unconfirmed = read
+# back to the listener (uncertain), no answer yet; confirmed / rejected = the listener said yes / no.
+FactStatus = Literal["noted", "unconfirmed", "confirmed", "rejected"]
 
 
 class _Data(BaseModel):
@@ -131,20 +134,39 @@ class VerifyResult(_Data):
     back_translation: str | None = None  # extension: shown in the glass box
 
 
+class FlagFact(_Data):  # extension: one fact (a dose with its drug and frequency is one) of a noted / asked flag
+    kind: str  # the main fact's kind: dose | allergy | deadline | amount | date | ...
+    texts: dict[str, str]  # the chip per language, e.g. {"de": "Metformin 500 mg, zweimal täglich"}
+    src: str | None = None  # the value as said
+    tgt: str | None = None  # the value as translated
+    match: bool = True
+
+
 class Flag(_Data):
     kind: FlagKind
-    text: str  # human-readable, in the language of the device that must act, e.g. "500 mg, twice a day. Correct?"
-    needs_confirm: bool
+    # human-readable, in the language of the device that must act: "Nur zur Sicherheit: 500 mg, zweimal täglich?"
+    # (kind "noted": the professional's chip line, "Allergie: Penicillin · Metformin 500 mg, zweimal täglich")
+    text: str
+    needs_confirm: bool  # a yes/no is asked (small buttons, never modal; a spoken yes/no answers too)
     id: str | None = None  # extension: referenced by `confirm`
     confirm_by: Role | None = None  # extension: which role must confirm (default: the listener)
     target_lang: str | None = None  # extension
     texts: dict[str, str] | None = None  # extension: text per language
+    # extensions (raum.pipeline.readback): the checked facts, and how they were handled
+    status: Literal["noted", "unconfirmed"] | None = None  # noted: nobody asked · unconfirmed: asked, no answer yet
+    facts: list[FlagFact] | None = None  # the facts, one chip each
+    show_to: Role | None = None  # a flag nobody answers shows only on this role's screen (noted: "a")
+    spoken: bool | None = None  # the question was read back aloud in target_lang
+    why: list[str] | None = None  # what made it uncertain: "guard", "check:amber", "check:red", "asr"
+    seg: int | None = None  # simultaneous mode: the segment the guard flagged
 
 
 class Confirm(_Data):
     by: str  # role or identity
     accepted: bool
     flag_id: str | None = None  # extension
+    via: Literal["button", "voice"] | None = None  # extension: a tap, or a spoken yes/no (raum.pipeline.readback)
+    answer_utt: str | None = None  # extension (via voice): the utterance that carried the answer
 
 
 class RepeatBackResult(_Data):  # extension (S-02)
@@ -277,12 +299,20 @@ class SummarySection(_Data):
     items: list[SummaryItem] = Field(default_factory=list)
 
 
+class SummaryFact(_Data):  # extension: a checked fact of the conversation and what became of it
+    kind: str
+    text: dict[str, str]  # per language
+    status: FactStatus
+    utt: str | None = None
+
+
 class SummaryReady(_Data):
     template: str  # mode id
     lang_a: str
     lang_b: str
     sections: list[SummarySection]
     file_note: dict[str, str] | None = None  # extension: S-04 / K-03 note, usually {"de": "..."}
+    facts: list[SummaryFact] = Field(default_factory=list)  # extension: noted / unconfirmed / confirmed / rejected
     approved_by: list[str] = Field(default_factory=list)  # extension
     generated_ms: float | None = None  # extension
 

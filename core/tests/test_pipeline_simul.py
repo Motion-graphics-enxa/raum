@@ -293,38 +293,37 @@ async def test_stub_model_never_commits_an_incomplete_clause(no_guard):
     assert h.one("translation.final", utt)["text"] == line("sz-05").text["ar"]  # consecutive, as before
 
 
-async def test_held_voice_until_the_dose_is_confirmed(fake_guard):
+async def test_a_correct_dose_never_holds_the_voice_and_is_noted(fake_guard):
     h = room([DOC_EN, PAT_AR_HP])
     voice = Voice(h)
     h.set_next_line("a", 2)  # sz-05: 500 mg in the first segment (confirm_on: dose)
     utt = await say(h, DOC_EN.id, 2.0)
-    await until(lambda: len(segs(h, "verify.facts", utt)) == 2)
-    flag = h.one("flag", utt)
-    assert flag["id"] == f"{utt}-ar-s0-confirm" and flag["seg"] == 0 and flag["kind"] == "dose"
-    assert flag["needs_confirm"] is True and flag["confirm_by"] == "b"
-    await asyncio.sleep(0.05)
-    assert voice.spoken == []  # held, and the tail waits behind it
-    await h.p.handle_control(Control(action="confirm", flag_id=flag["id"], accepted=True, by="b"))
+    await until(lambda: len(voice.spoken) >= 1)  # spoken at once: nothing waits for a tap
+    assert not h.of("flag", utt)  # no prompt at segment time
     await h.p.drain()
     assert voice.spoken == [f["text"] for f in segs(h, "translation.final", utt)]
+    flag = h.one("flag", utt)  # after the one utterance check (green): a quiet note for the doctor
+    assert flag["id"] == f"{utt}-ar-noted" and flag["kind"] == "noted" and flag["needs_confirm"] is False
+    assert flag["show_to"] == "a" and flag["texts"]["en"] == "500 mg"
 
 
-async def test_red_mismatch_segment_is_not_spoken_when_rejected(fake_guard):
+async def test_red_mismatch_segment_is_never_spoken_and_read_back_after(fake_guard):
+    from raum.pipeline import readback
+
     h = room([DOC_EN, PAT_AR_HP])
     voice = Voice(h)
     h.set_next_line("a", 3)  # sz-07: 400 mg comes out as 40 mg in the first segment
     utt = await say(h, DOC_EN.id, 2.0)
-    await until(lambda: h.of("flag", utt))
+    await h.p.drain()  # nothing waits for a tap
     facts = segs(h, "verify.facts", utt)
     assert facts[0]["red"] is True and {"kind": "dose", "src": "400 mg", "tgt": "40 mg", "match": False} in facts[0]["facts"]
-    flag = h.one("flag", utt)
-    assert flag["id"] == f"{utt}-ar-s0-mismatch" and flag["kind"] == "mismatch" and "400 mg" in flag["text"]
-    await h.p.handle_control(Control(action="confirm", flag_id=flag["id"], accepted=False, by="b"))
-    await h.p.drain()
+    flag = h.one("flag", utt)  # one read-back per utterance, no correction flag on top
+    assert flag["id"] == f"{utt}-ar-mismatch" and flag["kind"] == "mismatch" and flag["needs_confirm"] is True
+    assert flag["text"] == "للتأكد فقط: 400 mg؟" and flag["spoken"] is True and flag["confirm_by"] == "b"
     tail = segs(h, "translation.final", utt)[-1]["text"]
-    assert voice.spoken == [tail]  # the wrong dose never reaches the listener's ear
+    # the wrong dose never reaches the listener's ear; the read-back of what was said follows the utterance
+    assert voice.spoken == [tail, readback.spoken(flag["text"], "ar")] and "400 ملليغرام" in voice.spoken[-1]
     assert h.one("verify.result", utt)["badge"] == "red"  # guard red wins in the utterance check
-    assert len(h.of("flag", utt)) == 1  # no correction flag on top of the guard prompt
 
 
 class _FarEmbedder:

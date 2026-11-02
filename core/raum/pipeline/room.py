@@ -16,8 +16,10 @@ CONTRACT (implemented by the pipeline workstream; the worker in raum.agent calls
 ``emit`` is ``async def emit(env: Envelope) -> None``: the worker publishes it on the data
 channel (topic raum.events) and forwards it to core over the link.
 
-Rules (§6.4): checks never block display; only red interrupts (flag with needs_confirm);
-partials at lower priority than finals; off_record drops audio entirely.
+Rules (§6.4): checks never block display; partials at lower priority than finals; off_record drops audio
+entirely. Facts (``raum.pipeline.readback``): green -> a quiet "noted" flag for the professional's screen,
+nobody is asked; uncertain (guard mismatch, checker amber/red, low ASR confidence) -> one spoken read-back to
+the listener (flag with needs_confirm); their next utterance, if a short yes/no, answers it.
 
 Additions beyond the contract (all optional):
 
@@ -87,6 +89,7 @@ from raum.events import (
 )
 from raum.glossary import Glossary, GlossaryError, parse_terms
 from raum.modes.schema import ModeConfig
+from raum.pipeline import readback
 from raum.pipeline import texts as T
 from raum.pipeline._util import int16_to_float, lang_code, lang_name, load_prompt, render_prompt
 from raum.pipeline.base import AsrResult, Engines, TranslateRequest, TurnContext
@@ -209,6 +212,18 @@ class _Turn:
     translations: dict[str, str] = field(default_factory=dict)
 
 
+@dataclass
+class _Ask:
+    """A read-back waiting for the listener's spoken yes/no (``readback.yes_no``)."""
+
+    flag_id: str
+    utt: str  # the utterance whose facts were read back
+    role: str  # who answers (the listener)
+    lang: str  # in their language
+    after: int  # only an utterance that starts after this one (``u-NNNN`` number) answers
+    ready: bool = True  # False until the read-back has started playing: nothing earlier answers it
+
+
 _CLAUSE_END = re.compile(r"[.!?;:…。！？،؛؟](?=\s)|,(?=\s)")
 _ABBREV = re.compile(r"(?:\b(?:Dr|Fr|Hr|Prof|Nr|ca|bzw|z\.B|u\.a|St|Mr|Mrs|Ms|No|vs)\.|\d\.)$", re.IGNORECASE)
 MIN_CLAUSE_CHARS = 16
@@ -322,6 +337,8 @@ class RoomPipeline:
         self._voice_fails: dict[str, int] = {}
         self._voice_paused_until: dict[str, float] = {}
         self._closed = False
+        self._asks: dict[tuple[str, str], _Ask] = {}  # (role, lang) -> the read-back their next utterance answers
+        self._asked: dict[tuple[Any, ...], str] = {}  # facts read back this session -> flag id: never asked twice
         self.simul = Simultaneous(self)  # simultaneous mode + stable partial as final (simul.py)
         self.spec = Speculator(self)  # speculative translation (speculate.py)
 
@@ -399,6 +416,7 @@ class RoomPipeline:
         new_session = prev is not None and prev.session_id is not None and state.session_id != prev.session_id
         if state.status != "live" or new_session:  # session over: its voice samples go with it
             self._forget_voices()
+            self._forget_asks()
         self._set_off_record(bool(state.off_record))
 
     def _set_off_record(self, on: bool) -> None:
@@ -658,6 +676,7 @@ class RoomPipeline:
         rec = _Turn(utt=u.id, speaker=u.speaker, role=u.role, lang=src_lang, text=text, conf=res.conf, turn=turn)
         context = self._context()  # names from earlier turns, before this one is remembered
         self._remember(rec)
+        self._take_answer(rec)  # readback.py: a short yes/no to the read-back this speaker heard
         if self._repeat_back and rec.role == "b" and self._last_instruction is not None:
             self._repeat_back = False
             self._spawn(self._repeat_back_check(self._last_instruction, rec))
@@ -839,7 +858,9 @@ class RoomPipeline:
         await self.emit("verify.result", {"target_lang": tgt, "similarity": result.similarity, "badge": result.badge,
                                           "reasons": result.reasons, "back_translation": result.back_translation},
                         utt=rec.utt)
-        if result.badge == "red" and not flagged:  # only red interrupts
+        if not flagged:  # readback.py: the room's facts noted (all green) or read back once (uncertain)
+            flagged = await self._settle_facts(rec, tgt, gres, result.badge)
+        if result.badge == "red" and not flagged:  # a red meaning check with no fact to read back
             texts = T.all_langs(T.UNSURE, tgt)
             await self.emit("flag", {"kind": "mismatch", "text": T.pick(texts, tgt), "needs_confirm": True,
                                      "id": f"{rec.utt}-{tgt}-check",
@@ -1040,37 +1061,141 @@ class RoomPipeline:
         await self.emit("flag", {"kind": "uncertain", "text": T.pick(texts, lang), "needs_confirm": False,
                                  "id": f"{u.id}-uncertain", "target_lang": lang, "texts": texts}, utt=u.id)
 
-    async def _fact_flags(self, rec: _Turn, tgt: str, res: guard.GuardResult | None, seg: int | None = None) -> bool:
-        """Confirm prompt on the listener's device: red mismatches, and ``confirm_on`` facts (§6.8.4)."""
-        if res is None:
+    # ---------------------------------------------------------------- facts: noted or read back (readback.py)
+
+    async def _fact_flags(self, rec: Any, tgt: str, res: guard.GuardResult | None) -> bool:
+        """At once, on a guard mismatch: one read-back to the listener of what was SAID (the wrong facts and
+        the room's ``confirm_on`` facts), spoken after the utterance's voice. True: handled (no prompt on top)."""
+        if res is None or not res.red:
             return False
-        if res.red:
-            facts = [f for f in res.facts if not f.match]
-            kind = "mismatch"
-            template = T.MISMATCH
-        elif res.confirm and not _is_question(rec.text):
-            # a question ("Are you allergic to anything?") states nothing to confirm; and a confirm_on
-            # fact without a concrete value (allergy "present") is not worth an interruption
-            facts = [f for f in res.confirm if (f.src or "").strip().lower() not in ("", "present")]
-            if not facts:
-                return False
-            if any(f.kind == "dose" for f in facts):
-                facts += [f for f in res.facts if f.kind == "frequency" and f not in facts]
-            kind = next((f.kind for f in facts if f.kind in _FLAG_KINDS), "number")
-            template = None
-        else:
-            return False
-        texts: dict[str, str] = {}
-        for lang in dict.fromkeys([*T.LANGS, tgt]):
-            joined = ", ".join(T.fact_text(f.kind, f.src or f.tgt, lang) for f in facts)
-            texts[lang] = (T.pick(template, lang).format(facts=joined) if template
-                           else f"{joined}. {T.pick(T.CORRECT, lang)}")
-        part, extra = ("", {}) if seg is None else (f"-s{seg}", {"seg": seg})  # simul.py: one per segment
-        await self.emit("flag", {"kind": kind, "text": texts[tgt], "needs_confirm": True,
-                                 "id": f"{rec.utt}-{tgt}{part}-{'mismatch' if res.red else 'confirm'}",
-                                 "confirm_by": self._listener_role(tgt, rec.role), "target_lang": tgt,
-                                 "texts": texts, **extra}, utt=rec.utt)
+        bad = [f for f in res.facts if not f.match and readback.worth_noting(f)]
+        chosen = bad + [f for f in res.confirm if f not in bad and readback.worth_noting(f)]
+        await self._ask(rec, tgt, chosen, res.facts, kind="mismatch", why=["guard"], suffix="mismatch")
         return True
+
+    async def _settle_facts(self, rec: Any, tgt: str, res: guard.GuardResult | None, badge: str) -> bool:
+        """After the second check: the room's ``confirm_on`` facts of a statement (a question states nothing;
+        allergy "present" names nothing). Guard and checker green and the ASR sure: a quiet "noted" flag for
+        the professional's screen, nobody is asked. Otherwise one read-back. True: a question was raised."""
+        if res is None or res.red or _is_question(rec.text):
+            return False
+        chosen = [f for f in res.confirm if readback.worth_noting(f)]
+        if not chosen:
+            return False
+        why = [] if badge == "green" else [f"check:{badge}"]
+        conf = getattr(rec, "conf", None)
+        if conf is not None and float(conf) < self.cfg.asr_confirm_conf:
+            why.append("asr")
+        if not why:
+            await self._noted(rec, tgt, chosen, res.facts)
+            return False
+        kind = next((f.kind for f in chosen if f.kind in _FLAG_KINDS), "number")
+        return await self._ask(rec, tgt, chosen, res.facts, kind=kind, why=why, suffix="confirm")
+
+    def _wording(self, rec: Any, tgt: str) -> readback.Wording:
+        found, _ok = _guard_call(guard.extract, rec.text, rec.lang, kinds=self.mode.guard.kinds, glossary=self.glossary)
+        values = {(f.kind, f.surface.strip().casefold()): f.value for f in found or []}
+        return readback.Wording(rec.lang, tgt, self.glossary, values)
+
+    def _flag_langs(self, rec: Any, tgt: str) -> list[str]:
+        return list(dict.fromkeys([*T.LANGS, tgt, rec.lang]))
+
+    async def _noted(self, rec: Any, tgt: str, chosen: list[Any], context: list[Any]) -> None:
+        """Green: chips on the professional's screen ("✓ Allergie: Penicillin"), "noted" in the summary."""
+        gs = readback.groups(chosen, context)
+        if not gs:
+            return
+        w = self._wording(rec, tgt)
+        langs = self._flag_langs(rec, tgt)
+        facts = w.chips(gs, langs)
+        texts = {lang: " · ".join(str(f["texts"][lang]) for f in facts) for lang in langs}  # type: ignore[index]
+        pro = self._role_lang("a") or (rec.lang if rec.role == "a" else tgt)
+        await self.emit("flag", {"kind": "noted", "text": texts.get(pro) or texts[tgt], "needs_confirm": False,
+                                 "id": f"{rec.utt}-{tgt}-noted", "target_lang": tgt, "texts": texts,
+                                 "status": "noted", "facts": facts, "show_to": "a"}, utt=rec.utt)
+
+    async def _ask(self, rec: Any, tgt: str, chosen: list[Any], context: list[Any], *, kind: str, why: list[str],
+                   suffix: str) -> bool:
+        """Uncertain: one short read-back in the listener's language ("Nur zur Sicherheit: 400 mg?"), shown with
+        small yes/no buttons and spoken through the voice lane; their next utterance may answer it aloud. A fact
+        read back before is never asked again. Nothing to read back (a translation that added a figure): the
+        "may be wrong" note, not spoken. True: handled (asked now, or all of it asked before)."""
+        w = self._wording(rec, tgt)
+        gs = readback.groups(chosen, context)
+        fresh = [g for g in gs if self._fact_key(g, w, tgt) not in self._asked]
+        if gs and not fresh:
+            return True  # all of it read back before: never twice, and nothing else on top
+        langs = self._flag_langs(rec, tgt)
+        role = self._listener_role(tgt, rec.role)
+        fid = f"{rec.utt}-{tgt}-{suffix}"
+        texts = {lang: w.question(fresh, lang) for lang in langs} if fresh else T.all_langs(T.UNSURE, tgt)
+        voice = bool(fresh) and self._tts_enabled() and not self.off_record
+        await self.emit("flag", {"kind": kind, "text": texts.get(tgt) or T.pick(texts, tgt), "needs_confirm": True,
+                                 "id": fid, "confirm_by": role, "target_lang": tgt, "texts": texts,
+                                 "status": "unconfirmed", "facts": w.chips(fresh, langs), "spoken": voice,
+                                 "why": why}, utt=rec.utt)
+        for g in fresh:
+            self._asked[self._fact_key(g, w, tgt)] = fid
+        ask = _Ask(flag_id=fid, utt=rec.utt, role=role, lang=tgt, after=self._utt_n, ready=not voice)
+        self._asks[(role, tgt)] = ask  # their next utterance answers the latest; an older one stays unconfirmed
+        if voice:
+            self._spawn(self._read_back(ask, readback.spoken(texts.get(tgt) or "", tgt)))
+        return True
+
+    @staticmethod
+    def _fact_key(group: list[Any], w: readback.Wording, tgt: str) -> tuple[Any, ...]:
+        vals = tuple(sorted((f.kind, w.values.get((f.kind, (f.src or "").strip().casefold())) or
+                             (f.src or "").strip().casefold()) for f in group))
+        return (tgt, vals)
+
+    async def _read_back(self, ask: _Ask, text: str) -> None:
+        def started() -> None:  # an utterance begun before the question was heard does not answer it
+            ask.after = self._utt_n
+            ask.ready = True
+
+        try:
+            await self.speak_line(ask.lang, text, on_start=started)
+        finally:
+            ask.ready = True
+
+    async def speak_line(self, lang: str, text: str, on_start: Callable[[], None] | None = None) -> float | None:
+        """A system line (a read-back) spoken in ``lang`` through that language's voice lane: after the utterance
+        holding it, never inside one. The standard voice (no speaker's sample); echo control as for any voice
+        (``_voice_out`` pauses the mics that hear it). Not while that language's voice is paused or off the record."""
+        if not text or not self._tts_enabled():
+            return None
+        async with self._voice_lanes.setdefault(lang, asyncio.Lock()):
+            if self._voice_paused(lang) or self._closed or self.off_record:
+                return None
+            if on_start is not None:
+                on_start()
+            return await self._speak(lang, text, time.monotonic())
+
+    def _take_answer(self, rec: _Turn) -> None:
+        """The asked person's next utterance after a read-back: a short yes/no (``readback.yes_no``) answers it,
+        a ``confirm`` (via voice) on the asked flag. Anything else closes the question: the fact stays
+        unconfirmed, nobody asks again. The utterance is translated either way."""
+        if not self._asks:
+            return
+        lang = self._participant_lang(self.participants.get(rec.speaker)) or rec.lang
+        ask = self._asks.get((rec.role, lang)) or self._asks.get((rec.role, rec.lang))
+        if ask is None or not ask.ready or readback.utt_number(rec.utt) <= ask.after:
+            return
+        self._asks = {k: v for k, v in self._asks.items() if v is not ask}
+        verdict = readback.yes_no(rec.text, rec.lang)
+        if verdict is None:
+            return
+        self._spawn(self.emit("confirm", {"by": rec.role, "accepted": verdict, "flag_id": ask.flag_id, "via": "voice",
+                                          "answer_utt": rec.utt}, utt=ask.utt))
+
+    def _answered(self, flag_id: str | None) -> None:
+        """A tap answered a read-back: no spoken answer is taken for it any more."""
+        if flag_id:
+            self._asks = {k: v for k, v in self._asks.items() if v.flag_id != flag_id}
+
+    def _forget_asks(self) -> None:
+        self._asks.clear()
+        self._asked.clear()
 
     # ---------------------------------------------------------------- memory (V-04)
 
@@ -1173,7 +1298,7 @@ class RoomPipeline:
             if action == "off_record":
                 self._set_off_record(bool(control.value))
             elif action == "confirm":
-                self.simul.confirm(control)  # simul.py: releases a held segment's voice
+                self._answered(control.flag_id)  # a tap: no spoken answer taken for that read-back any more
             elif action == "repeat_back":
                 self._repeat_back = True
             elif action == "explain_simply":
@@ -1298,6 +1423,7 @@ class RoomPipeline:
         self._last_instruction = None
         self._repeat_back = False
         self._drafts.clear()
+        self._forget_asks()
         self._forget_voices()
         self.glossary = self._load_glossary()
         reset = getattr(self.engines.asr, "reset", None)

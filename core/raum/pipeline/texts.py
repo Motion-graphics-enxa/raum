@@ -1,4 +1,4 @@
-"""Localised texts the pipeline puts into ``flag`` events (de, en, tr, ru, ar; fallback en)."""
+"""Localised texts the pipeline puts into ``flag`` events and read-backs (de, en, tr, ru, ar; fallback en)."""
 
 from __future__ import annotations
 
@@ -14,20 +14,14 @@ SAY_AGAIN = {
     "ar": "من فضلك، قلها مرة أخرى.",
 }
 
-CORRECT = {
-    "de": "Stimmt das?",
-    "en": "Correct?",
-    "tr": "Doğru mu?",
-    "ru": "Верно?",
-    "ar": "هل هذا صحيح؟",
-}
-
-MISMATCH = {
-    "de": "Achtung, bitte prüfen: {facts}. Stimmt das?",
-    "en": "Please check: {facts}. Correct?",
-    "tr": "Lütfen kontrol edin: {facts}. Doğru mu?",
-    "ru": "Пожалуйста, проверьте: {facts}. Верно?",
-    "ar": "يرجى التحقق: {facts}. هل هذا صحيح؟",
+# A read-back, like a human interpreter: a natural clarification, not an exam question ("Stimmt das?" is gone).
+# Spoken in the listener's language and shown with small yes/no buttons (raum.pipeline.readback).
+JUST_TO_BE_SURE = {
+    "de": "Nur zur Sicherheit: {facts}?",
+    "en": "Just to be sure: {facts}?",
+    "tr": "Emin olmak için: {facts}?",
+    "ru": "Просто уточню: {facts}?",
+    "ar": "للتأكد فقط: {facts}؟",
 }
 
 UNSURE = {

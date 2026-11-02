@@ -591,10 +591,24 @@ class SessionManager:
         if room.session is not None:
             room.session.touch()
             room.session.saw_utt(env.utt)
-        self._persist(room, env)
+        if self._persist(room, env) and room.session is not None:
+            self._audit_fact(room.session.id, env)
         self._fanout(room, env)
         if changed:
             await self.state_changed(room)
+
+    def _audit_fact(self, session_id: str, env: Envelope) -> None:
+        """Checked facts in the audit log (no content: ids, kinds, how each was handled; raum.pipeline.readback):
+        noted (nobody asked) or asked (read back), and a spoken yes/no from the agent (a tap is audited in
+        ``control``)."""
+        d = env.data
+        if env.type == "flag" and d.get("status") in ("noted", "unconfirmed"):
+            self._audit("fact_noted" if d["status"] == "noted" else "fact_asked", session_id, flag_id=d.get("id"),
+                        kinds=sorted({str(f.get("kind")) for f in d.get("facts") or []}), spoken=bool(d.get("spoken")),
+                        why=list(d.get("why") or []))
+        elif env.type == "confirm" and d.get("via") == "voice":
+            self._audit("confirm", session_id, by=d.get("by"), accepted=d.get("accepted"), flag_id=d.get("flag_id"),
+                        via="voice")
 
     # ------------------------------------------------------------ controls
 
@@ -625,10 +639,10 @@ class SessionManager:
             await self.state_changed(room)
         elif a == "confirm":
             accepted = ctl.accepted if ctl.accepted is not None else (True if ctl.value is None else bool(ctl.value))
-            self.emit(room, "confirm", Confirm(by=by or "?", accepted=accepted, flag_id=ctl.flag_id), utt=ctl.utt,
-                      persist=True)
-            self._audit("confirm", s.id, by=by, accepted=accepted, flag_id=ctl.flag_id)
-            # the agent releases (or skips) a segment's voice held for this flag (simultaneous mode)
+            self.emit(room, "confirm", Confirm(by=by or "?", accepted=accepted, flag_id=ctl.flag_id, via="button"),
+                      utt=ctl.utt, persist=True)
+            self._audit("confirm", s.id, by=by, accepted=accepted, flag_id=ctl.flag_id, via="button")
+            # the agent then takes no spoken yes/no for that read-back any more (raum.pipeline.readback)
             forwarded = await self.forward(room, ctl.model_copy(update={"accepted": accepted}))
         elif a == "glossary":  # same as POST /glossary with terms in the YAML shape
             raw = ctl.value.get("terms") if isinstance(ctl.value, dict) else ctl.value
@@ -943,7 +957,7 @@ class SessionManager:
             m = e.get("meta")
             return m if isinstance(m, dict) else {}
 
-        consents, off_record, interp, confirms, approvals = [], [], [], [], []
+        consents, off_record, interp, confirms, approvals, facts = [], [], [], [], [], []
         models: dict[str, Any] = {}
         started = ended = burn = None
         for e in entries:
@@ -965,7 +979,11 @@ class SessionManager:
             elif ev == "human_interpreter":
                 interp.append({"ts": ts, "by": m.get("by"), "requested": m.get("requested", True)})
             elif ev == "confirm":
-                confirms.append({"ts": ts, "by": m.get("by"), "accepted": m.get("accepted")})
+                confirms.append({"ts": ts, "by": m.get("by"), "accepted": m.get("accepted"),
+                                 "flag_id": m.get("flag_id"), "via": m.get("via")})
+            elif ev in ("fact_noted", "fact_asked"):
+                facts.append({"ts": ts, "flag_id": m.get("flag_id"), "kinds": m.get("kinds") or [],
+                              "status": "noted" if ev == "fact_noted" else "unconfirmed", "spoken": m.get("spoken")})
             elif ev == "summary_approved":
                 approvals.append({"ts": ts, "by": m.get("by")})
             elif ev == "session_end":
@@ -973,6 +991,10 @@ class SessionManager:
             elif ev == "key_destroyed":
                 burn = {"ts": ts, "hash": e.get("hash")}
         report = self.chain_report()
+        answers = {c["flag_id"]: c["accepted"] for c in confirms if c.get("flag_id") and c.get("accepted") is not None}
+        for f in facts:  # an asked fact the listener answered
+            if f["status"] == "unconfirmed" and f["flag_id"] in answers:
+                f["status"] = "confirmed" if answers[f["flag_id"]] else "rejected"
         return {
             "kind": "raum.compliance.v1",
             "generated_at": now_ms(),
@@ -990,6 +1012,7 @@ class SessionManager:
             "off_record": off_record,
             "human_interpreter": interp,
             "confirmations": confirms,
+            "checked_facts": facts,  # noted / unconfirmed / confirmed / rejected, no content
             "summary_approvals": approvals,
             "ended": ended,
             "burn": burn,

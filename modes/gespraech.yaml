@@ -1,5 +1,5 @@
 # Gespraech: everyday conversation (neighbours, a shop, a host and a guest). The fastest path:
-# no second-model check, the fact guard only for numbers, dates and times (no "Stimmt das?" prompts),
+# no second-model check, the fact guard only for numbers, dates and times (nothing read back unless it is red),
 # simultaneous from the first word for headphone listeners. Same box, same privacy.
 id: gespraech
 order: 4
@@ -13,7 +13,7 @@ roles:
 register: formal               # the prompt mirrors the speaker: du stays du, Sie stays Sie
 guard:
   kinds: [number, date, time]
-  confirm_on: []               # never interrupts: a wrong number shows red, nobody is asked
+  confirm_on: []               # quiet: no fact chips, nobody asked; only a wrong number (guard red) is read back once
 checker: off                   # no back-translation: fact guard only
 prompts:
   translate: prompts/translate.md

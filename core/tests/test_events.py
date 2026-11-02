@@ -31,8 +31,13 @@ def test_plan_example_parses():
     ("translation.final", {"target_lang": "de", "text": ".."}),
     ("verify.facts", {"target_lang": "de", "facts": [{"kind": "dose", "src": "500 mg", "tgt": "50 mg", "match": False}]}),
     ("verify.result", {"target_lang": "de", "similarity": 0.91, "badge": "green", "reasons": []}),
-    ("flag", {"kind": "dose", "text": "500 mg. Richtig?", "needs_confirm": True}),
+    ("flag", {"kind": "dose", "text": "Nur zur Sicherheit: 500 mg?", "needs_confirm": True}),
+    ("flag", {"kind": "dose", "text": "Nur zur Sicherheit: 500 mg?", "needs_confirm": True, "status": "unconfirmed",
+              "facts": [{"kind": "dose", "texts": {"de": "500 mg"}}], "spoken": True, "why": ["check:amber"]}),
+    ("flag", {"kind": "noted", "text": "Allergie: Penicillin", "needs_confirm": False, "status": "noted",
+              "show_to": "a", "facts": [{"kind": "allergy", "texts": {"de": "Allergie: Penicillin"}}]}),
     ("confirm", {"by": "a", "accepted": True}),
+    ("confirm", {"by": "b", "accepted": False, "flag_id": "u-0001-ar-confirm", "via": "voice", "answer_utt": "u-0002"}),
     ("offer.update", {"amount": 1200000, "currency": "EUR", "by": "a", "ts": 1}),
     ("pipeline.timing", {"vad_ms": 320, "asr_ms": 210, "mt_first_ms": 240, "mt_full_ms": 700,
                          "tts_first_ms": None, "check_ms": 1000}),
@@ -43,7 +48,8 @@ def test_plan_example_parses():
     ("gpu.stats", {"util_pct": 41.5, "models_loaded": ["gemma4:26b"]}),
     ("summary.ready", {"template": "sprechzimmer", "lang_a": "de", "lang_b": "ar", "sections": [
         {"key": "medications", "title": {"de": "Medikamente", "ar": "الأدوية"},
-         "items": [{"text": {"de": "Metformin 500 mg", "ar": "ميتفورمين 500 ملغ"}}]}]}),
+         "items": [{"text": {"de": "Metformin 500 mg", "ar": "ميتفورمين 500 ملغ"}}]}],
+        "facts": [{"kind": "dose", "text": {"de": "Metformin 500 mg"}, "status": "confirmed", "utt": "u-0002"}]}),
     ("burn.done", {"key_destroyed_at": 1, "audit_head_hash": "ab" * 32}),
 ])
 def test_each_type_validates(etype, data):

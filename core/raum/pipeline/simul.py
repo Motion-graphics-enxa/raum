@@ -31,8 +31,9 @@ Events, per target language (``seg`` 0-based; consecutive mode sends no ``seg``)
     translation.delta  {target_lang, delta, seq, seg}       seq restarts at 1 in every segment
     translation.final  {target_lang, text, seg[, segs]}     this segment's text; the last final has segs
     verify.facts       {target_lang, seg, facts, red, ms}             fact guard, per segment
-    flag               {..., id: "<utt>-<tgt>-s<seg>-confirm|mismatch", seg}   guard prompt of a segment
+    flag               {..., id: "<utt>-<tgt>-mismatch"}       a segment's guard was red: one read-back (readback.py)
     verify.result      {target_lang, similarity, badge, ...}   NO seg: one check of the whole utterance
+    flag               {..., id: "<utt>-<tgt>-noted|confirm"}  the room's facts: noted (all green) or read back
     flag               {..., id: "<utt>-<tgt>-correction"}     that check came back red (already spoken)
     pipeline.timing    one per utterance and language after the check (+ simultaneous, segs);
                        mt_first_ms / tts_first_ms are negative when they came before the speaker stopped
@@ -40,16 +41,17 @@ Events, per target language (``seg`` 0-based; consecutive mode sends no ``seg``)
 Segments start before ``utterance.end`` / ``transcript.final``. When nothing is left at the end (the last
 commit took the whole utterance), the last segment's ``translation.final`` is sent again, now with ``segs``.
 
-Voice: only committed segments are spoken, never drafts. A segment whose guard result raises a confirm
-prompt (a ``confirm_on`` fact or a red mismatch) is held, and the segments after it wait, until the flag is
-confirmed (``confirm`` control with its ``flag_id``); rejected, or unconfirmed after ``HOLD_TIMEOUT_S``: the
-segment is not spoken. Segments go through the room's voice lane for their language (room.py), so
-utterances into one language are spoken one after the other.
+Voice: only committed segments are spoken, never drafts, and nothing waits for a tap. A segment whose fact
+guard is red is not spoken (the wrong figure never reaches the listener's ear); after the utterance, the read-back
+of what was said takes its place ("Nur zur Sicherheit: 400 mg?"). Segments go through the room's voice lane for
+their language (room.py), so utterances into one language are spoken one after the other, the read-back after.
 
 Second-model check: ONE per utterance and language, on the joined segments, after the tail (gpt-oss takes
 p50 2.7 s on the GX10 with one check slot: a check per segment would queue). Its fact-guard input is the
-segments' guard results merged (guard red still wins). Red with no guard prompt raised in any segment ->
-a correction flag (``needs_confirm``): the text was shown and spoken already.
+segments' guard results merged (guard red still wins). The utterance's facts then go the consecutive way
+(room.py ``_fact_flags`` / ``_settle_facts``): a guard mismatch is read back before the check, otherwise the
+check decides noted or read back. Red with nothing read back -> a correction flag (``needs_confirm``): the
+text was shown and spoken already.
 
 Both modes: if the last partial was stable (same as the one before), ended < 300 ms before the endpoint
 and carries ``asr_conf >= 0.85``, it is the final transcript; the final ASR pass is skipped.
@@ -68,7 +70,6 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
-from raum.events import Control
 from raum.pipeline import texts as T
 from raum.pipeline._util import lang_code
 from raum.pipeline.base import AsrResult, TurnContext
@@ -89,7 +90,6 @@ MIN_COMMA_WORDS = 6
 SENTENCE_ONLY_LANGS = frozenset({"de"})  # verb-final subordinate clauses: never cut at a comma
 REUSE_GAP_MS = 300.0  # a stable partial this close to the endpoint stands in for the final
 REUSE_MIN_CONF = 0.85
-HOLD_TIMEOUT_S = 45.0  # a held segment not confirmed by then is not spoken (it holds the voice lane)
 
 _SENTENCE = frozenset(".!?。！？؟")
 _CLAUSE = frozenset(";؛")
@@ -212,8 +212,7 @@ class _Seg:
     index: int
     src: str
     text: str = ""
-    flagged: bool = False
-    hold: asyncio.Future[bool] | None = None
+    skip: bool = False  # its fact guard was red: not spoken (the read-back after the utterance says it right)
     segs_sent: bool = False
     gres: guard.GuardResult | None = None
     guard_ok: bool = False
@@ -221,7 +220,7 @@ class _Seg:
 
 @dataclass
 class _SegTurn:
-    """What ``RoomPipeline._request`` / ``_fact_flags`` read from a turn record."""
+    """What ``RoomPipeline._request`` / ``_fact_flags`` / ``_settle_facts`` read from a turn record."""
 
     utt: str
     speaker: str
@@ -229,6 +228,7 @@ class _SegTurn:
     lang: str
     text: str
     turn: TurnContext
+    conf: float | None = None  # the final transcript's ASR confidence (None: no final)
 
 
 @dataclass
@@ -253,6 +253,7 @@ class _Lane:
     marks: dict[str, float] = field(default_factory=dict)  # first PCM / first published frame, monotonic ms
     voice_done: asyncio.Event = field(default_factory=asyncio.Event)
     total: int | None = None  # segment count, known once the utterance ended
+    conf: float | None = None  # the final transcript's ASR confidence, once the utterance ended
     closed: bool = False
     first_delta: float | None = None  # monotonic s
     last_final: float | None = None
@@ -273,13 +274,11 @@ class _UttState:
 
 class Simultaneous:
     """Owned by ``RoomPipeline`` (``self.simul``). Hooks: ``on_partial``, ``reuse_final``, ``finish_turn``,
-    ``release``, ``drop``, ``confirm``, ``settle`` (before the early final ASR); ``lanes`` for speculate.py."""
+    ``release``, ``drop``, ``settle`` (before the early final ASR); ``lanes`` for speculate.py."""
 
     def __init__(self, p: RoomPipeline) -> None:
         self.p = p
         self._utts: dict[str, _UttState] = {}
-        self._held: dict[str, _Seg] = {}  # "<utt>-<tgt>-s<seg>" -> segment whose voice waits for a confirm
-        self._early: dict[str, bool] = {}  # confirms that came before their hold was registered
 
     @property
     def enabled(self) -> bool:
@@ -427,32 +426,9 @@ class Simultaneous:
             for task in (lane.worker, lane.voice, lane.done):
                 if task is not None and not task.done():
                     task.cancel()
-            for s in lane.segs:
-                self._held.pop(self._key(lane, s), None)
             lane.voice_done.set()
 
-    def confirm(self, control: Control) -> None:
-        """``confirm`` control: release (accepted) or skip (rejected) a held segment's voice."""
-        fid = control.flag_id or ""
-        if not fid:
-            return
-        accepted = control.accepted if control.accepted is not None else \
-            (True if control.value is None else bool(control.value))
-        for key, seg in list(self._held.items()):
-            if fid == key or fid.startswith(key + "-"):
-                del self._held[key]
-                if seg.hold is not None and not seg.hold.done():
-                    seg.hold.set_result(bool(accepted))
-                return
-        self._early[fid] = bool(accepted)
-        while len(self._early) > 64:
-            self._early.pop(next(iter(self._early)))
-
     # ------------------------------------------------------------ lanes
-
-    @staticmethod
-    def _key(lane: _Lane, seg: _Seg) -> str:
-        return f"{lane.utt}-{lane.tgt}-s{seg.index}"
 
     def _lane(self, st: _UttState, u: _Utt, tgt: str, lang: str) -> _Lane:
         lane = _Lane(utt=u.id, tgt=tgt, src_lang=lang, speaker=u.speaker, role=u.role, turn=u.turn,
@@ -488,6 +464,7 @@ class Simultaneous:
         words = rec.text.split()
         done = [w for s in lane.segs for w in s.src.split()]
         self._close(lane, " ".join(words[align(done, words):]))
+        lane.conf = rec.conf
         if lane.worker is not None:
             await asyncio.gather(lane.worker, return_exceptions=True)
         rec.translations[lane.tgt] = self._joined(lane)[1]
@@ -589,15 +566,7 @@ class Simultaneous:
         else:
             facts["error"] = "fact guard unavailable"
         await p.emit("verify.facts", facts, utt=lane.utt)
-        seg.flagged = await p._fact_flags(rec, lane.tgt, res, seg=seg.index)  # type: ignore[arg-type]
-        if seg.flagged and lane.voice_q is not None:
-            seg.hold = asyncio.get_running_loop().create_future()
-            key = self._key(lane, seg)
-            early = next((fid for fid in self._early if fid == key or fid.startswith(key + "-")), None)
-            if early is not None:
-                seg.hold.set_result(self._early.pop(early))
-            else:
-                self._held[key] = seg
+        seg.skip = bool(res is not None and res.red)  # a wrong figure is never spoken; nothing waits for a tap
 
     async def _check(self, lane: _Lane) -> float:
         """One second-model check of the whole utterance (joined segments, merged guard results).
@@ -613,6 +582,9 @@ class Simultaneous:
                                  confirm=[f for g in ran for f in g.confirm],
                                  ms=sum(g.ms for g in ran)) if ran else None
         guard_ok = bool(done) and all(s.guard_ok for s in done)
+        rec = _SegTurn(utt=lane.utt, speaker=lane.speaker, role=lane.role, lang=lane.src_lang, text=src,
+                       turn=lane.turn, conf=lane.conf)
+        flagged = await p._fact_flags(rec, lane.tgt, gres)  # a guard mismatch: read back now, before the check
         verifier, why = p.checker_for(lane.role, lane.src_lang, lane.tgt)
 
         async def run() -> Any:
@@ -632,7 +604,9 @@ class Simultaneous:
         await p.emit("verify.result", {"target_lang": lane.tgt, "similarity": result.similarity,
                                        "badge": result.badge, "reasons": result.reasons,
                                        "back_translation": result.back_translation}, utt=lane.utt)
-        if result.badge == "red" and not any(s.flagged for s in lane.segs):  # already shown and spoken
+        if not flagged:  # the room's facts: noted (all green) or read back once (room.py, readback.py)
+            flagged = await p._settle_facts(rec, lane.tgt, gres, result.badge)
+        if result.badge == "red" and not flagged:  # already shown and spoken
             texts = T.all_langs(T.CORRECTION, lane.tgt)
             await p.emit("flag", {"kind": "mismatch", "text": T.pick(texts, lane.tgt), "needs_confirm": True,
                                   "id": f"{lane.utt}-{lane.tgt}-correction",
@@ -663,17 +637,10 @@ class Simultaneous:
                         if carry and not p._voice_paused(lane.tgt) and not p._closed:
                             await self._say(lane, carry)
                         return
-                    if seg.hold is not None:
-                        try:
-                            ok = await asyncio.wait_for(asyncio.shield(seg.hold), HOLD_TIMEOUT_S)
-                        except TimeoutError:
-                            log.info("%s: not confirmed within %.0f s: not spoken", self._key(lane, seg),
-                                     HOLD_TIMEOUT_S)
-                            ok = False
-                        finally:
-                            self._held.pop(self._key(lane, seg), None)
-                        if not ok:
-                            continue
+                    if seg.skip:
+                        log.info("%s-%s-s%d: fact guard red, not spoken (read back after)", lane.utt, lane.tgt,
+                                 seg.index)
+                        continue
                     if not seg.text or p._voice_paused(lane.tgt) or p._closed:
                         continue
                     text = f"{carry} {seg.text}".strip() if carry else seg.text

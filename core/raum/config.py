@@ -145,6 +145,8 @@ class RaumConfig(_Open):
     thresholds: VerifyThresholds = Field(default_factory=VerifyThresholds)
     pipeline: PipelineConfig = Field(default_factory=PipelineConfig)
     asr_min_conf: float = 0.55  # below: "please say that again" (V-03)
+    # below (and >= asr_min_conf): a confirm_on fact in the utterance is read back to the listener, not just noted
+    asr_confirm_conf: float = 0.7
 
     def data_dir(self) -> Path:
         p = Path(self.security.data_dir).expanduser()
