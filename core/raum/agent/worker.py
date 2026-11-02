@@ -7,13 +7,18 @@ rooms are rejected. LiveKit URL / key / secret from ``LIVEKIT_URL`` / ``LIVEKIT_
 ``LIVEKIT_API_SECRET``, else ``raum.yaml`` ``network``.
 
 Per room: subscribe to every remote participant's mic (agents skipped). Participant metadata is
-JSON ``{"role", "lang", "device", "path"}``. Per track: ``rtc.AudioStream`` (16 kHz mono; or 48 kHz
+JSON ``{"role", "lang", "device", "path", "audio_out"}`` (attributes carry the same keys). Core changes a
+device's language / voice output live (``POST /api/rooms/{room}/participant`` updates both): the
+change events re-read it, the pipeline uses it from the next utterance, and ``participant.joined`` is
+sent again with the new info. Per track: ``rtc.AudioStream`` (16 kHz mono; or 48 kHz
 -> denoise -> soxr to 16 kHz when a denoiser is active) -> Silero VAD stream; START_OF_SPEECH /
 INFERENCE_DONE / END_OF_SPEECH drive ``RoomPipeline.speech_start / speech_audio / speech_end``
 (the end-of-speech frames are the final audio; ``vad_ms`` is the endpoint delay). Every event is
 published on the data channel (topic ``raum.events``, reliable) and forwarded to core over the link.
-Voice output is published as one track per language, ``tts-<lang>``; while it plays (+300 ms) mic
-audio in the room is ignored (echo control C-14).
+Voice output is published as one track per language, ``tts-<lang>``. Echo control is per device
+(C-14, ``raum.pipeline.echo``): while a voice plays (+300 ms) only the mics that hear it are fed silence
+(``RoomPipeline.mic_open``); an utterance already under way runs to its end. Resident Piper voices
+start at room join for the room's languages (``PiperTTS.prepare``).
 """
 
 from __future__ import annotations
@@ -31,7 +36,7 @@ import numpy as np
 from raum.config import RaumConfig, get_config
 from raum.events import EVENTS_TOPIC, Envelope, ParticipantInfo, make_event
 from raum.modes import ModeError, mode_for_room
-from raum.pipeline._util import float_to_int16, int16_to_float
+from raum.pipeline._util import float_to_int16, int16_to_float, lang_code
 from raum.pipeline.engines import build_engines
 from raum.pipeline.room import RoomPipeline
 
@@ -39,7 +44,7 @@ log = logging.getLogger("raum.agent")
 
 AGENT_IDENTITY = "raum-agent"
 AGENT_NAME = "RAUM"
-ECHO_TAIL_S = 0.3  # C-14: ignore mics for the playback duration plus 300 ms
+AUDIO_OUTS = ("headphones", "speaker", "room")
 VAD_OPTIONS = {"min_speech_duration", "min_silence_duration", "prefix_padding_duration", "max_buffered_speech",
                "activation_threshold", "deactivation_threshold", "force_cpu"}
 
@@ -81,8 +86,10 @@ def is_agent(p: Any) -> bool:
     return p.kind == rtc.ParticipantKind.PARTICIPANT_KIND_AGENT or p.identity.startswith(("agent-", AGENT_IDENTITY))
 
 
-def participant_info(p: Any) -> ParticipantInfo:
-    """Metadata JSON ``{"role","lang","device","path"}``; attributes as fallback; identity ``b-k3x9``."""
+def participant_info(p: Any, *, prefer: str = "metadata") -> ParticipantInfo:
+    """Metadata JSON ``{"role","lang","device","path","audio_out"}`` and attributes (same keys, strings);
+    identity ``b-k3x9`` as the role fallback. Core sets both to the same JSON; ``prefer`` names the one
+    that just changed, so whichever change event arrives first already reads the new values."""
     meta: dict[str, Any] = {}
     if p.metadata:
         try:
@@ -91,15 +98,23 @@ def participant_info(p: Any) -> ParticipantInfo:
         except ValueError:
             meta = {}
     attrs = dict(p.attributes or {})
+    first, second = (attrs, meta) if prefer == "attributes" else (meta, attrs)
+
+    def get(key: str, default: str) -> str:
+        return str(first.get(key) or second.get(key) or default)
+
     head = p.identity.split("-", 1)[0]
-    role = meta.get("role") or attrs.get("role") or (head if head in ("a", "b") else "b")
+    role = get("role", head if head in ("a", "b") else "b")
     if role not in ("a", "b", "observer"):
         role = "b"
-    path = meta.get("path") or attrs.get("path") or "direct"
+    path = get("path", "direct")
     if path not in ("direct", "tunnel", "relayed"):
         path = "direct"
-    return ParticipantInfo(id=p.identity, role=role, lang=str(meta.get("lang") or attrs.get("lang") or "auto"),
-                           device=str(meta.get("device") or attrs.get("device") or "phone"), path=path)
+    audio_out = get("audio_out", "speaker")
+    if audio_out not in AUDIO_OUTS:
+        audio_out = "speaker"
+    return ParticipantInfo(id=p.identity, role=role, lang=get("lang", "auto"), device=get("device", "phone"),
+                           path=path, audio_out=audio_out)
 
 
 class RoomAgent:
@@ -121,7 +136,6 @@ class RoomAgent:
         self.track_tasks: dict[str, asyncio.Task[None]] = {}
         self.turn_tasks: set[asyncio.Task[None]] = set()
         self.tts: dict[str, Any] = {}
-        self.echo_until = 0.0
         self._publish_errors = 0
         self._closed = False
 
@@ -150,7 +164,8 @@ class RoomAgent:
         room.on("participant_connected", self._on_participant_connected)
         room.on("participant_disconnected", self._on_participant_disconnected)
         room.on("participant_metadata_changed", lambda p, *_: self._on_participant_changed(p))
-        room.on("participant_attributes_changed", lambda _changed, p: self._on_participant_changed(p))
+        room.on("participant_attributes_changed",
+                lambda _changed, p: self._on_participant_changed(p, prefer="attributes"))
         room.on("track_subscribed", self._on_track_subscribed)
         room.on("track_unsubscribed", self._on_track_unsubscribed)
         self.ctx.add_shutdown_callback(self.aclose)
@@ -162,6 +177,7 @@ class RoomAgent:
             for pub in p.track_publications.values():
                 if pub.track is not None and pub.subscribed:
                     self._on_track_subscribed(pub.track, pub, p)
+        self._prepare_voices()
         for e in (self.engines.verify, self.engines.embed):
             if e is not None and hasattr(e, "gate"):
                 e.gate = True  # live checks answer "warming up" until the model is resident
@@ -201,6 +217,23 @@ class RoomAgent:
 
     def _sync_participants(self) -> None:
         self.pipeline.set_participants(list(self.infos.values()))
+        self._prepare_voices()
+
+    def _room_langs(self) -> list[str]:
+        """The mode's fixed role languages plus every device's language (no "auto")."""
+        langs = [rc.default_lang for rc in self.mode.roles.values()] + [i.lang for i in self.infos.values()]
+        codes = (lang_code(x) for x in langs)
+        return list(dict.fromkeys(c for c in codes if c and c not in ("auto", "und")))
+
+    def _prepare_voices(self) -> None:
+        """Resident voice processes (Piper binary) for the room's languages; idempotent, never blocks."""
+        prepare = getattr(self.engines.tts, "prepare", None)
+        if not callable(prepare):
+            return
+        try:
+            prepare(self._room_langs())
+        except Exception:  # voice is optional (§6.15): one-shot synthesis still works
+            log.exception("voice prepare failed")
 
     def _on_participant_connected(self, p: Any) -> None:
         if is_agent(p):
@@ -210,13 +243,18 @@ class RoomAgent:
         self._sync_participants()
         asyncio.create_task(self._emit_new("participant.joined", info))
 
-    def _on_participant_changed(self, p: Any) -> None:
+    def _on_participant_changed(self, p: Any, prefer: str = "metadata") -> None:
+        """Metadata or attributes changed (core: language / voice output). Both carry the same JSON, so
+        the second event of a pair finds nothing new and announces nothing."""
         if is_agent(p) or p.identity not in self.infos:
             return
-        info = participant_info(p)
-        if info != self.infos.get(p.identity):
+        info = participant_info(p, prefer=prefer)
+        old = self.infos.get(p.identity)
+        if info != old:
             self.infos[p.identity] = info
             self._sync_participants()
+            log.info("participant %s changed: lang %s -> %s, audio_out %s -> %s", p.identity,
+                     old.lang if old else None, info.lang, old.audio_out if old else None, info.audio_out)
             asyncio.create_task(self._emit_new("participant.joined", info))
 
     def _on_participant_disconnected(self, p: Any) -> None:
@@ -252,8 +290,15 @@ class RoomAgent:
 
     # ---------------------------------------------------------------- audio in
 
-    def _gated(self) -> bool:
-        return self.pipeline.off_record or time.monotonic() < self.echo_until
+    def _mic_frame(self, identity: str, frame: Any) -> Any:
+        """Off the record, or paused for echo (C-14): the VAD gets silence, so it cannot start an utterance
+        from the box's own voice and is in a clean state when the pause lifts."""
+        if self.pipeline.mic_open(identity):
+            return frame
+        from livekit import rtc
+
+        return rtc.AudioFrame(data=bytes(frame.samples_per_channel * 2), sample_rate=frame.sample_rate,
+                              num_channels=1, samples_per_channel=frame.samples_per_channel)
 
     async def _track_loop(self, identity: str, track: Any) -> None:
         from livekit import rtc
@@ -287,18 +332,14 @@ class RoomAgent:
                     pcm = float_to_int16(z)
                     frame = rtc.AudioFrame(data=pcm.tobytes(), sample_rate=16000, num_channels=1,
                                            samples_per_channel=len(pcm))
-                if self._gated():
-                    frame = rtc.AudioFrame(data=bytes(frame.samples_per_channel * 2), sample_rate=frame.sample_rate,
-                                           num_channels=1, samples_per_channel=frame.samples_per_channel)
-                vad_stream.push_frame(frame)
+                vad_stream.push_frame(self._mic_frame(identity, frame))
             vad_stream.end_input()
 
         async def events() -> None:
             speaking = False
             async for ev in vad_stream:
                 if ev.type == VADEventType.START_OF_SPEECH:
-                    if self._gated():
-                        continue
+                    # None while off the record or paused for echo (C-14)
                     speaking = await self.pipeline.speech_start(identity) is not None
                     if speaking:
                         for f in ev.frames:
@@ -356,7 +397,6 @@ class RoomAgent:
             chunk = pcm[i:i + step]
             await src.capture_frame(rtc.AudioFrame(data=chunk.tobytes(), sample_rate=rate, num_channels=1,
                                                    samples_per_channel=len(chunk)))
-            self.echo_until = max(self.echo_until, time.monotonic() + src.queued_duration + ECHO_TAIL_S)
 
 
 # ---------------------------------------------------------------- job entry points (module level: picklable)

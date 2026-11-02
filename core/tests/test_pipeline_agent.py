@@ -7,6 +7,7 @@ import json
 import socket
 from types import SimpleNamespace
 
+import numpy as np
 from livekit import rtc
 
 from raum.agent.link_client import LinkClient, link_url
@@ -102,3 +103,85 @@ def test_is_agent():
     assert is_agent(_p("whatever", kind=rtc.ParticipantKind.PARTICIPANT_KIND_AGENT))
     assert is_agent(_p("raum-agent"))
     assert not is_agent(_p("b-k3x9"))
+
+
+def _attrs(meta: dict) -> dict[str, str]:
+    return {k: str(v) for k, v in meta.items()}
+
+
+def test_participant_info_reads_audio_out_and_prefers_the_changed_source():
+    meta = {"role": "b", "lang": "ar", "device": "phone", "path": "direct", "audio_out": "headphones"}
+    p = participant_info(_p("b-k3x9", json.dumps(meta), _attrs(meta)))
+    assert (p.lang, p.audio_out) == ("ar", "headphones")
+    assert participant_info(_p("b-1", json.dumps({"role": "b", "lang": "ar"}))).audio_out == "speaker"  # default
+    assert participant_info(_p("b-1", json.dumps({"audio_out": "loud"}))).audio_out == "speaker"
+    # core sets metadata and attributes to the same JSON; each change event reads its own source first
+    half = _p("b-k3x9", json.dumps(meta), {**_attrs(meta), "lang": "tr", "audio_out": "room"})
+    assert participant_info(half).lang == "ar"
+    via_attrs = participant_info(half, prefer="attributes")
+    assert (via_attrs.lang, via_attrs.audio_out) == ("tr", "room")
+
+
+def _agent():
+    from pipeline_helpers import fast_config
+
+    from raum.agent.worker import RoomAgent
+    from raum.modes import get_mode
+
+    ctx = SimpleNamespace(job=SimpleNamespace(room=SimpleNamespace(name="sz-1000"), id="job-1"), worker_id="w-1",
+                          room=SimpleNamespace(isconnected=lambda: False))
+    agent = RoomAgent(ctx, fast_config(), get_mode("sprechzimmer"), vad=None)
+    events = []
+
+    async def emit(env):
+        events.append(env)
+
+    agent.emit = emit  # type: ignore[method-assign]
+    return agent, events
+
+
+async def test_live_participant_change_reaches_the_pipeline_and_the_devices():
+    agent, events = _agent()
+    prepared: list[list[str]] = []
+    agent.engines.tts = SimpleNamespace(prepare=lambda langs: prepared.append(list(langs)))
+    meta = {"role": "b", "lang": "ar", "device": "phone", "path": "direct", "audio_out": "speaker"}
+    p = _p("b-k3x9", json.dumps(meta), _attrs(meta))
+    agent._on_participant_connected(p)
+    assert prepared[-1] == ["de", "ar"]  # resident voices for the room's languages
+
+    new = {**meta, "lang": "tr", "audio_out": "headphones"}
+    p.metadata = json.dumps(new)  # POST /api/rooms/{room}/participant: metadata first ...
+    agent._on_participant_changed(p)
+    p.attributes = _attrs(new)  # ... then attributes: nothing new
+    agent._on_participant_changed(p, prefer="attributes")
+    await asyncio.sleep(0)
+    info = agent.pipeline.participants["b-k3x9"]
+    assert (info.lang, info.audio_out) == ("tr", "headphones")
+    joined = [e.data for e in events if e.type == "participant.joined"]
+    assert [(j["lang"], j["audio_out"]) for j in joined] == [("ar", "speaker"), ("tr", "headphones")]
+    assert prepared[-1] == ["de", "tr"]
+
+    back = {**new, "lang": "ar"}
+    p.attributes = _attrs(back)  # attributes first this time
+    agent._on_participant_changed(p, prefer="attributes")
+    p.metadata = json.dumps(back)
+    agent._on_participant_changed(p)
+    await asyncio.sleep(0)
+    assert agent.pipeline.participants["b-k3x9"].lang == "ar"
+    assert [e.data["lang"] for e in events if e.type == "participant.joined"] == ["ar", "tr", "ar"]
+
+    agent._on_participant_changed(_p("b-unknown", json.dumps(back)))  # never connected: ignored
+    assert "b-unknown" not in agent.pipeline.participants
+
+
+async def test_mic_frames_of_a_paused_device_reach_the_vad_as_silence():
+    agent, _ = _agent()
+    for ident, meta in (("a-doc1", {"role": "a", "lang": "de"}), ("b-k3x9", {"role": "b", "lang": "ar"})):
+        agent._on_participant_connected(_p(ident, json.dumps(meta)))
+    await asyncio.sleep(0)
+    pcm = np.full(320, 1000, dtype=np.int16)
+    frame = rtc.AudioFrame(data=pcm.tobytes(), sample_rate=16000, num_channels=1, samples_per_channel=320)
+    agent.pipeline.echo.play("ar", 1.0, agent.pipeline.participants.values())  # the Arabic voice plays
+    assert agent._mic_frame("a-doc1", frame) is frame  # the doctor is heard
+    quiet = agent._mic_frame("b-k3x9", frame)  # the patient's phone hears its own speaker: silence
+    assert quiet.samples_per_channel == 320 and not np.frombuffer(quiet.data, dtype=np.int16).any()

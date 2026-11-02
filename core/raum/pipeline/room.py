@@ -27,6 +27,10 @@ Additions beyond the contract (all optional):
 - ``p.denoise_ms[speaker] = ms`` lets the worker report its cleaning time in ``pipeline.timing``.
 - ``speech_end`` detaches the utterance before its first ``await``, so the worker may run it as a
   task and keep reading VAD events; one ``await asyncio.sleep(0)`` after ``create_task`` suffices.
+- Echo control per device (C-14, ``raum.pipeline.echo``): ``p.mic_open(identity)`` says whether the
+  worker passes that device's mic audio on (else it feeds silence to the VAD). While the voice for a
+  language plays (+300 ms) the devices that would hear it are paused, ``speech_start`` refuses them
+  (echo, not speech), and ``voice.state`` announces start (with the paused identities) and end.
 
 Timing (``pipeline.timing``, one per utterance and target language, after the check): ``vad_ms``
 is the endpoint delay; ``asr_ms`` the final transcription; ``mt_first_ms``, ``mt_full_ms`` and
@@ -62,6 +66,7 @@ from raum.modes.schema import ModeConfig
 from raum.pipeline import texts as T
 from raum.pipeline._util import int16_to_float, lang_code, lang_name, load_prompt, render_prompt
 from raum.pipeline.base import Engines, TranslateRequest, TurnContext
+from raum.pipeline.echo import EchoControl
 from raum.scheduler import Scheduler
 from raum.verify import guard
 from raum.verify.backtranslate import CheckResult, second_check
@@ -198,6 +203,7 @@ class RoomPipeline:
         self.partial_every_ms = float(config.models.asr.options.get("partial_every_ms", 1000))
         self.tts_sink: TtsSink | None = None
         self.denoise_ms: dict[str, float] = {}
+        self.echo = EchoControl()  # C-14: whose mic pauses while which voice plays
         self.scheduler: Scheduler | None = None
         self._utt_n = 0
         self._turn_index = 0
@@ -252,7 +258,16 @@ class RoomPipeline:
     # ---------------------------------------------------------------- membership and state
 
     def set_participants(self, participants: list[ParticipantInfo]) -> None:
+        """Membership or a device's language / voice output changed: used from the next utterance (ASR hint,
+        target languages) and at once by echo control."""
         self.participants = {p.id: p for p in participants}
+        changed = self.echo.refresh(self.participants.values())
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return
+        for pb in changed:  # mid-playback: the phones learn the new paused set
+            self._spawn(self.emit("voice.state", {"target_lang": pb.lang, "playing": True, "paused": pb.paused}))
 
     def set_state(self, state: SessionState) -> None:
         self.state = state
@@ -305,6 +320,8 @@ class RoomPipeline:
         u = self._active.get(speaker)
         if u is not None:
             return u.id
+        if self.echo.is_paused(speaker):  # C-14: the box's own voice from this device's speaker, not speech
+            return None
         p = self.participants.get(speaker)
         role = p.role if p else _role_from_identity(speaker)
         hint = self._participant_lang(p)
@@ -589,6 +606,7 @@ class RoomPipeline:
                 if first is None:
                     first = round((time.monotonic() - t0) * 1000.0, 1)
                 if self.tts_sink is not None and not self.off_record:
+                    self._voice_out(tgt, len(chunk), tts.sample_rate)
                     await self.tts_sink(tgt, chunk, tts.sample_rate)
         except asyncio.CancelledError:
             raise
@@ -599,6 +617,34 @@ class RoomPipeline:
         if first is None and getattr(tts, "simulated", False):
             first = round((time.monotonic() - t0) * 1000.0, 1)
         return first
+
+    # ---------------------------------------------------------------- echo control (C-14)
+
+    def mic_open(self, identity: str) -> bool:
+        """Pass this device's mic audio on? Never off the record. While a voice it would hear plays, only
+        to finish an utterance that began before the pause; anything new from it is echo."""
+        if self.off_record or self._closed:
+            return False
+        return identity in self._active or not self.echo.is_paused(identity)
+
+    def _voice_out(self, lang: str, samples: int, rate: int) -> None:
+        pb = self.echo.play(lang, samples / max(1, rate), self.participants.values())
+        if pb is not None:  # the cue goes out alongside the first audio, without delaying it
+            self._spawn(self.emit("voice.state", {"target_lang": lang, "playing": True, "paused": list(pb.paused)}))
+            self._spawn(self._voice_watch(lang))
+
+    async def _voice_watch(self, lang: str) -> None:
+        """Lift the pause when the voice has played out plus the tail; then announce the end."""
+        while True:
+            left = self.echo.remaining(lang)
+            if left is None:
+                return
+            if left > 0:
+                await asyncio.sleep(left)
+                continue
+            self.echo.stop(lang)
+            await self.emit("voice.state", {"target_lang": lang, "playing": False, "paused": []})
+            return
 
     # ---------------------------------------------------------------- flags
 
@@ -884,6 +930,7 @@ class RoomPipeline:
         for u in list(self._active.values()):
             self._drop(u)
         self._active.clear()
+        self.echo.clear()
         tasks = list(self._tasks)
         for t in tasks:
             t.cancel()
