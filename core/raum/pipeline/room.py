@@ -311,6 +311,20 @@ def take_phrase(buf: str, min_words: int = 0, expect_words: int | None = None) -
     return "", buf
 
 
+_NO_SECOND_OPINION = ("checker warming up", "second check failed", "second check off", "embedder off")
+
+
+def ask_badge(result: Any) -> str:
+    """The checker's badge as far as asking goes: an amber that only says the second opinion is missing (the
+    checker still loading, failed or off) is no doubt about the facts: nobody is read back for it (the badge
+    on the card stays amber). On the box, every fact would otherwise be read back until gpt-oss is resident."""
+    reasons = list(getattr(result, "reasons", None) or [])
+    if result.badge == "amber" and result.similarity is None and reasons and \
+            all(str(r).startswith(_NO_SECOND_OPINION) for r in reasons):
+        return "green"
+    return result.badge
+
+
 class RoomPipeline:
     def __init__(self, room: str, mode: ModeConfig, engines: Engines, emit: Emit, config: RaumConfig) -> None:
         self.room = room
@@ -896,7 +910,7 @@ class RoomPipeline:
                                           "reasons": result.reasons, "back_translation": result.back_translation},
                         utt=rec.utt)
         if not flagged:  # readback.py: the room's facts noted (all green) or read back once (uncertain)
-            flagged = await self._settle_facts(rec, tgt, gres, result.badge)
+            flagged = await self._settle_facts(rec, tgt, gres, ask_badge(result))
         if result.badge == "red" and not flagged:  # a red meaning check with no fact to read back
             texts = T.all_langs(T.UNSURE, tgt)
             await self.emit("flag", {"kind": "mismatch", "text": T.pick(texts, tgt), "needs_confirm": True,

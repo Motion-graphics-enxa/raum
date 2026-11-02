@@ -425,3 +425,18 @@ def test_core_audits_noted_asked_and_a_spoken_answer(tmp_path, monkeypatch):
         report = client.get(f"/api/rooms/{room}/compliance").json()
         assert [(f["flag_id"], f["status"]) for f in report["checked_facts"]] == [
             ("u-0001-de-noted", "noted"), ("u-0002-ar-confirm", "unconfirmed"), ("u-0003-ar-mismatch", "confirmed")]
+
+
+def test_a_missing_second_opinion_is_no_reason_to_ask():
+    """On the box gpt-oss loads for minutes: "checker warming up" / "second check failed" ambers keep their badge
+    on the card but never read a fact back; a real amber (similarity) or a missing guard does."""
+    from raum.pipeline.room import ask_badge
+    from raum.verify.backtranslate import CheckResult
+
+    assert ask_badge(CheckResult(similarity=None, badge="amber", reasons=["checker warming up"])) == "green"
+    assert ask_badge(CheckResult(similarity=None, badge="amber", reasons=["second check failed: ReadTimeout"])) == "green"
+    assert ask_badge(CheckResult(similarity=0.84, badge="amber", reasons=["unsure, please confirm (similarity 0.84)"])) \
+        == "amber"
+    assert ask_badge(CheckResult(similarity=None, badge="amber", reasons=["fact guard unavailable"])) == "amber"
+    assert ask_badge(CheckResult(similarity=None, badge="red", reasons=["checker warming up"])) == "red"
+    assert ask_badge(CheckResult(similarity=0.95, badge="green", reasons=[])) == "green"

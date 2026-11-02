@@ -578,7 +578,7 @@ class Simultaneous:
     async def _check(self, lane: _Lane) -> float:
         """One second-model check of the whole utterance (joined segments, merged guard results).
         ``verify.result`` without ``seg``; red and no guard prompt raised -> correction flag."""
-        from raum.pipeline.room import CHECK_TIMEOUT_S
+        from raum.pipeline.room import CHECK_TIMEOUT_S, ask_badge
 
         p = self.p
         t = lane.last_final or time.monotonic()  # check_ms runs from the last translation.final, as today
@@ -612,7 +612,7 @@ class Simultaneous:
                                        "badge": result.badge, "reasons": result.reasons,
                                        "back_translation": result.back_translation}, utt=lane.utt)
         if not flagged:  # the room's facts: noted (all green) or read back once (room.py, readback.py)
-            flagged = await p._settle_facts(rec, lane.tgt, gres, result.badge)
+            flagged = await p._settle_facts(rec, lane.tgt, gres, ask_badge(result))
         if result.badge == "red" and not flagged:  # already shown and spoken
             texts = T.all_langs(T.CORRECTION, lane.tgt)
             await p.emit("flag", {"kind": "mismatch", "text": T.pick(texts, lane.tgt), "needs_confirm": True,
