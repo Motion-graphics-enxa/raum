@@ -60,8 +60,21 @@ def translate_system_prompt(template: str, req: TranslateRequest) -> str:
         room_name=req.room_name, role_a=req.role_a, role_b=req.role_b,
         lang_a=lang_name(req.lang_a), lang_b=lang_name(req.lang_b),
         src_lang=lang_name(req.src_lang), tgt_lang=lang_name(req.tgt_lang),
-        register=req.register, glossary=req.glossary or "(none)", context=req.context or "(none)",
+        register=req.register, glossary=req.glossary or "(none)", context="(none)",
     )
+
+
+CONTEXT_PROMPT = "prompts/translate-context.md"
+
+
+def translate_messages(template: str, req: TranslateRequest) -> list[dict[str, str]]:
+    """Fixed system prefix first (byte-identical per room and direction, so Ollama reuses its prompt
+    cache), then the per-turn context as its own short system note, then the utterance."""
+    msgs = [{"role": "system", "content": translate_system_prompt(template, req)}]
+    if req.context and req.context.strip() not in ("", "(none)"):
+        msgs.append({"role": "system", "content": render_prompt(load_prompt(CONTEXT_PROMPT), context=req.context)})
+    msgs.append({"role": "user", "content": req.text})
+    return msgs
 
 
 class OllamaTranslator:
@@ -83,10 +96,7 @@ class OllamaTranslator:
     def body(self, req: TranslateRequest) -> dict[str, Any]:
         body: dict[str, Any] = {
             "model": self.model,
-            "messages": [
-                {"role": "system", "content": translate_system_prompt(load_prompt(self.prompt_path), req)},
-                {"role": "user", "content": req.text},
-            ],
+            "messages": translate_messages(load_prompt(self.prompt_path), req),
             "stream": True,
             "keep_alive": -1,
             "options": engine_options(self.options, OLLAMA_OPTIONS),
@@ -124,8 +134,12 @@ class OllamaTranslator:
 
     async def warmup(self) -> None:
         """Load the model (keep_alive -1) with an empty request (plan §6.4: models warmed at boot)."""
-        r = await self._client.post(f"{self.url}/api/chat",
-                                    json={"model": self.model, "messages": [], "keep_alive": -1})
+        # same options as the live calls (num_ctx!), or Ollama reloads the model at another context size
+        body: dict[str, Any] = {"model": self.model, "messages": [], "keep_alive": -1,
+                                "options": engine_options(self.options, OLLAMA_OPTIONS)}
+        if "think" in self.options and not getattr(self, "_no_think", False):
+            body["think"] = self.options["think"]
+        r = await self._client.post(f"{self.url}/api/chat", json=body)
         r.raise_for_status()
 
     async def aclose(self) -> None:

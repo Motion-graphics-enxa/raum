@@ -22,6 +22,27 @@ class PassthroughDenoiser:
         return audio
 
 
+def _shim_torchaudio_backend() -> None:
+    """deepfilternet 0.5.6 imports ``torchaudio.backend.common.AudioMetaData`` (type hints only); the module
+    is gone in torchaudio >= 2.9. Provide a stub so the package imports on current torch."""
+    import sys
+    import types
+
+    try:
+        import torchaudio.backend.common  # type: ignore[import-not-found]  # noqa: F401
+    except ModuleNotFoundError:
+        backend = types.ModuleType("torchaudio.backend")
+        common = types.ModuleType("torchaudio.backend.common")
+
+        class AudioMetaData:
+            pass
+
+        common.AudioMetaData = AudioMetaData  # type: ignore[attr-defined]
+        backend.common = common  # type: ignore[attr-defined]
+        sys.modules.setdefault("torchaudio.backend", backend)
+        sys.modules.setdefault("torchaudio.backend.common", common)
+
+
 class DeepFilterNetDenoiser:
     """DeepFilterNet3 via the optional ``deepfilternet`` package (``from df.enhance import ...``)."""
 
@@ -29,12 +50,15 @@ class DeepFilterNetDenoiser:
     active = True
 
     def __init__(self, options: dict[str, Any] | None = None) -> None:
+        _shim_torchaudio_backend()
         from df.enhance import enhance, init_df  # type: ignore[import-not-found]
 
-        self._enhance = enhance
-        self._model, self._state, _ = init_df()
-        self._sr = int(self._state.sr())
         self.options = options or {}
+        self._enhance = enhance
+        # log_file=None: no enhance.log in the working directory; model_dir: an unpacked DeepFilterNet3
+        # folder (else the weights download once into the user cache dir).
+        self._model, self._state, _ = init_df(model_base_dir=self.options.get("model_dir"), log_file=None)
+        self._sr = int(self._state.sr())
 
     def process(self, audio: np.ndarray, sample_rate: int) -> np.ndarray:
         if sample_rate != self._sr or audio.size == 0:

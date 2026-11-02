@@ -73,8 +73,11 @@ t0=$(date +%s%N)
 lap() { printf '    %s (%d ms)\n' "$1" $(( ($(date +%s%N) - t0) / 1000000 )); }
 cd "$DEST"
 
-echo "==> core: uv sync --frozen"
-(cd core && uv sync --frozen --quiet)
+ENV_FILE="$HOME/Desktop/HackathonRaum/runtime/raum.env"
+if [ -f "$ENV_FILE" ]; then set -a; . "$ENV_FILE"; set +a; fi
+echo "==> core: uv sync --frozen ${RAUM_UV_EXTRAS:-}"
+# shellcheck disable=SC2086
+(cd core && uv sync --frozen --quiet ${RAUM_UV_EXTRAS:-})
 lap "python environment in sync"
 
 if [ "$BUILD" = 1 ]; then

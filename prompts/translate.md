@@ -5,5 +5,5 @@ Rules:
 - Keep every number, unit, date, time, name and medication name exactly as said.
 - Register: {register}.
 - Use these fixed translations: {glossary}
-- Earlier turns, for names and pronouns only (do not translate them): {context}
+- If a note with earlier turns follows, use it for names and pronouns only; never translate it.
 Output only the translation.

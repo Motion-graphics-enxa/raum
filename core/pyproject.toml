@@ -22,12 +22,24 @@ dependencies = [
 
 [project.optional-dependencies]
 dates = ["dateparser>=1.2"]
+# C-05 noise cleaning (DeepFilterNet3 on CPU). `uv sync --extra denoise`; set RAUM_UV_EXTRAS on the box.
+denoise = ["deepfilternet>=0.5.6", "torch>=2.2", "torchaudio>=2.2"]
 
 [project.scripts]
 raum = "raum.cli:main"
 
 [dependency-groups]
 dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.6"]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+# CPU wheels on Linux: denoise runs on the Grace CPU; no multi-GB CUDA libraries for it
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+torchaudio = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
 
 [build-system]
 requires = ["hatchling"]

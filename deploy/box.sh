@@ -12,11 +12,6 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 ROOT=$PWD
-RUN="${RAUM_RUN:-$HOME/Desktop/HackathonRaum/runtime/run}"
-PORT="${RAUM_CORE_PORT:-8000}"
-mkdir -p "$RUN"
-export PATH="$HOME/.local/bin:/usr/local/bin:$PATH"
-export RAUM_HOME="$ROOT"
 # Box-local settings outside the repo (survive rsync): RAUM_PROFILE=spark, RAUM_APP=1, RAUM_HTTPS=1 ...
 ENV_FILE="${RAUM_ENV_FILE:-$HOME/Desktop/HackathonRaum/runtime/raum.env}"
 if [ -f "$ENV_FILE" ]; then
@@ -25,6 +20,11 @@ if [ -f "$ENV_FILE" ]; then
   . "$ENV_FILE"
   set +a
 fi
+RUN="${RAUM_RUN:-$HOME/Desktop/HackathonRaum/runtime/run}"
+PORT="${RAUM_CORE_PORT:-8000}"
+mkdir -p "$RUN"
+export PATH="$HOME/.local/bin:/usr/local/bin:$PATH"
+export RAUM_HOME="$ROOT"
 
 pidof_svc() { cat "$RUN/$1.pid" 2>/dev/null || true; }
 alive() { local p; p=$(pidof_svc "$1"); [ -n "$p" ] && kill -0 "$p" 2>/dev/null; }
@@ -50,7 +50,8 @@ stop_svc() {
 }
 
 start_all() {
-  (cd core && uv sync --frozen --quiet)
+  # shellcheck disable=SC2086
+  (cd core && uv sync --frozen --quiet ${RAUM_UV_EXTRAS:-})
   start_svc core core uv run raum core --host 0.0.0.0 --port "$PORT"
   start_svc agent core uv run raum agent start
   if [ "${RAUM_APP:-0}" = 1 ]; then

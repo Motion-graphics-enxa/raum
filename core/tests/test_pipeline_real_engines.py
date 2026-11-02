@@ -202,3 +202,24 @@ async def test_ollama_translator_think_false_and_fallback():
     assert "think" not in bodies[1]  # retried without the field
     [d async for d in tr.stream(_req())]
     assert "think" not in bodies[2]  # remembered
+
+
+async def test_ollama_translator_prefix_is_fixed_across_turns():
+    bodies = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        bodies.append(json.loads(request.content))
+        return httpx.Response(200, content=b'{"message": {"content": "ok"}, "done": true}\n')
+
+    tr = OllamaTranslator("http://o:1", model="gemma4:26b", options={"num_ctx": 8192, "think": False},
+                          client=client(handler))
+    [d async for d in tr.stream(_req(text="Erster Satz.", context="(none)"))]
+    [d async for d in tr.stream(_req(text="Zweiter Satz.", context="Frau Demir; Dr. Weber"))]
+    first, second = bodies[0]["messages"], bodies[1]["messages"]
+    assert first[0] == second[0]  # byte-identical system prefix -> prompt cache hit
+    assert len(first) == 2 and len(second) == 3
+    assert "Frau Demir" in second[1]["content"] and second[1]["role"] == "system"
+    assert "Frau Demir" not in second[0]["content"]
+    assert second[-1] == {"role": "user", "content": "Zweiter Satz."}
+    await tr.warmup()
+    assert bodies[-1]["options"] == {"num_ctx": 8192} and bodies[-1]["think"] is False
