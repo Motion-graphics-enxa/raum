@@ -10,14 +10,17 @@ import basicSsl from "@vitejs/plugin-basic-ssl";
 const https = process.env.RAUM_HTTPS === "1";
 const core = process.env.RAUM_CORE ?? "http://127.0.0.1:8000";
 const livekit = process.env.RAUM_LIVEKIT ?? "http://127.0.0.1:7880";
+const port = Number(process.env.RAUM_APP_PORT ?? 5180);
 
 export default defineConfig({
   plugins: [react(), ...(https ? [basicSsl()] : [])],
+  build: { chunkSizeWarningLimit: 900 }, // livekit-client is one large chunk
   server: {
     host: true,
-    port: 5173,
+    port,
+    strictPort: true,
     proxy: {
-      "/api": { target: core, changeOrigin: true, ws: true },
+      "/api": { target: core, changeOrigin: true, ws: true, xfwd: true },
       "/rtc": { target: livekit, changeOrigin: true, ws: true },
     },
   },
@@ -25,7 +28,7 @@ export default defineConfig({
     host: true,
     port: 4173,
     proxy: {
-      "/api": { target: core, changeOrigin: true, ws: true },
+      "/api": { target: core, changeOrigin: true, ws: true, xfwd: true },
       "/rtc": { target: livekit, changeOrigin: true, ws: true },
     },
   },

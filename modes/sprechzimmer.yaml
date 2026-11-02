@@ -1,12 +1,12 @@
 # Sprechzimmer: doctor (or clinic) and patient. Leads the pitch.
 id: sprechzimmer
 prefix: sz                     # room ids: sz-4821
-name: { de: Sprechzimmer, en: Consultation room }
-tagline: { de: Dosis und Allergien geprüft, en: Doses and allergies checked }
+name: { de: Sprechzimmer, en: Consultation room, tr: Muayene odası, ru: Кабинет врача, ar: غرفة الفحص }
+tagline: { de: Dosis und Allergien geprüft, en: Doses and allergies checked, tr: Doz ve alerjiler kontrol edilir, ru: Дозы и аллергии проверяются, ar: الجرعات والحساسية تحت التحقق }
 icon: stethoscope
 roles:
-  a: { label: { de: Ärztin/Arzt, en: Doctor }, default_lang: de }
-  b: { label: { de: Patient/in, en: Patient }, default_lang: auto }
+  a: { label: { de: Ärztin/Arzt, en: Doctor, tr: Doktor, ru: Врач, ar: الطبيب }, default_lang: de }
+  b: { label: { de: Patient/in, en: Patient, tr: Hasta, ru: Пациент, ar: المريض }, default_lang: auto }
 register: formal               # Sie
 guard:
   kinds: [dose, frequency, allergy, date, time, number, medication, negation]
