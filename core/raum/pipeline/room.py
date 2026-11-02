@@ -145,6 +145,13 @@ _ABBREV = re.compile(r"(?:\b(?:Dr|Fr|Hr|Prof|Nr|ca|bzw|z\.B|u\.a|St|Mr|Mrs|Ms|No
 MIN_CLAUSE_CHARS = 16
 
 
+_QUESTION_END = re.compile(r"[?？؟]\s*$")
+
+
+def _is_question(text: str) -> bool:
+    return bool(_QUESTION_END.search(text or ""))
+
+
 def take_clause(buf: str) -> tuple[str, str]:
     """Split off the longest speakable prefix that ends at a clause boundary (sentence end, or a comma
     once the clause is long enough). Ordinals and abbreviations ("12.", "Dr.") never end a clause."""
@@ -595,8 +602,12 @@ class RoomPipeline:
             facts = [f for f in res.facts if not f.match]
             kind = "mismatch"
             template = T.MISMATCH
-        elif res.confirm:
-            facts = list(res.confirm)
+        elif res.confirm and not _is_question(rec.text):
+            # a question ("Are you allergic to anything?") states nothing to confirm; and a confirm_on
+            # fact without a concrete value (allergy "present") is not worth an interruption
+            facts = [f for f in res.confirm if (f.src or "").strip().lower() not in ("", "present")]
+            if not facts:
+                return False
             if any(f.kind == "dose" for f in facts):
                 facts += [f for f in res.facts if f.kind == "frequency" and f not in facts]
             kind = next((f.kind for f in facts if f.kind in _FLAG_KINDS), "number")

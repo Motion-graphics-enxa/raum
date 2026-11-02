@@ -409,3 +409,22 @@ def test_take_clause_splits_speakable_prefixes():
     assert head == "Nehmen Sie die Tabletten bitte immer morgens," and rest == " und abends"
     head, _ = take_clause("أتناول ٥٠٠ ملغ من الميتفورمين مرتين يوميًا، وعندي")
     assert head.endswith("يوميًا،")
+
+
+async def test_confirm_prompt_skips_questions_and_valueless_facts(no_guard):
+    from types import SimpleNamespace
+
+    from raum.events import FactCheck
+    from raum.verify.guard import GuardResult
+
+    h = Harness()
+    allergy_q = GuardResult(facts=[], confirm=[FactCheck(kind="allergy", src="present", tgt="present", match=True)])
+    rec = SimpleNamespace(text="Sind Sie gegen irgendwelche Medikamente allergisch?", utt="u-0009", role="a")
+    assert await h.p._fact_flags(rec, "ar", allergy_q) is False  # a question: nothing to confirm
+    rec.text = "Ich bin allergisch."
+    assert await h.p._fact_flags(rec, "de", allergy_q) is False  # no concrete allergen: no interruption
+    real = GuardResult(facts=[], confirm=[FactCheck(kind="allergy", src="Penicillin", tgt="Penicillin", match=True)])
+    rec.text = "Ich bin allergisch gegen Penicillin."
+    assert await h.p._fact_flags(rec, "ar", real) is True
+    flag = [e for e in h.events if e.type == "flag"][-1].data
+    assert flag["kind"] == "allergy" and flag["needs_confirm"] and "Penicillin" in flag["text"]
