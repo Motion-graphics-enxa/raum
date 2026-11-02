@@ -41,6 +41,31 @@ export interface RoomInfo {
   [k: string]: unknown;
 }
 
+/** GET /api/admin/latency: p50/p95 per pipeline.timing field (ms) for each room's session. */
+export interface LatencyStat {
+  n: number;
+  p50: number | null;
+  p95: number | null;
+}
+export type TimingKey = "vad_ms" | "asr_ms" | "mt_first_ms" | "mt_full_ms" | "tts_first_ms" | "check_ms";
+export type RoomLatency = { n: number; over_budget: number } & Record<TimingKey, LatencyStat>;
+export interface AdminLatency {
+  budget_ms: number;
+  window: number;
+  rooms: Record<string, RoomLatency>;
+}
+
+/** GET /api/admin/audit/verify: the audit log's hash chain recomputed (T-04). */
+export interface AuditVerify {
+  ok: boolean | null;
+  lines: number | null;
+  first_bad: number | null;
+  reason: string | null;
+  head_hash: string;
+  checked_at: number;
+  ms: number;
+}
+
 export class ApiError extends Error {
   status: number;
   constructor(status: number, message: string) {
@@ -89,6 +114,8 @@ export const api = {
   burn: (room: string) => req<unknown>("POST", `/api/rooms/${room}/burn`),
   compliance: (room: string) => req<unknown>("GET", `/api/rooms/${room}/compliance`),
   adminStatus: () => req<Record<string, unknown>>("GET", "/api/admin/status"),
+  adminLatency: () => req<AdminLatency>("GET", "/api/admin/latency"),
+  auditVerify: () => req<AuditVerify>("GET", "/api/admin/audit/verify"),
   seal: (on: boolean) => req<unknown>("POST", "/api/admin/seal", { on }),
   burnAll: () => req<unknown>("POST", "/api/admin/burn-all"),
   health: () => req<unknown>("GET", "/api/health"),

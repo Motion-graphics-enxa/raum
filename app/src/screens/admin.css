@@ -134,12 +134,194 @@
 .admin__empty {
   color: var(--ink-3);
 }
-.admin__audit {
-  font-size: 0.8125rem;
+.admin__count {
   color: var(--ink-3);
+  font-weight: 560;
+  margin-inline-start: var(--s-2);
+}
+.admin__link--bad {
+  color: var(--bad);
+}
+.admin__link:disabled {
+  color: var(--ink-3);
+  text-decoration: none;
+  cursor: default;
+}
+.admin__sealnote {
+  flex-basis: 100%;
+  margin: 0;
+  text-align: end;
+  font-size: 0.75rem;
+  color: var(--ink-2);
 }
 .models--admin div {
   grid-template-columns: 8rem 1fr;
+}
+.admin__split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-6);
+}
+.admin__split > .admin__sec {
+  align-content: start;
+}
+.admin__audit {
+  display: grid;
+  gap: var(--s-3);
+}
+.admin__hash {
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+.admin__verify {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-4);
+}
+.admin__hint {
+  color: var(--ink-3);
+  font-size: 0.875rem;
+}
+.admin__verdict {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+.admin__verdict.is-ok {
+  color: var(--ok);
+}
+.admin__verdict.is-bad {
+  color: var(--bad);
+}
+
+/* ---------------------------------------------------------------- one room: a drawing sheet */
+
+.aroom {
+  border: var(--line-2) solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--paper);
+}
+.aroom + .aroom {
+  margin-top: var(--s-4);
+}
+.aroom.is-burned {
+  border-color: var(--rule-strong);
+}
+.aroom.is-burned .aroom__cells {
+  opacity: 0.55;
+}
+.aroom__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  border-bottom: var(--line) solid var(--ink);
+}
+.aroom__mode {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+.aroom__id {
+  font-weight: 700;
+  font-size: 1.0625rem;
+}
+.aroom__name {
+  color: var(--ink-2);
+}
+.aroom__state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--label);
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+  font-weight: 650;
+  color: var(--ink-2);
+}
+.aroom__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+}
+.aroom__state.is-live {
+  color: var(--ok);
+}
+.aroom__state.is-live .aroom__dot {
+  background: currentColor;
+}
+.aroom__meta {
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+.aroom__actions {
+  margin-inline-start: auto;
+}
+.aroom__cells {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr) minmax(0, 1.4fr);
+}
+.aroom__cell {
+  display: grid;
+  align-content: start;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4) var(--s-4);
+  border-inline-end: var(--line) solid var(--rule-strong);
+  min-width: 0;
+}
+.aroom__cell:last-child {
+  border-inline-end: 0;
+}
+.aroom__h {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+  font-weight: 650;
+  color: var(--ink-3);
+}
+.aroom__idle {
+  margin: 0;
+  color: var(--ink-3);
+  font-size: 0.875rem;
+}
+.aroom__agent {
+  margin: 0;
+  display: grid;
+  gap: var(--s-1);
+}
+.aroom__lat {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--s-4);
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+}
+.aroom__cell--lat .tl {
+  margin: 0;
+}
+.aroom__codes {
+  border-top: var(--line) solid var(--rule-strong);
+  padding: 0 var(--s-4);
+}
+.aplate {
+  font-size: 0.9375rem;
+}
+.aplate__out {
+  grid-column: 1 / -1;
+  font-size: 0.75rem;
+  color: var(--ink-3);
+}
+.aplate__id {
+  color: var(--ink-3);
 }
 .codes {
   display: flex;
@@ -170,6 +352,23 @@
 @media (max-width: 760px) {
   .admin__band {
     grid-template-columns: 1fr 1fr;
+  }
+  .admin__split,
+  .aroom__cells {
+    grid-template-columns: 1fr;
+  }
+  .aroom__cell {
+    border-inline-end: 0;
+    border-bottom: var(--line) solid var(--rule-strong);
+  }
+  .aroom__cell:last-child {
+    border-bottom: 0;
+  }
+  .aroom__actions {
+    margin-inline-start: 0;
+  }
+  .admin__sealnote {
+    text-align: start;
   }
   .admin__controls {
     grid-column: 1 / -1;
