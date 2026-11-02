@@ -1,0 +1,212 @@
+/* F-07 document camera: the read document is a drawing sheet (2 px ink frame, inner margin line 6 px in,
+   light-print title block at the foot); its figures are dimensions; work in progress is dashed. */
+.doccam {
+  display: grid;
+  gap: var(--s-3);
+  min-width: 0;
+}
+.doccam__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-4);
+}
+.doccam__shoot .icon {
+  width: 22px;
+  height: 22px;
+}
+.doccam__privacy {
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--ink-3);
+  max-width: 40ch;
+}
+.doccam__error {
+  color: var(--bad);
+  font-weight: 600;
+  max-width: 60ch;
+}
+
+/* ---------------------------------------------------------------- the sheet */
+.docsheet {
+  position: relative;
+  display: grid;
+  gap: var(--s-4);
+  min-width: 0;
+  padding: var(--s-5) var(--s-5) 0;
+  background: var(--paper);
+  border: var(--line-2) solid var(--ink);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sheet);
+  animation: doc-in 240ms var(--ease-out) both;
+}
+.docsheet::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: var(--line) solid var(--rule-strong);
+  pointer-events: none;
+}
+@keyframes doc-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.docsheet__head {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding-bottom: var(--s-1);
+  border-bottom: var(--line) solid var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.docsheet__pair,
+.docsheet__ms {
+  font-weight: 560;
+  color: var(--ink-3);
+  unicode-bidi: isolate;
+}
+
+.docsheet__title {
+  position: relative;
+  font-size: var(--ramp-1);
+  line-height: 1.3;
+  font-weight: 560;
+  color: var(--ink);
+}
+.docsheet__text {
+  position: relative;
+  font-size: var(--ramp-2);
+  line-height: 1.5;
+  color: var(--ink);
+  max-width: 60ch;
+  overflow-wrap: anywhere;
+}
+.docsheet[lang="ar"] .docsheet__text,
+.docsheet[lang="fa"] .docsheet__text,
+.docsheet[lang="ur"] .docsheet__text {
+  line-height: 1.7;
+}
+/* an unreadable passage: the model's own question mark, in the unsure pen */
+.docsheet__q {
+  color: var(--unsure);
+  font-weight: 700;
+  font-size: 0.875em;
+  margin-inline-start: 0.15em;
+}
+
+/* figures read off the paper: dimensions whose values may be phrases, so they may wrap */
+.docsheet__facts {
+  position: relative;
+  padding-top: var(--s-1);
+}
+.docsheet__facts .dim {
+  max-width: 100%;
+}
+.docsheet__facts .dim__value {
+  white-space: normal;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.docsheet__note {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+.docsheet__swatch {
+  flex: none;
+  width: 18px;
+  transform: translateY(-0.3em);
+  border-top: 2px dotted var(--unsure);
+}
+.docsheet__src {
+  unicode-bidi: isolate;
+  color: var(--ink);
+  font-weight: 640;
+}
+.docsheet__advice {
+  position: relative;
+  font-size: 0.875rem;
+  color: var(--ink-3);
+}
+
+/* light-print title block at the foot of the sheet */
+.docsheet__tb {
+  position: relative;
+  margin: 0 calc(var(--s-5) * -1 + 6px) 6px;
+  border-top: var(--line-2) solid var(--ink);
+}
+.docsheet__tb dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+}
+.docsheet__tb div {
+  min-width: 0;
+  padding: var(--s-2) var(--s-3);
+  border-inline-end: var(--line) solid var(--ink);
+}
+.docsheet__tb div:last-child {
+  border-inline-end: 0;
+}
+.docsheet__tb dt {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.docsheet__tb dd {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+/* reading: the frame in the dashed line type of a check in progress, no paper shadow yet */
+.docsheet--reading {
+  border-style: dashed;
+  border-color: var(--pending);
+  box-shadow: none;
+  padding-bottom: var(--s-5);
+}
+.docsheet--reading::before {
+  border-style: dashed;
+  border-color: var(--rule);
+}
+.docsheet--reading .docsheet__head {
+  border-bottom-style: dashed;
+  border-bottom-color: var(--pending);
+  color: var(--ink-2);
+}
+.docsheet__placeholder {
+  position: relative;
+  display: flex;
+  gap: var(--s-5);
+}
+.docsheet__placeholder .dim {
+  min-width: 96px;
+}
+
+@media (max-width: 420px) {
+  .docsheet {
+    padding-inline: var(--s-4);
+  }
+  .docsheet__tb {
+    margin-inline: calc(var(--s-4) * -1 + 6px);
+  }
+}

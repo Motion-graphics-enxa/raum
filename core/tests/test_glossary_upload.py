@@ -134,7 +134,13 @@ def test_upload_csv_before_anyone_joined_then_agent_links(client, core):
         assert msg["control"]["value"]["terms"][1] == {"de": "Petrov", "kind": "name", "keep": True, "ru": ["Петров"]}
 
     g = client.get(f"/api/rooms/{ROOM}/glossary").json()
-    assert g["source"] == "glossaries/deal-de.yaml" and g["uploaded"] == 4
+    assert g["source"] == "glossaries/deal-de.yaml" and g["uploaded"] == 3  # Skonto twice counts once
+
+    with client.websocket_connect(f"/api/internal/agent/{ROOM}", headers=KEY) as agent:  # relink: merged uploads
+        agent.receive_json()
+        terms = agent.receive_json()["control"]["value"]["terms"]
+        assert [t["de"] for t in terms] == ["Skonto", "Zahlungsziel", "Petrov"]
+        assert terms[0]["en"] == ["cash discount", "early payment discount"] and terms[0]["ar"] == ["خصم نقدي"]
     skonto = next(t for t in g["terms"] if t["de"] == "Skonto")
     assert skonto["en"][0] == "cash discount" and skonto["ar"] == ["خصم نقدي"]
 

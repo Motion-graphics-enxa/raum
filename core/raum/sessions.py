@@ -254,7 +254,7 @@ class Session:
     # N-02: the room's glossary for this session (mode file + uploads + V-05 corrections), in memory
     # only and dropped on burn; the uploads are re-sent to an agent that (re)links.
     glossary: Glossary | None = None
-    glossary_uploads: list[dict[str, Any]] = field(default_factory=list)
+    glossary_uploads: Glossary = field(default_factory=Glossary)  # every upload of this session, merged
 
     def touch(self) -> None:
         self.last_activity = time.monotonic()
@@ -543,8 +543,9 @@ class SessionManager:
             self._start_session(room, reason="agent")
         await conn.send(StateMsg(state=self.state(room)))
         s = room.session
-        if s is not None and s.status != "burned" and s.glossary_uploads:  # N-02: a fresh agent knows the mode file only
-            await conn.send(ControlMsg(control=Control(action="glossary", value={"terms": list(s.glossary_uploads)})))
+        if s is not None and s.status != "burned" and s.glossary_uploads.terms:  # N-02: a fresh agent has the file only
+            terms = [term_to_dict(t) for t in s.glossary_uploads.terms]
+            await conn.send(ControlMsg(control=Control(action="glossary", value={"terms": terms})))
         return room
 
     def detach_agent(self, room_id: str, conn: AgentConn) -> None:
@@ -683,7 +684,7 @@ class SessionManager:
         g = self.session_glossary(s)
         added, updated = g.merge(terms)
         wire = [term_to_dict(t) for t in terms]
-        s.glossary_uploads.extend(wire)
+        s.glossary_uploads.merge(terms)
         s.touch()
         self._audit("glossary_upload", s.id, by=role, terms=len(terms), added=added, updated=updated)
         forwarded = await self.forward(room, Control(action="glossary", by=role, value={"terms": wire}))
@@ -704,7 +705,7 @@ class SessionManager:
             except Exception:  # noqa: BLE001
                 g = Glossary()
         return {"room": room.id, "source": room.mode.glossary,
-                "uploaded": len(s.glossary_uploads) if s is not None else 0,
+                "uploaded": len(s.glossary_uploads.terms) if s is not None else 0,
                 "langs": g.langs(), "terms": [term_to_dict(t) for t in g.terms]}
 
     # ------------------------------------------------------------ document camera (F-07)
@@ -854,7 +855,7 @@ class SessionManager:
             s.off_record = False
             s.events.clear()
             s.glossary = None
-            s.glossary_uploads.clear()
+            s.glossary_uploads = Glossary()
             log.info("session %s in %s burned (%s)", s.id, room_id, reason)
             self.emit(room, "burn.done", done)
             await self.forward(room, Control(action="burn", by=by))

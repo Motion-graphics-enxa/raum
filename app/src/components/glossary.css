@@ -1,0 +1,166 @@
+/* N-02 glossary upload: a technical panel on the sheet. Hairlines, mono lettering, no cards. */
+.gloss {
+  display: grid;
+  gap: var(--s-3);
+  min-width: 0;
+}
+.gloss__head {
+  display: grid;
+  gap: var(--s-1);
+}
+.gloss__h {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: var(--label-track);
+  text-transform: uppercase;
+  color: var(--ink);
+  padding-bottom: var(--s-1);
+  border-bottom: var(--line) solid var(--ink);
+}
+.gloss__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px var(--s-4);
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+}
+.gloss__btn {
+  justify-self: start;
+}
+
+/* compact: one row, as in the room menu's list */
+.gloss__row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  width: 100%;
+  min-height: 56px;
+  padding: 0 var(--s-2);
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font-size: 1.125rem;
+  font-weight: 600;
+  text-align: start;
+}
+.gloss__row .icon {
+  color: var(--link);
+}
+.gloss__count {
+  margin-inline-start: auto;
+  font-size: var(--label);
+  font-weight: 560;
+  color: var(--ink-3);
+}
+@media (hover: hover) {
+  .gloss__row:hover {
+    background: var(--paper-2);
+  }
+}
+.gloss--compact {
+  gap: var(--s-2);
+}
+.gloss--compact .gloss__result,
+.gloss--compact .gloss__error {
+  padding: 0 var(--s-2) var(--s-2);
+}
+
+.gloss__error {
+  color: var(--bad);
+  font-weight: 600;
+  max-width: 60ch;
+}
+
+.gloss__result {
+  display: grid;
+  gap: var(--s-2);
+  animation: gloss-in 200ms var(--ease-out) both;
+}
+@keyframes gloss-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+.gloss__sum {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--s-4);
+  font-size: 0.875rem;
+  font-weight: 650;
+  color: var(--ink);
+}
+.gloss__state {
+  font-size: 0.9375rem;
+  color: var(--ink-2);
+  max-width: 60ch;
+}
+
+/* the uploaded terms, lettered like a schedule on the drawing */
+.gloss__table {
+  overflow-x: auto;
+  padding: var(--s-3) var(--s-4);
+  background: var(--paper-2);
+  border: var(--line) solid var(--rule);
+  border-radius: var(--radius);
+}
+.gloss__table table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.9375rem;
+}
+.gloss__table th,
+.gloss__table td {
+  text-align: start;
+  padding: 6px var(--s-3) 6px 0;
+  border-bottom: var(--line) solid var(--rule);
+  vertical-align: top;
+}
+.gloss__table thead th {
+  font-family: var(--font-mono);
+  font-size: var(--label);
+  font-weight: 600;
+  letter-spacing: var(--label-track);
+  color: var(--ink-3);
+  border-bottom-color: var(--ink-3);
+}
+.gloss__table tbody th {
+  font-weight: 650;
+  color: var(--ink);
+}
+.gloss__table td {
+  color: var(--ink-2);
+}
+.gloss__table tr:last-child th,
+.gloss__table tr:last-child td {
+  border-bottom: 0;
+}
+.gloss__more {
+  margin-top: var(--s-2);
+  font-size: var(--label);
+  color: var(--ink-3);
+}
+
+.gloss__format {
+  font-size: 0.875rem;
+  color: var(--ink-2);
+}
+.gloss__format summary {
+  cursor: pointer;
+  width: max-content;
+}
+.gloss__format p {
+  margin-top: var(--s-2);
+  max-width: 60ch;
+}
+.gloss__format pre {
+  margin: var(--s-2) 0 0;
+  padding: var(--s-2) var(--s-3);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  background: var(--paper-2);
+  border-inline-start: var(--line-2) solid var(--rule-strong);
+  overflow-x: auto;
+  white-space: pre;
+}

@@ -1,5 +1,5 @@
 /** raum-core REST client. Same origin: Vite (dev) and Caddy (box) proxy /api and /rtc. */
-import type { AnyEnvelope, Control, ParticipantInfo, Role } from "./events";
+import type { AnyEnvelope, Control, EventData, ParticipantInfo, Role } from "./events";
 
 export interface RoleConfig {
   label: Record<string, string>;
@@ -113,3 +113,63 @@ export function livekitUrl(fromCore: string | null | undefined): string {
   const proto = location.protocol === "https:" ? "wss:" : "ws:";
   return `${proto}//${location.host}`;
 }
+
+/* ------------------------------------------------------------ uploads (F-07 document camera, N-02 glossary) */
+
+/** One glossary term in the glossaries/*.yaml shape: {de, kind?, keep?, <lang>: [forms]}. */
+export type GlossaryTerm = { de: string; kind?: string; keep?: boolean } & Record<string, unknown>;
+
+export interface GlossaryUploadResult {
+  ok: boolean;
+  room: string;
+  terms: number; // terms in the upload
+  added: number; // new to the session glossary
+  updated: number; // already known: the uploaded forms are now preferred
+  total: number; // terms in the session glossary now
+  langs: string[];
+  forwarded: boolean; // reached the interpreter now (else when it links)
+  uploaded: GlossaryTerm[];
+}
+
+export interface GlossaryInfo {
+  room: string;
+  source: string | null; // the room's glossary file
+  uploaded: number; // terms uploaded this session
+  langs: string[];
+  terms: GlossaryTerm[];
+}
+
+async function postForm<T>(path: string, form: FormData): Promise<T> {
+  // no content-type header: the browser sets multipart/form-data with its boundary
+  const res = await fetch(path, { method: "POST", body: form });
+  if (!res.ok) {
+    let msg = res.statusText;
+    try {
+      const j = await res.json();
+      msg = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail ?? j);
+    } catch {
+      /* not json */
+    }
+    throw new ApiError(res.status, msg);
+  }
+  return (await res.json()) as T;
+}
+
+export const uploads = {
+  /** F-07: POST the photo (multipart image, by, lang). Resolves with the document.ready payload. */
+  document: (room: string, image: Blob, by: string, lang: string, filename = "document.jpg") => {
+    const f = new FormData();
+    f.append("by", by);
+    f.append("lang", lang);
+    f.append("image", image, filename);
+    return postForm<EventData["document.ready"]>(`/api/rooms/${encodeURIComponent(room)}/document`, f);
+  },
+  /** N-02: a .yaml (glossaries/*.yaml format) or .csv (de,<lang>,...) file for the room's session. */
+  glossary: (room: string, file: Blob, filename: string, by?: string) => {
+    const f = new FormData();
+    if (by) f.append("by", by);
+    f.append("file", file, filename);
+    return postForm<GlossaryUploadResult>(`/api/rooms/${encodeURIComponent(room)}/glossary`, f);
+  },
+  glossaryInfo: (room: string) => req<GlossaryInfo>("GET", `/api/rooms/${encodeURIComponent(room)}/glossary`),
+};
