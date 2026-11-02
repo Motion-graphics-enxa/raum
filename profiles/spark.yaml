@@ -6,7 +6,8 @@ models:
   # text P(end) >= fast and audio P >= audio_min -> end now; >= language floor -> unsure_s; else max_s (silence)
   turn:      { engine: livekit, options: { fast: 0.1, unsure_s: 1.0, max_s: 1.6, audio_min: 0.5, llm_fallback: true, fallback_silence: 0.6, aux_s: 1.0 } }   # haben/sein/werden without a closing verb: 1.0 s (modals and "ab morgen" stay 1.6 s)
   denoise:   { engine: deepfilternet, options: { threads: 1 } }   # active only when installed with RAUM_UV_EXTRAS="--extra denoise"; gated at RTF 0.3
-  asr:       { engine: whisper.cpp, url: http://127.0.0.1:8081, model: large-v3-turbo, options: { partial_every_ms: 500 } }
+  # final_url: a second whisper-server (same model, -nlp) for the early/turn finals and the echo check; partials on url
+  asr:       { engine: whisper.cpp, url: http://127.0.0.1:8081, model: large-v3-turbo, options: { partial_every_ms: 500, final_url: http://127.0.0.1:8082 } }
   # speed switch 2 Nov (revert = git revert this commit + reload gemma4:26b / gpt-oss:120b): e4b ties 26b on chrF++ (78.6 vs 78.4, 180 sents), frees ~14 GB
   translate: { engine: ollama, url: http://127.0.0.1:11434, model: gemma4:e4b, options: { think: false, temperature: 0.1, num_predict: 256, num_ctx: 8192 } }
   # gpt-oss:20b (13 GB) instead of gpt-oss:120b (65 GB): ~50 GB freed, faster; catch rate not yet measured

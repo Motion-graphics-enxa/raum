@@ -104,7 +104,12 @@ class MockASR:
 
 
 class WhisperCppASR:
-    """whisper.cpp ``server``: ``POST {url}/inference`` (multipart WAV, ``response_format=verbose_json``)."""
+    """whisper.cpp ``server``: ``POST {url}/inference`` (multipart WAV, ``response_format=verbose_json``).
+
+    ``options.final_url``: a second server (same model) for every non-partial call: the pause's early final, the
+    turn's final, the voice echo check. whisper.cpp runs one request at a time, so on one server the final queued
+    behind a running partial (box: 515 ms wall for a 0.16 s clip, the end of turn and the pre-render waiting on
+    it). Partials stay on ``url``. If the final server does not answer, that call goes to ``url``."""
 
     is_mock = False
 
@@ -113,6 +118,8 @@ class WhisperCppASR:
         self.url = url.rstrip("/")
         self.name = f"whisper.cpp:{model}" if model else "whisper.cpp"
         self.options = options or {}
+        self.final_url = str(self.options.get("final_url") or "").rstrip("/") or None
+        self._final_down_until = 0.0  # the final server refused a connection: finals on url for a while
         timeout = httpx.Timeout(float(self.options.get("timeout_s", 15.0)), connect=2.0)
         self._own = client is None
         self._client = client or httpx.AsyncClient(timeout=timeout)
@@ -141,8 +148,19 @@ class WhisperCppASR:
         # carries no processing timings (its server holds one mutex per request; a wait for it is inside wall_ms).
         t_post = time.monotonic()
         failed = 1
+        url = self.url
+        if not partial and self.final_url and t_post >= self._final_down_until:
+            url = self.final_url
         try:
-            r = await self._client.post(f"{self.url}/inference", data=data, files=files)
+            try:
+                r = await self._client.post(f"{url}/inference", data=data, files=files)
+            except httpx.ConnectError:
+                if url == self.url:
+                    raise
+                log.warning("whisper final server %s refused the connection: finals on %s for 30 s",
+                            self.final_url, self.url)
+                self._final_down_until = time.monotonic() + 30.0
+                r = await self._client.post(f"{self.url}/inference", data=data, files=files)
             r.raise_for_status()
             j = r.json()
             failed = 0

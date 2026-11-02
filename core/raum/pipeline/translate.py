@@ -57,16 +57,45 @@ class MockTranslator:
             yield " " + w
 
 
+# The target language's own conventions only (box: ~420 prompt tokens re-read per call; the other languages'
+# examples were ~100 of them). Other targets get the full lists.
+NUMBER_EXAMPLES = {
+    "de": "3.200 Euro, 0,5 mg", "ru": "3 200 евро, 0,5 мг", "tr": "3.200 avro, 0,5 mg, %20",
+    "ar": "3,200 يورو or ٣٬٢٠٠ يورو, 500 ملغ", "en": "3,200 euros, 0.5 mg",
+}
+_ALL_NUMBERS = ("German 3.200 Euro, 0,5 mg; Russian 3 200 евро, 0,5 мг; Turkish 3.200 avro, 0,5 mg, %20; "
+                "Arabic 3,200 يورو or ٣٬٢٠٠ يورو, 500 ملغ; English 3,200 euros, 0.5 mg")
+CELSIUS = frozenset({"de", "ru", "tr", "ar"})  # Fahrenheit given in Celsius, the original in brackets
+_TEMPERATURE = "- Temperatures: give Fahrenheit in Celsius and keep the original in brackets, for example 38,9 °C (102 °F)."
+REGISTER_EXAMPLES = {
+    "ru": " (Sie = вы, du = ты)", "tr": " (Sie = siz, du = sen)", "ar": " (Sie = حضرتك or أنتم, du = أنت)",
+    "de": " (вы, siz, حضرتك = Sie; ты, sen, أنت = du)", "en": "",
+}
+_ALL_REGISTER = " (Sie = вы, siz, حضرتك or أنتم; du = ты, sen, أنت)"
+REGISTER_NOTES = {"ar": " Never turn a formal Sie into an informal masculine command such as خذ; use يرجى or the polite "
+                        "plural."}
+
+
 def translate_system_prompt(template: str, req: TranslateRequest) -> str:
     """The system message. Only room-level values, the direction and the (slow-changing) names list go
-    in, so it stays byte-identical across turns of a room and the runtime can reuse its prompt cache."""
-    return render_prompt(
+    in, so it stays byte-identical across turns of a room and the runtime can reuse its prompt cache.
+    Rules that only concern other target languages are left out (an empty rule line goes)."""
+    tgt = (req.tgt_lang or "").split("-")[0].lower()
+    known = tgt in NUMBER_EXAMPLES
+    temperature = _TEMPERATURE if tgt in CELSIUS else ("" if known else
+                                                      "- Temperatures: if the target language is German, Russian, "
+                                                      "Turkish or Arabic, give Fahrenheit in Celsius and keep the "
+                                                      "original in brackets, for example 38,9 °C (102 °F).")
+    text = render_prompt(
         template,
         room_name=req.room_name, role_a=req.role_a, role_b=req.role_b,
         lang_a=lang_name(req.lang_a), lang_b=lang_name(req.lang_b),
         src_lang=lang_name(req.src_lang), tgt_lang=lang_name(req.tgt_lang),
         register=req.register, glossary=req.glossary or "(none)", context="(none)",
+        number_example=NUMBER_EXAMPLES.get(tgt, _ALL_NUMBERS), temperature_rule=temperature,
+        register_example=REGISTER_EXAMPLES.get(tgt, _ALL_REGISTER), register_note=REGISTER_NOTES.get(tgt, ""),
     )
+    return "\n".join(line for line in text.split("\n") if line.strip()) + ("\n" if text.endswith("\n") else "")
 
 
 CONTEXT_PROMPT = "prompts/translate-context.md"

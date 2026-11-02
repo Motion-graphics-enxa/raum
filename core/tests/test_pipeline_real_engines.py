@@ -117,7 +117,8 @@ async def test_ollama_translator_streams_chat():
     assert "the way Arabic writes them" in system["content"]  # target conventions: мг, евро, ٣٬٢٠٠
     assert "Never leave a German word" in system["content"]  # seen: "в 10.000 Stück"
     assert "Mirror the speaker" in system["content"] and "يرجى" in system["content"]  # Sie -> no bare خذ
-    assert "if Arabic is German, Russian, Turkish or Arabic, give Fahrenheit in Celsius" in system["content"]
+    assert "- Temperatures: give Fahrenheit in Celsius" in system["content"]  # Arabic: a Celsius language
+    assert "мг" not in system["content"] and "avro" not in system["content"]  # only the target's own conventions
     assert "38,9 °C (102 °F)" in system["content"]  # converted, original kept: the guard accepts either
     assert "{" not in system["content"]
 
@@ -319,3 +320,26 @@ async def test_whisper_segments_join_without_newlines():
     res = await WhisperCppASR("http://w:1", client=client(handler([], " Frühst\nück.\n"))).transcribe(
         audio, lang_hint="de", partial=False, turn=turn)
     assert res.text == "Frühstück."  # no segments: the top-level text without its newlines
+
+
+async def test_whisper_finals_go_to_their_own_server_and_partials_stay():
+    # box: one whisper-server runs one request at a time; the pause's final queued behind a running partial
+    hosts: list[tuple[str, int]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        hosts.append((request.url.host, request.url.port))
+        if request.url.port == 8083:
+            raise httpx.ConnectError("refused", request=request)
+        return httpx.Response(200, json={"text": "Ja.", "language": "de", "segments": [{"text": "Ja."}]})
+
+    audio = np.zeros(16000, dtype=np.float32)
+    asr = WhisperCppASR("http://w:8081", options={"final_url": "http://w:8082/"}, client=client(handler))
+    await asr.transcribe(audio, lang_hint="de", partial=True, turn=TURN)
+    await asr.transcribe(audio, lang_hint="de", partial=False, turn=TURN)
+    assert hosts == [("w", 8081), ("w", 8082)]
+
+    hosts.clear()  # the final server is not there: that final and the next ones (30 s) go to url
+    down = WhisperCppASR("http://w:8081", options={"final_url": "http://w:8083"}, client=client(handler))
+    assert (await down.transcribe(audio, lang_hint="de", partial=False, turn=TURN)).text == "Ja."
+    await down.transcribe(audio, lang_hint="de", partial=False, turn=TURN)
+    assert hosts == [("w", 8083), ("w", 8081), ("w", 8081)]

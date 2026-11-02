@@ -24,11 +24,12 @@ __all__ = ["Stages", "current", "mark", "note", "reset", "scope", "timed", "use"
 
 
 class Stages:
-    __slots__ = ("rec", "t0")
+    __slots__ = ("_at", "rec", "t0")
 
     def __init__(self, t0: float | None = None) -> None:
-        self.t0 = time.monotonic() if t0 is None else t0
+        self.t0 = time.monotonic() if t0 is None else t0  # the speaker's stop (set at the pause / end)
         self.rec: dict[str, dict[str, float]] = {}
+        self._at: dict[str, dict[str, float]] = {}  # marks, absolute: relative to t0 when read (negative = before)
 
     def add(self, stage: str, **ms: float | None) -> None:
         d = self.rec.setdefault(stage, {})
@@ -38,12 +39,17 @@ class Stages:
                 d[k] = round(d.get(k, 0.0) + float(v), 1)
 
     def mark(self, stage: str, key: str = "at_ms", t: float | None = None) -> None:
-        d = self.rec.setdefault(stage, {})
+        d = self._at.setdefault(stage, {})
         if key not in d:  # the first time counts
-            d[key] = round(((time.monotonic() if t is None else t) - self.t0) * 1000.0, 1)
+            d[key] = time.monotonic() if t is None else t
 
     def snapshot(self) -> dict[str, dict[str, float]]:
-        return {k: dict(v) for k, v in sorted(self.rec.items())}
+        out = {k: dict(v) for k, v in self.rec.items()}
+        for stage, marks in self._at.items():
+            d = out.setdefault(stage, {})
+            for k, t in marks.items():
+                d[k] = round((t - self.t0) * 1000.0, 1)
+        return dict(sorted(out.items()))
 
 
 _cur: ContextVar[Stages | None] = ContextVar("raum_stages", default=None)

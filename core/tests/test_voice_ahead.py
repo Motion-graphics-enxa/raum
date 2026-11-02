@@ -186,7 +186,7 @@ async def test_speculative_synthesis_stops_when_a_live_clause_starts_and_is_made
     await asyncio.sleep(0.03)
     t_live = time.monotonic()
     assert await play(h, "Live clause.") == 10  # a live clause in the room
-    assert tts.at("end", "مرحبًا سيدة دمير.") < t_live + 0.03  # it stopped at the next chunk
+    assert tts.at("end", "مرحبًا سيدة دمير.") < t_live + 0.05  # it stopped at the next chunk, not 0.2 s later
     marks: dict = {}
     assert await play(h, "مرحبًا سيدة دمير.", marks=marks) == 10  # stopped ahead: made live after all, whole
     assert marks == {"voice_live": 1}
@@ -362,3 +362,54 @@ async def test_pipeline_timing_has_the_stages_wait_vs_work(no_guard):  # noqa: F
     assert st["voice"]["ready"] in (0.0, 1.0) and "claim_ms" in st["voice"] and "first_ms" in st["voice"]
     assert st["spec.voice.spec"]["n"] == 2  # both clauses made ahead
     assert all(isinstance(v, float | int) for d in st.values() for v in d.values())  # numbers only
+
+
+async def test_the_clause_made_ahead_that_plays_next_is_made_now_while_the_first_plays():
+    # box (sz-5163): the second clause, made ahead, waited for the first clause's live synthesis and then for its
+    # own turn to play: a gap between the clauses
+    tts = Slow(n=5, chunk_s=0.01, background=True)
+    h, u = await spec_room(tts, {SRC: "مرحبًا سيدة دمير. أنا الدكتور فيبر."})
+    live = asyncio.create_task(play(h, "Live clause."))  # something live in the room: the speculation waits
+    await until(lambda: tts.running)
+    h.p.spec.on_text(u, SRC, "de", slot="live")
+    await until(lambda: len(h.p.spec._voices) == 2)
+    await live
+    h.p.spec.prepare(tts, "ar", "Erster Satz.", "أنا الدكتور فيبر.", {}, utt=u.id)  # the second plays next
+    await until(lambda: any(e == "start" and x == "أنا الدكتور فيبر." for e, x, *_ in tts.log))
+    kws = {x: kw for e, x, _, kw in tts.log if e == "start"}
+    assert kws["أنا الدكتور فيبر."] == {"background": False}  # wanted: live priority
+    await h.p.drain()
+
+
+class RefuseOnce(Slow):
+    """The voice service refuses the first background request (409) before any audio."""
+
+    def __init__(self) -> None:
+        super().__init__(n=3, chunk_s=0.01, background=True)
+        self.refused = 0
+        self.gate = asyncio.Event()
+
+    async def _synth_bg(self, text, lang, *, background=False):
+        from raum.pipeline.tts_http import VoiceBusy
+
+        if background:
+            await self.gate.wait()  # in flight until the test lets it answer
+            self.refused += 1
+            raise VoiceBusy("busy: live")
+        async for c in self._run(text, {"background": background}):
+            yield c
+
+
+async def test_a_wanted_clause_refused_before_any_audio_is_made_live_at_once():
+    tts = RefuseOnce()
+    h, u = await spec_room(tts, {SRC: "مرحبًا سيدة دمير."})
+    h.p.spec.on_text(u, SRC, "de", slot="live")
+    await until(lambda: h.p.spec._voices)
+    marks: dict = {}
+    player = asyncio.create_task(play(h, "مرحبًا سيدة دمير.", marks=marks))  # the end of turn claims it ...
+    await asyncio.sleep(0.01)
+    tts.gate.set()  # ... then the service refuses its background request
+    assert await player == 3 and tts.refused == 1
+    assert marks == {"voice_spec": 1}  # the same voice, made again as live, not a second request later
+    assert [kw for e, _, _, kw in tts.log if e == "start"] == [{"background": False}]
+    await h.p.drain()

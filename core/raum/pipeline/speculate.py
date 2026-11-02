@@ -240,8 +240,13 @@ class Speculator:
         if cur is None:
             cur = self._start(tts, text, lang, kw, kind="live", utt=utt)
             self._voices[_vkey(lang, text)] = cur
-        if nxt and nxt.strip() and self._cached(lang, nxt, kw) is None:
-            self._voices[_vkey(lang, nxt)] = self._start(tts, nxt, lang, kw, kind="ahead", utt=utt, after=cur)
+        if nxt and nxt.strip():
+            ahead = self._cached(lang, nxt, kw)
+            if ahead is None:
+                self._voices[_vkey(lang, nxt)] = self._start(tts, nxt, lang, kw, kind="ahead", utt=utt, after=cur)
+            elif not ahead.claimed:  # made ahead (or waiting to be): it plays next, so it is made now, at live
+                ahead.claimed = True  # priority, never stopped for another live clause (before: it waited for the
+                ahead.go.set()  # current clause's synthesis, then for its own turn: a gap between the clauses)
         self._evict()
 
     def drop(self, utt: str) -> None:
@@ -375,18 +380,35 @@ class Speculator:
                 self._live += 1
                 self._live_idle.clear()
             kw = dict(v.kw)
-            if background and not v.claimed and takes_kwarg(tts.synthesize, "background"):
+            bg = background and not v.claimed and takes_kwarg(tts.synthesize, "background")
+            if bg:
                 kw["background"] = True  # the voice service: refused or cut for live speech (tts_http.VoiceBusy)
                 # a clause a listener already waits for is live: it goes at the service's normal priority
             t_sent = time.monotonic()
-            async for c in tts.synthesize(text, lang, **kw):
-                if t_first is None:
-                    t_first = time.monotonic()
-                v.chunks.append(c)
-                v.samples += len(c)
-                v.changed.set()
-                if background and self._live and not v.claimed:
-                    raise _Yield("a live clause started")
+
+            async def pull(kw: dict[str, Any]) -> None:
+                nonlocal t_first
+                async for c in tts.synthesize(text, lang, **kw):
+                    if t_first is None:
+                        t_first = time.monotonic()
+                    v.chunks.append(c)
+                    v.samples += len(c)
+                    v.changed.set()
+                    if background and self._live and not v.claimed:
+                        raise _Yield("a live clause started")
+
+            try:
+                await pull(kw)
+            except (asyncio.CancelledError, _Yield):
+                raise
+            except Exception as e:
+                if not (bg and v.claimed and not v.chunks):
+                    raise
+                # refused / cut before any audio, and wanted now (it plays now or next): once more, as live
+                log.debug("voice %s refused in the background (%s): made live", lang, e.__class__.__name__)
+                stats.note(f"voice.{v.kind}", retried=1)
+                kw.pop("background", None)
+                await pull(kw)
         except asyncio.CancelledError:
             v.failed = True
             raise
@@ -442,7 +464,9 @@ class Speculator:
                 spec.changed.set()
                 self._voice_more(spec, req.tgt_lang, final=False)
 
-        with stats.scope("spec"):  # pipeline.timing stages: spec.mt, spec.slot.*, spec.voice.*
+        # pipeline.timing stages: spec.mt, spec.slot.*, spec.voice.* for the pause's early final; spec.partial.* for
+        # partials (their marks are before the stop: negative)
+        with stats.scope("spec" if spec.pause else "spec.partial"):
             try:
                 async with self.p.sched.slot(slot):
                     spec.started = True

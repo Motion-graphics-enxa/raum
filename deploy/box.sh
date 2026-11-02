@@ -2,7 +2,7 @@
 # Run raum-core and raum-agent in user space (no root, no systemd): for the shared GX10, where
 # everything must stay inside ~/Desktop/HackathonRaum. A dedicated box uses deploy/systemd/ instead.
 #
-#   deploy/box.sh start | stop | restart | status | logs [core|agent|app|speakerphone|whisper]
+#   deploy/box.sh start | stop | restart | status | logs [core|agent|app|speakerphone|whisper|whisper-final]
 #   RAUM_PROFILE=spark deploy/box.sh restart        # override raum.yaml's profile for this run
 #   RAUM_APP=1 deploy/box.sh start                  # also serve the built app (vite preview, :5180,
 #                                                   #  proxies /api + /rtc; RAUM_HTTPS=1 for phones)
@@ -99,6 +99,13 @@ start_all() {
       -m "$WHISPER_DIR/models/ggml-${WHISPER_MODEL:-large-v3-turbo}.bin" --host 127.0.0.1 --port 8081 \
       -t "${WHISPER_THREADS:-8}" -l auto -nlp   # -nlp: no second encoder pass for language_probabilities
   fi
+  if [ -n "${WHISPER_DIR:-}" ] && [ -x "$WHISPER_DIR/build/bin/whisper-server" ] \
+      && ! alive whisper-final && ! curl -s -m 1 -o /dev/null http://127.0.0.1:8082; then
+    # the finals' own server (asr.options.final_url): one request at a time each, so no final waits for a partial
+    start_svc whisper-final . "$WHISPER_DIR/build/bin/whisper-server" \
+      -m "$WHISPER_DIR/models/ggml-${WHISPER_MODEL:-large-v3-turbo}.bin" --host 127.0.0.1 --port 8082 \
+      -t "${WHISPER_THREADS:-8}" -l auto -nlp
+  fi
   if [ -n "${RAUM_SPEAKERPHONE_ROOM:-}" ]; then
     # supervisor: rejoins on its own while LiveKit restarts; a crash restarts it after 5 s, but exit
     # 0 (stopped), 2 (bad room id) and 3 (no audio device) are final, so no crash loop
@@ -127,10 +134,10 @@ stop_all() {
 
 case "${1:-status}" in
   start) start_all ;;
-  stop) stop_all; stop_svc whisper ;;
+  stop) stop_all; stop_svc whisper; stop_svc whisper-final ;;
   restart) stop_all; start_all ;;
   status)
-    for s in core agent app speakerphone whisper; do
+    for s in core agent app speakerphone whisper whisper-final; do
       if alive "$s"; then echo "$s: running (pid $(pidof_svc "$s"))"; else echo "$s: stopped"; fi
     done
     curl -fsS -m 2 "http://127.0.0.1:$PORT/api/health" 2>/dev/null && echo || true
