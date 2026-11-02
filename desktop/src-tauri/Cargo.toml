@@ -1,0 +1,36 @@
+[package]
+name = "raum-desktop"
+version = "0.1.0"
+description = "RAUM desktop shell: the box's web app in a native window"
+edition = "2021"
+rust-version = "1.90" # what tauri 2.12 needs
+license = "Apache-2.0"
+publish = false
+
+[lib]
+name = "raum_desktop_lib"
+crate-type = ["rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.7", features = [] }
+
+[dependencies]
+tauri = { version = "2.12", features = [] }
+tauri-plugin-deep-link = "2.6"
+tauri-plugin-single-instance = { version = "2.5", features = ["deep-link"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+url = "2"
+# Health check over the OS trust store (rustls-platform-verifier), like the webview.
+ureq = { version = "3.5", default-features = false, features = ["rustls", "platform-verifier"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# Same version wry uses; only for switching on getUserMedia and WebRTC in WebKitGTK.
+webkit2gtk = { version = "=2.0.2", features = ["v2_38"] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

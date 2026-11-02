@@ -1,0 +1,185 @@
+/* Tokens from app/src/styles/tokens.css (Berliner Blau). System fonts: nothing bundled here. */
+:root {
+  color-scheme: light dark;
+  --paper: #f6f9fb;
+  --paper-2: #eaf0f5;
+  --ink: #0a1d30;
+  --ink-2: #33495f;
+  --ink-3: #566c82;
+  --rule-strong: #8fa3b6;
+  --brand: #0d3a61;
+  --brand-2: #164f82;
+  --brand-ink: #eef6fc;
+  --brand-ink-2: #b9d3e8;
+  --brand-rule: #2f5f8a;
+  --btn: var(--brand);
+  --btn-hover: var(--brand-2);
+  --btn-ink: var(--brand-ink);
+  --bad: #c01d2c;
+  --bad-wash: #fbe5e6;
+  --focus: #1b6fd1;
+  --font-text: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --radius: 2px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #0b2a45;
+    --paper-2: #0f3352;
+    --ink: #eaf4fb;
+    --ink-2: #b4cde0;
+    --ink-3: #8eadc5;
+    --rule-strong: #4b7aa2;
+    --brand: #071d33;
+    --brand-ink: #eaf4fb;
+    --brand-ink-2: #9fc2dc;
+    --brand-rule: #24507a;
+    --btn: #eaf4fb;
+    --btn-hover: #b4cde0;
+    --btn-ink: #0b2a45;
+    --bad: #ff8585;
+    --bad-wash: #43303f;
+    --focus: #9fd3ff;
+  }
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 1rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.band {
+  background: var(--brand);
+  color: var(--brand-ink);
+  border-bottom: 1px solid var(--brand-rule);
+  padding: 32px max(24px, calc((100% - 560px) / 2)) 24px;
+}
+.band__brand {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 16px;
+}
+.band__word {
+  font-weight: 800;
+  font-size: clamp(2.75rem, 2rem + 4vw, 4rem);
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+.band__slogan {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--brand-ink-2);
+}
+.band__tag {
+  margin-top: 12px;
+  color: var(--brand-ink-2);
+  font-size: 1.0625rem;
+}
+
+.sheet {
+  padding: 32px max(24px, calc((100% - 560px) / 2)) 48px;
+}
+
+.form {
+  display: grid;
+  gap: 8px;
+}
+.label {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+.input {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 12px;
+  border: 2px solid var(--rule-strong);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
+  font: 500 1.125rem/1 var(--font-mono);
+}
+.input:focus {
+  border-color: var(--focus);
+  outline: none;
+}
+.hint {
+  color: var(--ink-3);
+  font-size: 0.9375rem;
+}
+.btn {
+  margin-top: 16px;
+  min-height: 48px;
+  padding: 0 24px;
+  border: 2px solid var(--btn);
+  border-radius: var(--radius);
+  background: var(--btn);
+  color: var(--btn-ink);
+  font: 650 1.0625rem/1 var(--font-text);
+  cursor: pointer;
+  justify-self: start;
+}
+.btn:hover {
+  background: var(--btn-hover);
+  border-color: var(--btn-hover);
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.note {
+  margin-top: 24px;
+  color: var(--ink-2);
+}
+.status {
+  margin-top: 24px;
+  padding: 12px 16px;
+  border-inline-start: 2px solid var(--rule-strong);
+  background: var(--paper-2);
+}
+.status--bad {
+  border-color: var(--bad);
+  background: var(--bad-wash);
+}
+.status__text {
+  font-weight: 600;
+}
+.status--bad .status__text {
+  color: var(--bad);
+}
+.status__detail {
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+  overflow-wrap: anywhere;
+}
+.status__detail:empty {
+  display: none;
+}

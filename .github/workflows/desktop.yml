@@ -1,0 +1,105 @@
+# F-08 desktop shell (desktop/): Tauri bundles for macOS, Windows and Linux.
+# Manual (Actions > desktop > Run workflow) or on a v* tag. No push/PR triggers: private repo, limited
+# minutes (macOS minutes count 10x, Windows 2x). Bundles are unsigned; see desktop/README.md.
+name: desktop
+
+on:
+  workflow_dispatch:
+    inputs:
+      macos_universal:
+        description: "macOS: universal build (Intel + Apple Silicon) instead of Apple Silicon only"
+        type: boolean
+        default: false
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bundle:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macos
+            os: macos-latest
+            bundles: app,dmg
+          - name: windows
+            os: windows-latest
+            bundles: nsis,msi
+          - name: linux
+            os: ubuntu-24.04
+            bundles: deb,appimage
+    defaults:
+      run:
+        shell: bash
+        working-directory: desktop
+    env:
+      UNIVERSAL: ${{ matrix.name == 'macos' && inputs.macos_universal == true }}
+      # AppImage tools on the runner: no FUSE, and their strip does not know newer ELF sections.
+      APPIMAGE_EXTRACT_AND_RUN: "1"
+      NO_STRIP: "true"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential file libwebkit2gtk-4.1-dev librsvg2-dev libxdo-dev \
+            gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad \
+            gstreamer1.0-nice gstreamer1.0-pulseaudio
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal --no-self-update
+          rustup default stable
+          if [ "$UNIVERSAL" = "true" ]; then rustup target add aarch64-apple-darwin x86_64-apple-darwin; fi
+          rustc --version
+
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: desktop/src-tauri -> target
+          key: ${{ env.UNIVERSAL }}
+
+      - name: Install Tauri CLI
+        run: npm ci
+
+      - name: Unit tests (address rules, deep links, health check)
+        if: runner.os == 'Linux'
+        run: cargo test --manifest-path src-tauri/Cargo.toml --lib
+
+      - name: Build bundles
+        run: |
+          args=(--bundles "${{ matrix.bundles }}")
+          if [ "$UNIVERSAL" = "true" ]; then args+=(--target universal-apple-darwin); fi
+          npx tauri build "${args[@]}"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: raum-desktop-${{ matrix.name }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            desktop/src-tauri/target/**/release/bundle/dmg/*.dmg
+            desktop/src-tauri/target/**/release/bundle/nsis/*.exe
+            desktop/src-tauri/target/**/release/bundle/msi/*.msi
+            desktop/src-tauri/target/**/release/bundle/deb/*.deb
+            desktop/src-tauri/target/**/release/bundle/appimage/*.AppImage

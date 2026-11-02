@@ -1,0 +1,8 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "setup",
+  "description": "The local box-address page (setup/) may read the saved address and connect. Box pages are remote and get no IPC: no capability lists a remote URL.",
+  "windows": ["main"],
+  "local": true,
+  "permissions": ["allow-setup-state", "allow-connect"]
+}

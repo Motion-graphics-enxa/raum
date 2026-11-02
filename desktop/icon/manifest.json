@@ -1,0 +1,6 @@
+{
+  "default": "../../app/public/favicon.svg",
+  "bg_color": "#0d3a61",
+  "android_fg": "mark.svg",
+  "android_bg": "background.svg"
+}

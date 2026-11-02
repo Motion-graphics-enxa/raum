@@ -1,0 +1,48 @@
+<!doctype html>
+<!-- The desktop shell's only local page: which box to open. Everything else is the box's web app. -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>RAUM</title>
+    <link rel="stylesheet" href="setup.css" />
+  </head>
+  <body>
+    <header class="band">
+      <div class="band__brand">
+        <span class="band__word">RAUM</span>
+        <span class="band__slogan" data-t="slogan">Translates. Checks. Forgets.</span>
+      </div>
+      <p class="band__tag" data-t="tagline">What's said in the room stays in the room.</p>
+    </header>
+
+    <main class="sheet">
+      <form id="form" class="form" novalidate>
+        <label class="label" for="address" data-t="label">Box address</label>
+        <input
+          id="address"
+          name="address"
+          class="input"
+          type="text"
+          inputmode="url"
+          autocomplete="url"
+          autocapitalize="off"
+          spellcheck="false"
+          placeholder="https://192.168.1.50:5180"
+          required
+        />
+        <p class="hint" data-t="hint">As on the box's room page or QR code. Only the start, without /j/…</p>
+        <button id="go" class="btn" type="submit" data-t="connect">Connect</button>
+      </form>
+
+      <p id="pending" class="note" hidden></p>
+      <div id="status" class="status" role="status" aria-live="polite" hidden>
+        <p id="status-text" class="status__text"></p>
+        <p id="status-detail" class="status__detail"></p>
+      </div>
+    </main>
+
+    <script src="setup.js"></script>
+  </body>
+</html>
