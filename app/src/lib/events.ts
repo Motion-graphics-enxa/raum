@@ -111,6 +111,13 @@ export interface EventData {
     target_lang?: string | null;
     denoise_ms?: number | null;
     models?: Record<string, string> | null;
+    tts_synth_first_ms?: number | null; // first PCM from the voice engine
+    tts_publish_first_ms?: number | null; // first frame accepted by the tts-<lang> AudioSource
+    asr_from?: "partial" | "early" | "final" | null; // which transcript became final
+    asr_early?: boolean | null; // the final ASR ran during the end-of-turn wait
+    eot?: Record<string, unknown> | null; // semantic end of turn (verdict, probabilities, wait)
+    simultaneous?: boolean | null;
+    segs?: number | null;
   };
   "voice.state": { target_lang: string; playing: boolean; paused?: string[] };
   /** F-10 voice lock: one per utterance while the lock is on. accepted=false: not the device owner's voice,

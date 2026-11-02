@@ -201,6 +201,13 @@ class PipelineTiming(_Data):
     target_lang: str | None = None  # extension
     denoise_ms: float | None = None  # extension
     models: dict[str, str] | None = None  # extension: stage -> model name
+    # latency breakdown (extensions; ms from the moment the speaker stopped unless noted)
+    tts_synth_first_ms: float | None = None  # first PCM from the voice engine
+    tts_publish_first_ms: float | None = None  # first frame accepted by the tts-<lang> AudioSource
+    asr_from: Literal["partial", "early", "final"] | None = None  # which transcript became final
+    asr_early: bool | None = None  # the final ASR ran during the end-of-turn wait
+    eot: dict[str, Any] | None = None  # semantic end of turn: verdict, probabilities, wait (turn.py)
+    # also sent as extras in simultaneous mode only: simultaneous (true), segs (number of segments)
 
 
 class VoiceState(_Data):  # extension (C-14): the box's voice is playing in a language
