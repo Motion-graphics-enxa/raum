@@ -40,6 +40,8 @@ async function phone(role, lang, wav, w = 390, h = 844) {
   });
   const page = await browser.newPage();
   await page.setViewport({ width: w, height: h, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  // the fake mic plays a WAV and never holds the talk button: hands-free (push-to-talk is the app's default)
+  await page.evaluateOnNewDocument(() => { try { localStorage.setItem("raum:hands_free", "1"); } catch {} });
   page.on("console", (m) => {
     const t = m.text();
     if (/\[raum\]|error/i.test(t)) console.log(`[${role}] ${t.slice(0, 200)}`);
