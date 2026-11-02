@@ -16,6 +16,7 @@ body {
   margin: 0;
   min-height: 100dvh;
   background: var(--paper);
+  isolation: isolate;
   color: var(--ink);
   font-family: var(--font-text);
   font-size: 1rem;
@@ -30,15 +31,48 @@ body {
   min-height: 100dvh;
 }
 
+/* the room behind the glass: a fixed light field (a pseudo-element, so iOS does not repaint it on scroll) */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--field);
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------------- glass panes */
+/* .pane: frosted glass. Fill + 1px light rim + inner top highlight + soft offset shadow.
+   Without backdrop-filter the fill turns solid, so text contrast never depends on the blur. */
+.pane {
+  background: var(--glass);
+  border: var(--line) solid var(--glass-rim);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-hi), 0 0 0 1px var(--glass-edge), var(--shadow-pane);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --glass: var(--glass-solid);
+    --glass-strong: var(--glass-solid-strong);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --glass: var(--glass-solid);
+    --glass-strong: var(--glass-solid-strong);
+  }
+}
+
 ::selection {
   background: color-mix(in oklab, var(--link) 28%, transparent);
   color: var(--ink);
 }
 
 :focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
-  border-radius: var(--radius);
+  outline: 2.5px solid var(--focus);
+  outline-offset: 3px;
 }
 
 * {
@@ -85,14 +119,14 @@ p {
   font-family: var(--font-mono);
 }
 
-/* Technical lettering: labels, ids, figures. */
+/* Labels: sentence-case words that name the value next to them. Figures stay in .mono. */
 .label {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--label);
   letter-spacing: var(--label-track);
-  text-transform: uppercase;
-  font-weight: 560;
-  color: var(--ink-3);
+  text-transform: var(--label-case);
+  font-weight: 650;
+  color: var(--ink-2);
 }
 
 :lang(ar),
@@ -117,25 +151,26 @@ p {
   align-items: center;
   justify-content: center;
   gap: var(--s-2);
-  min-height: 48px;
+  min-height: 52px;
   padding: 0 var(--s-5);
-  border: var(--line-2) solid var(--brand);
+  border: var(--line) solid rgb(255 255 255 / 0.18);
   border-radius: var(--radius);
-  background: var(--brand);
+  background: var(--brand-grad);
   color: var(--brand-ink);
   font-weight: 650;
   font-size: 1.0625rem;
   letter-spacing: 0.005em;
-  transition: background 140ms var(--ease-out), border-color 140ms var(--ease-out), transform 120ms var(--ease-out);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.22), 0 8px 20px -8px rgb(13 58 97 / 0.6);
+  transition: filter 140ms var(--ease-out), background 140ms var(--ease-out), border-color 140ms var(--ease-out),
+    transform 120ms var(--ease-out);
 }
 @media (hover: hover) {
   .btn:hover {
-    background: var(--brand-2);
-    border-color: var(--brand-2);
+    filter: brightness(1.08);
   }
   .btn--ghost:hover {
-    background: var(--paper-2);
-    border-color: var(--ink-3);
+    background: var(--glass-strong);
+    border-color: var(--rule-strong);
   }
   .btn--bad:hover {
     background: var(--bad-wash);
@@ -149,19 +184,24 @@ p {
   opacity: 0.55;
 }
 .btn--ghost {
-  background: transparent;
+  background: var(--glass);
   color: var(--ink);
-  border-color: var(--rule-strong);
+  border-color: var(--rule);
+  box-shadow: var(--glass-hi);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
 }
 .btn--ok {
   background: var(--ok);
   border-color: var(--ok);
   color: #fff;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.2);
 }
 .btn--bad {
-  background: transparent;
+  background: var(--glass);
   color: var(--bad);
-  border-color: var(--bad);
+  border: 1.5px solid currentColor;
+  box-shadow: none;
 }
 .btn--block {
   width: 100%;
@@ -174,9 +214,10 @@ p {
   font-size: 1rem;
 }
 .btn--ok-line {
-  background: transparent;
+  background: var(--glass);
   color: var(--ok);
-  border-color: var(--ok);
+  border: 1.5px solid currentColor;
+  box-shadow: none;
 }
 @media (hover: hover) {
   .btn--ok-line:hover {
@@ -189,21 +230,13 @@ p {
   font-size: 1.1875rem;
 }
 
-:root[data-theme="dark"] .btn:not(.btn--ghost):not(.btn--bad):not(.btn--ok):not(.btn--ok-line),
-.theme-dark .btn:not(.btn--ghost):not(.btn--bad):not(.btn--ok):not(.btn--ok-line) {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--paper);
-}
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .btn:not(.btn--ghost):not(.btn--bad):not(.btn--ok):not(.btn--ok-line) {
-    background: var(--ink);
-    border-color: var(--ink);
-    color: var(--paper);
-  }
   :root:not([data-theme="light"]) .btn--ok {
     color: #06281a;
   }
+}
+:root[data-theme="dark"] .btn--ok {
+  color: #06281a;
 }
 
 .icon {
@@ -239,10 +272,15 @@ p {
   .no-print {
     display: none !important;
   }
+  body::before {
+    display: none;
+  }
 }
 
 .qr {
   display: block;
-  border: var(--line) solid var(--rule-strong);
+  border: 8px solid #fff;
+  border-radius: var(--radius);
+  box-shadow: 0 0 0 1px var(--glass-edge);
   image-rendering: pixelated;
 }

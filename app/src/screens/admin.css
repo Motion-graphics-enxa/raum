@@ -40,10 +40,10 @@
   gap: var(--s-3);
 }
 .admin__h {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: 0.8125rem;
   letter-spacing: var(--label-track);
-  text-transform: uppercase;
+  text-transform: var(--label-case);
   font-weight: 700;
   padding-bottom: var(--s-1);
   border-bottom: var(--line) solid var(--ink);
@@ -89,10 +89,10 @@
 }
 .admin__table th {
   text-align: start;
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--label);
   letter-spacing: var(--label-track);
-  text-transform: uppercase;
+  text-transform: var(--label-case);
   color: var(--ink-3);
   font-weight: 650;
   padding: var(--s-2) var(--s-3) var(--s-2) 0;
@@ -115,10 +115,10 @@
 .admin__links {
   display: flex;
   gap: var(--s-3);
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--label);
   letter-spacing: var(--label-track);
-  text-transform: uppercase;
+  text-transform: var(--label-case);
 }
 .admin__link {
   border: 0;
@@ -240,7 +240,7 @@
   gap: 6px;
   font-size: var(--label);
   letter-spacing: var(--label-track);
-  text-transform: uppercase;
+  text-transform: var(--label-case);
   font-weight: 650;
   color: var(--ink-2);
 }
@@ -280,10 +280,10 @@
 }
 .aroom__h {
   margin: 0;
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: 0.625rem;
   letter-spacing: var(--label-track);
-  text-transform: uppercase;
+  text-transform: var(--label-case);
   font-weight: 650;
   color: var(--ink-3);
 }

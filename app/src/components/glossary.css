@@ -9,11 +9,11 @@
   gap: var(--s-1);
 }
 .gloss__h {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: var(--label-track);
-  text-transform: uppercase;
+  text-transform: var(--label-case);
   color: var(--ink);
   padding-bottom: var(--s-1);
   border-bottom: var(--line) solid var(--ink);
@@ -118,7 +118,7 @@
   vertical-align: top;
 }
 .gloss__table thead th {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--label);
   font-weight: 600;
   letter-spacing: var(--label-track);

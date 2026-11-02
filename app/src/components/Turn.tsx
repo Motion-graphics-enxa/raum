@@ -45,6 +45,8 @@ export function TurnView({
   const v = turn.verify[viewLang];
   const finalSrc = turn.text;
   const live = !finalSrc && !!turn.partial;
+  // Draft: the words are still forming (partial caption, or a translation that is not final). See DESIGN.md.
+  const draft = live || (!!tr && !tr.final);
 
   let main: string;
   let mainLang: string;
@@ -76,7 +78,7 @@ export function TurnView({
     <article
       className={`turn turn--r${ramp} ${mine ? "turn--mine" : "turn--theirs"} ${live ? "is-live" : ""} ${
         state === "red" && !continued ? "is-red" : ""
-      }`}
+      } ${draft ? "is-draft" : "is-final"}`}
       data-utt={turn.utt}
     >
       <header className="turn__gutter">
@@ -118,7 +120,7 @@ export function TurnView({
             </p>
           ) : null}
           <p
-            className={`turn__main ${waitingForTranslation ? "is-source" : ""}`}
+            className={`turn__main ${waitingForTranslation ? "is-source" : ""} ${draft ? "is-draft" : ""}`}
             lang={mainLang}
             dir={isRtl(mainLang) ? "rtl" : "ltr"}
           >

@@ -15,7 +15,7 @@ import { resolveMode } from "./Join";
 import "./screens.css";
 import "./table.css";
 
-const UI = "de"; // the table screen speaks the box's language; conversation text is bilingual
+const UI = "en"; // the table screen chrome is English like every screen; conversation text is bilingual
 
 export default function Table() {
   const { room = "" } = useParams();
@@ -68,7 +68,7 @@ export default function Table() {
         <div className="tblock__row">
           {mode ? <Hatch mode={mode.id} size={30} className="tblock__hatch" /> : null}
           <div className="tblock__title">
-            <span className="tblock__name ttop__name">{mode?.name.de ?? "RAUM"}</span>
+            <span className="tblock__name ttop__name">{mode ? pick(mode.name, UI) : "RAUM"}</span>
             <span className="tblock__gloss">{mode ? pick(mode.tagline ?? {}, UI) : ""}</span>
           </div>
           <span className="ttop__room mono">{room.toUpperCase()}</span>
@@ -83,7 +83,7 @@ export default function Table() {
       </header>
 
       <div className="tgrid">
-        <section className="tconv" aria-label="Gespräch">
+        <section className="tconv" aria-label="Conversation">
           <div className="tconv__head">
             <span className="label">{langName(langA, UI)}</span>
             <span className="label">{langB ? langName(langB, UI) : "—"}</span>
@@ -91,7 +91,7 @@ export default function Table() {
           <div className="tconv__scroll" ref={scroller}>
             {turns.length === 0 ? (
               <div className="tjoin">
-                <p className="tjoin__lead">Telefon scannen, um dem Raum beizutreten.</p>
+                <p className="tjoin__lead">Scan with a phone to join the room.</p>
                 <div className="tjoin__codes">
                   {(["a", "b"] as const).map((r) => (
                     <figure key={r} className="tjoin__code">
@@ -114,44 +114,44 @@ export default function Table() {
 
         <aside className="glass" aria-label="Glass box">
           <section className="glass__block">
-            <h2 className="glass__h">Letzter Satz</h2>
+            <h2 className="glass__h">Last sentence</h2>
             {last && lastLang ? (
               <>
                 <Timeline timing={last.timing[lastLang]} lang={UI} big p50={p50} p95={p95} full50={full50} />
               </>
             ) : (
-              <p className="glass__idle">Wartet auf den ersten Satz.</p>
+              <p className="glass__idle">Waiting for the first sentence.</p>
             )}
           </section>
 
           <section className="glass__block glass__privacy">
             <div className="glass__meter">
-              <span className="glass__meter-n mono">{(m.privacy?.third_party_bytes ?? 0).toLocaleString("de-DE")}</span>
-              <span className="glass__meter-l">Bytes an Dritte</span>
+              <span className="glass__meter-n mono">{(m.privacy?.third_party_bytes ?? 0).toLocaleString("en-GB")}</span>
+              <span className="glass__meter-l">Bytes to third parties</span>
             </div>
             <div className="glass__meter glass__meter--small">
               <span className="mono">{fmtKB(m.privacy?.tunnel_bytes ?? 0)}</span>
-              <span className="glass__meter-l">Verschlüsselter Tunnel zu eigenen Geräten</span>
+              <span className="glass__meter-l">Encrypted tunnel to your own devices</span>
             </div>
             <p className={`glass__seal ${m.privacy?.sealed || m.session?.sealed ? "is-sealed" : ""}`}>
-              {m.privacy?.sealed || m.session?.sealed ? "Versiegelt: ausgehender Verkehr blockiert" : "Nicht versiegelt"}
+              {m.privacy?.sealed || m.session?.sealed ? "Sealed: outgoing traffic blocked" : "Not sealed"}
               {m.privacy?.source === "stub" ? <span className="mono glass__src"> · stub</span> : null}
             </p>
           </section>
 
           <section className="glass__block">
-            <h2 className="glass__h">Geräte</h2>
+            <h2 className="glass__h">Devices</h2>
             <ul className="plates">
               {people.length ? (
                 people.map((p) => <Plate key={p.id} p={p} label={label(p.role)} />)
               ) : (
-                <li className="glass__idle">Noch niemand im Raum.</li>
+                <li className="glass__idle">Nobody in the room yet.</li>
               )}
             </ul>
           </section>
 
           <section className="glass__block">
-            <h2 className="glass__h">Modelle</h2>
+            <h2 className="glass__h">Models</h2>
             <dl className="models">
               {Object.entries(models ?? {}).map(([k, v]) => (
                 <div key={k}>
@@ -174,7 +174,7 @@ export default function Table() {
 
           {mode?.id === "verhandlungsraum" && m.offers.length ? (
             <section className="glass__block">
-              <h2 className="glass__h">Angebote</h2>
+              <h2 className="glass__h">Offers</h2>
               <OfferTimeline offers={m.offers} lang={UI} labelOf={(r) => label(r)} />
             </section>
           ) : null}
@@ -245,5 +245,5 @@ function Plate({ p, label }: { p: ParticipantInfo; label: string }) {
 }
 
 function fmtKB(bytes: number): string {
-  return bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toLocaleString("de-DE", { maximumFractionDigits: 1 })} KB`;
+  return bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toLocaleString("en-GB", { maximumFractionDigits: 1 })} KB`;
 }

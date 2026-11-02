@@ -1,6 +1,6 @@
 /** One-tap language, voice-output and voice choices (C-02, C-14, C-13). */
 import { useRef } from "react";
-import { LANGS, langName, t } from "../lib/i18n";
+import { LANGS, UI_LANG, langName, t } from "../lib/i18n";
 import { Globe } from "./Icons";
 import "./pickers.css";
 
@@ -43,7 +43,7 @@ export function LanguagePicker({
           {options.map((l) => (
             <option key={l} value={l}>
               {langName(l)}
-              {l !== uiLang ? ` · ${langName(l, uiLang)}` : ""}
+              {l !== UI_LANG ? ` · ${langName(l, UI_LANG)}` : ""}
             </option>
           ))}
         </select>

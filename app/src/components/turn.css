@@ -1,12 +1,26 @@
 .turn {
   display: grid;
   gap: var(--s-2);
-  padding: var(--s-4) 0 var(--s-4);
+  padding: var(--s-4) var(--s-1);
   border-top: var(--line) solid var(--rule);
   animation: turn-in 240ms var(--ease-out) both;
 }
-.turn:first-child {
+.turn:first-child,
+.turn--r0,
+.turn--r0 + .turn {
   border-top: 0;
+}
+/* the hero: the other person's newest sentence sits on its own frosted pane */
+.turn--r0.turn--theirs {
+  margin: var(--s-2) calc(var(--s-2) * -1);
+  padding: var(--s-4) var(--s-4) var(--s-5);
+  background: var(--glass);
+  border: var(--line) solid var(--glass-rim);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-hi), 0 0 0 1px var(--glass-edge), var(--shadow-pane);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+  transition: background var(--t-clear) var(--ease-out), box-shadow var(--t-clear) var(--ease-out);
 }
 @keyframes turn-in {
   from {
@@ -21,16 +35,42 @@
   gap: var(--s-2);
   min-height: 28px;
 }
+/* speaker plate: who said it. Theirs = a Berliner Blau plate, mine = a quiet glass plate */
 .turn__who {
-  font-family: var(--font-mono);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  padding: 0 10px 0 8px;
+  border-radius: var(--radius-pill);
+  background: var(--them);
+  color: var(--them-ink);
+  font-family: var(--font-label);
   font-size: var(--label);
   letter-spacing: var(--label-track);
-  text-transform: uppercase;
-  font-weight: 650;
-  color: var(--ink-2);
+  text-transform: var(--label-case);
+  font-weight: 700;
+}
+.turn__who::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.85;
 }
 .turn--mine .turn__who {
-  color: var(--ink-3);
+  background: var(--you);
+  color: var(--you-ink);
+}
+/* speaking now: the plate's dot breathes */
+.turn.is-live .turn__who::before {
+  animation: breathe 1.2s ease-in-out infinite;
+}
+@keyframes breathe {
+  50% {
+    opacity: 0.25;
+  }
 }
 .turn__time {
   font-size: var(--label);
@@ -69,6 +109,30 @@
 .turn__main.is-source {
   color: var(--ink-3);
 }
+
+/* ---------------------------------------------------------------- draft vs final (DESIGN.md: Draft and Final)
+   Draft = words still forming (partial caption, or a translation that is not final): .turn.is-draft and
+   .turn__main.is-draft. Ink 2 (AA in both themes), a dotted underline that reads as "pencil, not ink",
+   the pane frosted a step more. Final = .turn.is-final: full ink, no underline, the frost lifts. */
+.turn__main {
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.24em;
+  text-decoration-color: transparent;
+  transition: color var(--t-clear) var(--ease-out), text-decoration-color var(--t-clear) var(--ease-out);
+}
+.turn__main.is-draft {
+  color: var(--ink-2);
+  text-decoration-color: color-mix(in oklab, var(--ink-3) 70%, transparent);
+}
+.turn--mine .turn__main.is-draft {
+  color: var(--ink-3);
+}
+.turn--r0.turn--theirs.is-draft {
+  background: color-mix(in oklab, var(--frost) 100%, var(--glass));
+  box-shadow: var(--glass-hi), 0 0 0 1px var(--glass-edge), inset 0 0 0 1.5px var(--frost), var(--shadow-pane);
+}
 .turn__main[lang="ar"],
 .turn__sub[lang="ar"],
 .turn__main[lang="fa"],
@@ -79,7 +143,8 @@
 .turn__caret {
   display: inline-block;
   width: 0.5em;
-  height: 2px;
+  height: 3px;
+  border-radius: 2px;
   margin-inline-start: 0.15em;
   vertical-align: baseline;
   background: var(--link);
@@ -102,10 +167,10 @@
   font-size: 0.9375rem;
 }
 .turn__sublabel {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--label);
   letter-spacing: var(--label-track);
-  text-transform: uppercase;
+  text-transform: var(--label-case);
 }
 
 .turn__struck {
@@ -171,10 +236,10 @@
   white-space: nowrap;
 }
 .turn__echo-label {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--label);
   letter-spacing: var(--label-track);
-  text-transform: uppercase;
+  text-transform: var(--label-case);
   font-weight: 600;
   color: var(--ink-3);
 }
@@ -222,10 +287,10 @@
   background: none;
   padding: var(--s-1) 0;
   color: var(--link);
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--label);
   letter-spacing: var(--label-track);
-  text-transform: uppercase;
+  text-transform: var(--label-case);
   font-weight: 650;
   text-decoration: underline;
   text-underline-offset: 0.3em;
@@ -238,7 +303,8 @@
   justify-items: start;
   padding: var(--s-3) var(--s-4);
   border: 1.5px dashed var(--rule-strong);
-  border-radius: var(--radius);
+  border-radius: 16px;
+  background: var(--paper-2);
 }
 .turn__explain.is-sent {
   border-style: solid;
@@ -257,7 +323,7 @@
   padding: var(--s-4);
   background: var(--paper-2);
   border: var(--line) solid var(--rule);
-  border-radius: var(--radius);
+  border-radius: 16px;
   animation: turn-in 200ms var(--ease-out) both;
 }
 .proof__facts {
@@ -272,10 +338,10 @@
   border-bottom: var(--line) solid var(--rule);
 }
 .proof__facts th {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--label);
   letter-spacing: var(--label-track);
-  text-transform: uppercase;
+  text-transform: var(--label-case);
   color: var(--ink-3);
   font-weight: 600;
 }
@@ -284,7 +350,7 @@
   font-weight: 650;
 }
 .proof__ok {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   text-align: end !important;
 }
 .proof__dl {
@@ -298,10 +364,10 @@
   gap: var(--s-3);
 }
 .proof__dl dt {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--label);
   letter-spacing: var(--label-track);
-  text-transform: uppercase;
+  text-transform: var(--label-case);
   color: var(--ink-3);
   padding-top: 2px;
 }

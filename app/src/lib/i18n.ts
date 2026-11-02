@@ -1,6 +1,7 @@
 /**
- * UI strings. The interface speaks the device's language; conversation text is whatever was said.
- * de/en/tr/ru/ar are written in full (native-speaker review pending); everything else falls back to en.
+ * UI strings. The interface chrome is English on every device (UI_LANG), whatever the phone's language;
+ * conversation text (what was said, its translation, the read-back question) stays in each person's language.
+ * de/tr/ru/ar dictionaries are kept for a later per-device UI language; t() reads UI_LANG only.
  */
 
 export const RTL = new Set(["ar", "fa", "he", "ur", "ps", "ckb", "yi", "dv"]);
@@ -47,7 +48,7 @@ const en: Dict = {
   "app.tagline": "What's said in the room stays in the room.",
   "join.you_are": "You join as",
   "join.room": "Room",
-  "join.language": "Your language",
+  "join.language": "The language you speak",
   "join.change": "Change",
   "join.consent.title": "This is an AI interpreter.",
   "join.consent.body":
@@ -69,7 +70,7 @@ const en: Dict = {
   "talk.speaking": "is speaking",
   "talk.you_said": "You said",
   "talk.they_got": "They read",
-  "talk.translating": "Translating",
+  "talk.translating": "Live draft",
   "talk.checking": "Checking",
   "talk.verified": "Checked",
   "talk.unsure": "Unsure",
@@ -150,6 +151,24 @@ const en: Dict = {
   "kind.percent": "Percent",
   "role.a": "Professional",
   "role.b": "Guest",
+  "talk.live": "Live",
+  "talk.you": "You speak",
+  "talk.other": "They speak",
+  "talk.you_speak": "You speak",
+  "talk.speaks": "speaks",
+  "talk.not_joined": "Not joined yet",
+  "talk.disconnected_short": "Offline",
+  "talk.hold_to_talk": "Hold to talk",
+  "talk.release_to_send": "Release to send",
+  "talk.hold_to_answer": "Hold to answer",
+  "talk.sending": "Sending…",
+  "talk.mic_wait_other": "Wait: the other person is speaking",
+  "talk.mic_wait_voice": "Wait: the translation is playing",
+  "talk.hold_space_pre": "On a keyboard, hold",
+  "talk.handsfree": "Hands-free",
+  "talk.draft": "Live draft",
+  "talk.final": "Final",
+  "join.speaker_only": "Speaker",
 };
 
 const de: Dict = {
@@ -642,23 +661,29 @@ const ar: Dict = {
 
 const DICTS: Record<string, Dict> = { en, de, tr, ru, ar };
 
-export function t(lang: string, key: string): string {
-  return DICTS[lang]?.[key] ?? en[key] ?? key;
+/** The language of every label, button, banner and help text. Content keeps its own language. */
+export const UI_LANG = "en";
+
+/** A UI string. ``lang`` is the participant's language; the chrome is UI_LANG regardless (kept for call sites). */
+export function t(_lang: string, key: string): string {
+  return DICTS[UI_LANG]?.[key] ?? en[key] ?? key;
 }
 
 export function translator(lang: string) {
   return (key: string) => t(lang, key);
 }
 
-/** Pick a label from a {lang: text} map: exact, then English, then German, then anything. */
-export function pick(map: Record<string, string> | null | undefined, lang: string): string {
+/** Pick a UI label from a {lang: text} map: UI_LANG, then English, then German, then anything.
+ * ``lang`` is ignored (the chrome is English); content reads its own language before falling back here. */
+export function pick(map: Record<string, string> | null | undefined, _lang?: string): string {
   if (!map) return "";
-  return map[lang] ?? map.en ?? map.de ?? Object.values(map)[0] ?? "";
+  return map[UI_LANG] ?? map.en ?? map.de ?? Object.values(map)[0] ?? "";
 }
 
-export function fmtTime(ts: number, lang: string): string {
+export function fmtTime(ts: number, _lang?: string): string {
   try {
-    return new Intl.DateTimeFormat(lang, { hour: "2-digit", minute: "2-digit" }).format(ts);
+    // 24-hour clock with Latin digits, like the rest of the English chrome (Berlin: 21:15, not 9:15 PM)
+    return new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit" }).format(ts);
   } catch {
     return new Date(ts).toTimeString().slice(0, 5);
   }

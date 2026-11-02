@@ -62,11 +62,11 @@
   gap: var(--s-3);
   padding-bottom: var(--s-1);
   border-bottom: var(--line) solid var(--ink);
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: 0.8125rem;
   font-weight: 700;
   letter-spacing: var(--label-track);
-  text-transform: uppercase;
+  text-transform: var(--label-case);
   color: var(--ink);
 }
 .docsheet__pair,
@@ -164,10 +164,10 @@
   border-inline-end: 0;
 }
 .docsheet__tb dt {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: 0.625rem;
   letter-spacing: var(--label-track);
-  text-transform: uppercase;
+  text-transform: var(--label-case);
   color: var(--ink-3);
 }
 .docsheet__tb dd {

@@ -1,141 +1,209 @@
-/* ---------------------------------------------------------------- title block (Schriftfeld) */
+/* ---------------------------------------------------------------- title block: the glass header */
+/* A floating pane: row 1 names the room and the link state, row 2 says who speaks which language and how
+   this phone hears it. Same component on Join, Talk and the Table screen. */
 .tblock {
-  background: var(--brand);
-  color: var(--brand-ink);
-  padding: calc(env(safe-area-inset-top, 0px) + var(--s-2)) var(--s-4) 0;
-  border-bottom: var(--line) solid var(--brand-rule);
+  position: relative;
+  z-index: 5;
+  margin: calc(env(safe-area-inset-top, 0px) + var(--s-2)) var(--s-3) 0;
+  padding: var(--s-2) var(--s-3) var(--s-2) var(--s-4);
+  color: var(--ink);
+  background: var(--glass-strong);
+  border: var(--line) solid var(--glass-rim);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-hi), 0 0 0 1px var(--glass-edge), var(--shadow-pane);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
 }
 .tblock[data-off] {
-  background: #4a5560;
+  filter: grayscale(1);
 }
 .tblock__row {
   display: flex;
   align-items: center;
   gap: var(--s-3);
-  min-height: 40px;
+  min-height: 44px;
 }
-.tblock .hatch--sprechzimmer {
-  color: var(--band-sprechzimmer);
-}
-.tblock .hatch--kanzlei {
-  color: var(--band-kanzlei);
-}
-.tblock .hatch--verhandlungsraum {
-  color: var(--band-verhandlungsraum);
-}
-.tblock .hatch--gespraech {
-  color: var(--band-gespraech);
+.tblock .hatch {
+  border-radius: 7px;
 }
 .tblock__title {
-  display: flex;
-  align-items: baseline;
-  gap: var(--s-2);
+  display: grid;
   min-width: 0;
   flex: 1;
+  line-height: 1.2;
 }
 .tblock__name {
-  font-weight: 700;
-  font-size: 1.125rem;
-  letter-spacing: 0.005em;
+  font-weight: 720;
+  font-size: 1.0625rem;
+  letter-spacing: -0.005em;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .tblock__gloss {
-  color: var(--brand-ink-2);
-  font-size: 0.875rem;
+  color: var(--ink-2);
+  font-size: 0.8125rem;
+  font-weight: 560;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* link state: a pill. Live = green dot; reconnecting = ochre spinner; lost = red */
 .tblock__status {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  letter-spacing: var(--label-track);
-  text-transform: uppercase;
-  color: var(--brand-ink-2);
+  gap: 7px;
+  min-height: 30px;
+  padding: 0 12px 0 10px;
+  border-radius: var(--radius-pill);
+  background: var(--paper-3);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--ink-2);
   white-space: nowrap;
 }
 .tblock__dot {
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
-  border: 1.5px solid currentColor;
+  border: 2px solid currentColor;
+  flex: none;
 }
 .tblock__status.is-live {
-  color: var(--brand-ink);
+  color: var(--ok);
+  background: var(--ok-wash);
 }
 .tblock__status.is-live .tblock__dot {
-  background: #6fe0a6;
-  border-color: #6fe0a6;
-  box-shadow: 0 0 0 3px rgb(111 224 166 / 0.18);
+  background: var(--live);
+  border-color: var(--live);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--live) 25%, transparent);
+  animation: live-pulse 2.4s var(--ease-out) infinite;
+}
+.tblock__status.is-reconnecting {
+  color: var(--unsure);
+  background: var(--unsure-wash);
+}
+.tblock__status.is-reconnecting .tblock__dot {
+  border-color: currentColor transparent currentColor transparent;
+  animation: spin 1s linear infinite;
+}
+.tblock__status.is-lost {
+  color: var(--bad);
+  background: var(--bad-wash);
+}
+@keyframes live-pulse {
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in oklab, var(--live) 0%, transparent);
+  }
 }
 .tblock__menu {
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
-  margin-inline-end: calc(var(--s-2) * -1);
+  width: 44px;
+  height: 44px;
+  margin-inline-end: calc(var(--s-1) * -1);
   border: 0;
   background: transparent;
-  color: var(--brand-ink);
+  color: var(--ink);
   border-radius: var(--radius);
 }
 .tblock__menu:hover {
-  background: rgb(255 255 255 / 0.08);
+  background: var(--paper-3);
 }
+/* row 2: who speaks what, and how this phone hears it */
 .tblock__cells {
-  display: grid;
-  grid-template-columns: auto auto 1fr;
-  margin: var(--s-1) calc(var(--s-4) * -1) 0;
-  border-top: var(--line) solid var(--brand-rule);
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  margin: var(--s-2) 0 var(--s-1);
 }
 .tblock__cell {
-  padding: 5px var(--s-4) 6px;
-  border-inline-end: var(--line) solid var(--brand-rule);
+  display: grid;
+  align-content: center;
   min-width: 0;
+  padding: 6px 12px 7px;
+  border-radius: 14px;
+  background: var(--paper-2);
+  box-shadow: inset 0 0 0 1px var(--rule);
+}
+.tblock__cell--you,
+.tblock__cell--them {
+  flex: 1 1 0;
+}
+.tblock__cell--them {
+  background: color-mix(in oklab, var(--them) 10%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--them) 30%, transparent);
 }
 .tblock__cell--end {
-  border-inline-end: 0;
-  text-align: end;
+  flex: none;
+  justify-items: center;
+  padding-inline: 10px;
+  text-align: center;
 }
 .tblock__cell dt {
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
-  letter-spacing: var(--label-track);
-  text-transform: uppercase;
-  color: var(--brand-ink-2);
-}
-.tblock__cell dd {
-  margin: 0;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--ink-2);
+  line-height: 1.3;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.tblock__cell:not(:first-child) dd {
-  line-height: 2.05;
+.tblock__cell dd {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 720;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+.tblock__cell--end dd {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 650;
+  color: var(--ink-2);
+}
+.tblock__cell--end .icon {
+  width: 20px;
+  height: 20px;
+  stroke-width: 1.8;
+  color: var(--ink);
 }
 .tblock__arrow {
-  color: var(--brand-ink-2);
+  align-self: center;
+  flex: none;
+  color: var(--ink-3);
+  width: 16px;
+  height: 16px;
 }
 
-/* ---------------------------------------------------------------- talk control */
+/* ---------------------------------------------------------------- talk control: the mic orb */
+/* One dominant control. data-mode = "handsfree" (tap toggles, the default) | "hold" (press and hold).
+   data-state = "idle" | "live" | "sending" | "blocked" | "disabled"; data-purpose = "answer" on a read-back.
+   Colour is never the only signal: glyph, label and halo change with every state. */
 .talk {
+  --orb: 92px;
   display: grid;
   justify-items: center;
-  gap: var(--s-1);
+  gap: 6px;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.talk[data-mode="hold"] .talk__btn {
+  touch-action: none; /* a held thumb must not scroll or zoom the page */
 }
 .talk__stage {
   position: relative;
-  width: 112px;
-  height: 112px;
+  width: calc(var(--orb) + 16px);
+  height: calc(var(--orb) + 16px);
   display: grid;
   place-items: center;
 }
+/* the level: soft halos that grow with the voice (radius set inline, 90 ms linear) */
 .talk__contours {
   position: absolute;
   inset: -44px;
@@ -145,72 +213,180 @@
   overflow: visible;
 }
 .talk__contours circle {
-  fill: none;
-  stroke: var(--brand-2);
+  fill: color-mix(in oklab, var(--brand-2) 6%, transparent);
+  stroke: color-mix(in oklab, var(--brand-2) 45%, transparent);
   stroke-width: 1;
   transition: r 90ms linear, opacity 160ms linear;
 }
-.talk__contours circle:nth-child(2) {
-  stroke-dasharray: 5 4;
-}
-.talk__contours circle:nth-child(3) {
-  stroke-dasharray: 1.5 4;
-}
 .talk__btn {
   position: relative;
-  width: 96px;
-  height: 96px;
+  width: var(--orb);
+  height: var(--orb);
   border-radius: 50%;
-  border: var(--line-2) solid var(--brand);
-  background: var(--paper);
+  border: var(--line) solid var(--glass-rim);
+  background: var(--glass-strong);
   color: var(--brand);
   display: grid;
   place-items: center;
-  box-shadow: var(--shadow-sheet);
-  transition: background 160ms var(--ease-out), color 160ms var(--ease-out), transform 120ms var(--ease-out);
+  box-shadow: var(--glass-hi), 0 0 0 1px var(--glass-edge), 0 0 0 6px color-mix(in oklab, var(--brand-2) 12%, transparent),
+    var(--shadow-float);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+  transition: background 180ms var(--ease-out), color 180ms var(--ease-out), box-shadow 180ms var(--ease-out),
+    transform 140ms var(--ease-out);
 }
 .talk__btn .icon {
   width: 36px;
   height: 36px;
-  stroke-width: 1.6;
+  stroke-width: 1.7;
 }
-.talk.is-on .talk__btn {
-  background: var(--brand);
-  color: var(--brand-ink);
+.talk.is-on .talk__btn,
+.talk[data-state="live"] .talk__btn {
+  background: var(--brand-grad);
+  color: #fff;
+  border-color: rgb(255 255 255 / 0.25);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.3), 0 0 0 6px color-mix(in oklab, var(--brand-2) 22%, transparent),
+    0 14px 34px -10px rgb(13 58 97 / 0.75);
 }
-.talk__btn:active {
-  transform: scale(0.97);
+.talk__btn:active,
+.talk[data-state="live"][data-mode="hold"] .talk__btn {
+  transform: scale(0.95); /* pressed in under the thumb */
 }
-.talk.is-disabled .talk__btn {
-  border-color: var(--rule-strong);
+/* sending: released, the box is working; a ring runs round the orb */
+.talk[data-state="sending"] .talk__btn::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 2.5px solid transparent;
+  border-top-color: var(--brand-2);
+  border-right-color: var(--brand-2);
+  animation: spin 0.9s linear infinite;
+}
+/* blocked (someone else speaks, or the voice plays on the speaker) and disabled: flat, no halo */
+.talk.is-disabled .talk__btn,
+.talk[data-state="blocked"] .talk__btn,
+.talk[data-state="disabled"] .talk__btn {
   color: var(--ink-3);
   background: var(--paper-2);
+  border: 1.5px solid var(--rule-strong);
   box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  transform: none;
+}
+.talk[data-state="blocked"] .talk__btn {
+  border: 2px dashed var(--rule-strong);
+}
+/* a read-back waits for my answer: the orb rings in the unsure pen */
+.talk[data-purpose="answer"]:not([data-state="live"]) .talk__btn {
+  box-shadow: var(--glass-hi), 0 0 0 1px var(--glass-edge), 0 0 0 6px color-mix(in oklab, var(--unsure) 30%, transparent),
+    var(--shadow-float);
 }
 .talk__label {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  letter-spacing: var(--label-track);
-  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 24px;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--ink);
+  text-align: center;
+  max-width: 24ch;
+  line-height: 1.25;
+}
+.talk.is-on .talk__label::before,
+.talk[data-state="live"] .talk__label::before {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--live);
+  box-shadow: 0 0 0 3px var(--ok-wash);
+}
+.talk.is-disabled .talk__label,
+.talk[data-state="blocked"] .talk__label {
   color: var(--ink-2);
   font-weight: 600;
-  text-align: center;
-  max-width: 22ch;
+}
+.talk__hint {
+  font-size: 0.75rem;
+  color: var(--ink-2);
+  font-weight: 560;
+}
+.talk__hint kbd {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  padding: 1px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--rule-strong);
+  border-bottom-width: 2px;
+  background: var(--paper-2);
+  color: var(--ink);
+}
+@media (hover: none) {
+  .talk__hint--keys {
+    display: none;
+  }
+}
+/* hands-free: a secondary switch under the orb */
+.talk__mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 12px 0 6px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--paper-2);
+  box-shadow: inset 0 0 0 1px var(--rule);
+  color: var(--ink-2);
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+.talk__switch {
+  position: relative;
+  flex: none;
+  width: 34px;
+  height: 20px;
+  border-radius: var(--radius-pill);
+  background: var(--rule-strong);
+  transition: background 160ms var(--ease-out);
+}
+.talk__switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  inset-inline-start: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+  transition: transform 160ms var(--ease-out);
+}
+.talk__mode[aria-checked="true"] {
+  color: var(--ink);
+}
+.talk__mode[aria-checked="true"] .talk__switch {
+  background: var(--ok);
+}
+.talk__mode[aria-checked="true"] .talk__switch::after {
+  transform: translateX(14px);
+}
+[dir="rtl"] .talk__mode[aria-checked="true"] .talk__switch::after {
+  transform: translateX(-14px);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .talk__btn {
-    border-color: var(--ink);
     color: var(--ink);
-    background: var(--paper-2);
   }
-  :root:not([data-theme="light"]) .talk.is-on .talk__btn {
-    background: var(--ink);
-    color: var(--paper);
-  }
-  :root:not([data-theme="light"]) .talk__contours circle {
-    stroke: var(--ink-2);
-  }
+}
+:root[data-theme="dark"] .talk__btn {
+  color: var(--ink);
 }
 
 /* ---------------------------------------------------------------- read-back (a drawing note on the turn) */
@@ -222,34 +398,19 @@
   display: grid;
   gap: var(--s-3);
   margin-top: var(--s-2);
-  padding: var(--s-3) var(--s-4) var(--s-4);
-  background: var(--paper-2);
-  border: var(--line) solid var(--rule);
-  border-radius: var(--radius);
+  padding: var(--s-4);
+  background: color-mix(in oklab, var(--c) 9%, var(--glass-strong));
+  border: 1.5px solid color-mix(in oklab, var(--c) 60%, transparent);
+  border-radius: 18px;
+  box-shadow: var(--glass-hi), var(--shadow-pane);
   animation: turn-in 240ms var(--ease-out) both;
 }
 .rb--bad {
   --c: var(--bad);
 }
-.rb::before,
-.rb::after {
-  content: "";
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  border-color: var(--c);
-  border-style: solid;
-  pointer-events: none;
-}
-.rb::before {
-  top: -1px;
-  inset-inline-start: -1px;
-  border-width: 2px 0 0 2px;
-}
-.rb::after {
-  bottom: -1px;
-  inset-inline-end: -1px;
-  border-width: 0 2px 2px 0;
+/* line type before colour: an unsure read-back is dashed, a mismatch solid */
+.rb--unsure {
+  border-style: dashed;
 }
 /* the question: a clarification, read like a sentence (title step of the ramp, under the hero) */
 .rb__q {
@@ -303,10 +464,10 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--label);
   letter-spacing: var(--label-track);
-  text-transform: uppercase;
+  text-transform: var(--label-case);
   font-weight: 650;
 }
 .rb__done .icon {
@@ -328,9 +489,10 @@
   content: "· ";
 }
 /* the read-back answered: its ticks turn to the ink of a settled note */
-.rb.is-done::before,
-.rb.is-done::after {
-  border-color: var(--rule-strong);
+.rb.is-done {
+  background: var(--paper-2);
+  border: 1px solid var(--rule);
+  box-shadow: none;
 }
 
 /* ---------------------------------------------------------------- fact notes (the professional's list) */
@@ -347,22 +509,22 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 30px;
+  min-height: 34px;
   max-width: 100%;
-  padding: 3px 10px 3px 6px;
-  border: var(--line) solid var(--rule-strong);
-  border-radius: var(--radius);
+  padding: 4px 12px 4px 8px;
+  border: 1.5px solid color-mix(in oklab, var(--c) 50%, transparent);
+  border-radius: var(--radius-pill);
+  background: color-mix(in oklab, var(--c) 8%, var(--glass-strong));
   font-size: 0.9375rem;
+  font-weight: 600;
   line-height: 1.3;
-  color: var(--ink-2);
+  color: var(--ink);
   animation: turn-in 240ms var(--ease-out) both;
 }
 /* line type first: a fact read back and not answered is drawn dotted, like every unsure line */
 .fnote--unconfirmed {
   --c: var(--unsure);
-  border-style: dotted;
-  border-width: 2px;
-  padding: 2px 9px 2px 5px;
+  border-style: dashed;
 }
 .fnote--rejected {
   --c: var(--bad);
@@ -396,10 +558,10 @@
 }
 .fnote__status {
   flex: none;
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: 0.6875rem;
   letter-spacing: var(--label-track);
-  text-transform: uppercase;
+  text-transform: var(--label-case);
   font-weight: 650;
   color: var(--c);
 }
@@ -573,10 +735,10 @@
   border-top-style: dashed;
 }
 .tl__name {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: 0.6875rem;
   letter-spacing: 0.05em;
-  text-transform: uppercase;
+  text-transform: var(--label-case);
   color: var(--ink-3);
 }
 .tl--big .tl__name {
