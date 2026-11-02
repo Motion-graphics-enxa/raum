@@ -1,17 +1,19 @@
-"""Simultaneous mode (UN-style interpreting) for listeners on headphones. Hooked into ``room.py``.
+"""Simultaneous mode (UN-style interpreting). Hooked into ``room.py``.
 
 While the speaker is still talking, each partial transcript is compared with the one before. A prefix that
 is identical in two consecutive partials and ends at a clause boundary is **committed** as a segment:
 
-- ``. ? !`` and ``;``; ``,`` once the clause has at least 6 words. A German source commits only at
-  sentence punctuation (``. ? !``), never at commas: verb-final subordinate clauses.
+- ``. ? !`` and ``;``; ``,`` once the clause has at least 6 words. A German source cuts at a comma / ``;``
+  only after a verb-complete clause (incomplete.py ``unfinished`` gives no reason: "Sie dürfen das
+  Metformin," never goes out before its infinitive; once a clause since the last cut is open, only a
+  sentence end cuts) and only with a stable word after the comma (whisper flips "an." <-> "an, das").
 - AND the clause is complete: the room's text turn model (turn.py, ``RoomPipeline.eot``) rates the text
   up to that boundary as a finished utterance (``p_text >= eot.fast``, the threshold of its own "end now"
   path); without the model, or for a language it lacks, only sentence ends pass. Nothing is anticipated:
   a German clause never goes out before its finite verb or particle.
 - Abbreviations and ordinals ("Dr.", "12.") and an ellipsis never end a clause.
 - Only partials with ``asr_conf >= asr_min_conf`` commit (V-03), in one source language; only once the turn
-  has ``simultaneous_after_ms`` of speech (per mode: the Sprechzimmer 4 s, long turns only). Pauses inside
+  has ``simultaneous_after_ms`` of speech (per mode: the Sprechzimmer 1.5 s). Pauses inside
   the turn are turn.py's (semantic end of turn): speech after a pause continues the same utterance, and
   its lanes go on.
 
@@ -20,11 +22,26 @@ history behind the same fixed system prefix), checked by the fact guard (it gate
 A language's segments are translated and spoken strictly in order. At the end of the utterance only the
 uncommitted tail is translated; it is the last segment.
 
-When: per target language, only if every participant of that language (other than the speaker) plays the
-voice on headphones (``ParticipantInfo.audio_out``) and neither ``pipeline.simultaneous`` (raum.yaml) nor
-the mode's ``pipeline.simultaneous`` is ``off``. Every
-other language stays consecutive (``RoomPipeline._translate``, unchanged). A language that stops qualifying
-mid-utterance (someone switched to the speaker) commits nothing more; its tail comes at the end.
+When: per target language, unless ``pipeline.simultaneous`` (raum.yaml) or the mode's is ``off`` (``plan``):
+
+- every participant of that language (other than the speaker) on headphones (``ParticipantInfo.audio_out``):
+  text and voice while the speaker talks;
+- someone plays it aloud (speaker / room): the mode's ``pipeline.loudspeaker``. ``live`` (gs, sz, kz): text
+  and voice while the speaker talks (C-14 pauses the listener's own mic while it plays), except where the
+  speaker's own mic would hear it (echo.py ``paused_for``: a room speakerphone): there **held**. ``held``:
+  always held. ``consecutive`` (the default): not simultaneous. Held: the text shows while the speaker talks
+  and each segment's voice is made ahead (speculate ``ahead``), played from the cache after the end of turn.
+
+Every other language stays consecutive (``RoomPipeline._translate``, unchanged). A language that stops
+qualifying mid-utterance (or switches between held and live) commits nothing more; its tail comes at the end.
+
+Final-revision guard (``_revise``, at the end of the utterance): each committed segment is compared with the
+final transcript's words at its place. A segment the final rewrote (another word, not just case or
+punctuation) takes the final's words and is translated again, its ``translation.final`` sent again (the app
+keys segments by ``seg``); its voice waits for that, so the listener hears the final's version, never the
+stale one (audio made ahead is keyed by the old text: never claimed, forgotten). Each segment is voiced once,
+in order. One already spoken (a live lane) is corrected on screen only, and a correction flag follows the
+check. No usable final (ASR failed, low confidence): a held lane's voice never plays.
 
 Events, per target language (``seg`` 0-based; consecutive mode sends no ``seg``)::
 
@@ -70,6 +87,7 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
+from raum.pipeline import stats
 from raum.pipeline import texts as T
 from raum.pipeline._util import lang_code
 from raum.pipeline.base import AsrResult, TurnContext
@@ -87,9 +105,12 @@ log = logging.getLogger("raum.pipeline.simul")
 
 SAMPLE_RATE = 16000
 MIN_COMMA_WORDS = 6
-SENTENCE_ONLY_LANGS = frozenset({"de"})  # verb-final subordinate clauses: never cut at a comma
+# verb-final languages: a comma cuts only after a verb-complete clause (incomplete.py ``unfinished`` has no reason)
+# and only with a stable word after it (whisper flips "an." <-> "an, das" at the end of what it heard)
+COMMA_RULE_LANGS = frozenset({"de"})
 REUSE_GAP_MS = 300.0  # a stable partial this close to the endpoint stands in for the final
 REUSE_MIN_CONF = 0.85
+CATCHUP_RATE = 1.1  # a live lane whose next segment already waits speaks a little faster (no growing lag)
 
 _SENTENCE = frozenset(".!?。！？؟")
 _CLAUSE = frozenset(";؛")
@@ -119,23 +140,32 @@ def boundary(token: str) -> str | None:
 
 def commit_points(prev: list[str], cur: list[str], lang: str | None) -> list[int]:
     """Where ``cur`` may be cut (word counts, ascending): within the prefix that ``prev`` (the partial
-    before) has too, at a valid clause boundary. Both lists start after the already committed words."""
+    before) has too, at a valid clause boundary. Both lists start after the already committed words.
+    German (``COMMA_RULE_LANGS``): a comma or ``;`` only after a verb-complete clause (incomplete.py), with
+    the word after it stable too."""
     stable = 0
     for a, b in zip(prev, cur):
         if a != b:
             break
         stable += 1
-    sentence_only = (lang or "") in SENTENCE_ONLY_LANGS
+    rules = (lang or "") in COMMA_RULE_LANGS
     out: list[int] = []
     start = 0
+    open_ = False  # German: a clause since the last cut was not verb-complete; only a sentence end closes it
     for i in range(stable):
         kind = boundary(cur[i])
-        if kind is None or (sentence_only and kind != "sentence"):
+        if kind is None:
             continue
+        if rules and kind != "sentence":
+            if unfinished(" ".join(cur[start:i + 1]), lang):
+                open_ = True  # "Sie dürfen das Metformin," (no infinitive yet): no later comma either
+            if open_ or i + 1 >= stable:
+                continue  # ... / "an," at the very end of what was heard (whisper: "an." <-> "an, das")
         if kind == "comma" and i + 1 - start < MIN_COMMA_WORDS:
             continue
         out.append(i + 1)
         start = i + 1
+        open_ = False
     return out
 
 
@@ -177,6 +207,11 @@ def _norm(token: str) -> str:
     return re.sub(r"[\W_]+", "", token.casefold())
 
 
+def _same_words(a: list[str], b: list[str]) -> bool:
+    """The same words, whatever the case and punctuation ("day," / "day.")."""
+    return [x for x in map(_norm, a) if x] == [x for x in map(_norm, b) if x]
+
+
 def align(done: list[str], tokens: list[str]) -> int:
     """Index in ``tokens`` (a later transcript) where the words after ``done`` (committed) begin. Exact
     prefix in the normal case; otherwise the best word alignment (the ASR revised an earlier word)."""
@@ -216,6 +251,13 @@ class _Seg:
     segs_sent: bool = False
     gres: guard.GuardResult | None = None
     guard_ok: bool = False
+    # the final-revision guard (``_revise``): the final transcript rewrote ``src`` -> ``rev`` + 1, translated again
+    rev: int = 0
+    redo: bool = False  # translated again from the final's words (no deltas: the app shows its first text till then)
+    started: bool = False  # its translation began
+    ready: asyncio.Event = field(default_factory=asyncio.Event)  # translated (as it now stands) and guarded
+    passed: bool = False  # the voice worker is past it (spoken or not spoken): a later rewrite is text only
+    spoken: bool = False
 
 
 @dataclass
@@ -231,7 +273,7 @@ class _SegTurn:
     conf: float | None = None  # the final transcript's ASR confidence (None: no final)
 
 
-@dataclass
+@dataclass(eq=False)  # kept in a set (Simultaneous._held)
 class _Lane:
     """One target language of one utterance in simultaneous mode."""
 
@@ -245,13 +287,20 @@ class _Lane:
     covered: int = 0  # committed source words this lane has as segments
     segs: list[_Seg] = field(default_factory=list)
     queue: asyncio.Queue[_Seg | None] = field(default_factory=asyncio.Queue)
-    voice_q: asyncio.Queue[_Seg | None] | None = None
+    grew: asyncio.Event = field(default_factory=asyncio.Event)  # a segment was added (or the lane closed)
     worker: asyncio.Task[None] | None = None
     voice: asyncio.Task[None] | None = None
     done: asyncio.Task[None] | None = None  # the utterance check + timing
     voice_args: Any = None  # the speaker's voice sample and pace (voice.py), for the segments' voice
     marks: dict[str, float] = field(default_factory=dict)  # first PCM / first published frame, monotonic ms
     voice_done: asyncio.Event = field(default_factory=asyncio.Event)
+    held: bool = False  # played aloud next to the speaker's mic: voiced ahead while they talk, played at the end
+    release: asyncio.Event = field(default_factory=asyncio.Event)  # held: set once the final was checked (_finish)
+    discard: bool = False  # held, and the turn ended without a usable final: its voice never plays
+    ahead: list[Any] = field(default_factory=list)  # held: speculate._Voice made ahead (forgotten if never played)
+    ahead_carry: str = ""  # held: a segment too short to voice alone, made with the next one
+    revised: int = 0  # segments the final transcript rewrote (pipeline.timing)
+    misheard: bool = False  # one of them had been spoken already: a correction flag after the check
     total: int | None = None  # segment count, known once the utterance ended
     conf: float | None = None  # the final transcript's ASR confidence, once the utterance ended
     closed: bool = False
@@ -280,6 +329,7 @@ class Simultaneous:
     def __init__(self, p: RoomPipeline) -> None:
         self.p = p
         self._utts: dict[str, _UttState] = {}
+        self._held: set[_Lane] = set()  # held lanes whose voice has not played yet (burn / session end stop them)
 
     @property
     def enabled(self) -> bool:
@@ -297,17 +347,38 @@ class Simultaneous:
         st = self._utts.get(utt)
         return st.lanes if st else {}
 
-    def targets(self, speaker: str, role: str, lang: str) -> list[str]:
-        """Target languages that qualify now: every participant of the language is on headphones."""
+    @property
+    def loudspeaker(self) -> str:
+        return str(getattr(getattr(self.p.mode, "pipeline", None), "loudspeaker", "consecutive") or "consecutive")
+
+    def plan(self, speaker: str, role: str, lang: str) -> dict[str, bool]:
+        """Target languages that go simultaneous now -> held (True: the voice waits for the end of the turn).
+        Every participant of the language on headphones: voiced while the speaker talks. Someone plays it aloud
+        (speaker / room): the mode's ``pipeline.loudspeaker`` -- ``consecutive`` (not simultaneous), ``held``, or
+        ``live``: voiced while the speaker talks unless the speaker's own mic would hear it (echo.py
+        ``paused_for``: a room speakerphone), then held."""
         if not self.enabled:
-            return []
-        out = []
+            return {}
+        from raum.pipeline.echo import paused_for
+
+        loud = self.loudspeaker
+        out: dict[str, bool] = {}
         for tgt in self.p._targets(SimpleNamespace(speaker=speaker, role=role, lang=lang)):  # type: ignore[arg-type]
             people = [x for x in self.p.participants.values()
                       if x.id != speaker and self.p._participant_lang(x) == tgt]
-            if people and all(getattr(x, "audio_out", "speaker") == "headphones" for x in people):
-                out.append(tgt)
+            if not people:
+                continue
+            if all(getattr(x, "audio_out", "speaker") == "headphones" for x in people):
+                out[tgt] = False
+            elif loud == "held":
+                out[tgt] = True
+            elif loud == "live":
+                out[tgt] = speaker in paused_for(tgt, self.p.participants.values())
         return out
+
+    def targets(self, speaker: str, role: str, lang: str) -> list[str]:
+        """Target languages that go simultaneous now (``plan``)."""
+        return list(self.plan(speaker, role, lang))
 
     # ------------------------------------------------------------ hooks
 
@@ -349,13 +420,15 @@ class Simultaneous:
             self.p.spec.on_text(u, res.text, lang, seconds=seconds)  # a complete sentence: likely the final
         if len(audio) * 1000.0 / SAMPLE_RATE < self.after_ms:
             return
-        targets = self.targets(u.speaker, u.role, lang)
-        if not targets:
+        want = self.plan(u.speaker, u.role, lang)
+        if not want:
             return
         base = cur.tokens[align(st.done, cur.tokens):]
         for n in reversed(commit_points(prev.tokens[align(st.done, prev.tokens):], base, lang)[-3:]):
-            # complete clauses only: the turn model must rate the text up to the cut a finished utterance
-            complete = await self.complete(" ".join(st.done + base[:n]), lang)
+            if lang in COMMA_RULE_LANGS and boundary(base[n - 1]) != "sentence":
+                complete = True  # a German comma: commit_points took it only after a verb-complete clause
+            else:  # complete clauses only: the turn model must rate the text up to the cut a finished utterance
+                complete = await self.complete(" ".join(st.done + base[:n]), lang)
             if u.closed or st.last is not cur:
                 return
             if complete:
@@ -364,17 +437,27 @@ class Simultaneous:
                 break
         if not st.done:
             return
-        for tgt in targets:
-            lane = st.lanes.get(tgt) or self._lane(st, u, tgt, lang)
+        for tgt, held in want.items():
+            lane = st.lanes.get(tgt) or self._lane(st, u, tgt, lang, held=held)
+            if lane.held != held:  # the listener switched how they hear it: no more segments (the tail at the end)
+                continue
             if not lane.closed and lane.covered < len(st.done):
                 self._enqueue(lane, st.done[lane.covered:])
 
     async def settle(self, u: _Utt, n_audio: int, timeout_s: float) -> None:
         """At a pause, before transcribing: a partial still running that covers the audio to < 300 ms before
         the end, after a partial that was a complete sentence, will most likely be the final. Wait for it
-        (it started earlier than a new final pass would) so that ``reuse_final`` can take it."""
+        (it started earlier than a new final pass would) so that ``reuse_final`` can take it. Only one that is
+        transcribing already (room ``_partial`` sets ``u.partial_asr``): one still queued for its scheduler slot
+        is cancelled, and the final goes ahead at once (box: 1.9 s waited for a partial that had not started)."""
         task, st = u.partial_task, self._utts.get(u.id)
-        if task is None or task.done() or st is None or st.last is None or not st.last.tokens:
+        if task is None or task.done():
+            return
+        if getattr(u, "partial_asr", None) is not task:
+            task.cancel()  # queued behind other background work: the final pass hears more audio anyway
+            stats.note("asr.settle", queued=1)
+            return
+        if st is None or st.last is None or not st.last.tokens:
             return
         start = (u.next_partial_ms - self.p.partial_every_ms) * SAMPLE_RATE / 1000.0  # its audio end
         if (max(u.samples, n_audio) - start) * 1000.0 / SAMPLE_RATE >= REUSE_GAP_MS:
@@ -417,6 +500,8 @@ class Simultaneous:
         """The turn ended without a usable final (ASR failed, low confidence): close what was committed."""
         st = self._utts.pop(utt, None)
         for lane in st.lanes.values() if st else ():
+            lane.discard = lane.held  # held: nothing was checked against a final; it never plays
+            lane.release.set()
             self._close(lane, "")
             lane.done = self.p._spawn(self._done(lane, None, {}))
 
@@ -427,22 +512,30 @@ class Simultaneous:
 
     def stop_lanes(self, lanes: Iterable[_Lane]) -> None:
         """Stop these lanes at once, also after their turn ended (merge.py: the speaker went on)."""
-        for lane in lanes:
+        for lane in list(lanes):
             lane.closed = True
+            lane.discard = True
             for task in (lane.worker, lane.voice, lane.done):
                 if task is not None and not task.done():
                     task.cancel()
             lane.voice_done.set()
+            self._forget_ahead(lane)
+
+    def clear(self) -> None:
+        """Burn / session end / close: held lanes never play the voice they made ahead (speculate ``clear``
+        drops the audio itself)."""
+        self.stop_lanes(list(self._held))
 
     # ------------------------------------------------------------ lanes
 
-    def _lane(self, st: _UttState, u: _Utt, tgt: str, lang: str) -> _Lane:
+    def _lane(self, st: _UttState, u: _Utt, tgt: str, lang: str, *, held: bool = False) -> _Lane:
         lane = _Lane(utt=u.id, tgt=tgt, src_lang=lang, speaker=u.speaker, role=u.role, turn=u.turn,
-                     context=self.p._context())
+                     context=self.p._context(), held=held)
         lane.voice_args = speaker_voice(self.p, u.speaker)
         lane.worker = self.p._spawn(self._translate_worker(lane))
         if self.p._tts_enabled():
-            lane.voice_q = asyncio.Queue()
+            if held:
+                self._held.add(lane)
             lane.voice = self.p._spawn(self._voice_worker(lane))
         else:
             lane.voice_done.set()
@@ -454,6 +547,7 @@ class Simultaneous:
         lane.segs.append(seg)
         lane.covered += len(words)
         lane.queue.put_nowait(seg)
+        lane.grew.set()
 
     def _close(self, lane: _Lane, tail: str) -> None:
         if lane.closed:
@@ -465,12 +559,42 @@ class Simultaneous:
             lane.queue.put_nowait(seg)
         lane.total = len(lane.segs)
         lane.queue.put_nowait(None)
+        lane.grew.set()
+
+    def _revise(self, lane: _Lane, words: list[str]) -> int:
+        """The final-revision guard, at the end of the utterance: each committed segment against the final
+        transcript's words at its place (``align`` per segment end). A segment the final rewrote (another word,
+        not just case or punctuation) takes the final's words and is translated again; until then its voice
+        waits (``ready``), so what plays is the final's version, never the stale one (its audio made ahead is
+        keyed by the old text: never claimed, forgotten after the voice). One already spoken (a live lane) is
+        corrected on screen and gets a correction flag after the check: nothing is spoken twice. Returns where
+        the uncommitted tail starts in ``words``."""
+        pos, done = 0, []
+        for seg in list(lane.segs):
+            own = seg.src.split()
+            done += own
+            end = max(pos, align(done, words))
+            new, pos = words[pos:end], end
+            if _same_words(own, new):
+                continue
+            lane.revised += 1
+            log.info("%s-%s-s%d: the final rewrote a committed segment (%d -> %d words): %s", lane.utt, lane.tgt,
+                     seg.index, len(own), len(new), "corrected on screen (spoken already)" if seg.spoken
+                     else "the final's version is voiced")
+            lane.misheard = lane.misheard or seg.spoken
+            seg.rev += 1
+            seg.src = " ".join(new)
+            if seg.started:  # translated (or being translated) from the old words: again (still queued: as is)
+                seg.redo = True
+                seg.ready.clear()
+                lane.queue.put_nowait(seg)
+        return pos
 
     async def _finish(self, lane: _Lane, rec: _Turn, t0: float, timing: dict[str, Any]) -> None:
         words = rec.text.split()
-        done = [w for s in lane.segs for w in s.src.split()]
-        self._close(lane, " ".join(words[align(done, words):]))
+        self._close(lane, " ".join(words[self._revise(lane, words):]))
         lane.conf = rec.conf
+        lane.release.set()  # held: the voice plays now, each segment as the final has it
         if lane.worker is not None:
             await asyncio.gather(lane.worker, return_exceptions=True)
         rec.translations[lane.tgt] = self._joined(lane)[1]
@@ -501,6 +625,15 @@ class Simultaneous:
                       check_ms=check_ms, simultaneous=True, segs=len(lane.segs),
                       tts_synth_first_ms=_since(lane.marks.get("synth"), t0),
                       tts_publish_first_ms=_since(lane.marks.get("publish"), t0), **echo)
+        if lane.held:
+            timing["held"] = True  # voiced ahead while the speaker talked, played after the end of turn
+        if lane.revised:
+            timing["revised"] = lane.revised  # segments the final transcript rewrote (the final's version voiced)
+        if any(f"voice_{k}" in lane.marks for k in ("spec", "ahead", "live")):  # speculate.py: where the audio
+            timing["voice_clauses"] = {k: int(lane.marks.get(f"voice_{k}", 0)) for k in ("spec", "ahead", "live")}
+        st = stats.current()  # stats.py: per stage, what queued and what worked (as room._after_final)
+        if st is not None:
+            timing["stages"] = st.snapshot()
         await self.p.emit("pipeline.timing", timing, utt=lane.utt)
 
     # ------------------------------------------------------------ translation, guard, check
@@ -510,14 +643,17 @@ class Simultaneous:
             seg = await lane.queue.get()
             if seg is None:
                 break
-            await self._segment(lane, seg)
-            if lane.voice_q is not None:
-                lane.voice_q.put_nowait(seg)
+            rev = seg.rev
+            try:
+                await self._segment(lane, seg)
+            finally:
+                if seg.rev == rev:  # else the final rewrote it meanwhile: it is queued again
+                    seg.ready.set()
+            if seg.rev == rev and lane.held and not lane.release.is_set():
+                self._ahead(lane, seg)
         last = lane.segs[-1] if lane.segs else None
         if last is not None and not last.segs_sent:  # nothing was left after the last commit
             await self._final(lane, last, again=True)
-        if lane.voice_q is not None:
-            lane.voice_q.put_nowait(None)
 
     async def _final(self, lane: _Lane, seg: _Seg, *, again: bool = False) -> None:
         data: dict[str, Any] = {"target_lang": lane.tgt, "text": seg.text, "seg": seg.index}
@@ -532,39 +668,47 @@ class Simultaneous:
         from raum.pipeline.room import MT_TIMEOUT_S, _guard_call
 
         p = self.p
-        rec = _SegTurn(utt=lane.utt, speaker=lane.speaker, role=lane.role, lang=lane.src_lang, text=seg.src,
-                       turn=lane.turn)
-        req = replace(p._request(rec, lane.tgt, lane.context),  # type: ignore[arg-type]
-                      segment=True, earlier=[(s.src, s.text) for s in lane.segs[:seg.index]])
+        rev, src, redo = seg.rev, seg.src, seg.redo
+        seg.started = True
         parts: list[str] = []
+        if src.strip():
+            rec = _SegTurn(utt=lane.utt, speaker=lane.speaker, role=lane.role, lang=lane.src_lang, text=src,
+                           turn=lane.turn)
+            req = replace(p._request(rec, lane.tgt, lane.context),  # type: ignore[arg-type]
+                          segment=True, earlier=[(s.src, s.text) for s in lane.segs[:seg.index]])
 
-        async def run() -> None:
-            async for delta in p.engines.translate.stream(req):
-                if not delta:
-                    continue
-                if lane.first_delta is None:
-                    lane.first_delta = time.monotonic()
-                parts.append(delta)
-                await p.emit("translation.delta", {"target_lang": lane.tgt, "delta": delta, "seq": len(parts),
-                                                   "seg": seg.index}, utt=lane.utt)
+            async def run() -> None:
+                async for delta in p.engines.translate.stream(req):
+                    if not delta:
+                        continue
+                    if lane.first_delta is None:
+                        lane.first_delta = time.monotonic()
+                    parts.append(delta)
+                    if not redo:  # a redo replaces the segment with its final only
+                        await p.emit("translation.delta", {"target_lang": lane.tgt, "delta": delta,
+                                                           "seq": len(parts), "seg": seg.index}, utt=lane.utt)
 
-        try:
-            async with p.sched.slot("live"):
-                await asyncio.wait_for(run(), MT_TIMEOUT_S)
-        except asyncio.CancelledError:
-            raise
-        except Exception as e:  # noqa: BLE001
-            log.warning("segment %s/%d -> %s failed: %s: %s", lane.utt, seg.index, lane.tgt,
-                        e.__class__.__name__, e)
+            try:
+                async with p.sched.slot("live"):
+                    await asyncio.wait_for(run(), MT_TIMEOUT_S)
+            except asyncio.CancelledError:
+                raise
+            except Exception as e:  # noqa: BLE001
+                log.warning("segment %s/%d -> %s failed: %s: %s", lane.utt, seg.index, lane.tgt,
+                            e.__class__.__name__, e)
+        if seg.rev != rev:
+            return  # the final rewrote it meanwhile: translated again from the final's words (queued)
         seg.text = "".join(parts).strip()
+        seg.gres, seg.guard_ok, seg.skip = None, False, False
         await self._final(lane, seg)
         if not seg.text:
-            await p.emit("verify.facts", {"target_lang": lane.tgt, "seg": seg.index, "facts": [], "red": False,
-                                          "error": "translation failed"}, utt=lane.utt)
+            if src.strip():
+                await p.emit("verify.facts", {"target_lang": lane.tgt, "seg": seg.index, "facts": [], "red": False,
+                                              "error": "translation failed"}, utt=lane.utt)
             return
 
         # fact guard: code, ~0.2 ms; it gates this segment's voice
-        res, ok = _guard_call(guard.check, seg.src, lane.src_lang, seg.text, lane.tgt, kinds=p.mode.guard.kinds,
+        res, ok = _guard_call(guard.check, src, lane.src_lang, seg.text, lane.tgt, kinds=p.mode.guard.kinds,
                               confirm_on=p.mode.guard.confirm_on, glossary=p.glossary)
         seg.gres, seg.guard_ok = res, ok
         facts: dict[str, Any] = {"target_lang": lane.tgt, "seg": seg.index, "facts": [], "red": False}
@@ -613,7 +757,8 @@ class Simultaneous:
                                        "back_translation": result.back_translation}, utt=lane.utt)
         if not flagged:  # the room's facts: noted (all green) or read back once (room.py, readback.py)
             flagged = await p._settle_facts(rec, lane.tgt, gres, ask_badge(result))
-        if result.badge == "red" and not flagged:  # already shown and spoken
+        # already shown and spoken; or the final rewrote a segment the listener had heard (corrected on screen)
+        if (result.badge == "red" or lane.misheard) and not flagged:
             texts = T.all_langs(T.CORRECTION, lane.tgt)
             await p.emit("flag", {"kind": "mismatch", "text": T.pick(texts, lane.tgt), "needs_confirm": True,
                                   "id": f"{lane.utt}-{lane.tgt}-correction",
@@ -624,46 +769,127 @@ class Simultaneous:
     # ------------------------------------------------------------ voice
 
     async def _voice_worker(self, lane: _Lane) -> None:
-        """Speak the lane's segments in order. Holds the room's voice lane for this language (room.py
-        ``_voice_lanes``) for the whole utterance, like ``_speak_stream``: other utterances into this
-        language speak before or after it, never in between, and the track has one writer."""
+        """Speak the lane's segments in index order, each once it is translated as it now stands (``ready``:
+        a segment the final rewrote waits for its new translation). Holds the room's voice lane for this
+        language (room.py ``_voice_lanes``) for the whole utterance, like ``_speak_stream``: other utterances
+        into this language speak before or after it, never in between, and the track has one writer. A held
+        lane first waits for the end of the turn (``release``, after the final-revision guard)."""
         from raum.pipeline.room import VOICE_IDLE_S
 
-        assert lane.voice_q is not None
         p = self.p
-        p.echo_check.track(lane.marks, lane.utt, lane.tgt)  # echo_check.py: segments with figures are heard back
-        carry = ""  # a segment too short for the cloned voice waits and goes with the next one
         try:
+            if lane.held:
+                await lane.release.wait()  # played aloud next to the speaker's mic: never over them
+                if lane.discard:
+                    return
+            p.echo_check.track(lane.marks, lane.utt, lane.tgt)  # echo_check.py: segments with figures heard back
             async with p._voice_lanes.setdefault(lane.tgt, asyncio.Lock()):
-                while True:
-                    try:
-                        seg = await asyncio.wait_for(lane.voice_q.get(), VOICE_IDLE_S)
-                    except TimeoutError:
-                        log.warning("voice %s: no segment for %.0f s, releasing the lane", lane.tgt, VOICE_IDLE_S)
-                        return
-                    if seg is None:
-                        if carry and not p._voice_paused(lane.tgt) and not p._closed:
-                            await self._say(lane, carry)
-                        await p.echo_check.flush(lane.tgt, lane.marks)  # echo_check.py: a repeat already due
-                        return
-                    if seg.skip:
-                        log.info("%s-%s-s%d: fact guard red, not spoken (read back after)", lane.utt, lane.tgt,
-                                 seg.index)
-                        continue
-                    if not seg.text or p._voice_paused(lane.tgt) or p._closed:
-                        continue
-                    text = f"{carry} {seg.text}".strip() if carry else seg.text
-                    floor = p.min_voice_words(lane.speaker)
-                    if floor and len(text.split()) < floor:
-                        carry = text
-                        continue
-                    carry = ""
-                    await self._say(lane, text)
+                try:
+                    await self._play(lane)
+                except TimeoutError:
+                    log.warning("voice %s: no segment for %.0f s, releasing the lane", lane.tgt, VOICE_IDLE_S)
+                    return
+                await p.echo_check.flush(lane.tgt, lane.marks)  # echo_check.py: a repeat already due
         finally:
             lane.voice_done.set()
+            self._forget_ahead(lane)
 
-    async def _say(self, lane: _Lane, text: str) -> None:
-        first = await self.p._speak(lane.tgt, text, 0.0, lane.voice_args, lane.marks,  # t0 0: monotonic ms
-                                    utt=lane.utt)
+    async def _play(self, lane: _Lane) -> None:
+        from raum.pipeline.room import VOICE_IDLE_S
+
+        p = self.p
+        i = 0
+        carry: list[_Seg] = []  # segments too short for the cloned voice go with the next one
+        while True:
+            while i >= len(lane.segs) and not lane.closed:
+                lane.grew.clear()
+                await asyncio.wait_for(lane.grew.wait(), VOICE_IDLE_S)
+            if i >= len(lane.segs):
+                break
+            seg = lane.segs[i]
+            await asyncio.wait_for(seg.ready.wait(), VOICE_IDLE_S)
+            i += 1
+            if seg.skip:
+                seg.passed = True
+                log.info("%s-%s-s%d: fact guard red, not spoken (read back after)", lane.utt, lane.tgt, seg.index)
+                continue
+            if not seg.text or p._voice_paused(lane.tgt) or p._closed:
+                seg.passed = True
+                continue
+            group = [*carry, seg]
+            floor = p.min_voice_words(lane.speaker)
+            if floor and len(" ".join(s.text for s in group).split()) < floor:
+                carry = group
+                continue
+            carry = []
+            await self._say_group(lane, group, i)
+        if carry and not p._voice_paused(lane.tgt) and not p._closed:
+            await self._say_group(lane, carry, i)
+
+    async def _say_group(self, lane: _Lane, group: list[_Seg], nxt_at: int) -> None:
+        from raum.pipeline.room import VOICE_IDLE_S
+
+        for s in group:  # a carried segment the final rewrote meanwhile: its new translation
+            await asyncio.wait_for(s.ready.wait(), VOICE_IDLE_S)
+        group = [s for s in group if s.text and not s.skip]
+        text = " ".join(s.text for s in group)
+        for s in group:
+            s.passed = s.spoken = True
+        if not text:
+            return
+        nxt = self._peek(lane, nxt_at)
+        voice = self._voice(lane, behind=nxt is not None)
+        tts = self.p.engines.tts
+        if tts is not None:  # speculate.py: this one from the cache (held: made ahead), the next one made meanwhile
+            self.p.spec.prepare(tts, lane.tgt, text, nxt, self.p._voice_kwargs(tts, voice), utt=lane.utt)
+        await self._say(lane, text, voice)
+
+    def _peek(self, lane: _Lane, i: int) -> str | None:
+        """What the voice says after segment ``i - 1``, if it is translated already (None: not yet / nothing)."""
+        floor = self.p.min_voice_words(lane.speaker)
+        parts: list[str] = []
+        for s in lane.segs[i:]:
+            if not s.ready.is_set():
+                return None
+            if s.skip or not s.text:
+                continue
+            parts.append(s.text)
+            if not floor or len(" ".join(parts).split()) >= floor:
+                return " ".join(parts)
+        return " ".join(parts) if parts and lane.closed else None
+
+    def _voice(self, lane: _Lane, *, behind: bool) -> Any:
+        """The lane's voice args; a live lane whose next segment already waits catches up a little."""
+        voice = lane.voice_args
+        if behind and not lane.held and voice is not None:
+            voice = replace(voice, rate=max(float(voice.rate or 1.0), CATCHUP_RATE))
+        return voice
+
+    def _ahead(self, lane: _Lane, seg: _Seg) -> None:
+        """A held lane's segment, translated while the speaker still talks: its voice is made now in the
+        background (speculate ``ahead``, after the one before), cut as the voice worker will cut it, so that it
+        plays from the cache at the end of the turn."""
+        if lane.voice is None or seg.skip or not seg.text:
+            return
+        text = f"{lane.ahead_carry} {seg.text}".strip()
+        floor = self.p.min_voice_words(lane.speaker)
+        if floor and len(text.split()) < floor:
+            lane.ahead_carry = text
+            return
+        lane.ahead_carry = ""
+        v = self.p.spec.ahead(lane.tgt, text, lane.voice_args, after=lane.ahead[-1] if lane.ahead else None)
+        if v is not None:
+            lane.ahead.append(v)
+
+    def _forget_ahead(self, lane: _Lane) -> None:
+        """The lane is done (or stopped): voice made ahead that never played goes (a segment the final rewrote)."""
+        self._held.discard(lane)
+        if lane.ahead:
+            self.p.spec.forget(lane.ahead)
+            lane.ahead = []
+
+    async def _say(self, lane: _Lane, text: str, voice: Any = None) -> None:
+        first = await self.p._speak(lane.tgt, text, 0.0, voice if voice is not None else lane.voice_args,
+                                    lane.marks, utt=lane.utt)  # t0 0: monotonic ms
         if lane.first_voice_ms is None and first is not None:
             lane.first_voice_ms = first

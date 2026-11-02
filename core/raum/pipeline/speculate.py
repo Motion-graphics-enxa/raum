@@ -3,8 +3,9 @@
 While the speaker is finishing, the latest candidate text is translated in the background, at low priority
 (scheduler ``background`` slot): a partial that reads as a finished utterance (``simul.complete``; usually
 the partial before the stable one, which is the final), or the early final transcript of a pause while the
-semantic end of turn (turn.py) waits out the silence. One speculation per utterance and language; a newer text replaces it. Nothing of it is
-ever emitted. When the turn's translation
+semantic end of turn (turn.py) waits out the silence. One speculation per utterance and language; a newer text replaces it. A partial
+is speculated only when it adds a complete clause since the last one (or ``SPEC_EVERY_S`` passed); the pause's
+early final always is. Nothing of it is ever emitted. When the turn's translation
 starts and the final transcript equals that text (whitespace and case normalised; same direction, context
 and glossary), the finished (or still streaming) speculative translation is replayed as the live deltas:
 MT ~ 0 ms after the endpoint. Otherwise it is discarded.
@@ -52,6 +53,7 @@ _MAX_VOICES = 32
 SPEC_CLAUSES = 4  # clauses of one speculation synthesised ahead
 SPEC_AUDIO_S = 15.0  # ... or this much audio, whichever comes first
 _VOICE_TTL_S = 60.0  # an unclaimed cached clause older than this is dropped
+SPEC_EVERY_S = 2.0  # a growing partial without a new complete clause is speculated again at most this often
 
 
 def _vkey(lang: str, text: str) -> tuple[str, str]:
@@ -143,6 +145,7 @@ class Speculator:
         self._live = 0  # live syntheses running in this room: speculative ones wait / stop for them
         self._live_idle = asyncio.Event()
         self._live_idle.set()
+        self._last: dict[str, tuple[float, int]] = {}  # utt -> (monotonic, clauses) of its last partial speculated
 
     @property
     def enabled(self) -> bool:
@@ -157,6 +160,9 @@ class Speculator:
         path whenever the verdict ends the turn). ``seconds``: how long the speaker spoke (voice.py
         ``speech_seconds``), so the pre-synthesised phrase gets the pace the live call will use."""
         if not self.enabled or not text.strip() or u.closed:
+            return
+        if slot == "background" and not self._due(u.id, text, lang):
+            stats.note("spec.partial", skipped=1)
             return
         text = self.p.fix_terms(text, lang)  # as room._turn will correct the final, or the key never matches
         lanes = self.p.simul.lanes(u.id)
@@ -266,23 +272,68 @@ class Speculator:
             v.go.set()
         self._evict()
 
+    def ahead(self, lang: str, text: str, voice: Any, *, after: _Voice | None = None) -> _Voice | None:
+        """A committed segment of a held simultaneous lane (simul.py): voiced now in the background, after the
+        lane's segment before it, played from the cache at the end of the turn if the final still says it. Not
+        tied to the utterance id: a resume (``drop``) does not undo what was committed; the lane forgets what it
+        never played (``forget``); burn / session end clear it like every cached audio."""
+        tts = self.p.engines.tts
+        if tts is None or not text.strip():
+            return None
+        kw = self.p._voice_kwargs(tts, voice)
+        v = self._cached(lang, text, kw)
+        if v is None:
+            v = self._start(tts, text, lang, kw, kind="spec", after=after)
+            self._voices[_vkey(lang, text)] = v
+            self._evict()
+        return v
+
+    def forget(self, voices: list[_Voice]) -> None:
+        """Audio made ahead that will not be played (simul.py: a segment the final rewrote): stopped, uncached."""
+        drop = {id(v) for v in voices if not v.claimed}
+        for key in [k for k, v in self._voices.items() if id(v) in drop]:
+            del self._voices[key]
+        for v in voices:
+            if id(v) in drop:
+                self._stop(v)
+
     def drop(self, utt: str) -> None:
         for key in [k for k in self._specs if k[0] == utt]:
             self._cancel(self._specs.pop(key))
         for key in [k for k, v in self._voices.items() if v.utt == utt and not v.claimed]:
             self._stop(self._voices.pop(key))
+        self._last.pop(utt, None)
 
     def clear(self) -> None:
         """Burn / session end / close: every cached audio goes (it may be the speaker's cloned voice)."""
         for spec in self._specs.values():
             self._cancel(spec)
         self._specs.clear()
+        self._last.clear()
         for v in self._voices.values():
             self._stop(v)
         self._voices.clear()
         self._playing.clear()
 
     # ------------------------------------------------------------ internals
+
+    def _due(self, utt: str, text: str, lang: str) -> bool:
+        """Speculate on this partial? Only if it adds a complete clause since the utterance's last speculation
+        (simul.py ``commit_points``: the cuts a stable text has), or ``SPEC_EVERY_S`` have passed. Before, every
+        growing partial was translated again (8-10x per turn on the box) and starved the background slot the
+        partials themselves need."""
+        from raum.pipeline.simul import commit_points
+
+        words = text.split()
+        n = len(commit_points(words, words, lang))
+        now = time.monotonic()
+        last = self._last.get(utt)
+        if last is not None and n <= last[1] and now - last[0] < SPEC_EVERY_S:
+            return False
+        self._last[utt] = (now, n)
+        while len(self._last) > _MAX_VOICES:
+            self._last.pop(next(iter(self._last)))
+        return True
 
     def _cancel(self, spec: _Spec, *, stop: bool = True) -> None:
         spec.failed = True

@@ -63,6 +63,12 @@ class PipelineModeConfig(_Strict):
 
     simultaneous: Literal["auto", "off"] = "auto"
     simultaneous_after_ms: float = 0.0  # simultaneous only once the turn has this much speech (long turns)
+    # listeners who play the voice aloud (audio_out speaker / room), raum.pipeline.simul. "consecutive": only
+    # headphone listeners go simultaneous. "held": their segments show as text while the speaker talks and their
+    # voice is made ahead, played at the end of the turn. "live": voiced while the speaker talks too, unless the
+    # speaker's own mic would hear it (echo.paused_for: a room speakerphone), then held. Both: a sentence the
+    # final transcript rewrote is never voiced in its stale version (simul.py, the final-revision guard).
+    loudspeaker: Literal["consecutive", "held", "live"] = "consecutive"
     # a sentence cut at a pause: the same speaker again within this many ms of an end of turn whose voice still
     # plays (or has none) continues it; its voice stops and both parts are transcribed, translated and spoken
     # as one (raum.pipeline.merge). 0 = off (everyday rooms: two short sentences stay two)

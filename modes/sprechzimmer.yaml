@@ -24,7 +24,9 @@ summary:
   file_note_for: a
 buttons: [off_record, repeat_back, human_interpreter, end]
 retention: { auto_burn_minutes: 30 }
-# Consecutive with smart endpointing; simultaneous (headphone listeners) only for long turns, at complete
-# sentence ends: a German clause never goes out before its finite verb or particle. A sentence cut at a pause
-# ("... ab morgen | nicht mehr nehmen.") is merged again if the doctor goes on within 1.2 s (its voice stops).
-pipeline: { simultaneous: auto, simultaneous_after_ms: 4000, merge_continuation_ms: 1200 }
+# Simultaneous once the turn has 1.5 s of speech, for headphone and loudspeaker listeners (loudspeaker: live;
+# held to the end of the turn where the doctor's own mic would hear it), at complete clauses: a German clause
+# never goes out before its finite verb or particle (incomplete.py). A sentence the final transcript rewrote is
+# voiced in the final's version, never the stale one. A sentence cut at a pause ("... ab morgen | nicht mehr
+# nehmen.") is merged again if the doctor goes on within 1.2 s (its voice stops).
+pipeline: { simultaneous: auto, simultaneous_after_ms: 1500, merge_continuation_ms: 1200, loudspeaker: live }
