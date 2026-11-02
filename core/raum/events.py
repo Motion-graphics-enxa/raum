@@ -211,6 +211,10 @@ class PipelineTiming(_Data):
     asr_from: Literal["partial", "early", "final"] | None = None  # which transcript became final
     asr_early: bool | None = None  # the final ASR ran during the end-of-turn wait
     eot: dict[str, Any] | None = None  # semantic end of turn: verdict, probabilities, wait (turn.py)
+    # voice echo check (raum.pipeline.echo_check), when a clause with figures was heard back: the slowest
+    # clause from synthesized to heard and compared, and the worst result of the utterance's clauses
+    echo_ms: float | None = None
+    echo_check: Literal["match", "unclear", "mismatch", "skipped"] | None = None
     # also sent as extras in simultaneous mode only: simultaneous (true), segs (number of segments)
 
 
@@ -218,6 +222,19 @@ class VoiceState(_Data):  # extension (C-14): the box's voice is playing in a la
     target_lang: str
     playing: bool
     paused: list[str] = Field(default_factory=list)  # identities whose mic is paused meanwhile
+
+
+class VoiceEcho(_Data):  # extension (raum.pipeline.echo_check): the voice said another figure than the text
+    # The box heard its own voice back (ASR of the synthesized clause) and the fact guard found a figure of the
+    # clause said with another value. The listener's card notes "spoken: 50 mg · written: 500 mg"; the clause
+    # is said once more in the standard voice ("I repeat: ..."); core writes the audit line
+    # ``voice.echo_mismatch`` (the kind only). A figure the box did not hear clearly sends nothing.
+    target_lang: str
+    kind: str  # dose | number | date | time
+    spoken: str  # the figure as the voice was heard to say it
+    written: str  # the figure as written in the translation
+    clause: int | None = None  # the clause of this utterance's voice in that language, 0-based
+    text: str | None = None  # that clause as written (the words said again)
 
 
 VoiceLockStatus = Literal["enrolling", "match", "mismatch", "short", "unchecked"]
@@ -314,6 +331,7 @@ EVENT_TYPES: dict[str, type[BaseModel]] = {
     "document.ready": DocumentReady,
     "pipeline.timing": PipelineTiming,
     "voice.state": VoiceState,
+    "voice.echo": VoiceEcho,
     "voice.lock": VoiceLockResult,
     "session.state": SessionState,
     "privacy.meter": PrivacyMeter,
@@ -342,6 +360,7 @@ EventType = Literal[
     "document.ready",
     "pipeline.timing",
     "voice.state",
+    "voice.echo",
     "voice.lock",
     "session.state",
     "privacy.meter",
@@ -364,6 +383,7 @@ CONTENT_EVENTS = frozenset(
         "explain.sent",
         "document.ready",
         "summary.ready",
+        "voice.echo",
     }
 )
 

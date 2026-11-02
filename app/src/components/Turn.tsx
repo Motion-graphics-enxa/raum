@@ -66,6 +66,8 @@ export function TurnView({
   const sayAgain = turn.uncertain;
   const flagText = turn.flags.find((f) => f.kind === "uncertain");
   const corrected = turn.corrected?.[viewLang];
+  // the box heard its voice say a figure otherwise than written (it says the clause again): the listener's note
+  const echo = mine ? [] : turn.echo?.[viewLang] ?? [];
 
   return (
     <article
@@ -121,6 +123,30 @@ export function TurnView({
             <div className="turn__facts" dir={isRtl(myLang) ? "rtl" : "ltr"}>
               <FactDims facts={facts} lang={myLang} state={state} />
             </div>
+          ) : null}
+          {echo.length ? (
+            <ul className="turn__echo" aria-label={t(myLang, "talk.echo_note")} dir={isRtl(myLang) ? "rtl" : "ltr"}>
+              {echo.map((n) => (
+                <li key={`${n.clause ?? ""}-${n.kind}-${n.written}`} className="turn__echo-row">
+                  <span className="turn__echo-pairs">
+                    <span className="turn__echo-pair">
+                      <span className="turn__echo-sep" aria-hidden="true">·</span>
+                      <span className="turn__echo-label">{t(myLang, "talk.echo_spoken")}</span>
+                      <s className="turn__echo-spoken mono" lang={n.target_lang}>
+                        <bdi>{n.spoken}</bdi>
+                      </s>
+                    </span>
+                    <span className="turn__echo-pair">
+                      <span className="turn__echo-sep" aria-hidden="true">·</span>
+                      <span className="turn__echo-label">{t(myLang, "talk.echo_written")}</span>
+                      <span className="turn__echo-written mono" lang={n.target_lang}>
+                        <bdi>{n.written}</bdi>
+                      </span>
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
           ) : null}
         </>
       )}

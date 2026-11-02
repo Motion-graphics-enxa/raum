@@ -1,4 +1,4 @@
-"""Localised texts the pipeline puts into ``flag`` events (de, en, tr, ru, ar; fallback en)."""
+"""Localised texts the pipeline puts into ``flag`` events or says (de, en, tr, ru, ar; fallback en)."""
 
 from __future__ import annotations
 
@@ -45,6 +45,16 @@ CORRECTION = {
     "tr": "Düzeltme: Bu kısım yanlış çevrilmiş olabilir. Lütfen karşınızdaki kişiye sorun.",
     "ru": "Поправка: эта часть, возможно, переведена неверно. Пожалуйста, уточните у собеседника.",
     "ar": "تصحيح: ربما تُرجم هذا الجزء بشكل خاطئ. يرجى التأكد من الطرف الآخر.",
+}
+
+# spoken (echo_check.py): before a clause the voice said with a wrong figure, said again in the standard voice.
+# No fallback: a language without its own line hears the clause alone.
+REPEAT = {
+    "de": "Ich wiederhole:",
+    "en": "I repeat:",
+    "tr": "Tekrar ediyorum:",
+    "ru": "Повторяю:",
+    "ar": "أكرر:",
 }
 
 LABELS = {

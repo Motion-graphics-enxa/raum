@@ -117,10 +117,22 @@ export interface EventData {
     asr_from?: "partial" | "early" | "final" | null; // which transcript became final
     asr_early?: boolean | null; // the final ASR ran during the end-of-turn wait
     eot?: Record<string, unknown> | null; // semantic end of turn (verdict, probabilities, wait)
+    echo_ms?: number | null; // voice echo check: clause synthesized -> heard back and compared (slowest clause)
+    echo_check?: "match" | "unclear" | "mismatch" | "skipped" | null; // its worst result for the utterance
     simultaneous?: boolean | null;
     segs?: number | null;
   };
   "voice.state": { target_lang: string; playing: boolean; paused?: string[] };
+  /** Voice echo check: the box heard its own voice say another figure than the text. The listener's card
+   * notes "spoken: 50 mg · written: 500 mg"; the clause is said again in the standard voice. */
+  "voice.echo": {
+    target_lang: string;
+    kind: string; // dose | number | date | time
+    spoken: string; // the figure as the voice was heard to say it
+    written: string; // the figure as written in the translation
+    clause?: number | null; // the clause of this utterance's voice in that language, 0-based
+    text?: string | null; // that clause as written
+  };
   /** F-10 voice lock: one per utterance while the lock is on. accepted=false: not the device owner's voice,
    * the utterance is dropped (no transcript.final, not translated, spoken, stored or summarized). */
   "voice.lock": {
@@ -178,6 +190,7 @@ export const EVENT_TYPES = [
   "document.ready",
   "pipeline.timing",
   "voice.state",
+  "voice.echo",
   "voice.lock",
   "session.state",
   "privacy.meter",

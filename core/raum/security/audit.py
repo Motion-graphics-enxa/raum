@@ -4,7 +4,8 @@ Each line: ``{ts, session, event, meta, prev, hash}`` with
 ``hash = sha256(prev + canonical_json(line_without_hash))``; the first line's prev is 64 zeros.
 
 Events: session_start, consent, models, off_record_on, off_record_off, summary_approved,
-key_destroyed (and: session_end, sealed_on, sealed_off, human_interpreter, burn_all).
+key_destroyed (and: session_end, sealed_on, sealed_off, human_interpreter, burn_all, voice.echo_mismatch:
+the voice said another figure than the text, meta {kind, target_lang} only).
 
 CONTRACT (implemented by the security workstream; signatures are fixed).
 
