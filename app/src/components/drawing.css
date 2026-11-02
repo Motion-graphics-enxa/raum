@@ -2,17 +2,26 @@
 .facts {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
-  gap: var(--s-3) var(--s-5);
+  align-items: stretch;
+  gap: var(--s-2);
 }
 
+/* a checked fact is a chip: value (mono) over its kind, and a state line along the chip's foot.
+   Line type is the state: solid = verified, dashed = checking, dotted = unsure. */
 .dim {
   --c: var(--pending);
+  position: relative;
   display: inline-grid;
-  grid-template-rows: auto 12px auto;
-  justify-items: center;
+  grid-template-rows: auto auto;
+  justify-items: start;
+  align-content: center;
   min-width: 64px;
+  padding: 7px 14px 8px;
+  border-radius: 14px;
+  background: var(--glass-strong);
+  box-shadow: var(--glass-hi), inset 0 0 0 1px color-mix(in oklab, var(--c) 35%, var(--rule));
   color: var(--c);
+  overflow: hidden;
 }
 .dim--ok {
   --c: var(--ok);
@@ -24,30 +33,40 @@
   --c: var(--bad);
 }
 
+/* figures in the word face: Atkinson Next digits are as unambiguous, and Arabic values join correctly */
+.dim__value.mono,
+.cloud__pair.mono {
+  font-family: var(--font-text);
+}
 .dim__value {
   unicode-bidi: isolate;
-  font-size: 1rem;
-  font-weight: 640;
+  font-size: 1.0625rem;
+  font-weight: 700;
   color: var(--ink);
-  padding: 0 var(--s-2);
   line-height: 1.3;
   white-space: nowrap;
   animation: dim-settle 260ms var(--ease-out) both;
   animation-delay: calc(var(--dim-delay, 0ms) + 120ms);
 }
 
+/* the state line runs along the chip's foot, under the kind (grid order: value, kind, line) */
 .dim__line {
   position: relative;
+  order: 3;
   width: 100%;
-  height: 12px;
+  height: 3px;
+  margin-top: 5px;
 }
-/* the dimension line itself: line type carries the state */
+.dim__kind {
+  order: 2;
+}
+/* the state line: draws from the start when the check lands */
 .dim__line::before {
   content: "";
   position: absolute;
   inset-inline: 0;
-  top: 50%;
-  border-top: 1.5px solid var(--c);
+  top: 0;
+  border-top: 2.5px solid var(--c);
   transform-origin: left center;
   animation: dim-draw var(--t-draw) var(--ease-out) both;
   animation-delay: var(--dim-delay, 0ms);
@@ -60,15 +79,12 @@
 }
 .dim--unsure .dim__line::before {
   border-top-style: dotted;
-  border-top-width: 2px;
+  border-top-width: 3px;
 }
 
 /* extension line + 45° architectural tick at each end */
 .dim__end {
-  position: absolute;
-  top: 0;
-  width: 0;
-  height: 12px;
+  display: none;
 }
 .dim__end--s {
   inset-inline-start: 0;
@@ -101,11 +117,12 @@
 }
 
 .dim__kind {
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
+  font-family: var(--font-label);
+  font-size: 0.75rem;
+  font-weight: 650;
   letter-spacing: var(--label-track);
-  text-transform: uppercase;
-  color: var(--ink-3);
+  text-transform: var(--label-case);
+  color: var(--ink-2);
   margin-top: 1px;
 }
 
@@ -130,20 +147,20 @@
 }
 
 /* ---------------------------------------------------------------- revision cloud */
+/* mismatch: the one chip that interrupts. Solid red rim, a red wash, the wrong value struck through */
 .cloud {
   position: relative;
   display: inline-grid;
-  justify-items: center;
-  padding: var(--s-1) var(--s-2);
+  justify-items: start;
+  padding: 7px 14px 8px;
+  border-radius: 14px;
+  background: color-mix(in oklab, var(--bad) 10%, var(--glass-strong));
+  box-shadow: inset 0 0 0 2px var(--bad);
   color: var(--bad);
-  margin: 7px;
+  animation: dim-settle 260ms var(--ease-out) both;
 }
 .cloud__svg {
-  position: absolute;
-  left: -7px;
-  top: -7px;
-  overflow: visible;
-  pointer-events: none;
+  display: none;
 }
 .cloud__svg path {
   fill: none;
@@ -192,6 +209,8 @@
 .hatch {
   flex: none;
   color: var(--room, var(--ink));
+  border-radius: 7px;
+  background: color-mix(in oklab, var(--room, var(--ink)) 12%, transparent);
 }
 .hatch--sprechzimmer {
   --room: var(--room-sprechzimmer);
@@ -221,32 +240,34 @@
 
 /* ---------------------------------------------------------------- verify mark */
 .vmark {
-  --c: var(--ink-3);
+  --c: var(--ink-2);
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 28px;
-  padding: 2px 10px 2px 6px;
-  border: 1.5px solid var(--c);
-  border-radius: var(--radius);
-  background: transparent;
+  min-height: 30px;
+  padding: 2px 11px 2px 7px;
+  border: 1.5px solid color-mix(in oklab, var(--c) 70%, transparent);
+  border-radius: var(--radius-pill);
+  background: color-mix(in oklab, var(--c) 9%, transparent);
   color: var(--c);
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  font-weight: 640;
+  font-family: var(--font-label);
+  font-size: 0.8125rem;
+  letter-spacing: 0;
+  text-transform: var(--label-case);
+  font-weight: 700;
   line-height: 1;
   white-space: nowrap;
 }
 @media (hover: hover) {
   button.vmark:hover {
-    background: var(--paper-2);
+    background: color-mix(in oklab, var(--c) 16%, transparent);
   }
 }
+/* the live draft tag (state "translating"): dotted pill, a breathing dot instead of a spinner */
 .vmark--translating {
-  border-color: transparent;
-  padding-inline-start: 0;
+  border-style: dotted;
+  border-width: 2px;
+  background: var(--frost);
 }
 .vmark--pending {
   border-style: dashed;
@@ -286,9 +307,16 @@
   border: 1.5px dashed currentColor;
 }
 .vmark--translating .vmark__ring {
-  border-style: solid;
-  border-color: currentColor transparent currentColor transparent;
-  animation: spin 1.1s linear infinite;
+  width: 8px;
+  height: 8px;
+  border: 0;
+  background: currentColor;
+  animation: breathe 1.2s ease-in-out infinite;
+}
+@keyframes breathe {
+  50% {
+    opacity: 0.25;
+  }
 }
 .vmark--amber .vmark__ring,
 .vmark--uncertain .vmark__ring {
@@ -296,8 +324,8 @@
   border-width: 2px;
 }
 .vmark__ms {
-  color: var(--ink-3);
-  font-weight: 500;
+  color: var(--ink-2);
+  font-weight: 560;
   letter-spacing: 0.02em;
   text-transform: none;
 }

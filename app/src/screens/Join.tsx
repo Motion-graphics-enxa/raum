@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { api, ApiError, listOf, useFeatures, type ModeConfig } from "../lib/api";
 import type { Role } from "../lib/events";
-import { isRtl, pick, t } from "../lib/i18n";
+import { UI_LANG, pick, t } from "../lib/i18n";
 import {
   deviceAudioOut,
   deviceKind,
@@ -63,7 +63,7 @@ export default function Join() {
     };
   }, [room]);
 
-  const dir = isRtl(lang) ? "rtl" : "ltr";
+  const dir = "ltr"; // the chrome is English on every phone; the language picker names each language in its own script
 
   const join = async () => {
     setBusy(true);
@@ -92,19 +92,19 @@ export default function Join() {
   };
 
   return (
-    <div className="screen screen--join" dir={dir} lang={lang}>
-      <header className={`tblock tblock--${mode?.id ?? "x"}`}>
-        <div className="tblock__row">
-          {mode ? <Hatch mode={mode.id} size={22} className="tblock__hatch" /> : null}
-          <div className="tblock__title">
-            <span className="tblock__name">{mode ? mode.name.de : "RAUM"}</span>
-            {mode && lang !== "de" ? <span className="tblock__gloss">{pick(mode.name, lang)}</span> : null}
-          </div>
-          <span className="tblock__status mono">{room.toUpperCase()}</span>
-        </div>
+    <div className={`screen screen--join room--${mode?.id ?? "x"}`} dir={dir} lang={UI_LANG}>
+      <header className={`tblock tblock--join tblock--${mode?.id ?? "x"}`}>
         <div className="join__brand">
           <span className="join__word">RAUM</span>
           <span className="join__slogan">{t(lang, "app.slogan")}</span>
+        </div>
+        <div className="tblock__row">
+          {mode ? <Hatch mode={mode.id} size={30} className="tblock__hatch" /> : null}
+          <div className="tblock__title">
+            <span className="tblock__name">{mode ? pick(mode.name, UI_LANG) : "RAUM"}</span>
+            {mode && mode.name.de ? <span className="tblock__gloss">{mode.name.de}</span> : null}
+          </div>
+          <span className="tblock__status mono">{room.toUpperCase()}</span>
         </div>
       </header>
 
@@ -118,7 +118,7 @@ export default function Join() {
         <h1 className="join__role" aria-live="polite">
           <span className="join__role-pre">{t(lang, "join.you_are")} </span>
           <span className="join__role-name">
-            {mode ? mode.roles[role].label[lang] ?? pick(mode.roles[role].label, lang) : t(lang, `role.${role}`)}
+            {mode ? pick(mode.roles[role].label, UI_LANG) : t(lang, `role.${role}`)}
           </span>
         </h1>
 
@@ -126,12 +126,12 @@ export default function Join() {
           <label className="label" htmlFor="lang">
             {t(lang, "join.language")}
           </label>
-          <LanguagePicker lang={lang} onChange={setLang} uiLang={lang} />
+          <LanguagePicker lang={lang} onChange={setLang} uiLang={UI_LANG} />
         </section>
 
         <section className="join__lang">
           <span className="label">{t(lang, "join.audio_out")}</span>
-          <AudioOutPicker value={audioOut} onChange={setAudioOut} uiLang={lang} />
+          <AudioOutPicker value={audioOut} onChange={setAudioOut} uiLang={UI_LANG} />
         </section>
 
         {voiceClone ? (
@@ -147,12 +147,6 @@ export default function Join() {
           </h2>
           <p className="join__consent-body">{t(lang, "join.consent.body")}</p>
           {voiceClone ? <p className="join__consent-body">{t(lang, "join.consent.voice")}</p> : null}
-          {lang !== "de" ? (
-            <p className="join__consent-de" lang="de" dir="ltr">
-              {t("de", "join.consent.title")} {t("de", "join.consent.body")}
-              {voiceClone ? ` ${t("de", "join.consent.voice")}` : null}
-            </p>
-          ) : null}
           <p className="label join__aiact">{t(lang, "join.consent.ai_act")}</p>
         </section>
 

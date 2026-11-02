@@ -2,7 +2,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { api, eventsSocketUrl, useFeatures } from "../lib/api";
-import { isRtl, langName, pick, t } from "../lib/i18n";
+import { UI_LANG, langName, pick, t } from "../lib/i18n";
 import { useEventSocket, useLiveRoom, type LiveSession } from "../lib/live";
 import {
   clearJoin,
@@ -71,7 +71,8 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
   const textDown = events === "reconnecting" && linkLate;
   const mode = join.mode;
   const myRole = join.role;
-  const dir = isRtl(myLang) ? "rtl" : "ltr";
+  // The chrome is English, left to right; each sentence carries its own lang and dir (Turn, ReadBack).
+  const dir = "ltr";
   const [menu, setMenu] = useState(false);
   const [answered, setAnswered] = useState<Map<string, boolean>>(() => new Map()); // read-backs I tapped
   const [ending, setEnding] = useState(false);
@@ -241,9 +242,9 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
 
   return (
     <div
-      className={`screen screen--talk ${offRecord ? "is-off" : ""}`}
+      className={`screen screen--talk room--${mode.id} ${offRecord ? "is-off" : ""}`}
       dir={dir}
-      lang={myLang}
+      lang={UI_LANG}
       onPointerDown={() => {
         unlockSound();
         live.startAudio(); // iOS: the box's voice may only start from a tap
@@ -259,9 +260,11 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
         link={live.state}
         offRecord={offRecord}
         onMenu={() => setMenu(true)}
+        roles={[t(myLang, "talk.you_label"), roleLabel(otherRole) || t(myLang, "talk.other_label")]}
+        audioOut={audioOut}
       />
 
-      {live.state === "reconnecting" ? <div className="banner banner--warn" role="status">{t(myLang, "talk.reconnecting")}</div> : null}
+      {live.state === "reconnecting" ? <div className="banner banner--warn banner--reconnect" role="status">{t(myLang, "talk.reconnecting")}</div> : null}
       {live.state === "disconnected" ? (
         <div className="banner banner--bad" role="alert">
           {t(myLang, "talk.disconnected")}{" "}
@@ -278,7 +281,7 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
         </div>
       ) : null}
       {textDown && live.state !== "reconnecting" && live.state !== "disconnected" ? (
-        <div className="banner" role="status">{t(myLang, "talk.reconnecting")}</div>
+        <div className="banner banner--warn banner--reconnect" role="status">{t(myLang, "talk.reconnecting")}</div>
       ) : null}
       {live.audioBlocked && live.state === "connected" ? (
         <div className="banner" role="status">
@@ -290,7 +293,7 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
       {offRecord ? <div className="banner banner--off" role="status">{t(myLang, "talk.off_record_on")}</div> : null}
       {sameLang ? (
         <div className="banner banner--warn" role="alert">
-          {t(myLang, "talk.same_lang").replace("{lang}", langName(sameLang, myLang))}{" "}
+          {t(myLang, "talk.same_lang").replace("{lang}", langName(sameLang, UI_LANG))}{" "}
           <button type="button" className="banner__btn" onClick={() => setMenu(true)}>
             {t(myLang, "talk.change_lang")}
           </button>

@@ -50,21 +50,21 @@ interface Status {
   audit?: { head_hash: string };
 }
 
-const UI = "de";
+const UI = "en"; // English chrome, like every screen
 const DEVICE: Record<string, string> = {
-  phone: "Telefon",
+  phone: "Phone",
   laptop: "Laptop",
   tablet: "Tablet",
-  speakerphone: "Freisprecher",
-  table: "Tisch",
+  speakerphone: "Speakerphone",
+  table: "Table",
   bot: "Bot",
 };
 const AUDIO_OUT: Record<string, string> = {
-  headphones: "Kopfhörer",
-  speaker: "Lautsprecher",
-  room: "Raumlautsprecher",
+  headphones: "Headphones",
+  speaker: "Phone speaker",
+  room: "Room speaker",
 };
-const STATUS: Record<string, string> = { live: "live", ended: "beendet", burned: "vernichtet", idle: "leer" };
+const STATUS: Record<string, string> = { live: "live", ended: "ended", burned: "destroyed", idle: "empty" };
 
 function fmtSpan(s: number): string {
   if (s < 60) return `${Math.max(0, Math.round(s))} s`;
@@ -72,7 +72,7 @@ function fmtSpan(s: number): string {
   return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`;
 }
 
-const clock = (ms: number) => new Date(ms).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+const clock = (ms: number) => new Date(ms).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 
 export default function Admin() {
   const [st, setSt] = useState<Status | null>(null);
@@ -126,7 +126,7 @@ export default function Admin() {
   };
 
   const burn = async (room: string) => {
-    if (!window.confirm(`Raum ${room} vernichten? Der Schlüssel wird gelöscht, das Gespräch ist danach unlesbar.`)) return;
+    if (!window.confirm(`Destroy room ${room}? The key is deleted; the conversation can never be read again.`)) return;
     try {
       await api.burn(room);
     } catch (e) {
@@ -154,29 +154,29 @@ export default function Admin() {
     <div className="screen screen--admin" lang="de">
       <header className="tblock">
         <div className="tblock__row">
-          <span className="tblock__name">RAUM · Verwaltung</span>
+          <span className="tblock__name">RAUM · Admin</span>
           <span className="tblock__gloss mono">
             {st ? `profile ${st.profile}` : ""}
             {st?.version ? ` · v${st.version}` : ""}
-            {st?.uptime_s != null ? ` · läuft seit ${fmtSpan(st.uptime_s)}` : ""}
+            {st?.uptime_s != null ? ` · up ${fmtSpan(st.uptime_s)}` : ""}
           </span>
         </div>
       </header>
       <main className="admin">
         {err ? (
           <p className="banner banner--bad" role="alert">
-            raum-core nicht erreichbar: {err}
+            raum-core unreachable: {err}
           </p>
         ) : null}
 
-        <section className="admin__band" aria-label="Privatsphäre und Box">
+        <section className="admin__band" aria-label="Privacy and box">
           <div className="admin__meter">
-            <span className="admin__meter-n mono">{(st?.meter.third_party_bytes ?? 0).toLocaleString("de-DE")}</span>
-            <span className="label">Bytes an Dritte{st?.meter.source === "stub" ? " · stub" : ""}</span>
+            <span className="admin__meter-n mono">{(st?.meter.third_party_bytes ?? 0).toLocaleString("en-GB")}</span>
+            <span className="label">Bytes to third parties{st?.meter.source === "stub" ? " · stub" : ""}</span>
           </div>
           <div className="admin__meter">
             <span className="admin__meter-n admin__meter-n--s mono">{((st?.meter.tunnel_bytes ?? 0) / 1024).toFixed(1)} KB</span>
-            <span className="label">Tunnel zu eigenen Geräten</span>
+            <span className="label">Tunnel to your own devices</span>
           </div>
           <div className="admin__meter">
             <span className="admin__meter-n admin__meter-n--s mono">{st ? `${Math.round(st.gpu.util_pct)} %` : "—"}</span>
@@ -189,37 +189,37 @@ export default function Admin() {
               onClick={() => void api.seal(!st?.sealed).then(load)}
               aria-pressed={!!st?.sealed}
             >
-              <Shield /> {st?.sealed ? "Versiegelt" : "Versiegeln"}
+              <Shield /> {st?.sealed ? "Sealed" : "Seal the box"}
             </button>
             <button
               type="button"
               className="btn btn--bad"
               onClick={() => {
-                if (window.confirm("Alle Sitzungen vernichten?")) void api.burnAll().then(load);
+                if (window.confirm("Destroy all sessions?")) void api.burnAll().then(load);
               }}
             >
-              <Key /> Alle vernichten
+              <Key /> Destroy all
             </button>
             {st?.sealed ? (
               <p className="admin__sealnote mono" role="status">
                 {seal?.method === "nft"
                   ? seal.applied
-                    ? "ausgehender Verkehr blockiert (nft)"
-                    : `nft-Regel nicht gesetzt: ${seal.error ?? "unbekannt"}`
-                  : "nur Status: auf diesem Gerät kein nft"}
+                    ? "outgoing traffic blocked (nft)"
+                    : `nft rule not set: ${seal.error ?? "unknown"}`
+                  : "status only: no nft on this machine"}
               </p>
             ) : null}
           </div>
         </section>
 
         <section className="admin__sec">
-          <h2 className="admin__h">Neuer Raum</h2>
+          <h2 className="admin__h">New room</h2>
           <div className="admin__new">
             {modes.map((m) => (
               <button key={m.id} type="button" className="admin__mode" onClick={() => void create(m.id)} disabled={busy}>
                 <Hatch mode={m.id} size={28} />
                 <span className="admin__mode-name">{m.name.de}</span>
-                <span className="admin__mode-tag">{pick(m.tagline ?? {}, "de")}</span>
+                <span className="admin__mode-tag">{pick(m.tagline ?? {}, UI)}</span>
               </button>
             ))}
           </div>
@@ -230,7 +230,7 @@ export default function Admin() {
 
         <section className="admin__sec">
           <h2 className="admin__h">
-            Räume <span className="admin__count mono">{st ? st.rooms.length : ""}</span>
+            Rooms <span className="admin__count mono">{st ? st.rooms.length : ""}</span>
           </h2>
           {(st?.rooms ?? []).map((r) => (
             <RoomSheet
@@ -246,12 +246,12 @@ export default function Admin() {
               base={base}
             />
           ))}
-          {st && !st.rooms.length ? <p className="admin__empty">Noch keine Räume. Oben einen Raum öffnen.</p> : null}
+          {st && !st.rooms.length ? <p className="admin__empty">No rooms yet. Open one above.</p> : null}
         </section>
 
         <div className="admin__split">
           <section className="admin__sec">
-            <h2 className="admin__h">Modelle</h2>
+            <h2 className="admin__h">Models</h2>
             <dl className="models models--admin">
               {Object.entries(st?.models ?? {}).map(([k, v]) => (
                 <div key={k}>
@@ -269,15 +269,15 @@ export default function Admin() {
                 <dd className="mono">{st ? `${Math.round(st.gpu.util_pct)} %` : "—"}</dd>
               </div>
               <div>
-                <dt>Speicher</dt>
+                <dt>Memory</dt>
                 <dd className="mono">{st?.gpu.mem_used_gb != null ? `${st.gpu.mem_used_gb.toFixed(1)} GB` : "—"}</dd>
               </div>
               <div>
-                <dt>Geladen</dt>
+                <dt>Loaded</dt>
                 <dd className="mono">{st?.gpu.models_loaded?.length ? st.gpu.models_loaded.join(" · ") : "—"}</dd>
               </div>
               <div>
-                <dt>Quelle</dt>
+                <dt>Source</dt>
                 <dd className="mono">{st?.gpu.source ?? "—"}</dd>
               </div>
             </dl>
@@ -285,19 +285,19 @@ export default function Admin() {
         </div>
 
         <section className="admin__sec">
-          <h2 className="admin__h">Audit-Protokoll</h2>
+          <h2 className="admin__h">Audit log</h2>
           <div className="admin__audit">
             <dl className="models models--admin">
               <div>
-                <dt>Kopf</dt>
+                <dt>Head</dt>
                 <dd className="mono admin__hash">{st?.audit?.head_hash ?? "—"}</dd>
               </div>
             </dl>
             <div className="admin__verify">
               <button type="button" className="btn btn--ghost" onClick={() => void runVerify()} disabled={verifying}>
-                {verifying ? "Prüfe …" : "Kette prüfen"}
+                {verifying ? "Checking…" : "Verify chain"}
               </button>
-              {verify ? <Verdict v={verify} /> : <span className="admin__hint">SHA-256-Kette, ohne Inhalte</span>}
+              {verify ? <Verdict v={verify} /> : <span className="admin__hint">SHA-256 chain, no content</span>}
             </div>
           </div>
         </section>
@@ -307,15 +307,15 @@ export default function Admin() {
 }
 
 function Verdict({ v }: { v: AuditVerify }) {
-  const when = new Date(v.checked_at).toLocaleTimeString("de-DE");
-  if (v.ok === null) return <p className="admin__verdict mono">Keine Prüfung möglich · {when}</p>;
+  const when = new Date(v.checked_at).toLocaleTimeString("en-GB");
+  if (v.ok === null) return <p className="admin__verdict mono">No check possible · {when}</p>;
   return v.ok ? (
     <p className="admin__verdict is-ok mono" role="status">
-      <Check /> Kette intakt · {v.lines} Zeilen · {when} ({fmtMs(v.ms)})
+      <Check /> Chain intact · {v.lines} lines · {when} ({fmtMs(v.ms)})
     </p>
   ) : (
     <p className="admin__verdict is-bad mono" role="alert">
-      <Cross /> Kette gebrochen in Zeile {v.first_bad}: {v.reason} · {when}
+      <Cross /> Chain broken at line {v.first_bad}: {v.reason} · {when}
     </p>
   );
 }
@@ -345,7 +345,7 @@ function RoomSheet({
   const burnIn =
     r.status !== "burned" && r.auto_burn_minutes && r.idle_s != null ? r.auto_burn_minutes * 60 - r.idle_s : null;
   const roleLabel = (p: Device) =>
-    mode && (p.role === "a" || p.role === "b") ? pick(mode.roles[p.role].label, UI) : p.role === "observer" ? "Beobachter" : p.role;
+    mode && (p.role === "a" || p.role === "b") ? pick(mode.roles[p.role].label, UI) : p.role === "observer" ? "Observer" : p.role;
   return (
     <article className={`aroom ${r.status === "burned" ? "is-burned" : ""}`}>
       <header className="aroom__head">
@@ -359,17 +359,17 @@ function RoomSheet({
           {r.off_record ? "vertraulich" : (STATUS[r.status] ?? r.status)}
         </span>
         <span className="aroom__meta mono">
-          {r.started_at ? `seit ${clock(r.started_at)}` : ""}
-          {burnIn != null ? ` · Auto-Vernichtung in ${fmtSpan(burnIn)}` : ""}
+          {r.started_at ? `since ${clock(r.started_at)}` : ""}
+          {burnIn != null ? ` · auto-destroy in ${fmtSpan(burnIn)}` : ""}
         </span>
         <span className="admin__links aroom__actions">
-          <Link to={`/t/${r.room}`}>Tisch</Link>
+          <Link to={`/t/${r.room}`}>Table</Link>
           <button type="button" className="admin__link" onClick={onCodes} aria-expanded={codesOpen}>
             QR
           </button>
           {r.session_id && r.status !== "burned" ? (
             <button type="button" className="admin__link" onClick={onGloss} aria-expanded={glossOpen}>
-              Glossar
+              Glossary
             </button>
           ) : null}
           <button
@@ -378,13 +378,13 @@ function RoomSheet({
             onClick={onBurn}
             disabled={r.status === "burned" || !r.session_id}
           >
-            Vernichten
+            Destroy
           </button>
         </span>
       </header>
       <div className="aroom__cells">
         <section className="aroom__cell">
-          <h3 className="aroom__h">Geräte</h3>
+          <h3 className="aroom__h">Devices</h3>
           {r.participants.length ? (
             <ul className="plates">
               {r.participants.map((p) => (
@@ -398,14 +398,14 @@ function RoomSheet({
                   </span>
                   <span className="aplate__out mono">
                     {AUDIO_OUT[p.audio_out ?? "speaker"] ?? p.audio_out}
-                    {p.muted ? " · Mikro aus" : ""}
+                    {p.muted ? " · mic off" : ""}
                     <span className="aplate__id"> · {p.id}</span>
                   </span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="aroom__idle">Kein Gerät verbunden.</p>
+            <p className="aroom__idle">No device connected.</p>
           )}
         </section>
         <section className="aroom__cell">
@@ -417,18 +417,18 @@ function RoomSheet({
                 verbunden
               </span>
               <span className="aroom__meta mono">
-                {r.agent_since ? `seit ${clock(r.agent_since)}` : ""}
+                {r.agent_since ? `since ${clock(r.agent_since)}` : ""}
                 {r.agent_id ? ` · ${r.agent_id.split("/").pop()}` : ""}
               </span>
             </p>
           ) : (
             <p className="aroom__idle">
-              Kein Agent. Er tritt bei, sobald ein Gerät im Raum ist; die Sitzung bleibt auf der Box.
+              No agent. It joins as soon as a device is in the room; the session stays on the box.
             </p>
           )}
         </section>
         <section className="aroom__cell aroom__cell--lat">
-          <h3 className="aroom__h">Latenz</h3>
+          <h3 className="aroom__h">Latency</h3>
           <Latency lat={lat} />
         </section>
       </div>
@@ -448,7 +448,7 @@ function RoomSheet({
 
 /** The room's median turn drawn to scale, with first-word p50/p95 against the 1.0 s budget. */
 function Latency({ lat }: { lat?: RoomLatency }) {
-  if (!lat || !lat.n) return <p className="aroom__idle">Noch keine Messung.</p>;
+  if (!lat || !lat.n) return <p className="aroom__idle">No measurement yet.</p>;
   const median = {
     vad_ms: lat.vad_ms.p50,
     asr_ms: lat.asr_ms.p50,
@@ -463,14 +463,14 @@ function Latency({ lat }: { lat?: RoomLatency }) {
       <Timeline timing={median} lang={UI} />
       <p className="aroom__lat mono">
         <span>
-          Erste Wörter p50 {f(lat.mt_first_ms.p50)} · p95 {f(lat.mt_first_ms.p95)}
+          First words p50 {f(lat.mt_first_ms.p50)} · p95 {f(lat.mt_first_ms.p95)}
         </span>
         <span>
-          Satz p50 {f(lat.mt_full_ms.p50)} · p95 {f(lat.mt_full_ms.p95)}
+          Sentence p50 {f(lat.mt_full_ms.p50)} · p95 {f(lat.mt_full_ms.p95)}
         </span>
         <span>
           n {lat.n}
-          {lat.over_budget ? ` · ${lat.over_budget} über 1,0 s` : ""}
+          {lat.over_budget ? ` · ${lat.over_budget} over 1.0 s` : ""}
         </span>
       </p>
     </>
@@ -484,7 +484,7 @@ export function RoomCodes({ room, base, mode }: { room: string; base: string; mo
         <figure key={r} className="codes__item">
           <QR value={`${base}/j/${room}?role=${r}`} size={160} label={r} />
           <figcaption>
-            <span className="codes__role">{mode ? pick(mode.roles[r].label, "de") : r}</span>
+            <span className="codes__role">{mode ? pick(mode.roles[r].label, UI) : r}</span>
             <a className="mono codes__url" href={`/j/${room}?role=${r}`} target="_blank" rel="noreferrer">
               /j/{room}?role={r}
             </a>
@@ -494,7 +494,7 @@ export function RoomCodes({ room, base, mode }: { room: string; base: string; mo
       <figure className="codes__item">
         <QR value={`${base}/t/${room}`} size={160} label="table" />
         <figcaption>
-          <span className="codes__role">Tisch</span>
+          <span className="codes__role">Table</span>
           <a className="mono codes__url" href={`/t/${room}`} target="_blank" rel="noreferrer">
             /t/{room}
           </a>

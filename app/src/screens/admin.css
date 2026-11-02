@@ -12,8 +12,12 @@
   gap: var(--s-6);
   align-items: end;
   padding: var(--s-5);
-  border: var(--line-2) solid var(--ink);
-  background: var(--paper);
+  border: var(--line) solid var(--glass-rim);
+  border-radius: var(--radius-lg);
+  background: var(--glass);
+  box-shadow: var(--glass-hi), 0 0 0 1px var(--glass-edge), var(--shadow-pane);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
 }
 .admin__meter {
   display: grid;
@@ -40,18 +44,24 @@
   gap: var(--s-3);
 }
 .admin__h {
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: 0.8125rem;
   letter-spacing: var(--label-track);
-  text-transform: uppercase;
+  text-transform: var(--label-case);
   font-weight: 700;
   padding-bottom: var(--s-1);
-  border-bottom: var(--line) solid var(--ink);
+  border-bottom: var(--line) solid var(--rule-strong);
 }
 .admin__new {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  border: var(--line) solid var(--rule-strong);
+  border: var(--line) solid var(--glass-rim);
+  border-radius: var(--radius-lg);
+  background: var(--glass);
+  box-shadow: var(--glass-hi), 0 0 0 1px var(--glass-edge), var(--shadow-pane);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+  overflow: hidden;
 }
 .admin__mode {
   display: grid;
@@ -61,8 +71,8 @@
   align-items: center;
   padding: var(--s-4);
   border: 0;
-  border-inline-end: var(--line) solid var(--rule-strong);
-  background: var(--paper);
+  border-inline-end: var(--line) solid var(--rule);
+  background: transparent;
   text-align: start;
 }
 .admin__mode:last-child {
@@ -89,14 +99,14 @@
 }
 .admin__table th {
   text-align: start;
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--label);
   letter-spacing: var(--label-track);
-  text-transform: uppercase;
+  text-transform: var(--label-case);
   color: var(--ink-3);
   font-weight: 650;
   padding: var(--s-2) var(--s-3) var(--s-2) 0;
-  border-bottom: var(--line) solid var(--ink);
+  border-bottom: var(--line) solid var(--rule-strong);
 }
 .admin__table td {
   padding: var(--s-3) var(--s-3) var(--s-3) 0;
@@ -115,10 +125,10 @@
 .admin__links {
   display: flex;
   gap: var(--s-3);
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: var(--label);
   letter-spacing: var(--label-track);
-  text-transform: uppercase;
+  text-transform: var(--label-case);
 }
 .admin__link {
   border: 0;
@@ -201,9 +211,13 @@
 /* ---------------------------------------------------------------- one room: a drawing sheet */
 
 .aroom {
-  border: var(--line-2) solid var(--ink);
-  border-radius: var(--radius);
-  background: var(--paper);
+  border: var(--line) solid var(--glass-rim);
+  border-radius: var(--radius-lg);
+  background: var(--glass);
+  box-shadow: var(--glass-hi), 0 0 0 1px var(--glass-edge), var(--shadow-pane);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+  overflow: hidden;
 }
 .aroom + .aroom {
   margin-top: var(--s-4);
@@ -220,7 +234,7 @@
   align-items: center;
   gap: var(--s-2) var(--s-4);
   padding: var(--s-3) var(--s-4);
-  border-bottom: var(--line) solid var(--ink);
+  border-bottom: var(--line) solid var(--rule-strong);
 }
 .aroom__mode {
   display: inline-flex;
@@ -240,7 +254,7 @@
   gap: 6px;
   font-size: var(--label);
   letter-spacing: var(--label-track);
-  text-transform: uppercase;
+  text-transform: var(--label-case);
   font-weight: 650;
   color: var(--ink-2);
 }
@@ -280,10 +294,10 @@
 }
 .aroom__h {
   margin: 0;
-  font-family: var(--font-mono);
+  font-family: var(--font-label);
   font-size: 0.625rem;
   letter-spacing: var(--label-track);
-  text-transform: uppercase;
+  text-transform: var(--label-case);
   font-weight: 650;
   color: var(--ink-3);
 }
