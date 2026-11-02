@@ -260,7 +260,7 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
         link={live.state}
         offRecord={offRecord}
         onMenu={() => setMenu(true)}
-        roles={[t(myLang, "talk.you_speak"), `${roleLabel(otherRole) || t(myLang, "talk.other")} ${roleLabel(otherRole) ? t(myLang, "talk.speaks") : ""}`.trim()]}
+        roles={[t(myLang, "talk.you_label"), roleLabel(otherRole) || t(myLang, "talk.other_label")]}
         audioOut={audioOut}
       />
 

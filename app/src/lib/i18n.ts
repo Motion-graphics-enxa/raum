@@ -170,6 +170,8 @@ const en: Dict = {
   "talk.final": "Final",
   "join.speaker_only": "Speaker",
   "talk.you_hear_via": "You hear on",
+  "talk.you_label": "You",
+  "talk.other_label": "Other person",
 };
 
 const de: Dict = {

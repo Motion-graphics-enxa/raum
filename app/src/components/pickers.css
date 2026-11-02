@@ -73,7 +73,7 @@
 }
 .seg__opt.is-on {
   background: var(--glass-strong);
-  box-shadow: var(--glass-hi), 0 0 0 1.5px var(--brand-2), 0 6px 16px -10px rgb(10 29 48 / 0.4);
+  box-shadow: var(--glass-hi), 0 0 0 1.5px var(--link), 0 6px 16px -10px rgb(10 29 48 / 0.4);
 }
 .seg__name {
   font-weight: 700;
