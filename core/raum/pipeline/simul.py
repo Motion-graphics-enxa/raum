@@ -610,12 +610,15 @@ class Simultaneous:
                                  confirm=[f for g in ran for f in g.confirm],
                                  ms=sum(g.ms for g in ran)) if ran else None
         guard_ok = bool(done) and all(s.guard_ok for s in done)
-        verifier = p.engines.verify
+        verifier, why = p.checker_for(lane.role, lane.src_lang, lane.tgt)
 
         async def run() -> Any:
-            return await second_check(src, lane.src_lang, text, lane.tgt, verifier=verifier,
-                                      embedder=p.engines.embed, thresholds=p.cfg.thresholds, guard=gres,
-                                      guard_available=guard_ok, turn=lane.turn, timeout_s=CHECK_TIMEOUT_S)
+            res = await second_check(src, lane.src_lang, text, lane.tgt, verifier=verifier,
+                                     embedder=p.engines.embed, thresholds=p.cfg.thresholds, guard=gres,
+                                     guard_available=guard_ok, turn=lane.turn, timeout_s=CHECK_TIMEOUT_S)
+            if why:
+                res.reasons = [why if r.startswith("second check off") else r for r in res.reasons]
+            return res
 
         if verifier is None:
             result = await run()

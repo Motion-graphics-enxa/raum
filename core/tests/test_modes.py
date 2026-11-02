@@ -12,10 +12,18 @@ from raum.modes import ModeError, get_mode, load_mode, load_modes, mode_for_room
 ROOT = repo_root()
 
 
-def test_three_rooms_load():
+def test_four_rooms_load():
     modes = load_modes()
-    assert set(modes) == {"sprechzimmer", "kanzlei", "verhandlungsraum"}
-    assert {m.prefix for m in modes.values()} == {"sz", "kz", "vr"}
+    assert set(modes) == {"sprechzimmer", "kanzlei", "verhandlungsraum", "gespraech"}
+    assert {m.prefix for m in modes.values()} == {"sz", "kz", "vr", "gs"}
+
+
+def test_gespraech_is_the_fast_room():
+    m = get_mode("gespraech")
+    assert m.checker == "off" and m.glossary is None
+    assert set(m.guard.kinds) == {"number", "date", "time"} and m.guard.confirm_on == []
+    assert m.pipeline.simultaneous == "auto" and m.pipeline.simultaneous_after_ms == 0
+    assert all(get_mode(x).checker == "on" for x in ("sprechzimmer", "kanzlei", "verhandlungsraum"))
 
 
 def test_sprechzimmer_matches_plan():
@@ -48,6 +56,8 @@ def test_room_ids_map_to_modes():
 
 def test_glossaries_load_for_every_room():
     for m in load_modes().values():
+        if m.glossary is None:  # Gespraech: everyday talk, no glossary
+            continue
         g = Glossary.load(m.glossary)
         assert g.terms, m.id
 

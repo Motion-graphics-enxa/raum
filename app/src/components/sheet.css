@@ -23,6 +23,9 @@
 .tblock .hatch--verhandlungsraum {
   color: var(--band-verhandlungsraum);
 }
+.tblock .hatch--gespraech {
+  color: var(--band-gespraech);
+}
 .tblock__title {
   display: flex;
   align-items: baseline;

@@ -1,0 +1,25 @@
+# Gespraech: everyday conversation (neighbours, a shop, a host and a guest). The fastest path:
+# no second-model check, the fact guard only for numbers, dates and times (no "Stimmt das?" prompts),
+# simultaneous from the first word for headphone listeners. Same box, same privacy.
+id: gespraech
+prefix: gs                     # room ids: gs-2718
+name: { de: Gespräch, en: Conversation, tr: Sohbet, ru: Разговор, ar: محادثة }
+tagline: { de: "Einfach reden, sofort verstanden", en: "Just talk, understood at once", tr: "Konuşun, anında anlaşılın", ru: "Просто говорите, вас сразу поймут", ar: "تحدث ببساطة وافهم فورًا" }
+icon: chat
+roles:
+  a: { label: { de: Gastgeber/in, en: Host, tr: Ev sahibi, ru: Хозяин, ar: المضيف }, default_lang: de }
+  b: { label: { de: Gast, en: Guest, tr: Misafir, ru: Гость, ar: الضيف }, default_lang: auto }
+register: formal               # the prompt mirrors the speaker: du stays du, Sie stays Sie
+guard:
+  kinds: [number, date, time]
+  confirm_on: []               # never interrupts: a wrong number shows red, nobody is asked
+checker: off                   # no back-translation: fact guard only
+prompts:
+  translate: prompts/translate.md
+  summary: prompts/summary-gespraech.md
+summary:
+  sections: [agreed, dates, next_steps]
+  takehome_for: b
+buttons: [off_record, end]
+pipeline: { simultaneous: auto, simultaneous_after_ms: 0 }
+retention: { auto_burn_minutes: 30 }

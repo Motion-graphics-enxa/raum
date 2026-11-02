@@ -16,6 +16,7 @@ export function TurnView({
   speakerLabel,
   onExplain,
   onRelearn,
+  checkerOff = false,
   onApproveExplain,
   myRole,
 }: {
@@ -28,6 +29,7 @@ export function TurnView({
   myRole: Role | null;
   onExplain?: (utt: string) => void;
   onRelearn?: () => void; // F-10: learn this device's voice again
+  checkerOff?: boolean; // the room runs no second check: show the mark only when the guard finds a mismatch
   onApproveExplain?: (utt: string, text: string) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -76,7 +78,7 @@ export function TurnView({
         <span className="turn__who">{speakerLabel}</span>
         <span className="turn__time mono">{fmtTime(turn.startedAt, myLang)}</span>
         <span className="turn__spacer" />
-        {!sayAgain && !turn.ignored && (tr || mine) ? (
+        {!sayAgain && !turn.ignored && (tr || mine) && (!checkerOff || state === "red") ? (
           <VerifyMark state={state} lang={myLang} ms={state === "translating" ? null : firstMs} onClick={() => setOpen((o) => !o)} />
         ) : null}
       </header>

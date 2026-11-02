@@ -202,6 +202,9 @@
 .hatch--verhandlungsraum {
   --room: var(--room-verhandlungsraum);
 }
+.hatch--gespraech {
+  --room: var(--room-gespraech);
+}
 .hatch__frame {
   fill: none;
   stroke: currentColor;

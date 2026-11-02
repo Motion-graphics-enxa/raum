@@ -184,7 +184,7 @@ def test_join_response_livekit_url(client):
 
 def test_modes_and_rooms(client):
     modes = client.get("/api/modes").json()
-    assert {m["id"] for m in modes} == {"sprechzimmer", "kanzlei", "verhandlungsraum"}
+    assert {m["id"] for m in modes} == {"sprechzimmer", "kanzlei", "verhandlungsraum", "gespraech"}
     r = client.post("/api/rooms", json={"mode": "kanzlei"})
     assert r.status_code == 200
     room = r.json()["room"]

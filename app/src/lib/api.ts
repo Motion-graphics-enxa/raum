@@ -18,6 +18,7 @@ export interface ModeConfig {
   summary: { sections: string[]; takehome_for?: "a" | "b" | null; file_note_for?: "a" | "b" | null };
   buttons: string[];
   retention?: { auto_burn_minutes?: number | null };
+  checker?: "on" | "off"; // "off" (Gespraech): fact guard only, no badge unless red
 }
 
 export interface JoinResponse {

@@ -232,6 +232,7 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
                   myRole={myRole}
                   onExplain={mode.buttons.includes("explain_simply") ? (utt) => void control("explain_simply", { utt }) : undefined}
                   onApproveExplain={(utt, text) => void control("explain_approve", { utt, text })}
+                  checkerOff={mode.checker === "off"}
                   onRelearn={mine ? () => void api.control(room, { action: "voice_lock_reset", by: join.identity }).catch((e) => console.warn("[raum] control", e)) : undefined}
                 />
                 {docsBefore(m.documents, turns, i).map((d) => (

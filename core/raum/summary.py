@@ -77,7 +77,8 @@ SECTION_TITLES: dict[str, dict[str, str]] = {
     "offers": {"de": "Angebote", "en": "Offers", "tr": "Teklifler", "ru": "Предложения", "ar": "العروض"},
 }
 
-NOTE_NAMES_DE = {"sprechzimmer": "Gesprächsnotiz", "kanzlei": "Aktennotiz", "verhandlungsraum": "Protokoll"}
+NOTE_NAMES_DE = {"sprechzimmer": "Gesprächsnotiz", "kanzlei": "Aktennotiz", "verhandlungsraum": "Protokoll",
+                 "gespraech": "Notiz"}
 
 
 def section_title(key: str, langs: Iterable[str]) -> dict[str, str]:

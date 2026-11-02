@@ -748,14 +748,44 @@ class RoomPipeline:
                 timing.update(tts_synth_first_ms=marks.get("synth"), tts_publish_first_ms=marks.get("publish"))
             await self.emit("pipeline.timing", timing, utt=rec.utt)
 
+    def checker_for(self, role: str | None, src_lang: str, tgt: str) -> tuple[Any, str | None]:
+        """The second model for this target, or (None, why) when this target gets the fact guard only:
+        the room has ``checker: off``, or a room with 3+ languages checks one target per utterance
+        (``pipeline.check_targets: one``): the professional's language, or the main listener's when the
+        professional speaks."""
+        if self.engines.verify is None:
+            return None, None
+        if getattr(self.mode, "checker", "on") == "off":
+            return None, "second check off in this room: fact guard only"
+        if getattr(self.cfg.pipeline, "check_targets", "one") == "one":
+            primary = self._check_target(role, src_lang)
+            if primary is not None and tgt != primary:
+                return None, f"second check on {primary} only (one per utterance): fact guard here"
+        return self.engines.verify, None
+
+    def _check_target(self, role: str | None, src_lang: str) -> str | None:
+        """The one target language that gets the second model's check (None: no preference)."""
+        langs = [(p.role, self._participant_lang(p)) for p in self.participants.values() if p.role in ("a", "b")]
+        want = "b" if role == "a" else "a"
+        for r, code in langs:  # join order: the first listener of the other role
+            if r == want and code and code != src_lang:
+                return code
+        for _, code in langs:
+            if code and code != src_lang:
+                return code
+        return None
+
     async def _check(self, rec: _Turn, tgt: str, text: str, gres: guard.GuardResult | None, guard_ok: bool,
                      flagged: bool, t_final: float) -> float:
-        verifier = self.engines.verify
+        verifier, why = self.checker_for(rec.role, rec.lang, tgt)
 
         async def run() -> CheckResult:
-            return await second_check(rec.text, rec.lang, text, tgt, verifier=verifier, embedder=self.engines.embed,
-                                      thresholds=self.cfg.thresholds, guard=gres, guard_available=guard_ok,
-                                      turn=rec.turn, timeout_s=CHECK_TIMEOUT_S)
+            res = await second_check(rec.text, rec.lang, text, tgt, verifier=verifier, embedder=self.engines.embed,
+                                     thresholds=self.cfg.thresholds, guard=gres, guard_available=guard_ok,
+                                     turn=rec.turn, timeout_s=CHECK_TIMEOUT_S)
+            if why:
+                res.reasons = [why if r.startswith("second check off") else r for r in res.reasons]
+            return res
 
         if verifier is None:  # guard only: no model, no slot
             result = await run()

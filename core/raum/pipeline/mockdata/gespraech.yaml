@@ -1,0 +1,38 @@
+# Mock conversation for the Gespraech room (host a, guest b): everyday talk. Format: see sprechzimmer.yaml.
+mode: gespraech
+lines:
+  - id: gs-01
+    role: a
+    text:
+      de: "Hallo, schön dich zu sehen! Komm rein, setz dich."
+      en: "Hi, good to see you! Come in, have a seat."
+      tr: "Merhaba, seni gördüğüme sevindim! Gel içeri, otur."
+      ru: "Привет, рад тебя видеть! Заходи, садись."
+      ar: "أهلًا، سعيد برؤيتك! تفضل بالدخول واجلس."
+
+  - id: gs-02
+    role: b
+    text:
+      de: "Danke! Ich habe Kuchen mitgebracht, für 6 Personen."
+      en: "Thanks! I brought cake, for 6 people."
+      tr: "Teşekkürler! 6 kişilik pasta getirdim."
+      ru: "Спасибо! Я принёс торт на 6 человек."
+      ar: "شكرًا! أحضرت كعكة تكفي 6 أشخاص."
+
+  - id: gs-03
+    role: a
+    text:
+      de: "Super. Die anderen kommen um 18 Uhr."
+      en: "Great. The others are coming at 6 pm."
+      tr: "Harika. Diğerleri saat 18'de geliyor."
+      ru: "Отлично. Остальные придут в 18 часов."
+      ar: "رائع. سيأتي الآخرون في الساعة 18."
+
+  - id: gs-04
+    role: b
+    text:
+      de: "Sollen wir am Samstag, dem 14. November, zusammen kochen?"
+      en: "Shall we cook together on Saturday, 14 November?"
+      tr: "14 Kasım Cumartesi günü birlikte yemek yapalım mı?"
+      ru: "Может, приготовим вместе в субботу, 14 ноября?"
+      ar: "هل نطبخ معًا يوم السبت 14 نوفمبر؟"

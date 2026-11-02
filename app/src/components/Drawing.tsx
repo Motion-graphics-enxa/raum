@@ -94,6 +94,7 @@ function cloudPath(w: number, h: number, r: number): string {
 }
 
 const HATCH: Record<string, ReactNode> = {
+  gespraech: <path d="M-2 3h16M-2 9h16" />, // plain courses: the open room
   sprechzimmer: <path d="M-2 6l8-8M-2 14L14-2M6 14l8-8" />,
   kanzlei: <path d="M-2 6l8-8M-2 14L14-2M6 14l8-8M-2 6l8 8M-2-2l16 16M6-2l8 8" />,
   verhandlungsraum: (

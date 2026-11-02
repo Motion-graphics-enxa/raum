@@ -120,6 +120,10 @@ class PipelineConfig(_Open):
     # consecutive (translate and speak after the speaker stops). A mode can narrow it (modes/*.yaml).
     simultaneous: Literal["auto", "off"] = "auto"
     speculate: bool = True  # translate the latest stable text in the background; reused if the final matches
+    # Rooms with three or more languages: "one" runs the second model's check once per utterance (the
+    # professional's language, or the main listener's when the professional speaks); the other targets
+    # get the fact guard only. "all" checks every target (one gpt-oss call each).
+    check_targets: Literal["one", "all"] = "one"
 
     @field_validator("simultaneous", mode="before")
     @classmethod

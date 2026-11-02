@@ -88,6 +88,14 @@ class ModeConfig(_Strict):
     buttons: list[Button]
     retention: RetentionConfig = Field(default_factory=RetentionConfig)
     pipeline: PipelineModeConfig = Field(default_factory=PipelineModeConfig)
+    # the second model's back-translation check (§6.9). "off": fact guard only, for everyday talk where
+    # speed matters more than a second opinion (Gespraech); the app then shows no badge unless red.
+    checker: Literal["on", "off"] = "on"
+
+    @field_validator("checker", mode="before")
+    @classmethod
+    def _checker_yaml_bool(cls, v: object) -> object:  # YAML 1.1 reads a bare on / off as a boolean
+        return "on" if v is True else ("off" if v is False else v)
 
     @model_validator(mode="after")
     def _roles(self) -> "ModeConfig":
