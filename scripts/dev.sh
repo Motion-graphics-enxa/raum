@@ -38,9 +38,21 @@ need npm "node.js"
 if curl -fsS -m 1 http://127.0.0.1:7880 >/dev/null 2>&1; then
   echo "livekit  : already running on :7880"
 else
-  livekit-server --dev --bind 0.0.0.0 --node-ip "$IP" >data/logs/livekit.log 2>&1 &
+  # LAN-only ICE: LiveKit answers STUN itself (UDP 3478); without stun_servers it hands browsers
+  # Google's and Twilio's STUN. $IP is read at start, so a Wi-Fi change needs a dev.sh restart.
+  LK_CONFIG="rtc:
+  use_external_ip: false
+  node_ip: $IP
+  stun_servers: [\"$IP:3478\"]
+turn:
+  enabled: true
+  udp_port: 3478
+  tls_port: 0
+  relay_range_start: 30000
+  relay_range_end: 30999"
+  livekit-server --dev --bind 0.0.0.0 --node-ip "$IP" --config-body "$LK_CONFIG" >data/logs/livekit.log 2>&1 &
   pids+=($!)
-  echo "livekit  : :7880 (node-ip $IP)"
+  echo "livekit  : :7880 (node-ip $IP, STUN/TURN $IP:3478)"
 fi
 
 # 2. Python env

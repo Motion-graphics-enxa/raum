@@ -16,6 +16,8 @@ rtc:
   udp_port: 7882            # one multiplexed UDP port instead of a 50000-60000 range
   use_external_ip: false    # never ask a public STUN server: media stays on the LAN / tailnet
   node_ip: RAUM_NODE_IP
+  stun_servers:             # without this LiveKit hands clients Google's and Twilio's STUN
+    - RAUM_NODE_IP:3478     # the embedded TURN below answers STUN binding requests
 
 keys:
   RAUM_LIVEKIT_KEY: RAUM_LIVEKIT_SECRET
@@ -25,7 +27,11 @@ room:
   departure_timeout: 20
 
 turn:
-  enabled: false            # no TURN relay: phones reach the box directly or over Tailscale
+  enabled: true             # LAN STUN/TURN on the box itself (UDP only: no cert, no domain)
+  udp_port: 3478
+  tls_port: 0
+  relay_range_start: 30000
+  relay_range_end: 30999
 
 logging:
   level: info

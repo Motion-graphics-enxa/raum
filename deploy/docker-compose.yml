@@ -8,7 +8,8 @@
 #   RAUM_NODE_IP   the box's LAN IP that LiveKit announces to phones (ICE candidates)
 #   RAUM_UID/GID   uid/gid of user `raum`: LiveKit runs as raum so the nftables privacy meter
 #                  (deploy/raum.nft, `meta skuid raum`) also counts LiveKit's own traffic
-# Both services use the host network: LiveKit needs UDP 7882 / TCP 7881 / 7880 on the LAN IP,
+# Both services use the host network: LiveKit needs UDP 7882 / TCP 7881 / 7880 on the LAN IP, plus
+# UDP 3478 (its own STUN/TURN) and UDP 30000-30999 (TURN relay),
 # Caddy needs 80 / 443 / 7443 and reaches 127.0.0.1:8000 (raum-core) and :7880.
 
 name: raum
@@ -26,9 +27,29 @@ services:
       - 0.0.0.0
       - --node-ip
       - ${RAUM_NODE_IP:?set RAUM_NODE_IP (the box's LAN IP) in deploy/.env}
-    # Real keys instead of --dev: fill deploy/livekit.yaml, then replace `command` with
+    # LAN-only ICE (privacy meter: 0 B to third parties). Without stun_servers LiveKit hands every
+    # client Google's and Twilio's STUN, so phones and the agent would send ICE checks out of the
+    # venue. The box answers STUN itself (embedded TURN, UDP only: no cert, no domain). Verified on
+    # the GX10: the join response lists only turn:/stun:<node ip>:3478.
+    environment:
+      LIVEKIT_CONFIG: |
+        rtc:
+          tcp_port: 7881
+          udp_port: 7882
+          node_ip: ${RAUM_NODE_IP}
+          use_external_ip: false
+          stun_servers:
+            - ${RAUM_NODE_IP}:3478
+        turn:
+          enabled: true
+          udp_port: 3478
+          tls_port: 0
+          relay_range_start: 30000
+          relay_range_end: 30999
+    # Real keys instead of --dev: fill deploy/livekit.yaml (same rtc/turn blocks), then replace
+    # `command` with
     #   command: [--config, /etc/livekit.yaml, --node-ip, "${RAUM_NODE_IP}"]
-    # and uncomment:
+    # drop `environment` and uncomment:
     # volumes:
     #   - ./livekit.yaml:/etc/livekit.yaml:ro
 
