@@ -1,6 +1,7 @@
 """``engine: http``: a generic streaming TTS service, e.g. the local GPU voice-cloning service on :8090.
 
-    POST {url}/tts   JSON {text, lang, rate?, model?, sample_rate, voice_ref? (base64 WAV), voice_id?}
+    POST {url}/tts   JSON {text, lang, rate?, model?, sample_rate, voice_ref? (base64 WAV), voice_id?,
+                           priority? ("background" for a speculative clause; absent = live)}
     -> 200, raw PCM int16 mono streamed back; rate from ``X-Sample-Rate`` (or ``audio/L16; rate=N``),
        else ``options.sample_rate``. A WAV stream (RIFF header) is accepted too.
 
@@ -13,6 +14,13 @@ not be aborted mid-load, as with Ollama); while the agent's gate is up and the s
 clauses go to the fallback. On failure before any audio, the clause is spoken by the fallback engine
 (Piper) and the service is skipped for ``retry_s``; without a fallback the error reaches the pipeline,
 which continues text only (§6.15).
+
+``synthesize(..., background=True)``: a speculative clause, made before the speaker's end of turn. The service
+refuses it at once while live speech runs or waits (409), and cuts it when live speech arrives mid-clause, so
+it never delays a live clause (services/tts/API.md, "Priorities"). That raises :class:`VoiceBusy`. Whatever
+fails, a background call never puts the service aside (``retry_s``) and never uses the fallback: the live path
+synthesises that clause. A service that answers without ``X-Priority`` (older than v1.3) would serve a
+background request as live, so once a response shows that, background calls raise VoiceBusy unsent.
 
 PRIVACY: the voice reference goes to this local service only. Errors carry status codes, never
 request or response bodies.
@@ -44,19 +52,35 @@ class TtsServiceError(RuntimeError):
     pass
 
 
+class VoiceBusy(TtsServiceError):
+    """A background clause (``synthesize(..., background=True)``) was not made: the service is busy with live
+    speech (HTTP 409; 429/503 too), a live request cut the stream mid-clause, or the service is put aside after
+    a failure / not warm yet. Expected, not a fault: the live path synthesises the clause. It may come after
+    some chunks were yielded (a cut stream): discard them."""
+
+    def __init__(self, reason: str) -> None:
+        super().__init__(f"voice busy: {reason}")
+        self.reason = reason
+
+
+BUSY_STATUSES = frozenset({409, 429, 503})  # a background request refused for live speech (503: an older service)
+
+
 def voice_id(voice_ref: bytes) -> str:
     """The id the service keeps a speaker's sample under (``DELETE {url}/tts/voices/{id}`` forgets it)."""
     return hashlib.sha256(voice_ref).hexdigest()[:16]
 
 
 def tts_request(text: str, lang: str, *, voice_ref: bytes | None, rate: float | None, model: str | None,
-                options: dict[str, Any]) -> dict[str, Any]:
+                options: dict[str, Any], background: bool = False) -> dict[str, Any]:
     """httpx request arguments for one clause: THE mapping to the service API."""
     fields: dict[str, Any] = {"text": text, "lang": lang, "sample_rate": int(options.get("sample_rate", 24000))}
     if rate is not None:
         fields["rate"] = round(float(rate), 2)
     if model:
         fields["model"] = model
+    if background:
+        fields["priority"] = "background"  # live is the service's default: live requests stay as they were
     if voice_ref is not None:
         fields["voice_id"] = voice_id(voice_ref)  # lets the service cache the speaker
         if options.get("voice_ref_as") == "multipart":
@@ -180,6 +204,9 @@ class HttpTTS:
         self.ready = False  # warm (warm-up or a clause went through)
         self.gate = False  # set by the agent: until warm, clauses go to the fallback
         self._down_until = 0.0
+        # does the service honour request priorities (it sends X-Priority, v1.3+)? None until a response tells.
+        # An older one would treat a background request as live and make live clauses wait behind it.
+        self.priorities: bool | None = None
 
     # ------------------------------------------------------------ lifecycle
 
@@ -195,6 +222,7 @@ class HttpTTS:
                                        **req) as r:
             if r.status_code >= 400:
                 raise TtsServiceError(f"tts warm-up: HTTP {r.status_code}")
+            self.priorities = "x-priority" in r.headers
             async for _ in r.aiter_bytes():
                 pass
         self.ready = True
@@ -231,8 +259,14 @@ class HttpTTS:
         return time.monotonic() < self._down_until or (self.gate and not self.ready)
 
     async def synthesize(self, text: str, lang: str, *, voice_ref: bytes | None = None,
-                         rate: float | None = None) -> AsyncIterator[np.ndarray]:
+                         rate: float | None = None, background: bool = False) -> AsyncIterator[np.ndarray]:
+        """``background``: a speculative clause at the service's low priority. Raises :class:`VoiceBusy` when it is
+        not made (module docstring); never falls back, never puts the service aside."""
         if not text.strip():
+            return
+        if background:
+            async for chunk in self._background(text, lang, voice_ref, rate):
+                yield chunk
             return
         if not self._skip_service():
             spoke = False
@@ -253,15 +287,37 @@ class HttpTTS:
         async for chunk in self._fallback(text, lang, voice_ref, rate):
             yield chunk
 
-    async def _stream(self, text: str, lang: str, voice_ref: bytes | None, rate: float | None) -> AsyncIterator[np.ndarray]:
-        req = tts_request(text, lang, voice_ref=voice_ref, rate=rate, model=self.model, options=self.options)
+    async def _background(self, text: str, lang: str, voice_ref: bytes | None,
+                          rate: float | None) -> AsyncIterator[np.ndarray]:
+        """A speculative clause: the service only, no fallback, ``_down_until`` untouched. Errors other than
+        :class:`VoiceBusy` (connection refused, HTTP 500, ...) reach the caller as they are."""
+        if self._skip_service():  # live clauses are on the fallback voice now: do not mix voices ahead of them
+            raise VoiceBusy("service put aside" if time.monotonic() < self._down_until else "service not warm")
+        if self.priorities is False:
+            raise VoiceBusy("service without priorities")
+        async for chunk in self._stream(text, lang, voice_ref, rate, background=True):
+            yield chunk
+        self.ready = True
+
+    async def _stream(self, text: str, lang: str, voice_ref: bytes | None, rate: float | None,
+                      background: bool = False) -> AsyncIterator[np.ndarray]:
+        req = tts_request(text, lang, voice_ref=voice_ref, rate=rate, model=self.model, options=self.options,
+                          background=background)
         async with self._client.stream("POST", self.url + self.path, **req) as r:
             if r.status_code >= 400:
+                if background and r.status_code in BUSY_STATUSES:
+                    raise VoiceBusy(f"HTTP {r.status_code}")
                 raise TtsServiceError(f"HTTP {r.status_code}")  # no body: it could echo the request
+            self.priorities = "x-priority" in r.headers
             pcm = PcmStream(stream_rate(r.headers), self.sample_rate)
-            async for b in r.aiter_bytes():
-                for chunk in pcm.feed(b):
-                    yield chunk
+            try:
+                async for b in r.aiter_bytes():
+                    for chunk in pcm.feed(b):
+                        yield chunk
+            except httpx.HTTPError as e:
+                if background:  # the service cuts a background stream when live speech needs the voice
+                    raise VoiceBusy("stream cut") from e
+                raise
             for chunk in pcm.flush():
                 yield chunk
 
