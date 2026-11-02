@@ -154,6 +154,7 @@ export interface EventData {
     eot?: Record<string, unknown> | null; // semantic end of turn (verdict, probabilities, wait)
     echo_ms?: number | null; // voice echo check: clause synthesized -> heard back and compared (slowest clause)
     voice_clauses?: { spec: number; ahead: number; live: number } | null; // where each clause's audio came from
+    stages?: Record<string, Record<string, number>> | null; // wait vs work per stage (core pipeline/stats.py)
     echo_check?: "match" | "unclear" | "mismatch" | "skipped" | null; // its worst result for the utterance
     simultaneous?: boolean | null;
     segs?: number | null;

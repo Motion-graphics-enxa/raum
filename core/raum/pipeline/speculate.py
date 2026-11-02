@@ -40,6 +40,7 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
+from raum.pipeline import stats
 from raum.pipeline.base import TranslateRequest, takes_kwarg
 
 if TYPE_CHECKING:
@@ -118,6 +119,13 @@ class _Spec:
     slot: str = "background"
     text: str = ""  # the source text, and how long it took to say: the pace for the pre-synthesis
     seconds: float | None = None
+    pause: bool = False  # the pause's early final (the text the end of turn decides on): all its clauses voiced
+    orphans: list[_Voice] = field(default_factory=list)  # clauses of the texts it superseded, still being made
+    handed: bool = False  # superseded: its unfinished clauses went to the newer speculation
+    clauses: list[str] = field(default_factory=list)  # its translation cut into clauses as _translate cuts it
+    cut_n: int = 0  # parts cut so far
+    cut_pending: str = ""
+    cut_floor: int | None = None
 
 
 
@@ -159,10 +167,13 @@ class Speculator:
             req = self.p._request(rec, tgt, context)  # type: ignore[arg-type]
             old = self._specs.get((u.id, tgt))
             if old is not None and old.key == _key(req) and (old.started or old.slot == slot):
+                if slot == "live" and not old.pause:  # the pause's early final says the same: voice all of it
+                    old.pause = True
+                    self._voice_more(old, tgt, final=old.done and not old.failed)
                 continue  # the same text is being translated already
-            if old is not None:
-                self._cancel(old)
-            spec = _Spec(key=_key(req), utt=u.id, speaker=u.speaker, slot=slot, text=text.strip(), seconds=seconds)
+            orphans = self._handover(old) if old is not None else []
+            spec = _Spec(key=_key(req), utt=u.id, speaker=u.speaker, slot=slot, text=text.strip(), seconds=seconds,
+                         pause=slot == "live", orphans=orphans)
             spec.task = self.p._spawn(self._run(spec, req, slot))
             self._specs[(u.id, tgt)] = spec
 
@@ -190,14 +201,21 @@ class Speculator:
             v = self._start(tts, text, lang, kw, kind="live")
         v.claimed = True
         v.go.set()
+        first = marks is not None and not any(k.startswith("voice_") for k in marks)
         if marks is not None:
             marks[f"voice_{v.kind}"] = marks.get(f"voice_{v.kind}", 0) + 1
         if v.kind == "spec":
             self.voice_hits += 1
+        if first:  # pipeline.timing stages "voice": the utterance's first clause, claimed at the end of turn
+            stats.mark("voice", "claim_ms")
+            stats.note("voice", ready=1.0 if v.done.is_set() and not v.failed else 0.0,
+                       have_ms=(v.samples / v.rate * 1000.0) if v.rate else None)
         i = 0
         while True:
             v.changed.clear()
             while i < len(v.chunks):
+                if first and i == 0:
+                    stats.mark("voice", "first_ms")
                 yield v.chunks[i]
                 i += 1
             if v.done.is_set():
@@ -243,13 +261,71 @@ class Speculator:
 
     # ------------------------------------------------------------ internals
 
-    def _cancel(self, spec: _Spec) -> None:
+    def _cancel(self, spec: _Spec, *, stop: bool = True) -> None:
         spec.failed = True
         if spec.task is not None and not spec.task.done():
             spec.task.cancel()
-        for v in spec.voices:  # what was made stays cached (a newer text may say the same clause); unfinished stops
-            if not v.done.is_set() and not v.claimed:
+        if stop:  # what was made stays cached (a newer text may say the same clause); unfinished stops
+            for v in (*spec.orphans, *spec.voices):
+                if not v.done.is_set() and not v.claimed:
+                    self._stop(v)
+
+    def _handover(self, old: _Spec) -> list[_Voice]:
+        """A newer text supersedes ``old``: its translation stops, but its clauses still being made go on for the
+        newer one to adopt (``_presynth`` finds them in the cache); what it does not say is stopped when its own
+        translation is done. Before: each partial restarted the same clause (box log: one clause made 3x)."""
+        old.handed = True
+        self._cancel(old, stop=False)
+        return [v for v in (*old.orphans, *old.voices) if not v.done.is_set() and not v.claimed]
+
+    def _stop_orphans(self, spec: _Spec) -> None:
+        for v in spec.orphans:
+            if v not in spec.voices and not v.done.is_set() and not v.claimed:
                 self._stop(v)
+        spec.orphans.clear()
+
+    def _depth(self, spec: _Spec) -> int:
+        """How many clauses of ``spec`` are voiced ahead (``tts.options.spec_voice``, room ``spec_voice``)."""
+        mode = getattr(self.p, "spec_voice", "first")
+        if mode == "off":
+            return 0
+        if spec.pause:  # the pause's early final: the text the end of turn decides on, all of it
+            return SPEC_CLAUSES
+        if mode == "pause":
+            return 0
+        own = getattr(self.p, "_own_voice", None)
+        if callable(own) and own(spec.speaker):  # a partial in an own voice whose sample still grows: the turn's
+            ref = getattr(self.p, "_voice_refs", {}).get(spec.speaker)  # voice will differ, the audio is wasted
+            if ref is None or not ref.full:
+                return 0
+        return SPEC_CLAUSES if mode == "all" else 1  # a partial: its first phrase (the GPU stays for live work)
+
+    def _voice_more(self, spec: _Spec, lang: str, *, final: bool) -> None:
+        """Voice the clauses of ``spec``'s translation so far, cut exactly as ``_translate`` cuts the live ones
+        (one cut per delta, the same floor), up to ``_depth``; ``final``: its tail too, as _translate says it last."""
+        if not self.p._tts_enabled():
+            return
+        depth = self._depth(spec)
+        if len(spec.voices) >= depth:
+            return
+        from raum.pipeline.room import _words, take_clause, take_phrase
+
+        floor = self.p.min_voice_words(spec.speaker)  # a cloned voice: no clause under ~5 words
+        if spec.cut_floor != floor:  # the floor changed (the voice sample grew at the pause): cut again
+            spec.clauses, spec.cut_n, spec.cut_pending, spec.cut_floor = [], 0, "", floor
+        expect = _words(spec.text) if floor else None
+        while spec.cut_n < len(spec.parts):
+            pending = spec.cut_pending + spec.parts[spec.cut_n]
+            spec.cut_n += 1
+            clause, spec.cut_pending = (take_clause(pending, floor, expect) if spec.clauses
+                                        else take_phrase(pending, floor, expect))
+            if clause:
+                spec.clauses.append(clause)
+        clauses = list(spec.clauses)
+        if final and spec.cut_pending.strip():
+            clauses.append(spec.cut_pending.strip())
+        for clause in clauses[len(spec.voices):depth]:
+            self._presynth(spec, lang, clause)
 
     @staticmethod
     def _stop(v: _Voice) -> None:
@@ -280,13 +356,18 @@ class Speculator:
                      budget: _Spec | None) -> None:
         background = v.kind == "spec"
         live = False
+        t0 = time.monotonic()
+        t_after = t_live = t_sent = t_first = None
         try:
             if after is not None:
                 await after.done.wait()  # one clause after the other on a lane: no two requests at once
+                t_after = time.monotonic()
                 if after.failed and v.kind == "ahead":
                     raise _Yield("the clause before failed")  # the live call tries again, once, in its turn
             if background:
+                t = time.monotonic()
                 await _either(self._live_idle, v.go)  # never beside a live clause, unless a listener waits for it
+                t_live = time.monotonic() - t
                 if not v.claimed and budget is not None and self._audio_s(budget) >= SPEC_AUDIO_S:
                     raise _Yield("enough audio ahead")
             else:
@@ -297,7 +378,10 @@ class Speculator:
             if background and not v.claimed and takes_kwarg(tts.synthesize, "background"):
                 kw["background"] = True  # the voice service: refused or cut for live speech (tts_http.VoiceBusy)
                 # a clause a listener already waits for is live: it goes at the service's normal priority
+            t_sent = time.monotonic()
             async for c in tts.synthesize(text, lang, **kw):
+                if t_first is None:
+                    t_first = time.monotonic()
                 v.chunks.append(c)
                 v.samples += len(c)
                 v.changed.set()
@@ -317,6 +401,13 @@ class Speculator:
                     self._live_idle.set()
             v.done.set()
             v.changed.set()
+            end = time.monotonic()  # pipeline.timing stages: what each kind of clause waited for, and the engine
+            stats.note(f"voice.{v.kind}", wait_after_ms=(t_after - t0) * 1000.0 if t_after else None,
+                       wait_live_ms=t_live * 1000.0 if t_live else None,
+                       first_ms=(t_first - t_sent) * 1000.0 if t_first and t_sent else None,
+                       wall_ms=(end - t_sent) * 1000.0 if t_sent else None,
+                       yielded=1 if isinstance(v.error, _Yield) else None,
+                       failed=1 if v.failed and not isinstance(v.error, _Yield) else None)
 
     @staticmethod
     def _audio_s(spec: _Spec) -> float:
@@ -339,42 +430,37 @@ class Speculator:
             await v.changed.wait()
 
     async def _run(self, spec: _Spec, req: TranslateRequest, slot: str = "background") -> None:
-        from raum.pipeline.room import MT_TIMEOUT_S, _words, take_clause, take_phrase
-
-        pending = ""
-        # the voice's clauses, cut exactly as _translate cuts the live ones (same floor for a cloned voice)
-        floor = self.p.min_voice_words(spec.speaker)
-        expect = _words(spec.text) if floor else None
+        from raum.pipeline.room import MT_TIMEOUT_S
 
         async def run() -> None:
-            nonlocal pending
             async for d in self.p.engines.translate.stream(req):
                 if not d:
                     continue
+                if not spec.parts:
+                    stats.mark("mt", "first_ms")
                 spec.parts.append(d)
                 spec.changed.set()
-                if self.p._tts_enabled() and len(spec.voices) < SPEC_CLAUSES:
-                    pending += d
-                    clause, pending = (take_clause(pending, floor, expect) if spec.voices
-                                       else take_phrase(pending, floor, expect))
-                    if clause:
-                        self._presynth(spec, req.tgt_lang, clause)
+                self._voice_more(spec, req.tgt_lang, final=False)
 
-        try:
-            async with self.p.sched.slot(slot):
-                spec.started = True
-                await asyncio.wait_for(run(), MT_TIMEOUT_S)
-            if pending.strip() and self.p._tts_enabled() and len(spec.voices) < SPEC_CLAUSES:
-                self._presynth(spec, req.tgt_lang, pending.strip())  # the tail, as _translate says it last
-        except asyncio.CancelledError:
-            spec.failed = True
-            raise
-        except Exception as e:  # noqa: BLE001
-            log.debug("speculative translation failed: %s", e)
-            spec.failed = True
-        finally:
-            spec.done = True
-            spec.changed.set()
+        with stats.scope("spec"):  # pipeline.timing stages: spec.mt, spec.slot.*, spec.voice.*
+            try:
+                async with self.p.sched.slot(slot):
+                    spec.started = True
+                    stats.mark("mt", "start_ms")
+                    await asyncio.wait_for(run(), MT_TIMEOUT_S)
+                stats.mark("mt", "done_ms")
+                self._voice_more(spec, req.tgt_lang, final=True)
+            except asyncio.CancelledError:
+                spec.failed = True
+                raise
+            except Exception as e:  # noqa: BLE001
+                log.debug("speculative translation failed: %s", e)
+                spec.failed = True
+            finally:
+                spec.done = True
+                spec.changed.set()
+                if not spec.handed:  # superseded: a newer speculation adopts them
+                    self._stop_orphans(spec)
 
     async def _replay(self, spec: _Spec, req: TranslateRequest) -> AsyncIterator[str]:
         i = 0

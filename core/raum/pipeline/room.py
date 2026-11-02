@@ -98,7 +98,7 @@ from raum.events import (
 )
 from raum.glossary import Glossary, GlossaryError, parse_terms
 from raum.modes.schema import ModeConfig
-from raum.pipeline import readback
+from raum.pipeline import readback, stats
 from raum.pipeline import texts as T
 from raum.pipeline._util import int16_to_float, lang_code, lang_name, load_prompt, render_prompt
 from raum.pipeline.base import AsrResult, Engines, TranslateRequest, TurnContext
@@ -205,6 +205,8 @@ class _Utt:
     parts: list[np.ndarray] = field(default_factory=list)  # END_OF_SPEECH audio of each pause (held turns)
     hold: asyncio.Task[None] | None = None  # end-of-turn wait after a pause (speech_pause)
     prefix: np.ndarray | None = None  # merge.py: the audio of the cut utterance this one continues
+    ref_upto: int = 0  # samples of this utterance's audio already in the speaker's voice sample (_grow_ref)
+    stages: stats.Stages = field(default_factory=stats.Stages)  # stats.py: wait vs work, pipeline.timing stages
 
     def _with_prefix(self, chunks: list[np.ndarray]) -> np.ndarray:
         chunks = [self.prefix, *chunks] if self.prefix is not None and len(self.prefix) else chunks
@@ -347,6 +349,9 @@ class RoomPipeline:
         self.voice_ref_s = float(tts_opts.get("voice_ref_s", 8.0))  # voice sample per speaker (memory only)
         self.voice_ref_min_s = float(tts_opts.get("voice_ref_min_s", 3.0))  # used from this length on
         self.voice_ref_on = bool(tts_opts.get("voice_ref", True))
+        # speculate.py, voice made before the end of turn: "first" (default) = the whole utterance from the pause's
+        # early final, the first phrase of a partial; "pause" = the early final only; "all" = partials too; "off"
+        self.spec_voice = str(tts_opts.get("spec_voice", "first"))
         self.base_wps = float(tts_opts.get("base_wps", 2.5))
         self.vad_pad_s = float((config.models.vad.options or {}).get("prefix_padding_duration", 0.5))
         self._voice_refs: dict[str, VoiceRef] = {}
@@ -523,6 +528,7 @@ class RoomPipeline:
         if u is not None:
             self._cancel_hold(u)  # speech again within the end-of-turn wait: the same utterance goes on
             self.spec.drop(u.id)  # speculate.py: what was translated / voiced ahead for that pause is discarded
+            u.stages = stats.Stages()  # stats.py: the next pause's timings, not this one's
             return u.id
         if self.echo.is_paused(speaker):  # C-14: the box's own voice from this device's speaker, not speech
             return None
@@ -562,6 +568,7 @@ class RoomPipeline:
             u.partial_task = self._spawn(self._partial(u))
 
     async def _partial(self, u: _Utt) -> None:
+        stats.use(u.stages)
         audio = u.audio()
         turn = replace(u.turn, speech_ms=len(audio) * 1000.0 / SAMPLE_RATE)
         try:
@@ -611,10 +618,14 @@ class RoomPipeline:
         u.parts.clear()
         u.prefix = None
         t0 = t_detect - max(0.0, float(vad_ms)) / 1000.0  # the moment the speaker stopped
+        u.stages.t0 = t0
         self.merge.ended(u, final_audio, t_detect)  # merge.py: the speaker may still go on
+        tok = stats.use(u.stages)  # the turn's tasks inherit it (asyncio copies the context)
         try:  # merge.py: if they do, the turn stops and speech_end just returns
+            stats.mark("eot", "end_ms")
             await self.merge.run(u.id, self._turn(u, final_audio, float(vad_ms), t0, asr=asr, eot=eot))
         finally:
+            stats.reset(tok)
             self.simul.release(u.id)  # simul.py: close segments of a turn that ended without a final
 
     async def speech_pause(self, speaker: str, audio: np.ndarray | None, vad_ms: float) -> None:
@@ -631,6 +642,9 @@ class RoomPipeline:
 
     async def _hold(self, u: _Utt, t_stop: float) -> None:
         """Speculative final ASR + verdict, then wait out the remaining silence; cancelled by speech_start."""
+        u.stages.t0 = t_stop
+        stats.use(u.stages)
+        pause_ms = (time.monotonic() - t_stop) * 1000.0  # the silence at the end of this audio (VAD's pause)
         audio = u.final_audio()
         n = len(audio)
         audio_p = self._spawn(self.eot.audio_p(audio))  # CPU, in parallel with the ASR
@@ -639,7 +653,8 @@ class RoomPipeline:
         res: AsrResult | None = None
         t_asr = time.monotonic()
         try:
-            await self.simul.settle(u, n, PARTIAL_TIMEOUT_S)  # simul.py: a running partial may be the final
+            with stats.timed("asr.settle"):
+                await self.simul.settle(u, n, PARTIAL_TIMEOUT_S)  # simul.py: a running partial may be the final
             res = self.simul.reuse_final(u, n)  # simul.py: a stable last partial is the final
             if res is None:
                 async with self.sched.slot("live"):
@@ -647,7 +662,10 @@ class RoomPipeline:
                         audio, lang_hint=u.hint, partial=False, turn=replace(u.turn, speech_ms=n * 1000.0 / SAMPLE_RATE)),
                         ASR_TIMEOUT_S)
             res.ms = (time.monotonic() - t_asr) * 1000.0
-            if res.text.strip():  # speculate.py: MT + first-phrase voice now, in parallel with the verdict
+            stats.mark("asr", "early_ms")
+            if res.text.strip():  # speculate.py: MT + the utterance's voice now, in parallel with the verdict
+                if res.conf >= self.cfg.asr_min_conf:  # the voice sample as this turn's voice will use it
+                    self._grow_ref(u, audio, pause_ms, early=True)
                 self.spec.on_text(u, res.text, lang_code(res.lang) or u.hint or self._default_lang(u.role),
                                   slot="live", seconds=speech_seconds(n / SAMPLE_RATE, (time.monotonic() - t_stop)
                                                                       * 1000.0, res.words, self.vad_pad_s))
@@ -867,6 +885,9 @@ class RoomPipeline:
                     timing["voice_clauses"] = {k: int(marks.get(f"voice_{k}", 0))  # clause's audio came from
                                                for k in ("spec", "ahead", "live")}
                 timing.update(await self.echo_check.settle(marks))  # echo_check.py: echo_ms, echo_check
+            st = stats.current()  # stats.py: per stage, what queued (wait_ms) and what worked; ms after the stop
+            if st is not None:
+                timing["stages"] = st.snapshot()
             await self.emit("pipeline.timing", timing, utt=rec.utt)
 
     def checker_for(self, role: str | None, src_lang: str, tgt: str) -> tuple[Any, str | None]:
@@ -1046,13 +1067,27 @@ class RoomPipeline:
         rate = self._rates.setdefault(u.speaker, SpeakingRate(self.base_wps)).update(text, seconds)
         if not self._own_voice(u.speaker):
             return VoiceArgs(rate=rate)
+        return VoiceArgs(ref=self._grow_ref(u, audio, vad_ms), rate=rate)
+
+    def _grow_ref(self, u: _Utt, audio: np.ndarray, vad_ms: float, *, early: bool = False) -> VoiceRef | None:
+        """The speaker's voice sample with this utterance's clean speech in it (up to ``voice_ref_s``). Done at
+        the pause already (``_hold``), so the voice made ahead there (speculate.py) and the turn's own voice use
+        the same sample: the cache matches. Only what is new since then is added (``u.ref_upto``). F-10 voice
+        lock on: only at the turn (it decides first whose voice this is)."""
+        if not self._own_voice(u.speaker):
+            return None
+        if early and self.voicelock.enabled:
+            return self._voice_refs.get(u.speaker)
         ref = self._voice_refs.get(u.speaker)
         if ref is None:
             ref = self._voice_refs[u.speaker] = VoiceRef(max_s=self.voice_ref_s)
         if not u.echoed and not ref.full:
             tail = int(max(0.0, vad_ms) / 1000.0 * SAMPLE_RATE)  # the endpoint silence
-            ref.add(audio[: max(0, len(audio) - tail)])
-        return VoiceArgs(ref=ref, rate=rate)
+            end = max(0, len(audio) - tail)
+            if end > u.ref_upto:
+                ref.add(audio[u.ref_upto:end])
+                u.ref_upto = end
+        return ref
 
     def voice_ref(self, speaker: str) -> bytes | None:
         """The speaker's voice sample as WAV bytes once long enough (memory only), else None."""

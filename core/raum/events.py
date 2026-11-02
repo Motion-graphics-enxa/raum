@@ -248,6 +248,9 @@ class PipelineTiming(_Data):
     # clause before played (ahead), or when its turn came (live)
     voice_clauses: dict[str, int] | None = None
     echo_check: Literal["match", "unclear", "mismatch", "skipped"] | None = None
+    # pipeline/stats.py: per stage (asr, spec.mt, slot.live, check.*, voice.spec, echo.asr, ...) numbers only:
+    # wait_ms (queued), held_ms / wall_ms / *_ms (worked), *_ms marks in ms after the speaker's stop, n (calls)
+    stages: dict[str, dict[str, float]] | None = None
     # also sent as extras in simultaneous mode only: simultaneous (true), segs (number of segments)
 
 

@@ -20,7 +20,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar, Token
 
-__all__ = ["Stages", "current", "mark", "note", "scope", "timed", "use"]
+__all__ = ["Stages", "current", "mark", "note", "reset", "scope", "timed", "use"]
 
 
 class Stages:
@@ -57,6 +57,14 @@ def current() -> Stages | None:
 def use(s: Stages | None) -> Token[Stages | None]:
     """This task (and what it spawns from now on) records into ``s``."""
     return _cur.set(s)
+
+
+def reset(tok: Token[Stages | None]) -> None:
+    """Undo a ``use`` made in this same context (a caller that is not a task of its own)."""
+    try:
+        _cur.reset(tok)
+    except ValueError:  # another context: nothing of ours to undo
+        pass
 
 
 def _name(stage: str) -> str:

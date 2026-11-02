@@ -18,6 +18,7 @@ interrupted; ordering applies to what starts next.
 from __future__ import annotations
 
 import asyncio
+import time
 import weakref
 from collections import deque
 from collections.abc import AsyncIterator, Awaitable, Callable
@@ -25,6 +26,7 @@ from contextlib import asynccontextmanager
 from typing import Any, ClassVar, TypeVar
 
 from raum.config import RaumConfig, SchedulerConfig
+from raum.pipeline import stats
 
 T = TypeVar("T")
 
@@ -110,11 +112,15 @@ class Scheduler:
 
     @asynccontextmanager
     async def slot(self, prio: str) -> AsyncIterator[None]:
+        t = time.monotonic()
         await self.acquire(prio)
+        got = time.monotonic()
         try:
             yield
         finally:
             self.release(prio)
+            # pipeline.timing stages: how long this utterance's work queued for the slot, and held it
+            stats.note(f"slot.{prio}", wait_ms=(got - t) * 1000.0, held_ms=(time.monotonic() - got) * 1000.0)
 
     async def run(self, prio: str, fn: Callable[..., Awaitable[T]], *args: Any, **kwargs: Any) -> T:
         async with self.slot(prio):

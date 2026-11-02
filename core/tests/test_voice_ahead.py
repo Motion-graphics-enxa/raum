@@ -117,7 +117,7 @@ async def play(h: Harness, text: str, lang: str = "ar", marks: dict | None = Non
 async def test_a_final_that_differs_in_its_tail_still_plays_the_unchanged_clauses_from_the_cache():
     tts = Slow(n=2, chunk_s=0.005)
     h, u = await spec_room(tts, {SRC: "مرحبًا سيدة دمير. أنا الدكتور فيبر."})
-    h.p.spec.on_text(u, SRC, "de")
+    h.p.spec.on_text(u, SRC, "de", slot="live")
     await until(lambda: len([e for e in tts.log if e[0] == "end"]) == 2)  # both clauses made ahead
     marks: dict = {}
     assert await play(h, "مرحبًا سيدة دمير.", marks=marks) == 2  # the final kept the first clause: cached
@@ -131,7 +131,7 @@ async def test_a_final_that_differs_in_its_tail_still_plays_the_unchanged_clause
 async def test_other_voice_args_are_a_miss():
     tts = Slow(n=1, chunk_s=0.001)
     h, u = await spec_room(tts, {SRC: "مرحبًا سيدة دمير."})
-    h.p.spec.on_text(u, SRC, "de")
+    h.p.spec.on_text(u, SRC, "de", slot="live")
     await until(lambda: any(e == "end" for e, *_ in tts.log))
     marks: dict = {}
     n = 0
@@ -144,7 +144,7 @@ async def test_other_voice_args_are_a_miss():
 async def test_a_resume_drops_the_voice_made_ahead():
     tts = Slow(n=20, chunk_s=0.01)
     h, u = await spec_room(tts, {SRC: "مرحبًا سيدة دمير. أنا الدكتور فيبر."})
-    h.p.spec.on_text(u, SRC, "de")
+    h.p.spec.on_text(u, SRC, "de", slot="live")
     await until(lambda: tts.running)  # the first clause is being made
     tasks = [v.task for v in h.p.spec._voices.values()]
     h.p.spec.drop(u.id)  # speech_start during the end-of-turn wait
@@ -157,7 +157,7 @@ async def test_a_resume_drops_the_voice_made_ahead():
 async def test_burn_drops_every_cached_audio():
     tts = Slow(n=1, chunk_s=0.001)
     h, u = await spec_room(tts, {SRC: "مرحبًا سيدة دمير."})
-    h.p.spec.on_text(u, SRC, "de")
+    h.p.spec.on_text(u, SRC, "de", slot="live")
     await until(lambda: any(e == "end" for e, *_ in tts.log))
     assert h.p.spec._voices
     h.p._forget_voices()  # burn / session end / close
@@ -170,7 +170,7 @@ async def test_speculative_synthesis_waits_while_a_live_clause_is_made():
     h, u = await spec_room(tts, {SRC: "مرحبًا سيدة دمير."})
     live = asyncio.create_task(play(h, "Live clause."))
     await until(lambda: tts.running)
-    h.p.spec.on_text(u, SRC, "de")
+    h.p.spec.on_text(u, SRC, "de", slot="live")
     await live
     await until(lambda: any(e == "end" and x == "مرحبًا سيدة دمير." for e, x, *_ in tts.log))
     assert tts.at("start", "مرحبًا سيدة دمير.") >= tts.at("end", "Live clause.")  # never beside it
@@ -181,7 +181,7 @@ async def test_speculative_synthesis_waits_while_a_live_clause_is_made():
 async def test_speculative_synthesis_stops_when_a_live_clause_starts_and_is_made_again_if_needed():
     tts = Slow(n=10, chunk_s=0.02)
     h, u = await spec_room(tts, {SRC: "مرحبًا سيدة دمير."})
-    h.p.spec.on_text(u, SRC, "de")
+    h.p.spec.on_text(u, SRC, "de", slot="live")
     await until(lambda: tts.running)  # the speculative clause is being made
     await asyncio.sleep(0.03)
     t_live = time.monotonic()
@@ -196,7 +196,7 @@ async def test_speculative_synthesis_stops_when_a_live_clause_starts_and_is_made
 async def test_the_voice_service_gets_background_priority_for_speculative_clauses_only():
     tts = Slow(n=1, chunk_s=0.001, background=True)
     h, u = await spec_room(tts, {SRC: "مرحبًا سيدة دمير."})
-    h.p.spec.on_text(u, SRC, "de")
+    h.p.spec.on_text(u, SRC, "de", slot="live")
     await until(lambda: any(e == "end" for e, *_ in tts.log))
     await play(h, "Live clause.")
     kws = {x: kw for e, x, _, kw in tts.log if e == "start"}
@@ -225,7 +225,7 @@ async def test_a_speculative_clause_a_listener_waits_for_goes_at_live_priority()
     h, u = await spec_room(tts, {SRC: "مرحبًا سيدة دمير."})
     live = asyncio.create_task(play(h, "Live clause."))
     await until(lambda: tts.running)
-    h.p.spec.on_text(u, SRC, "de")  # waits: a live clause is being made
+    h.p.spec.on_text(u, SRC, "de", slot="live")  # waits: a live clause is being made
     await until(lambda: h.p.spec._voices)
     assert await play(h, "مرحبًا سيدة دمير.") == 4  # the turn ended: it is wanted now, not in the background
     await live
@@ -254,10 +254,111 @@ class Busy(Slow):
 async def test_a_refused_speculative_clause_is_made_live_at_the_end_of_turn():
     tts = Busy()
     h, u = await spec_room(tts, {SRC: "مرحبًا سيدة دمير."})
-    h.p.spec.on_text(u, SRC, "de")
+    h.p.spec.on_text(u, SRC, "de", slot="live")
     await until(lambda: tts.refused)
     await until(lambda: all(v.done.is_set() for v in h.p.spec._voices.values()))
     marks: dict = {}
     assert await play(h, "مرحبًا سيدة دمير.", marks=marks) == 2
     assert marks == {"voice_live": 1} and h.p.spec.voice_hits == 0
     await h.p.drain()
+
+
+class Counting(Fixed):
+    def __init__(self, table):
+        super().__init__(table)
+        self.calls: list[str] = []
+
+    async def stream(self, req):
+        self.calls.append(req.text)
+        async for d in super().stream(req):
+            yield d
+
+
+SRC1 = "Guten Tag, Frau Demir. Ich"
+
+
+async def test_a_newer_partial_adopts_the_clause_being_made_instead_of_making_it_again():
+    # box log (sz-5122): every new partial restarted the same 36-char clause, cancelled 0.4 s later, 3x per turn
+    tts = Slow(n=10, chunk_s=0.01)
+    h, u = await spec_room(tts, {SRC1: "مرحبًا سيدة دمير. أنا", SRC: "مرحبًا سيدة دمير. أنا الدكتور فيبر."})
+    h.p.spec.on_text(u, SRC1, "de")  # a partial: its first phrase
+    await until(lambda: tts.running)
+    h.p.spec.on_text(u, SRC, "de", slot="live")  # the pause's early final: a newer text, the same first clause
+    await until(lambda: len([e for e in tts.log if e[0] == "end"]) == 2)
+    starts = [x for e, x, _, _ in tts.log if e == "start"]
+    assert starts == ["مرحبًا سيدة دمير.", "أنا الدكتور فيبر."]  # made once, carried over
+    marks: dict = {}
+    assert await play(h, "مرحبًا سيدة دمير.", marks=marks) == 10  # whole, never cut
+    assert marks == {"voice_spec": 1}
+    await h.p.drain()
+
+
+async def test_a_superseded_clause_the_newer_text_does_not_say_is_stopped():
+    tts = Slow(n=30, chunk_s=0.01)
+    h, u = await spec_room(tts, {SRC1: "أهلاً سيدة دمير. أنا", SRC: "مرحبًا سيدة دمير. أنا الدكتور فيبر."})
+    h.p.spec.on_text(u, SRC1, "de")
+    await until(lambda: tts.running)
+    h.p.spec.on_text(u, SRC, "de", slot="live")
+    await until(lambda: any(e == "end" and x == "أهلاً سيدة دمير." for e, x, *_ in tts.log))
+    assert tts.at("end", "أهلاً سيدة دمير.") - tts.at("start", "أهلاً سيدة دمير.") < 0.2  # stopped, not made whole
+    await h.p.drain()
+
+
+async def test_a_partial_voices_its_first_phrase_and_the_pause_the_rest_without_translating_again():
+    tts = Slow(n=1, chunk_s=0.001)
+    tr = Counting({SRC: "مرحبًا سيدة دمير. أنا الدكتور فيبر."})
+    h, u = await spec_room(tts, {})
+    h.engines.translate = tr  # type: ignore[assignment]
+    h.p.spec.on_text(u, SRC, "de")  # a partial that reads as finished
+    await until(lambda: h.p.spec._specs and next(iter(h.p.spec._specs.values())).done)
+    await h.p.drain()
+    assert [x for e, x, _, _ in tts.log if e == "start"] == ["مرحبًا سيدة دمير."]  # the GPU stays for live work
+    h.p.spec.on_text(u, SRC, "de", slot="live")  # the pause says the same text: the rest is voiced now
+    await until(lambda: len([e for e in tts.log if e[0] == "end"]) == 2)
+    assert tr.calls == [SRC]  # one translation
+    await h.p.drain()
+
+
+async def test_no_partial_is_voiced_in_an_own_voice_whose_sample_still_grows():
+    tts = Slow(n=1, chunk_s=0.001)
+    h, u = await spec_room(tts, {SRC: "مرحبًا سيدة دمير. أنا الدكتور فيبر."})
+    h.p._own_voice = lambda speaker: True  # type: ignore[method-assign]
+    h.p.spec.on_text(u, SRC, "de")
+    await until(lambda: h.p.spec._specs and next(iter(h.p.spec._specs.values())).done)
+    await h.p.drain()
+    assert tts.log == []  # the turn's voice (with this utterance in its sample) would never match it
+    h.p.spec_voice = "all"
+    h.p.spec.on_text(u, SRC, "de", slot="live")  # the pause: the sample is as the turn will use it
+    await until(lambda: len([e for e in tts.log if e[0] == "end"]) == 2)
+    await h.p.drain()
+
+
+async def test_the_voice_sample_is_taken_at_the_pause_and_the_turn_uses_the_same_one():
+    h, u = await spec_room(Slow(n=1, chunk_s=0.001), {})
+    h.p._own_voice = lambda speaker: True  # type: ignore[method-assign]
+    audio = (np.random.default_rng(0).standard_normal(16000 * 4) * 0.1).astype(np.float32)
+    ref = h.p._grow_ref(u, audio, 250.0, early=True)  # _hold: the pause's silence trimmed
+    assert ref is not None and abs(ref.seconds - 3.75) < 0.01
+    wav = ref.wav()
+    voice = h.p._voice_args(u, audio, 800.0, [], "Guten Tag, Frau Demir.")  # the turn: nothing new to add
+    assert voice.ref is ref and ref.wav() == wav  # the voice made ahead used exactly this sample
+    more = np.concatenate([audio, audio[:16000]])  # the speaker went on after the pause
+    h.p._voice_args(u, more, 250.0, [], "Guten Tag, Frau Demir. Ich bin")
+    assert abs(ref.seconds - 4.75) < 0.01  # only the new part
+    await h.p.drain()
+
+
+async def test_pipeline_timing_has_the_stages_wait_vs_work(no_guard):  # noqa: F811
+    h = room([DOC_DE, PAT_AR_SPK], complete_clauses=False, final_reveal=True)
+    h.p.eot = Eot(waits=[0.25])
+    Voice(h)
+    utt = await speak(h, DOC_DE.id, 0.6)
+    await pause(h, DOC_DE.id)
+    await until_ended(h, utt)
+    await h.p.drain()
+    st = h.one("pipeline.timing", utt)["stages"]
+    assert st["slot.live"]["n"] >= 1 and "wait_ms" in st["slot.live"]  # the turn's translation slot
+    assert "start_ms" in st["spec.mt"] and "first_ms" in st["spec.mt"]  # the speculation at the pause
+    assert st["voice"]["ready"] in (0.0, 1.0) and "claim_ms" in st["voice"] and "first_ms" in st["voice"]
+    assert st["spec.voice.spec"]["n"] == 2  # both clauses made ahead
+    assert all(isinstance(v, float | int) for d in st.values() for v in d.values())  # numbers only

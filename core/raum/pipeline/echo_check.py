@@ -50,6 +50,7 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
+from raum.pipeline import stats
 from raum.pipeline import texts as T
 from raum.pipeline._util import int16_to_float
 from raum.pipeline.base import TurnContext
@@ -318,7 +319,8 @@ class EchoCheck:
         turn = TurnContext(room=p.room, mode=p.mode.id, speaker=ECHO_SPEAKER, role="observer",
                            utt=f"{g.utt}-echo{pr.clause}", speech_ms=audio.size * 1000.0 / ASR_RATE)
         try:
-            await asyncio.wait_for(p.sched.acquire("background"), ECHO_WAIT_S)
+            with stats.timed("echo.slot.background"):  # pipeline.timing stages
+                await asyncio.wait_for(p.sched.acquire("background"), ECHO_WAIT_S)
         except TimeoutError:
             log.debug("voice echo %s: ASR busy (no background slot in %.0f s): clause not checked", pr.tgt,
                       ECHO_WAIT_S)
@@ -326,8 +328,9 @@ class EchoCheck:
             return
         try:
             self.checks += 1
-            res = await asyncio.wait_for(p.engines.asr.transcribe(audio, lang_hint=pr.tgt, partial=False, turn=turn),
-                                         ECHO_TIMEOUT_S)
+            with stats.scope("echo"):  # the engine notes "echo.asr", not the utterance's own "asr"
+                res = await asyncio.wait_for(p.engines.asr.transcribe(audio, lang_hint=pr.tgt, partial=False,
+                                                                      turn=turn), ECHO_TIMEOUT_S)
         except asyncio.CancelledError:
             raise
         except Exception as e:  # noqa: BLE001  the ASR slow or down: this clause goes unchecked

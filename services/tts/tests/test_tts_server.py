@@ -213,7 +213,7 @@ def test_live_preempts_a_background_clause_before_its_first_audio(srv):
                 await bg.task
             await live.task
             assert bg.samples == 0 and live.samples == samples(SHORT)
-            assert live.first_s < 0.45  # the GPU came free within a token step, then 30 tokens to first audio
+            assert live.first_s < 0.8  # free within a token step, then 30 tokens (0.3 s); not preempted: >= 1.2 s
             assert srv.stats["bg_rejected_preempted"] == 1 and NoFallback.calls == 0
             await tts.aclose()
 
