@@ -90,6 +90,9 @@ PARTIAL_TIMEOUT_S = 5.0
 MT_TIMEOUT_S = 30.0
 CHECK_TIMEOUT_S = 20.0
 EXPLAIN_TIMEOUT_S = 30.0  # a whole plain-language rewrite (K-02), off the live path
+VOICE_IDLE_S = MT_TIMEOUT_S + 15.0  # a voice lane waits this long for the next clause, then frees itself
+VOICE_MAX_FAILS = 3  # failed clauses in a row before a language's voice pauses
+VOICE_PAUSE_S = 20.0  # then voice for that language retries (text never stops)
 _FLAG_KINDS = set(get_args(FlagKind))
 _WRAP_QUOTES = ('"', "'", "„", "“", "”", "«", "»")
 
@@ -239,7 +242,12 @@ class RoomPipeline:
         self._last_instruction: _Turn | None = None
         self._repeat_back = False
         self._drafts: dict[str, tuple[str, str]] = {}  # utt -> (target_lang, text)
-        self._tts_disabled = False
+        # Voice (C-13): one lane per target language, so utterances speak one after another and each
+        # language's audio track has a single writer. A failing clause is dropped; only repeated
+        # failures pause that language's voice, and only for VOICE_PAUSE_S (never the whole session).
+        self._voice_lanes: dict[str, asyncio.Lock] = {}
+        self._voice_fails: dict[str, int] = {}
+        self._voice_paused_until: dict[str, float] = {}
         self._closed = False
 
     # ---------------------------------------------------------------- setup
@@ -541,6 +549,8 @@ class RoomPipeline:
             async with self.sched.slot("live"):
                 await asyncio.wait_for(run(), MT_TIMEOUT_S)
         except asyncio.CancelledError:
+            if voice_q is not None:
+                voice_q.put_nowait(None)  # free this language's voice lane
             raise
         except Exception as e:  # noqa: BLE001
             log.warning("translation %s -> %s failed for %s: %s: %s", rec.lang, tgt, u.id, e.__class__.__name__, e)
@@ -612,21 +622,34 @@ class RoomPipeline:
         return check_ms
 
     def _tts_enabled(self) -> bool:
-        return self.engines.tts is not None and not self._tts_disabled
+        return self.engines.tts is not None
+
+    def _voice_paused(self, tgt: str) -> bool:
+        return time.monotonic() < self._voice_paused_until.get(tgt, 0.0)
 
     async def _speak_stream(self, tgt: str, q: asyncio.Queue[str | None], t0: float,
                             voice: VoiceArgs | None = None) -> float | None:
-        """Speak clauses in order as they arrive; returns ms from the speaker's stop to the first audio."""
+        """Speak clauses in order as they arrive; returns ms from the speaker's stop to the first audio.
+
+        Holds ``tgt``'s voice lane for the whole utterance: a second utterance into the same language
+        (two people, or one sentence cut at a pause) waits its turn instead of writing into the same
+        audio track at the same time (the GX10 phone test: "InvalidState - failed to capture frame")."""
+        lane = self._voice_lanes.setdefault(tgt, asyncio.Lock())
         first: float | None = None
-        while True:
-            clause = await q.get()
-            if clause is None:
-                return first
-            if self._tts_disabled:
-                continue
-            f = await self._speak(tgt, clause, t0, voice)
-            if first is None:
-                first = f
+        async with lane:
+            while True:
+                try:
+                    clause = await asyncio.wait_for(q.get(), VOICE_IDLE_S)
+                except TimeoutError:
+                    log.warning("voice %s: no clause for %.0f s, releasing the lane", tgt, VOICE_IDLE_S)
+                    return first
+                if clause is None:
+                    return first
+                if self._voice_paused(tgt) or self._closed:
+                    continue
+                f = await self._speak(tgt, clause, t0, voice)
+                if first is None:
+                    first = f
 
     async def _speak(self, tgt: str, text: str, t0: float, voice: VoiceArgs | None = None) -> float | None:
         tts = self.engines.tts
@@ -637,15 +660,22 @@ class RoomPipeline:
             async for chunk in tts.synthesize(text, tgt, **self._voice_kwargs(tts, voice)):
                 if first is None:
                     first = round((time.monotonic() - t0) * 1000.0, 1)
-                if self.tts_sink is not None and not self.off_record:
+                if self.tts_sink is not None and not self.off_record and len(chunk):
                     self._voice_out(tgt, len(chunk), tts.sample_rate)
                     await self.tts_sink(tgt, chunk, tts.sample_rate)
         except asyncio.CancelledError:
             raise
-        except Exception as e:  # noqa: BLE001  §6.15: text continues, voice off for the session
-            log.warning("voice output failed (%s: %s): disabled for this session", e.__class__.__name__, e)
-            self._tts_disabled = True
+        except Exception as e:  # noqa: BLE001  §6.15: text continues; drop this clause, keep the voice
+            n = self._voice_fails[tgt] = self._voice_fails.get(tgt, 0) + 1
+            if n >= VOICE_MAX_FAILS:
+                self._voice_paused_until[tgt] = time.monotonic() + VOICE_PAUSE_S
+                self._voice_fails[tgt] = 0
+                log.warning("voice %s failed %d times in a row (%s: %s): paused for %.0f s, text continues",
+                            tgt, n, e.__class__.__name__, e, VOICE_PAUSE_S)
+            else:
+                log.warning("voice %s: clause dropped (%s: %s)", tgt, e.__class__.__name__, e)
             return None
+        self._voice_fails[tgt] = 0
         if first is None and getattr(tts, "simulated", False):
             first = round((time.monotonic() - t0) * 1000.0, 1)
         return first

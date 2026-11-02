@@ -158,7 +158,8 @@ class RoomAgent:
         self.infos: dict[str, ParticipantInfo] = {}
         self.track_tasks: dict[str, asyncio.Task[None]] = {}
         self.turn_tasks: set[asyncio.Task[None]] = set()
-        self.tts: dict[str, Any] = {}
+        self.tts: dict[str, _VoiceTrack] = {}  # one AudioSource + track per voice language
+        self._tts_locks: dict[str, asyncio.Lock] = {}  # one writer per source
         self._publish_errors = 0
         self._closed = False
 
@@ -408,28 +409,71 @@ class RoomAgent:
     # ---------------------------------------------------------------- voice out (C-13, C-14)
 
     async def _tts_source(self, lang: str, rate: int) -> Any:
+        """One AudioSource + track per language (``tts-<lang>``), created on first use."""
         from livekit import rtc
 
-        src = self.tts.get(lang)
-        if src is None:
+        v = self.tts.get(lang)
+        if v is None:
             src = rtc.AudioSource(rate, 1, queue_size_ms=2000)
             track = rtc.LocalAudioTrack.create_audio_track(f"tts-{lang}", src)
             opts = rtc.TrackPublishOptions(source=rtc.TrackSource.SOURCE_MICROPHONE)
-            await self.ctx.room.local_participant.publish_track(track, opts)
-            self.tts[lang] = src
-            log.info("publishing voice track tts-%s", lang)
-        return src
+            pub = await self.ctx.room.local_participant.publish_track(track, opts)
+            v = self.tts[lang] = _VoiceTrack(src, track, pub)
+            log.info("publishing voice track tts-%s (%d Hz)", lang, rate)
+        return v
+
+    async def _drop_tts_source(self, lang: str) -> None:
+        v = self.tts.pop(lang, None)
+        if v is None:
+            return
+        try:
+            await self.ctx.room.local_participant.unpublish_track(v.pub.sid)
+        except Exception as e:  # noqa: BLE001
+            log.debug("unpublish tts-%s: %s", lang, e)
+        try:
+            await v.source.aclose()
+        except Exception as e:  # noqa: BLE001
+            log.debug("close tts-%s source: %s", lang, e)
 
     async def _tts_sink(self, lang: str, pcm: np.ndarray, rate: int) -> None:
+        """Push one chunk of a clause into ``tts-<lang>``. Each source has exactly one writer at a
+        time (``capture_frame`` assumes it: two writers overflow its queue with "InvalidState - failed
+        to capture frame"), frames always carry the source's own rate, and a source that errors is
+        replaced by a fresh one (the clause is dropped by the pipeline; the voice carries on)."""
         from livekit import rtc
 
-        src = await self._tts_source(lang, rate)
-        step = rate // 50  # 20 ms frames
-        pcm = np.asarray(pcm, dtype=np.int16)
-        for i in range(0, len(pcm), step):
-            chunk = pcm[i:i + step]
-            await src.capture_frame(rtc.AudioFrame(data=chunk.tobytes(), sample_rate=rate, num_channels=1,
-                                                   samples_per_channel=len(chunk)))
+        pcm = np.asarray(pcm, dtype=np.int16).reshape(-1)
+        if pcm.size == 0:
+            return
+        lock = self._tts_locks.setdefault(lang, asyncio.Lock())
+        async with lock:
+            v = await self._tts_source(lang, rate)
+            if rate != v.source.sample_rate:  # e.g. the http voice at 24 kHz after Piper at 22.05 kHz
+                import soxr
+
+                y = soxr.resample(pcm.astype(np.float32) / 32768.0, rate, v.source.sample_rate)
+                pcm, rate = float_to_int16(y), v.source.sample_rate
+            step = rate // 50  # 20 ms frames
+            try:
+                for i in range(0, pcm.size, step):
+                    chunk = pcm[i:i + step]
+                    await v.source.capture_frame(rtc.AudioFrame(data=chunk.tobytes(), sample_rate=rate,
+                                                                num_channels=1, samples_per_channel=chunk.size))
+            except asyncio.CancelledError:
+                raise
+            except Exception as e:
+                log.warning("tts-%s: capture failed (%s); replacing the voice track", lang, e)
+                await self._drop_tts_source(lang)
+                raise
+
+
+class _VoiceTrack:
+    __slots__ = ("pub", "source", "track")
+
+    def __init__(self, source: Any, track: Any, pub: Any) -> None:
+        self.source = source
+        self.track = track
+        self.pub = pub
 
 
 # ---------------------------------------------------------------- job entry points (module level: picklable)

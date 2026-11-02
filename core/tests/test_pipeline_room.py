@@ -10,6 +10,7 @@ from pipeline_helpers import DOC, PAT, Harness, fake_check, fake_extract, not_im
 
 from raum.events import Control, ParticipantInfo, SessionState
 from raum.pipeline import mockdata
+from raum.pipeline import room as room_mod
 from raum.pipeline import texts as T
 from raum.pipeline.translate import MockTranslator
 from raum.verify import guard
@@ -339,7 +340,7 @@ class _Voice:
             yield np.zeros(320, dtype=np.int16)
 
 
-async def test_voice_output_goes_to_sink_and_failure_disables_it(no_guard):
+async def test_voice_output_goes_to_sink_and_failures_never_end_it(no_guard):
     h = Harness()
     got: list[tuple[str, int, int]] = []
 
@@ -360,8 +361,16 @@ async def test_voice_output_goes_to_sink_and_failure_disables_it(no_guard):
     await h.p.drain()
     await h.say(DOC.id)
     await h.p.drain()
-    assert broken.calls == 1  # disabled for the session after the first failure; text continues
+    # each failed clause is dropped and the next one is tried (never off for the session); after
+    # VOICE_MAX_FAILS in a row the language pauses briefly; text continues throughout
+    assert 1 < broken.calls <= room_mod.VOICE_MAX_FAILS
     assert len(h.of("translation.final")) == 3
+    h.engines.tts = _Voice()  # type: ignore[assignment]
+    h.p._voice_paused_until.clear()
+    got.clear()
+    await h.say(DOC.id)
+    await h.p.drain()
+    assert got  # the voice is back
 
 
 async def test_speech_end_detaches_before_first_await(no_guard):

@@ -204,7 +204,7 @@ async def test_old_two_argument_engines_still_work():
     h = voiced(old)
     await speak(h, DOC.id, tone(4.0))
     await h.p.drain()
-    assert old.n > 0 and not h.p._tts_disabled
+    assert old.n > 0 and not h.p._voice_paused("ar")
 
 
 # ---------------------------------------------------------------- the http engine
@@ -374,7 +374,8 @@ async def test_http_without_fallback_goes_text_only():
     h = voiced(http_tts(Service(status=500)))
     utt = await speak(h, DOC.id, tone(4.0))
     await h.p.drain()
-    assert h.p._tts_disabled and h.one("translation.final", utt)["text"]  # the text continues
+    assert h.p._voice_fails.get("ar") or h.p._voice_paused("ar")  # clauses dropped, not the session
+    assert h.one("translation.final", utt)["text"]  # the text continues
 
 
 def test_make_tts_http_and_build_engines(monkeypatch):
