@@ -91,6 +91,7 @@ class ModeConfig(_Strict):
     # the second model's back-translation check (§6.9). "off": fact guard only, for everyday talk where
     # speed matters more than a second opinion (Gespraech); the app then shows no badge unless red.
     checker: Literal["on", "off"] = "on"
+    order: int = 100  # position in room lists (the setup page): Sprechzimmer leads the pitch
 
     @field_validator("checker", mode="before")
     @classmethod

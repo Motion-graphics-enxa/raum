@@ -2,6 +2,7 @@
 # no second-model check, the fact guard only for numbers, dates and times (no "Stimmt das?" prompts),
 # simultaneous from the first word for headphone listeners. Same box, same privacy.
 id: gespraech
+order: 4
 prefix: gs                     # room ids: gs-2718
 name: { de: Gespräch, en: Conversation, tr: Sohbet, ru: Разговор, ar: محادثة }
 tagline: { de: "Einfach reden, sofort verstanden", en: "Just talk, understood at once", tr: "Konuşun, anında anlaşılın", ru: "Просто говорите, вас сразу поймут", ar: "تحدث ببساطة وافهم فورًا" }

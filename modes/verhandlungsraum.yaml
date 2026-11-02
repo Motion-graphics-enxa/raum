@@ -1,5 +1,6 @@
 # Verhandlungsraum: CEO and foreign partner.
 id: verhandlungsraum
+order: 3
 prefix: vr                     # room ids: vr-3305
 name: { de: Verhandlungsraum, en: Negotiation room, tr: Müzakere odası, ru: Переговорная, ar: غرفة التفاوض }
 tagline: { de: Jedes Angebot festgehalten, en: Every offer on record, tr: Her teklif kayıtta, ru: Каждое предложение зафиксировано, ar: كل عرض موثق }

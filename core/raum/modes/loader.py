@@ -57,7 +57,7 @@ def load_modes(directory: str | None = None) -> dict[str, ModeConfig]:
         modes[m.id] = m
     if not modes:
         raise ModeError(f"no modes found in {d}")
-    return modes
+    return dict(sorted(modes.items(), key=lambda kv: (kv[1].order, kv[0])))
 
 
 def get_mode(mode_id: str) -> ModeConfig:

@@ -163,7 +163,16 @@ export const Plug = (p: P) => (
   </I>
 );
 
+/** Two speech bubbles, the second answering the first (Gespraech). */
+export const Chat = (p: P) => (
+  <I {...p}>
+    <path d="M3.5 5.5h10v7h-5.5l-3 2.5v-2.5h-1.5z" />
+    <path d="M16.5 9.5h4v7h-1.5v2.5l-3-2.5h-5.5v-2" />
+  </I>
+);
+
 export const ROOM_ICONS: Record<string, (p: P) => React.ReactElement> = {
+  chat: Chat,
   stethoscope: Stethoscope,
   scale: Scale,
   handshake: Handshake,

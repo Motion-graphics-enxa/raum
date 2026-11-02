@@ -1,5 +1,6 @@
 # Kanzlei: lawyer and client.
 id: kanzlei
+order: 2
 prefix: kz                     # room ids: kz-1170
 name: { de: Kanzlei, en: Law office, tr: Hukuk bürosu, ru: Адвокатское бюро, ar: مكتب المحاماة }
 tagline: { de: Fristen und Daten geprüft, en: Deadlines and dates checked, tr: Süreler ve tarihler kontrol edilir, ru: Сроки и даты проверяются, ar: المواعيد والتواريخ تحت التحقق }

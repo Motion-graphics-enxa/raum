@@ -206,6 +206,7 @@ A Prussian-blue drawing with three semantic pens and three room layers; every va
 - **Washes** (unsure-wash, bad-wash): only system banners (connection warning, failure) and the "no" button's hover. Never a fact row.
 
 ### Tertiary (room layers)
+- **Gespräch Ink** (room-gespraech = the drawing ink; band-gespraech = band ink): the everyday room runs no second check, so it takes no colour of its own; its identity is the hatch alone.
 - **Sprechzimmer Teal** (room-sprechzimmer), **Kanzlei Violet** (room-kanzlei), **Verhandlungsraum Magenta** (room-verhandlungsraum): each room's hatch and its room-specific line work (the offer chain and offer bars in Verhandlungsraum). On the Prussian band, which is dark in both themes, the lighter **band** layer values (band-sprechzimmer, band-kanzlei, band-verhandlungsraum) are used; on the blueprint sheet the room layers take those same light values.
 
 ### Neutral
@@ -304,7 +305,7 @@ Slides up 24 px in 280 ms over a Prussian scrim, with a 3 px top edge in ochre (
 Each turn's pipeline as a dimension chain on a true time axis: segments for endpoint, transcript, first words and full sentence in solid ink 2, the async check dashed, each starting with a 45° tick. Beneath it, the 1.0 s target is drawn in the dash-dot line type with an end tick, a 3 px budget mark at the first-words time (green under budget, ochre over) and a thinner voice mark. A legend repeats each segment's line type. The Table screen uses a larger variant (2.5 px lines, 20 px ticks).
 
 ### Room Hatch
-Each room is a 12 px material hatch inside a square frame: Sprechzimmer single diagonal, Kanzlei cross-hatch, Verhandlungsraum dots, in the room's layer colour. Verhandlungsraum also draws offers as a dimension chain in magenta and an offer timeline of hatched bars (the other side's bars dashed).
+Each room is a 12 px material hatch inside a square frame: Sprechzimmer single diagonal, Kanzlei cross-hatch, Verhandlungsraum dots, Gespräch plain horizontal courses (the open room), in the room's layer colour. Rooms list in `order` (Sprechzimmer first). Verhandlungsraum also draws offers as a dimension chain in magenta and an offer timeline of hatched bars (the other side's bars dashed).
 
 ### Summary Sheet and the Burn
 The summary is a drawing sheet: a 2 px ink frame, a 1 px inner margin line 6 px in, mono section heads underlined in ink, dashed hairlines between items, uncertain items underlined in dotted ochre, and the title block at the foot. **The burn:** each section is erased toward the inline end (clip-path, 520 ms, staggered 90 ms) to 20% opacity, then the drawing is replaced by an empty hatched frame and the stamp lands on the title block's top rule: "SCHLÜSSEL VERNICHTET" in mono 800, the time and the audit hash, in a 3 px red border rotated −3°, scaling in from 1.18 over 420 ms. On the Table screen's glass box the same stamp sits in line.

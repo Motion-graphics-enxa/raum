@@ -1,5 +1,6 @@
 # Sprechzimmer: doctor (or clinic) and patient. Leads the pitch.
 id: sprechzimmer
+order: 1
 prefix: sz                     # room ids: sz-4821
 name: { de: Sprechzimmer, en: Consultation room, tr: Muayene odası, ru: Кабинет врача, ar: غرفة الفحص }
 tagline: { de: Dosis und Allergien geprüft, en: Doses and allergies checked, tr: Doz ve alerjiler kontrol edilir, ru: Дозы и аллергии проверяются, ar: الجرعات والحساسية تحت التحقق }
