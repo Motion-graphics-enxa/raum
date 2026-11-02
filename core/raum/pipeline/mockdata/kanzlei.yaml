@@ -1,0 +1,120 @@
+# Mock conversation for the Kanzlei (lawyer a, client b). Format: see sprechzimmer.yaml.
+mode: kanzlei
+lines:
+  - id: kz-01
+    role: a
+    text:
+      de: "Guten Tag, Herr Yılmaz. Ich bin Rechtsanwältin Schneider. Wie kann ich Ihnen helfen?"
+      en: "Hello, Mr Yılmaz. I am Ms Schneider, your lawyer. How can I help you?"
+      tr: "Merhaba Yılmaz Bey. Ben avukat Schneider. Size nasıl yardımcı olabilirim?"
+      ru: "Здравствуйте, господин Йылмаз. Я адвокат Шнайдер. Чем я могу вам помочь?"
+      ar: "مرحبًا سيد يلماز. أنا المحامية شنايدر. كيف يمكنني مساعدتك؟"
+
+  - id: kz-02
+    role: b
+    text:
+      de: "Mein Arbeitgeber hat mir am 3. November gekündigt."
+      en: "My employer dismissed me on 3 November."
+      tr: "İşverenim 3 Kasım'da beni işten çıkardı."
+      ru: "Мой работодатель уволил меня 3 ноября."
+      ar: "فصلني صاحب العمل في 3 نوفمبر."
+
+  - id: kz-03
+    role: a
+    text:
+      de: "Die Klagefrist endet am 24. November."
+      en: "The deadline for filing the claim ends on 24 November."
+      tr: "Dava açma süresi 24 Kasım'da sona eriyor."
+      ru: "Срок подачи иска истекает 24 ноября."
+      ar: "تنتهي مهلة رفع الدعوى في 24 نوفمبر."
+    simple:
+      de: "Sie müssen bis zum 24. November klagen. Danach ist es zu spät."
+      en: "You must take your case to court by 24 November. After that it is too late."
+      tr: "24 Kasım'a kadar dava açmanız gerekiyor. Sonrası çok geç olur."
+      ru: "Вы должны подать иск до 24 ноября. Потом будет слишком поздно."
+      ar: "يجب أن ترفع الدعوى قبل 24 نوفمبر. بعد ذلك يكون الوقت قد فات."
+
+  - id: kz-04
+    role: b
+    text:
+      de: "Was brauchen Sie von mir?"
+      en: "What do you need from me?"
+      tr: "Benden neye ihtiyacınız var?"
+      ru: "Что вам от меня нужно?"
+      ar: "ماذا تحتاجين مني؟"
+
+  - id: kz-05
+    role: a
+    text:
+      de: "Bringen Sie bitte Ihren Arbeitsvertrag und die letzten drei Lohnabrechnungen mit."
+      en: "Please bring your employment contract and your last three payslips."
+      tr: "Lütfen iş sözleşmenizi ve son üç maaş bordronuzu getirin."
+      ru: "Пожалуйста, принесите ваш трудовой договор и три последних расчётных листа."
+      ar: "من فضلك أحضر عقد العمل وآخر ثلاثة كشوف رواتب."
+    simple:
+      de: "Bitte bringen Sie mit: Ihren Arbeitsvertrag und Ihre letzten drei Lohnzettel."
+      en: "Please bring two things: your work contract and your last three pay slips."
+      tr: "Lütfen iki şey getirin: iş sözleşmeniz ve son üç maaş bordronuz."
+      ru: "Пожалуйста, принесите две вещи: ваш трудовой договор и три последние справки о зарплате."
+      ar: "من فضلك أحضر شيئين: عقد عملك وآخر ثلاثة كشوف لراتبك."
+
+  - id: kz-06
+    role: b
+    text:
+      de: "Ich habe dort seit 2019 gearbeitet, für 3.200 Euro brutto im Monat."
+      en: "I have worked there since 2019, for 3,200 euros gross per month."
+      tr: "2019'dan beri orada aylık brüt 3.200 Euro'ya çalışıyordum."
+      ru: "Я работал там с 2019 года за 3 200 евро брутто в месяц."
+      ar: "عملت هناك منذ 2019 مقابل 3200 يورو إجمالي شهريًا."
+
+  # The red path: the translator turns 9,600 into 6,900.
+  - id: kz-07
+    role: a
+    mistranslate: { "9.600": "6.900", "9,600": "6,900", "9 600": "6 900", "9600": "6900" }
+    text:
+      de: "Eine Abfindung liegt oft bei einem halben Monatsgehalt pro Jahr, bei Ihnen also etwa 9.600 Euro."
+      en: "Severance pay is often half a monthly salary per year of work, so in your case about 9,600 euros."
+      tr: "Kıdem tazminatı genellikle her yıl için yarım aylık maaş kadardır, sizin için yaklaşık 9.600 Euro."
+      ru: "Выходное пособие часто составляет половину месячной зарплаты за год работы, в вашем случае около 9 600 евро."
+      ar: "غالبًا ما يبلغ التعويض نصف راتب شهري عن كل سنة عمل، أي في حالتك حوالي 9600 يورو."
+    simple:
+      de: "Wenn Sie eine Abfindung bekommen, sind es bei Ihnen oft etwa 9.600 Euro."
+      en: "If you get money for losing your job, it is often about 9,600 euros for you."
+      tr: "İşten çıkarıldığınız için para alırsanız, bu genellikle yaklaşık 9.600 Euro olur."
+      ru: "Если вам заплатят за увольнение, это часто около 9 600 евро."
+      ar: "إذا حصلت على مال بسبب فقدان عملك، فغالبًا ما يكون حوالي 9600 يورو."
+
+  # Mumbled: low ASR confidence -> "please say that again", not translated.
+  - id: kz-08
+    role: b
+    conf: 0.4
+    text:
+      de: "Ähm, und was ist, wenn ich ... also ..."
+      en: "Um, and what if I ... well ..."
+      tr: "Hımm, peki ya ben ... yani ..."
+      ru: "Хм, а что, если я ... ну ..."
+      ar: "امم، وماذا لو أنني ... يعني ..."
+
+  - id: kz-09
+    role: a
+    text:
+      de: "Wir reichen die Kündigungsschutzklage bis zum 20. November beim Arbeitsgericht ein."
+      en: "We will file the unfair dismissal claim with the labour court by 20 November."
+      tr: "İşe iade davasını 20 Kasım'a kadar iş mahkemesinde açacağız."
+      ru: "Мы подадим иск о защите от увольнения в суд по трудовым спорам до 20 ноября."
+      ar: "سنرفع دعوى الحماية من الفصل أمام محكمة العمل قبل 20 نوفمبر."
+    simple:
+      de: "Wir gehen bis zum 20. November für Sie vor Gericht."
+      en: "We will go to court for you by 20 November."
+      tr: "20 Kasım'a kadar sizin için mahkemeye başvuracağız."
+      ru: "До 20 ноября мы обратимся за вас в суд."
+      ar: "سنذهب إلى المحكمة نيابة عنك قبل 20 نوفمبر."
+
+  - id: kz-10
+    role: b
+    text:
+      de: "Gut, ich bringe die Unterlagen am Montag vorbei."
+      en: "Good, I will bring the documents on Monday."
+      tr: "Tamam, belgeleri pazartesi getiririm."
+      ru: "Хорошо, я принесу документы в понедельник."
+      ar: "حسنًا، سأحضر الأوراق يوم الاثنين."
