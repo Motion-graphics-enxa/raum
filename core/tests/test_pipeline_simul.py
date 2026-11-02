@@ -80,13 +80,15 @@ class Eot:
 
 
 def room(participants, *, after_ms: float = 0.0, complete_clauses: bool = True, cfg: RaumConfig | None = None,
-         **asr) -> Harness:
-    """A Sprechzimmer harness. ``after_ms=0``: simultaneous from the first clause (the room default is 4 s);
+         loudspeaker: str = "consecutive", **asr) -> Harness:
+    """A Sprechzimmer harness. ``after_ms=0``: simultaneous from the first clause (the room default is 1.5 s);
     ``complete_clauses``: a turn model that rates every clause a finished utterance, so the punctuation rules
-    alone decide (without one, only sentence ends commit)."""
+    alone decide (without one, only sentence ends commit); ``loudspeaker``: how listeners on the phone's speaker
+    are served (the room default is ``live``; these tests: consecutive unless they ask)."""
     h = Harness(participants=participants, cfg=cfg or config(**asr))
     h.p.mode = h.p.mode.model_copy(deep=True)
     h.p.mode.pipeline.simultaneous_after_ms = after_ms
+    h.p.mode.pipeline.loudspeaker = loudspeaker  # type: ignore[assignment]
     if complete_clauses:
         h.p.eot = Eot()
     return h
@@ -177,17 +179,28 @@ def test_commit_needs_two_identical_partials_and_a_clause_boundary():
     assert commit_len(["Hello,", "Mrs", "Demir"], ["Hello,", "Mrs", "Demir.", "I"], "en") == 0  # "." new
 
 
-def test_comma_needs_six_words_and_never_cuts_german():
+def test_comma_needs_six_words_and_german_a_verb_complete_clause():
     en = ["Keep", "taking", "500", "mg", "of", "Metformin", "twice", "a", "day,", "in", "the"]
     assert commit_len(en, en, "en") == 9
     short = ["Yes,", "well,", "I", "think", "so,", "and"]
     assert commit_len(short, short, "en") == 0  # every clause shorter than 6 words
     de = ["Nehmen", "Sie", "zweimal", "täglich", "500", "mg", "Metformin", "weiter,", "morgens", "und"]
-    assert commit_len(de, de, "de") == 0  # verb-final subordinate clauses: German cuts at sentence ends only
+    assert commit_len(de, de, "de") == 8  # verb-complete before the comma (incomplete.py): cut there
     de2 = ["Guten", "Tag,", "Frau", "Demir.", "Ich", "bin", "Dr.", "Weber.", "Was"]
-    assert commit_points(de2, de2, "de") == [4, 8]
+    assert commit_points(de2, de2, "de") == [4, 8]  # "Guten Tag," is under 6 words
+    # a modal without its infinitive, a time adverb where "nicht" may follow: never cut at the comma
+    modal = ["Sie", "dürfen", "das", "Metformin", "wie", "besprochen", "ab", "morgen,", "nicht", "mehr", "nehmen"]
+    assert commit_len(modal, modal, "de") == 0
+    modal2 = ["Sie", "dürfen", "das", "Metformin", "von", "Ihrem", "Hausarzt,", "wie", "besprochen,", "nicht", "mehr"]
+    assert commit_len(modal2, modal2, "de") == 0
+    # the comma must have a stable word after it: whisper flips "an." <-> "an, das" at the end of what it heard
+    end = ["Rufen", "Sie", "bitte", "morgen", "früh", "in", "der", "Praxis", "an,"]
+    assert commit_len(end, end, "de") == 0
+    flip = ["Rufen", "Sie", "bitte", "morgen", "früh", "in", "der", "Praxis", "an,", "das"]
+    assert commit_len(end[:-1] + ["an."], flip, "de") == 0  # "an." / "an,": not stable
+    assert commit_len(flip, flip + ["ist"], "de") == 9
     assert commit_len(["A", "b", "c", "d", "e", "f;", "g"], ["A", "b", "c", "d", "e", "f;", "g"], "en") == 6
-    assert commit_len(["A", "b", "c", "d", "e", "f;", "g"], ["A", "b", "c", "d", "e", "f;", "g"], "de") == 0
+    assert commit_len(["A", "b", "c", "d", "e", "f;", "g"], ["A", "b", "c", "d", "e", "f;", "g"], "de") == 6
 
 
 def test_align_finds_the_uncommitted_rest_after_an_asr_revision():
@@ -242,8 +255,12 @@ def test_pipeline_config_default_auto_and_yaml_off(tmp_path, monkeypatch):
         assert "simultaneous: auto" in prof.read_text(), prof.name
     from raum.modes import get_mode
 
-    assert get_mode("sprechzimmer").pipeline.simultaneous_after_ms == 4000  # long turns only
+    assert get_mode("sprechzimmer").pipeline.simultaneous_after_ms == 1500  # not a short first sentence
     assert get_mode("kanzlei").pipeline.simultaneous_after_ms == 0
+    # listeners on the phone's speaker: simultaneous too (voice during speech) in gs, sz, kz
+    assert {m: get_mode(m).pipeline.loudspeaker for m in ("gespraech", "sprechzimmer", "kanzlei")} == \
+        dict.fromkeys(("gespraech", "sprechzimmer", "kanzlei"), "live")
+    assert get_mode("verhandlungsraum").pipeline.loudspeaker == "consecutive"
 
 
 # ---------------------------------------------------------------- simultaneous mode
@@ -674,7 +691,7 @@ def test_summary_joins_segments_in_order():
 
 def test_simul_constants_match_the_spec():
     assert simul.MIN_COMMA_WORDS == 6 and simul.REUSE_GAP_MS == 300 and simul.REUSE_MIN_CONF == 0.85
-    assert "de" in simul.SENTENCE_ONLY_LANGS
+    assert "de" in simul.COMMA_RULE_LANGS
 
 
 @pytest.mark.filterwarnings("ignore:The HMAC key")

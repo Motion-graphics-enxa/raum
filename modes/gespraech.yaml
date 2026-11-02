@@ -22,5 +22,6 @@ summary:
   sections: [agreed, dates, next_steps]
   takehome_for: b
 buttons: [off_record, end]
-pipeline: { simultaneous: auto, simultaneous_after_ms: 0 }
+# loudspeaker: live: listeners on the phone's speaker hear the voice while the speaker talks too (simul.py)
+pipeline: { simultaneous: auto, simultaneous_after_ms: 0, loudspeaker: live }
 retention: { auto_burn_minutes: 30 }

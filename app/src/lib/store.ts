@@ -434,6 +434,44 @@ export function useRoomModel(store: RoomStore): RoomModel {
 
 /* -------------------------------------------------------------- derived */
 
+/**
+ * The other person's language for the header pair and my own turns' "they got" line: the other
+ * participant's language when the box has told us who is here, else what the conversation shows (the
+ * newest turn of someone else in another language, or what my own words were translated into), else
+ * `fallback` (the mode's default). Never a guess that contradicts the turns on screen.
+ */
+export function otherLangOf(
+  participants: ParticipantInfo[],
+  me: string,
+  myRole: Role | null,
+  myLang: string,
+  turns: Turn[],
+  fallback: string | null,
+): string | null {
+  const others = participants.filter((p) => p.id !== me && (p.role === "a" || p.role === "b"));
+  const other = others.find((p) => p.role !== myRole && p.lang !== myLang) ?? others.find((p) => p.role !== myRole) ?? others[0];
+  if (other?.lang) return other.lang;
+  for (let i = turns.length - 1; i >= 0; i--) {
+    const t = turns[i];
+    if (t.speaker && t.speaker !== me && t.lang && t.lang !== myLang) return t.lang;
+  }
+  for (let i = turns.length - 1; i >= 0; i--) {
+    const t = turns[i];
+    if (t.speaker !== me) continue;
+    const into = Object.keys(t.translations).find((l) => l !== t.lang);
+    if (into) return into;
+  }
+  return fallback;
+}
+
+/** The translation of `t` this device shows: into `lang`, else (my own turn, the other's language not
+ * known yet) the one language it was translated into. */
+export function viewLangOf(t: Turn, lang: string, mine: boolean): string {
+  if (!mine || t.translations[lang]) return lang;
+  const into = Object.keys(t.translations).filter((l) => l !== t.lang);
+  return into.length === 1 ? into[0] : lang;
+}
+
 export function checkState(t: Turn, lang: string): CheckState {
   if (t.uncertain) return "uncertain";
   const tr = t.translations[lang];

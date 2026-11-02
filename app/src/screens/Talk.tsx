@@ -21,6 +21,7 @@ import {
   checkState,
   factChips,
   flagStatus,
+  otherLangOf,
   readBackFor,
   spokeSince,
   useRoomModel,
@@ -55,8 +56,19 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
   const voiceClone = !!useFeatures()?.voice_clone; // C-13: the choice only where the box copies voices
   const live = useLiveRoom(session, store, myLang);
   // Second source: core's WS mirror (deduplicated). Keeps the sheet whole if the data channel hiccups.
-  useEventSocket(room, store, eventsSocketUrl(room));
+  const events = useEventSocket(room, store, eventsSocketUrl(room));
   const m = useRoomModel(store);
+  // The text link has been down a moment (not a blip): say so quietly while it comes back.
+  const [linkLate, setLinkLate] = useState(false);
+  useEffect(() => {
+    if (events !== "reconnecting") return;
+    const id = window.setTimeout(() => setLinkLate(true), 1500);
+    return () => {
+      window.clearTimeout(id);
+      setLinkLate(false);
+    };
+  }, [events]);
+  const textDown = events === "reconnecting" && linkLate;
   const mode = join.mode;
   const myRole = join.role;
   const dir = isRtl(myLang) ? "rtl" : "ltr";
@@ -69,10 +81,16 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
   const ticked = useRef<Set<string>>(new Set());
 
   const participants = Object.values(m.participants).filter((p) => p.role === "a" || p.role === "b");
-  const others = participants.filter((p) => p.id !== join.identity);
-  const other = others.find((p) => p.role !== myRole) ?? others[0];
   const otherRole = myRole === "a" ? "b" : "a";
-  const otherLang = other?.lang ?? (otherRole === "a" ? mode.roles.a.default_lang : null);
+  // The participants' real languages (then what the turns show); the mode's default only as a last resort.
+  const otherLang = otherLangOf(
+    participants,
+    join.identity,
+    myRole,
+    myLang,
+    m.turns,
+    otherRole === "a" ? mode.roles.a.default_lang : null,
+  );
   const offRecord = !!m.session?.off_record;
   const sameLang =
     participants.length >= 2 && participants.every((p) => p.lang === participants[0].lang) ? participants[0].lang : null;
@@ -222,7 +240,15 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
   const empty = turns.length === 0;
 
   return (
-    <div className={`screen screen--talk ${offRecord ? "is-off" : ""}`} dir={dir} lang={myLang} onPointerDown={unlockSound}>
+    <div
+      className={`screen screen--talk ${offRecord ? "is-off" : ""}`}
+      dir={dir}
+      lang={myLang}
+      onPointerDown={() => {
+        unlockSound();
+        live.startAudio(); // iOS: the box's voice may only start from a tap
+      }}
+    >
       <TitleBlock
         mode={mode}
         room={room}
@@ -248,6 +274,16 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
             }}
           >
             {t(myLang, "talk.rejoin")}
+          </button>
+        </div>
+      ) : null}
+      {textDown && live.state !== "reconnecting" && live.state !== "disconnected" ? (
+        <div className="banner" role="status">{t(myLang, "talk.reconnecting")}</div>
+      ) : null}
+      {live.audioBlocked && live.state === "connected" ? (
+        <div className="banner" role="status">
+          <button type="button" className="banner__btn" onClick={() => live.startAudio()}>
+            {t(myLang, "talk.tap_to_hear")}
           </button>
         </div>
       ) : null}

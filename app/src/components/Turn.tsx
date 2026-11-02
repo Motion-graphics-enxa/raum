@@ -2,7 +2,7 @@
 import { useState } from "react";
 import type { Role } from "../lib/events";
 import { fmtTime, isRtl, t } from "../lib/i18n";
-import { checkState, factsFor, type Turn as TurnT } from "../lib/store";
+import { checkState, factsFor, viewLangOf, type Turn as TurnT } from "../lib/store";
 import { FactDims, VerifyMark, fmtMs } from "./Drawing";
 import { Timeline, firstWordsMs } from "./Sheet";
 import "./turn.css";
@@ -36,7 +36,7 @@ export function TurnView({
 }) {
   const [open, setOpen] = useState(false);
   // What this device should read: the other person's words in my language, or my own words.
-  const viewLang = mine ? otherLang ?? myLang : myLang;
+  const viewLang = viewLangOf(turn, mine ? otherLang ?? myLang : myLang, mine);
   const tr = turn.translations[viewLang];
   const state = checkState(turn, viewLang);
   const facts = factsFor(turn, viewLang);

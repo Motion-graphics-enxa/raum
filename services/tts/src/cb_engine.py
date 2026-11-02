@@ -56,6 +56,8 @@ def _fixed_noise_forward(self, mu, mask, n_timesteps, temperature=1.0, spks=None
 
 
 _fm.CausalConditionalCFM.forward = _fixed_noise_forward
+import cb_patches  # noqa: E402  sync-free S3Gen/HiFT + GPU-side T3 sampling (RAUM_TTS_SYNCFREE, RAUM_TTS_EOS_EVERY)
+cb_patches.apply()
 
 
 class T3Graph:
@@ -229,7 +231,7 @@ class CBEngine:
 
     @torch.inference_mode()
     def _vocode(self, toks, gen, finalize, n_cfm, speed):
-        t = torch.tensor(toks, dtype=torch.long, device=self.device).unsqueeze(0)
+        t = cb_patches.tokens_to_device(toks, self.device)
         mel = S3Token2Mel.forward(self.s3, t, ref_wav=None, ref_sr=None, ref_dict=gen,
                                   n_cfm_timesteps=n_cfm or self.n_cfm_default, finalize=finalize)
         mel = mel.to(dtype=self.s3.dtype)
@@ -289,25 +291,19 @@ class CBEngine:
         cur_chunk = chunk_tokens
         t0 = time.perf_counter()
         eos = False
-        for i in range(max_new_tokens):
+        sampler = cb_patches.T3Sampler(self, logits_all, gen_ids, P=P if self.graph is not None else None, B=B,
+                                       past=past, max_new=max_new_tokens, cfg_weight=cfg_weight, use_cfg=use_cfg,
+                                       procs=(rep, minp, topp), temperature=temperature)
+        sampler.until(next_emit)
+        for i, tok in sampler:
             if should_stop is not None and should_stop():
                 if stats is not None:
                     stats["stopped"] = True
                     stats["tokens"] = len(toks)
                 return
-            lg = logits_all[:, -1, :]
-            logits = lg[0:1] + cfg_weight * (lg[0:1] - lg[1:2]) if use_cfg else lg[0:1]
-            logits = rep(gen_ids, logits)
-            if temperature != 1.0:
-                logits = logits / temperature
-            logits = minp(gen_ids, logits)
-            logits = topp(gen_ids, logits)
-            nxt = torch.multinomial(torch.softmax(logits, dim=-1), num_samples=1)
-            tok = int(nxt.item())
             if tok == stop:
                 eos = True
                 break
-            gen_ids = torch.cat([gen_ids, nxt], dim=1)
             if tok < 6561:
                 toks.append(tok)
             if len(toks) >= next_emit and len(toks) > LOOKAHEAD + 2:
@@ -328,11 +324,7 @@ class CBEngine:
                     yield out
                 next_emit = len(toks) + cur_chunk
                 cur_chunk = min(max_chunk_tokens, int(cur_chunk * grow))
-            e = t3.speech_emb(nxt) + t3.speech_pos_emb.get_fixed_embedding(i + 1)
-            if self.graph is not None:
-                logits_all = self.graph.step(e.expand(2, -1, -1), P + i)
-            else:
-                logits_all, past = self._llm(e.expand(B, -1, -1), past)
+                sampler.until(next_emit - len(toks))
         if stats is not None:
             stats["tokens"] = len(toks)
             stats["t3_time"] = time.perf_counter() - t0

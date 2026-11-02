@@ -128,7 +128,7 @@ ASR_TIMEOUT_S = 15.0
 PARTIAL_TIMEOUT_S = 5.0
 # voice in flight (voicegate.py): a partial waits at most this long for the voice to finish synthesising (spacing
 # partials to ~1 s while it does); the second check (gpt-oss) and the echo check wait up to CHECK_DEFER_S
-PARTIAL_DEFER_S = float(os.environ.get("RAUM_PARTIAL_DEFER_S", "0.5"))
+PARTIAL_DEFER_S = float(os.environ.get("RAUM_PARTIAL_DEFER_S", "0"))  # box: a deferred partial held the pause's final (settle 561 ms)
 CHECK_DEFER_S = float(os.environ.get("RAUM_CHECK_DEFER_S", "2.0"))
 SPEC_DEFER_S = float(os.environ.get("RAUM_SPEC_DEFER_S", "0.3"))
 MT_TIMEOUT_S = 30.0
@@ -207,6 +207,7 @@ class _Utt:
     seq: int = 0
     next_partial_ms: float = 0.0
     partial_task: asyncio.Task[None] | None = None
+    partial_asr: asyncio.Task[None] | None = None  # the partial task once it has its slot (simul.settle)
     closed: bool = False
     echoed: bool = False  # a voice this device hears played during it: not a clean voice sample
     parts: list[np.ndarray] = field(default_factory=list)  # END_OF_SPEECH audio of each pause (held turns)
@@ -601,6 +602,7 @@ class RoomPipeline:
             async with self.sched.slot("background"):
                 if u.closed:
                     return
+                u.partial_asr = asyncio.current_task()  # simul.settle: transcribing, no longer queued
                 res = await asyncio.wait_for(
                     self.engines.asr.transcribe(audio, lang_hint=u.hint, partial=True, turn=turn), PARTIAL_TIMEOUT_S)
         except asyncio.CancelledError:
@@ -1166,6 +1168,7 @@ class RoomPipeline:
         self._rates.clear()
         self.voicelock.clear()  # F-10: the owners' voices go with the session
         self.merge.clear()  # merge.py: the audio held for a continuation, too
+        self.simul.clear()  # simul.py: held segments never play what they voiced ahead
         self.spec.clear()  # speculate.py: audio made ahead (the cloned voice), too
         self._forget_in_service(ids)
 

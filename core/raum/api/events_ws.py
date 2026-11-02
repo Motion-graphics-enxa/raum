@@ -2,7 +2,9 @@
 
 On connect: the session's buffered envelopes (``?since=<ts>`` to skip older ones), then the current
 ``session.state``, then every new envelope (agent and core-originated) plus ``privacy.meter`` and
-``gpu.stats`` every second. Messages from the client are ignored.
+``gpu.stats`` every second. The client may send the text ``ping``; the answer is the text ``pong`` (an
+app-level heartbeat: a phone's socket can look open after the OS dropped it). Anything else from the
+client is ignored. uvicorn also sends protocol pings (``raum core``: every 20 s, 20 s to answer).
 """
 
 from __future__ import annotations
@@ -10,6 +12,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+from collections.abc import Awaitable, Callable
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
@@ -22,11 +25,14 @@ log = logging.getLogger("raum.api.events")
 
 router = APIRouter(tags=["events"])
 
+PING = "ping"
+PONG = "pong"
 
-async def _pump(ws: WebSocket, sub: Subscriber) -> None:
+
+async def _pump(send: Callable[[str], Awaitable[None]], sub: Subscriber) -> None:
     while True:
         env = await sub.queue.get()
-        await ws.send_text(env.to_json())
+        await send(env.to_json())
 
 
 @router.websocket("/api/events/{room}")
@@ -38,19 +44,27 @@ async def events(ws: WebSocket, room: str, since: int | None = None) -> None:
         await ws.close(code=4404, reason="unknown room")
         return
     await ws.accept()
+    lock = asyncio.Lock()  # the pump and the pong share the socket
+
+    async def send(text: str) -> None:
+        async with lock:
+            await ws.send_text(text)
+
     sub, backlog = core.sessions.subscribe(room, since)
     pump: asyncio.Task[None] | None = None
     try:
         for env in backlog:
-            await ws.send_text(env.to_json())
-        await ws.send_text(make_event("session.state", room, core.sessions.state(r)).to_json())
-        pump = asyncio.create_task(_pump(ws, sub))
+            await send(env.to_json())
+        await send(make_event("session.state", room, core.sessions.state(r)).to_json())
+        pump = asyncio.create_task(_pump(send, sub))
         while True:
             msg = await ws.receive()
             if msg["type"] == "websocket.disconnect":
                 break
             if pump.done():
                 break
+            if msg.get("text") == PING:
+                await send(PONG)
     except (WebSocketDisconnect, RuntimeError):
         pass
     finally:
