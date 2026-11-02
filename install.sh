@@ -353,7 +353,8 @@ $WHISPER_LINE
 # RAUM_SPEAKERPHONE_ROLE=a         # and speaks for this role; RAUM_SPEAKERPHONE_DEVICE=<index|name>
 EOF
 )"
-  echo "  no nft table without root: the privacy meter reads 'stub', sealed mode is state only"
+  echo "  no nft table from here (root): the privacy meter reads 'stub' and sealed mode is state only,"
+  echo "  unless the box admin scoped table inet raum to RAUM's cgroup (RAUM_NET_UP, RAUM_CGROUP: deploy/box.sh)"
 
   if [ "$SERVICES" = 1 ]; then
     say "services (deploy/box.sh)"
