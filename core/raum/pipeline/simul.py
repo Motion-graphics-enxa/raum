@@ -12,6 +12,18 @@ is identical in two consecutive partials and ends at a clause boundary is **comm
   path); without the model, or for a language it lacks, only sentence ends pass. Nothing is anticipated:
   a German clause never goes out before its finite verb or particle.
 - Abbreviations and ordinals ("Dr.", "12.") and an ellipsis never end a clause.
+- ONE partial is enough (``pipeline.commit_once``, default on) when whisper's word timings (``AsrResult.words``
+  ``end``) show the boundary word ended >= ``HEARD_MS`` (250 ms) before the end of the partial's audio, the
+  clause is complete as above (a German comma: the rules, and the turn model if it covers German, the comma
+  stripped), and it holds no number, dose, negation or date (``risky``: patterns + the fact guard's extraction,
+  names aside): those still wait for two partials that agree. No timings: two partials, as before.
+- SVO phrases (``pipeline.svo_phrases``, en / ru only, ``svo_points``): before a word that opens a new phrase
+  ("with", "after", "в", "после") once the chunk has 4 words, nothing pending (no number or negation in it or
+  the two words after), and the turn model rates it complete. Never German: a separable particle, the final
+  verb or "nicht" may still come.
+- A complete clause that cannot commit yet (``_ahead_candidate``): its exact segment request is translated and
+  voiced ahead at background priority (speculate ``segment_ahead``); the commit replays it only with the
+  identical source and history (the clause audio then plays from the cache), otherwise it is dropped unplayed.
 - Only partials with ``asr_conf >= asr_min_conf`` commit (V-03), in one source language; only once the turn
   has ``simultaneous_after_ms`` of speech (per mode: the Sprechzimmer 1.5 s). Pauses inside
   the turn are turn.py's (semantic end of turn): speech after a pause continues the same utterance, and
@@ -58,6 +70,9 @@ Events, per target language (``seg`` 0-based; consecutive mode sends no ``seg``)
 Segments start before ``utterance.end`` / ``transcript.final``. When nothing is left at the end (the last
 commit took the whole utterance), the last segment's ``translation.final`` is sent again, now with ``segs``.
 
+Pace: a live lane more than ``CATCHUP_BACKLOG_S`` (1.5 s) behind speaks its next sentence at ``CATCHUP_RATE``
+(1.1); decided only where a sentence starts, never mid-sentence. Held lanes never speed up.
+
 Voice: only committed segments are spoken, never drafts, and nothing waits for a tap. A segment whose fact
 guard is red is not spoken (the wrong figure never reaches the listener's ear); after the utterance, the read-back
 of what was said takes its place ("Nur zur Sicherheit: 400 mg?"). Segments go through the room's voice lane for
@@ -78,6 +93,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import re
 import time
 from dataclasses import dataclass, field, replace
@@ -110,7 +126,10 @@ MIN_COMMA_WORDS = 6
 COMMA_RULE_LANGS = frozenset({"de"})
 REUSE_GAP_MS = 300.0  # a stable partial this close to the endpoint stands in for the final
 REUSE_MIN_CONF = 0.85
-CATCHUP_RATE = 1.1  # a live lane whose next segment already waits speaks a little faster (no growing lag)
+CATCHUP_RATE = 1.1  # a live lane more than CATCHUP_BACKLOG_S behind speaks its next sentence a little faster
+CATCHUP_BACKLOG_S = 1.5
+# a boundary word that ended this long before the partial's audio end: whisper keeps it (one partial is enough)
+HEARD_MS = float(os.environ.get("RAUM_SIMUL_HEARD_MS", "250"))
 
 _SENTENCE = frozenset(".!?。！？؟")
 _CLAUSE = frozenset(";؛")
@@ -173,6 +192,95 @@ def commit_len(prev: list[str], cur: list[str], lang: str | None) -> int:
     """The longest valid cut by punctuation alone (0 = none)."""
     points = commit_points(prev, cur, lang)
     return points[-1] if points else 0
+
+
+def word_ends(words: list[dict[str, Any]] | None, tokens: list[str]) -> list[float | None]:
+    """When each whitespace token of the transcript ended (s, from the start of the partial's audio), from the
+    ASR's word timings (whisper.cpp verbose_json ``segments[].words[]``: ``word``, ``start``, ``end`` in seconds;
+    the pieces may be sub-word tokens, a leading space starts a word). None where the pieces do not spell the
+    transcript (a seed stripped, a revision): from there on nothing counts as heard."""
+    out: list[float | None] = [None] * len(tokens)
+    pieces = [w for w in words or () if isinstance(w, dict)]
+    if not pieces:
+        return out
+    spaced = any(str(w.get("word") or "").startswith((" ", " ")) for w in pieces)
+    chars: list[str] = []
+    times: list[float | None] = []
+    for w in pieces:
+        piece = str(w.get("word") or "")
+        end = w.get("end")
+        t = float(end) if isinstance(end, (int, float)) else None
+        if not spaced:
+            piece = " " + piece  # whole words, no spaces of their own
+        chars.extend(piece)
+        times.extend([t] * len(piece))
+    spelled = "".join(chars)
+    for k, m in enumerate(re.finditer(r"\S+", spelled)):
+        if k >= len(tokens) or _norm(m.group()) != _norm(tokens[k]):
+            break
+        out[k] = times[m.end() - 1]
+    return out
+
+
+def heard(ends: list[float | None], i: int, audio_s: float) -> bool:
+    """Did token ``i`` end at least ``HEARD_MS`` before the end of the audio (whisper will not revise it)?"""
+    t = ends[i] if 0 <= i < len(ends) else None
+    return t is not None and audio_s - t >= HEARD_MS / 1000.0
+
+
+_NEG_WORDS = frozenset(["not", "no", "never", "none", "nothing", "nobody", "nor", "cannot", "without", "nicht", "kein", "keine", "keinen", "keinem", "keiner", "keines", "nie", "niemals", "nichts", "ohne", "не", "нет", "ни", "никогда", "нельзя", "без"])
+_NUM_WORDS = frozenset(["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "fifteen", "twenty", "thirty", "forty", "fifty", "hundred", "thousand", "million", "half", "once", "twice", "thrice", "dozen", "daily", "hourly", "weekly", "eins", "zwei", "drei", "vier", "fünf", "sechs", "sieben", "acht", "neun", "zehn", "elf", "zwölf", "zwanzig", "dreißig", "hundert", "tausend", "million", "halb", "halbe", "einmal", "zweimal", "dreimal", "täglich", "stündlich", "wöchentlich", "один", "одна", "одно", "два", "две", "три", "четыре", "пять", "шесть", "семь", "восемь", "девять", "десять", "двадцать", "сто", "тысяча", "миллион", "половина", "однажды", "дважды", "трижды", "ежедневно"])
+_DATE_WORDS = frozenset(["today", "tomorrow", "yesterday", "tonight", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december", "heute", "morgen", "gestern", "übermorgen", "montag", "dienstag", "mittwoch", "donnerstag", "freitag", "samstag", "sonntag", "januar", "februar", "märz", "april", "mai", "juni", "juli", "august", "september", "oktober", "november", "dezember", "сегодня", "завтра", "вчера", "послезавтра", "понедельник", "вторник", "среда", "среду", "четверг", "пятница", "пятницу", "суббота", "субботу", "воскресенье", "января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"])
+_RISKY_KINDS = guard.ALL_KINDS - {"name"}
+
+
+def risky(text: str, lang: str | None) -> bool:
+    """A clause with a number, dose, negation, date (or any other fact the fact guard knows, names aside): it
+    commits only once two partials agree. Patterns first (they also stand in when the guard is unavailable)."""
+    if any(ch.isdigit() for ch in text):
+        return True
+    for raw in text.split():
+        w = _norm(raw)
+        if w in _NEG_WORDS or w in _NUM_WORDS or w in _DATE_WORDS or "n't" in raw.lower() or "n’t" in raw.lower():
+            return True
+    try:
+        return bool(guard.extract(text, lang or "", kinds=_RISKY_KINDS))
+    except Exception:  # noqa: BLE001  the guard unavailable: the patterns above decided
+        return False
+
+
+SVO_LANGS = frozenset({"en", "ru"})  # verb before object: a phrase may go out before its comma
+SVO_MIN_WORDS = 4
+_SVO_OPEN = {
+    "en": frozenset(["in", "at", "on", "with", "for", "after", "before", "because", "and", "but", "when", "if", "so", "during", "until", "while", "since"]),
+    "ru": frozenset(["в", "во", "на", "с", "со", "после", "перед", "потому", "и", "но", "когда", "если", "пока", "чтобы"]),
+}
+
+
+def svo_points(tokens: list[str], points: list[int], lang: str | None) -> list[int]:
+    """SVO phrase cuts (en, ru): before a word that opens a new phrase ("with", "after", "в", "после") when the
+    chunk since the last cut has ``SVO_MIN_WORDS`` words, no punctuation at its end, and neither it nor the two
+    words after it hold a number or negation (nothing pending that could flip it). German never: a separable
+    particle, the final verb or "nicht" may still come. The turn model must still rate the chunk complete."""
+    opens = _SVO_OPEN.get(lang or "")
+    if not opens:
+        return []
+    out: list[int] = []
+    last = 0
+    cuts = set(points)
+    for n in range(1, len(tokens)):
+        if n in cuts:  # a punctuation cut right before tokens[n]
+            last = n
+            continue
+        if n - last < SVO_MIN_WORDS or boundary(tokens[n - 1]) is not None:
+            continue
+        if _norm(tokens[n]) not in opens:
+            continue
+        if risky(" ".join(tokens[last:n + 2]), lang):
+            continue
+        out.append(n)
+        last = n
+    return out
 
 
 def speaker_voice(p: RoomPipeline, speaker: str, text: str | None = None, seconds: float | None = None) -> Any:
@@ -299,6 +407,8 @@ class _Lane:
     discard: bool = False  # held, and the turn ended without a usable final: its voice never plays
     ahead: list[Any] = field(default_factory=list)  # held: speculate._Voice made ahead (forgotten if never played)
     ahead_carry: str = ""  # held: a segment too short to voice alone, made with the next one
+    sentence_start: bool = True  # the next voice unit starts a sentence (catch-up is decided only there)
+    pace_up: bool = False  # this sentence is spoken at CATCHUP_RATE
     revised: int = 0  # segments the final transcript rewrote (pipeline.timing)
     misheard: bool = False  # one of them had been spoken already: a correction flag after the check
     total: int | None = None  # segment count, known once the utterance ended
@@ -330,6 +440,7 @@ class Simultaneous:
         self.p = p
         self._utts: dict[str, _UttState] = {}
         self._held: set[_Lane] = set()  # held lanes whose voice has not played yet (burn / session end stop them)
+        self._p_text: dict[str, float] = {}  # turn model P(end) per clause text (consecutive partials repeat it)
 
     @property
     def enabled(self) -> bool:
@@ -409,11 +520,12 @@ class Simultaneous:
         cur = _Partial(res.text.split(), lang, float(res.conf), bool(getattr(res, "has_conf", True)), len(audio))
         prev, st.last = st.last, cur
         st.stable = prev is not None and prev.tokens == cur.tokens and prev.lang == lang
-        if prev is None or prev.lang != lang or st.src_lang not in (None, lang) or u.closed:
+        first = prev is None or prev.lang != lang
+        if st.src_lang not in (None, lang) or u.closed:
             return
         if cur.has_conf and cur.conf < self.p.cfg.asr_min_conf:
             return
-        if self.p.spec.enabled and await self.complete(res.text, lang):
+        if not first and self.p.spec.enabled and await self.complete(res.text, lang):
             if u.closed or st.last is not cur:
                 return
             seconds = speech_seconds(len(audio) / SAMPLE_RATE, 0.0, res.words, getattr(self.p, "vad_pad_s", 0.5))
@@ -423,26 +535,101 @@ class Simultaneous:
         want = self.plan(u.speaker, u.role, lang)
         if not want:
             return
-        base = cur.tokens[align(st.done, cur.tokens):]
-        for n in reversed(commit_points(prev.tokens[align(st.done, prev.tokens):], base, lang)[-3:]):
-            if lang in COMMA_RULE_LANGS and boundary(base[n - 1]) != "sentence":
-                complete = True  # a German comma: commit_points took it only after a verb-complete clause
-            else:  # complete clauses only: the turn model must rate the text up to the cut a finished utterance
-                complete = await self.complete(" ".join(st.done + base[:n]), lang)
+        off = align(st.done, cur.tokens)
+        base = cur.tokens[off:]
+        pbase = [] if first or prev is None else prev.tokens[align(st.done, prev.tokens):]
+        # where it may be cut now: punctuation (two partials agree, or this one alone), SVO phrases (en, ru)
+        pts = commit_points(base, base, lang)
+        two = commit_points(pbase, base, lang) if pbase else []
+        mode = getattr(self.p.mode, "pipeline", None)
+        svo = svo_points(base, pts, lang) if getattr(mode, "svo_phrases", True) else []
+        timed = bool(getattr(mode, "commit_once", True))
+        sure = set(two) | {n for n in svo if pbase[:n + 1] == base[:n + 1]}
+        ends = word_ends(res.words, cur.tokens)
+        audio_s = len(audio) / SAMPLE_RATE
+        cands = sorted(set(pts[-3:]) | set(two[-3:]) | set(svo[-2:]))
+        done_n = 0
+        cand_n = 0  # complete, not yet sure: its translation and voice are made ahead (speculate.py)
+        for n in reversed(cands):
+            kind = "svo" if n in svo and n not in pts else (boundary(base[n - 1]) or "comma")
+            # ONE partial is enough when whisper heard the boundary word >= 250 ms before the end of the audio and
+            # the clause holds no number, dose, negation or date (those wait for two partials that agree)
+            once = (timed and n not in sure and heard(ends, off + n - 1, audio_s)
+                    and not risky(" ".join(base[:n]), lang))
+            ok = await self._clause_ok(" ".join(st.done + base[:n]), lang, kind, once=n not in sure)
             if u.closed or st.last is not cur:
                 return
-            if complete:
-                st.done += base[:n]
-                st.src_lang = lang
+            if not ok:
+                continue
+            if n in sure or once:
+                done_n = n
+                stats.note("simul.commit", **{"two" if n in sure else "once": 1}, svo=1 if kind == "svo" else None)
                 break
-        if not st.done:
-            return
-        for tgt, held in want.items():
+            cand_n = cand_n or n
+        if done_n:
+            st.done += base[:done_n]
+            st.src_lang = lang
+        for tgt, held in want.items() if st.done else ():
             lane = st.lanes.get(tgt) or self._lane(st, u, tgt, lang, held=held)
             if lane.held != held:  # the listener switched how they hear it: no more segments (the tail at the end)
                 continue
             if not lane.closed and lane.covered < len(st.done):
                 self._enqueue(lane, st.done[lane.covered:])
+        if cand_n > done_n and self.p.spec.enabled:
+            self._ahead_candidate(u, st, want, base[done_n:cand_n], lang)
+
+    async def _clause_ok(self, text: str, lang: str, kind: str, *, once: bool) -> bool:
+        """Is the text up to this cut a complete clause? incomplete.py first (no reason), then: an SVO phrase
+        needs the turn model; a German comma needs the rules alone when two partials agree, and the model too
+        (if it covers German; its comma stripped) on one partial; everything else ``complete``."""
+        if unfinished(text, lang):
+            return False
+        if kind == "svo":
+            return await self._model_agrees(text, lang, default=False)
+        if lang in COMMA_RULE_LANGS and kind != "sentence":
+            return True if not once else await self._model_agrees(text.rstrip(",;،؛ "), lang, default=True)
+        return await self.complete(text, lang)
+
+    async def _model_agrees(self, text: str, lang: str, *, default: bool) -> bool:
+        """The room's text turn model rates ``text`` a finished utterance (its commit floor); ``default`` when there
+        is no model for the language; False when it fails. Cached per text: consecutive partials repeat it."""
+        eot = getattr(self.p, "eot", None)
+        if eot is None or not _turn_model_covers(lang):
+            return default
+        floor = eot.commit_floor(lang) if hasattr(eot, "commit_floor") else float(getattr(eot, "fast", 0.1))
+        p = self._p_text.get(text)
+        if p is None:
+            try:
+                p = float(await eot.text_p(text))
+            except asyncio.CancelledError:
+                raise
+            except Exception as e:  # noqa: BLE001
+                log.debug("turn model failed on a clause: %s", e)
+                return False
+            self._p_text[text] = p
+            while len(self._p_text) > 64:
+                self._p_text.pop(next(iter(self._p_text)))
+        return p >= floor
+
+    def _ahead_candidate(self, u: _Utt, st: _UttState, want: dict[str, bool], words: list[str], lang: str) -> None:
+        """A complete clause this partial shows but cannot commit yet (two partials must agree, or whisper may
+        still revise its last word): its segment request, exactly as ``_segment`` will make it, is translated and
+        voiced ahead at background priority (speculate ``segment_ahead``). The commit replays it only if its
+        source is identical (the same request); otherwise it is dropped, its audio never played."""
+        src = self.p.fix_terms(" ".join(words), lang)
+        if not src.strip():
+            return
+        for tgt, held in want.items():
+            lane = st.lanes.get(tgt)
+            if lane is not None and (lane.held != held or lane.closed or lane.covered != len(st.done)
+                                     or not all(s.ready.is_set() for s in lane.segs)):
+                continue  # its earlier segments are not all translated: the request would not be the same
+            rec = _SegTurn(utt=u.id, speaker=u.speaker, role=u.role, lang=lang, text=src, turn=u.turn)
+            context = lane.context if lane is not None else self.p._context()
+            earlier = [(s.src, s.text) for s in lane.segs] if lane is not None else []
+            req = replace(self.p._request(rec, tgt, context), segment=True, earlier=earlier)  # type: ignore[arg-type]
+            voice = lane.voice_args if lane is not None else speaker_voice(self.p, u.speaker)
+            self.p.spec.segment_ahead(u.id, tgt, req, voice)
 
     async def settle(self, u: _Utt, n_audio: int, timeout_s: float) -> None:
         """At a pause, before transcribing: a partial still running that covers the audio to < 300 ms before
@@ -532,6 +719,7 @@ class Simultaneous:
         lane = _Lane(utt=u.id, tgt=tgt, src_lang=lang, speaker=u.speaker, role=u.role, turn=u.turn,
                      context=self.p._context(), held=held)
         lane.voice_args = speaker_voice(self.p, u.speaker)
+        self.p.spec.drop_text(u.id, tgt)  # speculate.py: the consecutive speculation for this language is moot
         lane.worker = self.p._spawn(self._translate_worker(lane))
         if self.p._tts_enabled():
             if held:
@@ -651,6 +839,7 @@ class Simultaneous:
                     seg.ready.set()
             if seg.rev == rev and lane.held and not lane.release.is_set():
                 self._ahead(lane, seg)
+        self.p.spec.drop_candidate(lane.utt, lane.tgt)  # a candidate never committed: its audio goes
         last = lane.segs[-1] if lane.segs else None
         if last is not None and not last.segs_sent:  # nothing was left after the last commit
             await self._final(lane, last, again=True)
@@ -677,8 +866,8 @@ class Simultaneous:
             req = replace(p._request(rec, lane.tgt, lane.context),  # type: ignore[arg-type]
                           segment=True, earlier=[(s.src, s.text) for s in lane.segs[:seg.index]])
 
-            async def run() -> None:
-                async for delta in p.engines.translate.stream(req):
+            async def run() -> None:  # speculate.py: replayed if this exact request was made ahead (a candidate)
+                async for delta in p.spec.segment_stream(lane.utt, lane.tgt, req):
                     if not delta:
                         continue
                     if lane.first_delta is None:
@@ -841,11 +1030,12 @@ class Simultaneous:
         if not text:
             return
         nxt = self._peek(lane, nxt_at)
-        voice = self._voice(lane, behind=nxt is not None)
+        voice = self._pace(lane, nxt_at)
         tts = self.p.engines.tts
         if tts is not None:  # speculate.py: this one from the cache (held: made ahead), the next one made meanwhile
             self.p.spec.prepare(tts, lane.tgt, text, nxt, self.p._voice_kwargs(tts, voice), utt=lane.utt)
         await self._say(lane, text, voice)
+        lane.sentence_start = boundary(text.split()[-1]) == "sentence"  # the next unit starts a new sentence
 
     def _peek(self, lane: _Lane, i: int) -> str | None:
         """What the voice says after segment ``i - 1``, if it is translated already (None: not yet / nothing)."""
@@ -861,12 +1051,25 @@ class Simultaneous:
                 return " ".join(parts)
         return " ".join(parts) if parts and lane.closed else None
 
-    def _voice(self, lane: _Lane, *, behind: bool) -> Any:
-        """The lane's voice args; a live lane whose next segment already waits catches up a little."""
+    def _pace(self, lane: _Lane, nxt_at: int) -> Any:
+        """The voice args for the next unit. A live lane decides its pace only at a SENTENCE start: more than
+        ``CATCHUP_BACKLOG_S`` of voice behind (still to play, plus translated segments waiting) -> ``CATCHUP_RATE``
+        for that whole sentence; never a change mid-sentence (it fought the frozen pace and the reuse of audio
+        made ahead). Held lanes play after the speaker: no catch-up."""
+        if lane.sentence_start:
+            lane.pace_up = not lane.held and self._backlog_s(lane, nxt_at) > CATCHUP_BACKLOG_S
         voice = lane.voice_args
-        if behind and not lane.held and voice is not None:
+        if lane.pace_up and voice is not None:
             voice = replace(voice, rate=max(float(voice.rate or 1.0), CATCHUP_RATE))
         return voice
+
+    def _backlog_s(self, lane: _Lane, nxt_at: int) -> float:
+        """Seconds of voice behind: what the track still has to play in this language, plus the translated
+        segments after this unit (at the room's base pace)."""
+        left = self.p.echo.remaining(lane.tgt)  # echo.py: the playout end plus its tail
+        played = max(0.0, left - self.p.echo.tail_s) if left is not None else 0.0
+        words = sum(len(s.text.split()) for s in lane.segs[nxt_at:] if s.ready.is_set() and s.text and not s.skip)
+        return played + words / max(0.5, float(getattr(self.p, "base_wps", 2.5)))
 
     def _ahead(self, lane: _Lane, seg: _Seg) -> None:
         """A held lane's segment, translated while the speaker still talks: its voice is made now in the

@@ -429,7 +429,8 @@ async def test_off_in_config_or_mode_and_long_turns_only_in_the_sprechzimmer(no_
     utt = await say(h, DOC_DE.id, 5.5)  # a long turn
     await h.p.drain()
     finals = segs(h, "translation.final", utt)
-    assert [f["text"] for f in finals] == ["مرحبًا سيدة دمير. أنا الدكتور فيبر.", "ما الذي أتى بكِ إليّ اليوم؟"]
+    by_seg = {f["seg"]: f["text"] for f in finals}  # the last final may be sent again with segs
+    assert list(by_seg.values()) == ["مرحبًا سيدة دمير. أنا الدكتور فيبر.", "ما الذي أتى بكِ إليّ اليوم؟"]
     assert idx(h, "translation.delta", utt, seg=0) < idx(h, "utterance.end", utt)
 
 
