@@ -6,7 +6,8 @@
 #   RAUM_PROFILE=spark deploy/box.sh restart        # override raum.yaml's profile for this run
 #   RAUM_APP=1 deploy/box.sh start                  # also serve the built app (vite preview, :5180,
 #                                                   #  proxies /api + /rtc; RAUM_HTTPS=1 for phones)
-# Env: RAUM_RUN (pid + log dir, default ~/Desktop/HackathonRaum/runtime/run),
+# Env: sourced first from $RAUM_ENV_FILE (default ~/Desktop/HackathonRaum/runtime/raum.env) if present.
+#      RAUM_RUN (pid + log dir, default ~/Desktop/HackathonRaum/runtime/run),
 #      RAUM_CORE_PORT (8000), LIVEKIT_URL / LIVEKIT_API_KEY / LIVEKIT_API_SECRET (agent).
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -16,6 +17,14 @@ PORT="${RAUM_CORE_PORT:-8000}"
 mkdir -p "$RUN"
 export PATH="$HOME/.local/bin:/usr/local/bin:$PATH"
 export RAUM_HOME="$ROOT"
+# Box-local settings outside the repo (survive rsync): RAUM_PROFILE=spark, RAUM_APP=1, RAUM_HTTPS=1 ...
+ENV_FILE="${RAUM_ENV_FILE:-$HOME/Desktop/HackathonRaum/runtime/raum.env}"
+if [ -f "$ENV_FILE" ]; then
+  set -a
+  # shellcheck disable=SC1090
+  . "$ENV_FILE"
+  set +a
+fi
 
 pidof_svc() { cat "$RUN/$1.pid" 2>/dev/null || true; }
 alive() { local p; p=$(pidof_svc "$1"); [ -n "$p" ] && kill -0 "$p" 2>/dev/null; }
