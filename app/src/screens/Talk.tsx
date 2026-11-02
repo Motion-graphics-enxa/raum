@@ -1,9 +1,9 @@
 /** Talk `/r/:room`: the other person's words in my language are the hero. */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
-import { api } from "../lib/api";
+import { api, eventsSocketUrl } from "../lib/api";
 import { isRtl, pick, t } from "../lib/i18n";
-import { useLiveRoom, type LiveSession } from "../lib/live";
+import { useEventSocket, useLiveRoom, type LiveSession } from "../lib/live";
 import { clearJoin, loadJoin } from "../lib/session";
 import { tick, unlockSound } from "../lib/sound";
 import { RoomStore, checkState, openFlag, useRoomModel, type Turn } from "../lib/store";
@@ -29,6 +29,8 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
     [room, join],
   );
   const live = useLiveRoom(session, store);
+  // Second source: core's WS mirror (deduplicated). Keeps the sheet whole if the data channel hiccups.
+  useEventSocket(room, store, eventsSocketUrl(room));
   const m = useRoomModel(store);
   const mode = join.mode;
   const myLang = join.lang;
@@ -94,7 +96,7 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
     if (!el) return;
     const near = el.scrollHeight - el.scrollTop - el.clientHeight < 240;
     if (near) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-  }, [m.version]);
+  }, [m.turns]);
 
   // The one interruption: an open confirm flag for my role.
   let pending: { turn: Turn; flag: NonNullable<ReturnType<typeof openFlag>> } | null = null;
@@ -289,7 +291,18 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
         </div>
       ) : null}
 
-      {pending ? <ConfirmSheet flag={pending.flag} lang={myLang} onAnswer={answer} /> : null}
+      {pending ? (
+        <ConfirmSheet
+          flag={pending.flag}
+          lang={myLang}
+          onAnswer={answer}
+          kindHint={
+            Object.values(pending.turn.facts)
+              .flat()
+              .find((f) => !f.match)?.kind ?? null
+          }
+        />
+      ) : null}
     </div>
   );
 }

@@ -210,6 +210,17 @@ const de: Dict = {
 };
 
 const tr: Dict = {
+  "summary.empty": "Henüz özetlenecek bir şey yok.",
+  "summary.takehome_body": "Oturum sürdüğü sürece bu özeti başka bir telefonda açmak için tarayın.",
+  "summary.burn": "Oturumu yok et",
+  "summary.burn_confirm": "Oturum şimdi yok edilsin mi? Anahtar silinir ve geri getirilemez.",
+  "summary.file_note": "Dosya notu",
+  "talk.end_confirm": "Bitirip özeti göster?",
+  "talk.repeat_back": "Tekrarlatma kontrolü",
+  "talk.repeat_back_on": "Hastadan talimatı kendi sözleriyle tekrarlamasını isteyin.",
+  "talk.explain_simply": "Basitçe açıkla",
+  "talk.offers": "Teklifler",
+  "talk.menu": "Oda",
   "app.slogan": "Çevirir. Kontrol eder. Unutur.",
   "join.you_are": "Katılımınız",
   "join.room": "Oda",
@@ -286,6 +297,17 @@ const tr: Dict = {
 };
 
 const ru: Dict = {
+  "summary.empty": "Пока нечего подытоживать.",
+  "summary.takehome_body": "Отсканируйте, чтобы открыть итоги на другом телефоне, пока сеанс существует.",
+  "summary.burn": "Уничтожить сеанс",
+  "summary.burn_confirm": "Уничтожить сеанс сейчас? Ключ будет удалён без возможности восстановления.",
+  "summary.file_note": "Заметка для карты",
+  "talk.end_confirm": "Завершить и показать итоги?",
+  "talk.repeat_back": "Проверка пересказом",
+  "talk.repeat_back_on": "Попросите пациента пересказать указание своими словами.",
+  "talk.explain_simply": "Объяснить просто",
+  "talk.offers": "Предложения",
+  "talk.menu": "Комната",
   "app.slogan": "Переводит. Проверяет. Забывает.",
   "join.you_are": "Вы входите как",
   "join.room": "Комната",
@@ -362,6 +384,17 @@ const ru: Dict = {
 };
 
 const ar: Dict = {
+  "summary.empty": "لا يوجد ما يُلخَّص بعد.",
+  "summary.takehome_body": "امسح الرمز لفتح هذا الملخص على هاتف آخر ما دامت الجلسة قائمة.",
+  "summary.burn": "إتلاف الجلسة",
+  "summary.burn_confirm": "هل تريد إتلاف الجلسة الآن؟ سيُحذف المفتاح ولا يمكن استعادته.",
+  "summary.file_note": "ملاحظة للملف",
+  "talk.end_confirm": "إنهاء وعرض الملخص؟",
+  "talk.repeat_back": "التحقق بالإعادة",
+  "talk.repeat_back_on": "اطلب من المريض إعادة التعليمات بكلماته.",
+  "talk.explain_simply": "اشرح ببساطة",
+  "talk.offers": "العروض",
+  "talk.menu": "الغرفة",
   "app.slogan": "يترجم. يتحقق. ينسى.",
   "join.you_are": "تنضم بصفتك",
   "join.room": "الغرفة",

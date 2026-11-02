@@ -143,10 +143,12 @@ export function ConfirmSheet({
   flag,
   lang,
   onAnswer,
+  kindHint,
 }: {
   flag: EventData["flag"];
   lang: string;
   onAnswer: (accepted: boolean) => void;
+  kindHint?: string | null;
 }) {
   const yes = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -165,7 +167,11 @@ export function ConfirmSheet({
     <div className="confirm" role="alertdialog" aria-modal="true" aria-labelledby="confirm-q">
       <div className={`confirm__sheet ${red ? "is-red" : ""}`}>
         <div className="confirm__kind">
-          <Dimension value={t(lang, `kind.${flag.kind === "mismatch" ? "number" : flag.kind}`)} state={red ? "bad" : "pending"} lang={lang} />
+          <Dimension
+            value={t(lang, `kind.${flag.kind === "mismatch" ? kindHint ?? "number" : flag.kind}`)}
+            state={red ? "bad" : "pending"}
+            lang={lang}
+          />
         </div>
         <p id="confirm-q" className="confirm__q" dir="auto">
           {text}

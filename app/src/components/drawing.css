@@ -25,6 +25,7 @@
 }
 
 .dim__value {
+  unicode-bidi: isolate;
   font-size: 1rem;
   font-weight: 640;
   color: var(--ink);
@@ -170,6 +171,10 @@
   font-size: 1rem;
   font-weight: 680;
   white-space: nowrap;
+}
+.cloud__said,
+.cloud__got {
+  unicode-bidi: isolate;
 }
 .cloud__said {
   color: var(--ink);

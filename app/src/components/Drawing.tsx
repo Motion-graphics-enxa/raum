@@ -30,7 +30,7 @@ export function Dimension({
 }) {
   return (
     <span className={`dim dim--${state}`} style={{ "--dim-delay": `${delay}ms` } as React.CSSProperties}>
-      <span className="dim__value mono">{value}</span>
+      <span className="dim__value mono" dir="auto">{value}</span>
       <span className="dim__line" aria-hidden="true">
         <span className="dim__end dim__end--s" />
         <span className="dim__end dim__end--e" />
@@ -201,9 +201,9 @@ export function FactDims({
         ) : (
           <RevisionCloud key={`${f.kind}-${i}`} label={t(lang, "talk.mismatch")}>
             <span className="cloud__pair mono">
-              <span className="cloud__said">{f.src ?? "—"}</span>
+              <span className="cloud__said" dir="auto">{f.src ?? "—"}</span>
               <span className="cloud__ne" aria-hidden="true">≠</span>
-              <span className="cloud__got">{f.tgt ?? "—"}</span>
+              <span className="cloud__got" dir="auto">{f.tgt ?? "—"}</span>
             </span>
             <span className="dim__kind">{t(lang, `kind.${f.kind}`)}</span>
           </RevisionCloud>

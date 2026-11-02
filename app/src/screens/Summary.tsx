@@ -232,11 +232,11 @@ export default function SummaryScreen() {
 export function BurnStamp({ burn, lang }: { burn: EventData["burn.done"]; lang: string }) {
   return (
     <section className="stamp" role="status" aria-live="assertive">
-      <svg className="stamp__frame" viewBox="0 0 300 120" aria-hidden="true">
-        <rect x="4" y="4" width="292" height="112" pathLength={1} />
-        <path d="M18 104L282 16" pathLength={1} />
-      </svg>
       <div className="stamp__body">
+        <svg className="stamp__frame" viewBox="0 0 300 120" preserveAspectRatio="none" aria-hidden="true">
+          <rect x="2" y="2" width="296" height="116" pathLength={1} />
+          <path d="M14 108L286 12" pathLength={1} />
+        </svg>
         <p className="stamp__title">{t(lang, "summary.burned")}</p>
         <p className="stamp__time mono">{fmtTime(burn.key_destroyed_at, lang)} · {new Date(burn.key_destroyed_at).toISOString().slice(11, 19)} UTC</p>
         <p className="stamp__hash mono" title={burn.audit_head_hash}>

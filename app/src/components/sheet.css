@@ -327,9 +327,13 @@
   max-width: 100%;
   padding: 0 2px;
 }
+.chain--big {
+  flex-wrap: wrap;
+  row-gap: var(--s-4);
+}
 .chain--big .chain__seg {
   grid-template-rows: auto 22px auto;
-  min-width: 96px;
+  min-width: 8.2em;
 }
 .chain--big .chain__ms {
   font-size: clamp(1.25rem, 0.6rem + 1.4vw, 2rem);
