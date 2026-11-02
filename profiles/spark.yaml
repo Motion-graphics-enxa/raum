@@ -4,7 +4,7 @@ models:
   # 0.25 s pause -> end-of-turn decision (models.turn); without the turn extra/models: turn.fallback_silence
   vad:       { engine: silero, options: { min_silence_duration: 0.25, activation_threshold: 0.5 } }
   # text P(end) >= fast and audio P >= audio_min -> end now; >= language floor -> unsure_s; else max_s (silence)
-  turn:      { engine: livekit, options: { fast: 0.1, unsure_s: 1.0, max_s: 1.6, audio_min: 0.5, llm_fallback: true, fallback_silence: 0.6 } }
+  turn:      { engine: livekit, options: { fast: 0.1, unsure_s: 1.0, max_s: 1.6, audio_min: 0.5, llm_fallback: true, fallback_silence: 0.6, aux_s: 1.0 } }   # haben/sein/werden without a closing verb: 1.0 s (modals and "ab morgen" stay 1.6 s)
   denoise:   { engine: deepfilternet, options: { threads: 1 } }   # active only when installed with RAUM_UV_EXTRAS="--extra denoise"; gated at RTF 0.3
   asr:       { engine: whisper.cpp, url: http://127.0.0.1:8081, model: large-v3-turbo, options: { partial_every_ms: 500 } }
   translate: { engine: ollama, url: http://127.0.0.1:11434, model: gemma4:26b, options: { think: false, temperature: 0.1, num_predict: 256, num_ctx: 8192 } }
