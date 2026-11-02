@@ -11,29 +11,34 @@ simultaneous mode, the segment that covers it) takes its place.
 - **Stable part**: the word-aligned longest common prefix of the utterance's last two partials; with one partial
   so far, that partial minus its last word (still being heard). From ``pipeline.draft_after_ms`` (1.5 s) of speech
   on; the same stable text again (per target) is not translated again.
-- **Newest wins**: one draft MT in flight per (utt, target). A newer stable text waits and replaces any older one
-  still waiting; when the MT in flight finishes, its draft goes out only if the newest stable text still starts
-  with its source and covers the same committed segments (else the ASR revised it, or a segment took it: dropped).
-  One worker per (utt, target) publishes in order, so an older draft never follows a newer one.
+- **Newest wins**: a newer stable text replaces any older one not translated yet; when an MT finishes, its draft
+  goes out only if the newest stable text still starts with its source and covers the same committed segments
+  (else the ASR revised it, or a segment took it: dropped). One worker per (utt, target) publishes in order, so an
+  older draft never follows a newer one.
 - **Spacing**: draft MTs of one (utt, target) start at least ``pipeline.draft_every_ms`` (0.6 s) apart.
-- **Priority**: ``voicegate.quiet(SPEC_DEFER_S)`` first (live voice first, in any room), then the scheduler's
-  ``background`` slot, last among background work: a draft starts only while nothing waits for a background slot
-  and, with two or more slots, one stays free for the next partial ASR (a partial queued behind a draft MT would
-  hold back the commits, the next draft, and the pause's reuse of the running partial as the final). The same
-  engine and request as the turn (``RoomPipeline._request``), collected, not streamed.
+- **Last in line, never in the way** (the live voice must not get slower): at most ONE draft MT per room at a time
+  (all targets), in the scheduler's ``background`` slot, after ``voicegate.quiet(SPEC_DEFER_S)``. A draft never
+  queues: when it is its turn and anything below is going on, it skips the round (the next partial tries again);
+  if any of it starts while the draft MT runs, that MT is cancelled and its draft dropped:
+  live-slot work (a committed segment's MT, the final ASR / translation), this room's live voice synthesising
+  (speculate ``_live``) or any voice in the box (``voicegate.busy``), speculation in flight (MT or voice made ahead
+  of the end of turn / the commit), anyone waiting for a background slot (partial ASR), and, with two or more
+  background slots, the last free one (it stays for the next partial). The same engine and request as the turn
+  (``RoomPipeline._request``), collected, not streamed.
 - **Simultaneous mode** (simul.py): once a target language has committed segments, its draft covers only the
   uncommitted tail after them (aligned like simul.py aligns the tail at the end), as a segment request with the
-  earlier segments as chat history, and carries ``seg`` = the index that tail will have. A segment >= ``seg``
-  arriving in the app covers it; the next draft follows that segment. The tail waits (at most ``SEG_WAIT_S``) until
-  the segments before it are translated (live slot, quick), so its request has their translations as history.
+  earlier segments' translations as chat history, and carries ``seg`` = the index that tail will have. A segment
+  >= ``seg`` arriving in the app covers it; the next draft follows that segment. While the segments before the
+  tail are still being translated the round is skipped (at most ``SEG_WAIT_S``; then with what is there).
 - **Stops** when the utterance ends (``speech_end``: the final translation replaces it), when it is dropped (off the
-  record, burn, close) and at session end; in flight MTs are cancelled and nothing more of it goes out.
+  record, burn, close) and at session end; an MT in flight is cancelled and nothing more of it goes out.
 - **Never voiced**: no TTS, no voice lane, no fact guard, flags or read-back from a draft, and it is not a content
-  event (not stored). Off with ``pipeline.draft_text: false``, and while the voice lock (F-10) is on: it admits an
-  utterance only after its final ASR, so nothing of it is translated before.
+  event (not stored). Off with ``pipeline.draft_text: false`` in raum.yaml or in the mode (then no draft MT is ever
+  made), and while the voice lock (F-10) is on: it admits an utterance only after its final ASR.
 
-Stages (``pipeline.timing`` ``stages``): ``draft.collect`` (each draft MT, wall), ``draft.mt`` (the engine's own,
-Ollama), ``draft.slot.background``, ``draft.voice.defer``, ``draft.yield`` (waited for a free background slot).
+Stages (``pipeline.timing`` ``stages``): ``draft.collect`` (each draft MT: wall, ``preempted``, ``failed``),
+``draft.mt`` (the engine's own, Ollama), ``draft.slot.background``, ``draft.voice.defer``, ``draft.skip`` (rounds
+skipped, by reason).
 """
 
 from __future__ import annotations
@@ -57,8 +62,8 @@ log = logging.getLogger("raum.pipeline.draft")
 
 DRAFT_AFTER_MS = 1500.0
 DRAFT_EVERY_MS = 600.0
-SEG_WAIT_S = 1.0  # a tail draft waits this long at most for the committed segments before it to be translated
-POLL_S = 0.025
+SEG_WAIT_S = 1.0  # a tail draft skips rounds this long at most while the segments before it are translated
+POLL_S = 0.025  # a draft MT in flight checks this often whether live work started (then it is cancelled)
 
 
 def stable_prefix(prev: list[str] | None, cur: list[str]) -> list[str]:
@@ -135,15 +140,19 @@ class Drafts:
     def __init__(self, p: RoomPipeline) -> None:
         self.p = p
         self._utts: dict[str, _UttDraft] = {}
+        self._inflight = False  # the room's one draft MT
         self.published = 0  # drafts sent (tests / glass box)
+        self.skipped: dict[str, int] = {}  # rounds skipped, by reason (tests / glass box)
 
     def _opt(self, name: str, default: Any) -> Any:
         return getattr(getattr(self.p.cfg, "pipeline", None), name, default)
 
     @property
     def enabled(self) -> bool:
+        box = bool(self._opt("draft_text", True))
+        room = bool(getattr(getattr(self.p.mode, "pipeline", None), "draft_text", True))
         locked = bool(getattr(getattr(self.p, "voicelock", None), "enabled", False))  # F-10: admitted after the final
-        return bool(self._opt("draft_text", True)) and not locked
+        return box and room and not locked
 
     @property
     def after_ms(self) -> float:
@@ -175,16 +184,21 @@ class Drafts:
             return
         rec = SimpleNamespace(utt=u.id, speaker=u.speaker, role=u.role, lang=lang, text="", turn=u.turn)
         lanes = self.p.simul.lanes(u.id)  # simul.py: committed segments per target
+        ready: list[tuple[str, _Lane]] = []
         for tgt in self.p._targets(rec):  # type: ignore[arg-type]
             want = self._want(stable, lang, lanes.get(tgt))
             if want is None:
                 continue
             lane = st.lanes.setdefault(tgt, _Lane())
-            if lane.want is not None and lane.want.key == want.key:
+            if lane.want is None or lane.want.key != want.key:
+                lane.want = want
+            if lane.want.key == lane.sent:
                 continue  # the stable text did not change
-            lane.want = want
-            if lane.task is None or lane.task.done():
-                lane.task = self.p._spawn(self._run(st, u, lang, tgt, lane))
+            if lane.task is None or lane.task.done():  # a skipped round: this partial tries again
+                ready.append((tgt, lane))
+        # one draft MT per room: the language drafted longest ago goes first (tasks start in spawn order)
+        for tgt, lane in sorted(ready, key=lambda x: x[1].started):
+            lane.task = self.p._spawn(self._run(st, u, lang, tgt, lane))
 
     def drop(self, utt: str) -> None:
         """The utterance ended (its final translation replaces the draft), was dropped or burned: no more drafts."""
@@ -200,6 +214,36 @@ class Drafts:
         """Session end / burn / close."""
         for utt in list(self._utts):
             self.drop(utt)
+
+    # ------------------------------------------------------------ what goes first
+
+    def busy(self, *, running: bool = False) -> str | None:
+        """Why a draft MT must not run now (None: it may). ``running``: asked while this room's draft MT holds its
+        background slot (then only what started since counts: a waiting background job, live work, voice)."""
+        sched = self.p.sched
+        slots = getattr(sched, "slots", {})
+        run = getattr(sched, "running", {})
+        wait = getattr(sched, "waiting", {})
+        if not running and self._inflight:
+            return "draft"  # one draft MT per room
+        if run.get("live") or wait.get("live"):
+            return "live"  # a committed segment's MT, the final ASR or translation
+        if wait.get("background"):
+            return "background"  # partial ASR (or speculation) waits for a slot
+        if not running and int(run.get("background", 0)) >= max(1, int(slots.get("background", 1)) - 1):
+            return "background"  # the last free slot stays for the next partial
+        spec = getattr(self.p, "spec", None)
+        if getattr(spec, "_live", 0):
+            return "voice"  # this room's live voice is being synthesised
+        if spec is not None and _spec_busy(spec):
+            return "spec"  # MT or voice made ahead of the end of turn / of the commit
+        if voicegate.busy():
+            return "voice"  # a live voice anywhere in the box
+        return None
+
+    def _skip(self, why: str) -> None:
+        self.skipped[why] = self.skipped.get(why, 0) + 1
+        stats.note("skip", **{why: 1})
 
     # ------------------------------------------------------------ internals
 
@@ -224,7 +268,8 @@ class Drafts:
         return req
 
     async def _run(self, st: _UttDraft, u: _Utt, lang: str, tgt: str, lane: _Lane) -> None:
-        """The (utt, target) worker: one MT at a time, the newest stable text each time, drafts in order."""
+        """The (utt, target) worker: the newest stable text each time, drafts in order; ends when nothing is left
+        or the round is skipped (the next partial starts it again)."""
         from raum.pipeline.room import MT_TIMEOUT_S, SPEC_DEFER_S
 
         with stats.scope("draft"):
@@ -239,24 +284,30 @@ class Drafts:
                 if not want.history_ready():  # simultaneous: the segments before the tail are being translated
                     lane.held = lane.held or time.monotonic()
                     if time.monotonic() - lane.held < SEG_WAIT_S:
-                        await asyncio.sleep(POLL_S)
-                        continue
-                lane.held = None
-                with stats.timed("voice.defer"):
-                    await voicegate.quiet(SPEC_DEFER_S)  # live voice first, in any room
-                with stats.timed("yield"):
-                    await self._yield(st)  # then every other background job (partial ASR first)
-                if st.closed:
-                    return
-                async with self.p.sched.slot("background"):
-                    if st.closed:
+                        self._skip("history")
                         return
-                    want = lane.want or want  # the newest, at the moment its MT starts
-                    lane.sent, lane.started = want.key, time.monotonic()
-                    text = await self._translate(self._request(u, lang, tgt, want), MT_TIMEOUT_S)
+                lane.held = None
+                why = self.busy()
+                if why is None:
+                    with stats.timed("voice.defer"):
+                        await voicegate.quiet(SPEC_DEFER_S)  # live voice first, in any room
+                    why = "closed" if st.closed else self.busy()
+                if why is not None:
+                    if why != "closed":
+                        self._skip(why)
+                    return
+                # nothing awaits between the check and the slot: acquire takes a free slot at once
+                self._inflight = True
+                try:
+                    async with self.p.sched.slot("background"):
+                        want = lane.want or want  # the newest, at the moment its MT starts
+                        lane.sent, lane.started = want.key, time.monotonic()
+                        text = await self._translate(self._request(u, lang, tgt, want), MT_TIMEOUT_S)
+                finally:
+                    self._inflight = False
                 newest = lane.want or want
                 if st.closed or not text or not newest.extends(want):
-                    continue  # ended, failed, or stale: the ASR revised it / a segment took it
+                    continue  # ended, preempted, failed, or stale: the ASR revised it / a segment took it
                 lane.seq += 1
                 self.published += 1
                 data: dict[str, Any] = {"target_lang": tgt, "text": text, "seq": lane.seq}
@@ -264,19 +315,8 @@ class Drafts:
                     data["seg"] = want.seg
                 await self.p.emit("translation.draft", data, utt=st.utt)
 
-    async def _yield(self, st: _UttDraft) -> None:
-        """Until nothing waits for a background slot and one stays free after this draft takes its own (with one
-        slot: until it is idle). Scheduler.acquire takes a free slot without awaiting, so nothing slips in between."""
-        sched = self.p.sched
-        while not st.closed:
-            slots = int(getattr(sched, "slots", {}).get("background", 1))
-            running = int(getattr(sched, "running", {}).get("background", 0))
-            waiting = getattr(sched, "waiting", {}).get("background") or ()
-            if not waiting and running < max(1, slots - 1):
-                return
-            await asyncio.sleep(POLL_S)
-
     async def _translate(self, req: TranslateRequest, timeout_s: float) -> str:
+        """The draft MT, collected; cancelled ("") as soon as live work, a voice or speculation starts."""
         parts: list[str] = []
 
         async def run() -> None:
@@ -285,9 +325,20 @@ class Drafts:
                     parts.append(d)
 
         t0 = time.monotonic()
+        mt = asyncio.ensure_future(asyncio.wait_for(run(), timeout_s))
         try:
-            await asyncio.wait_for(run(), timeout_s)
+            while not mt.done():
+                await asyncio.wait({mt}, timeout=POLL_S)
+                why = None if mt.done() else self.busy(running=True)
+                if why is not None:
+                    mt.cancel()
+                    await asyncio.gather(mt, return_exceptions=True)
+                    stats.note("collect", preempted=1)
+                    self._skip(f"preempted.{why}")
+                    return ""
+            mt.result()
         except asyncio.CancelledError:
+            mt.cancel()
             raise
         except Exception as e:  # noqa: BLE001  a draft is optional: the final translation comes anyway
             log.debug("draft translation failed: %s: %s", e.__class__.__name__, e)
@@ -295,3 +346,18 @@ class Drafts:
             return ""
         stats.note("collect", wall_ms=(time.monotonic() - t0) * 1000.0)  # any engine; Ollama adds draft.mt
         return "".join(parts).strip()
+
+
+def _spec_busy(spec: Any) -> bool:
+    """Speculation (speculate.py) in flight in this room: an MT made ahead (end of turn, a segment before its
+    commit) or a voice made ahead. Drafts give way to it: it is what makes the live voice early."""
+    for group in (getattr(spec, "_specs", None), getattr(spec, "_cands", None)):
+        for s in list((group or {}).values()):
+            task = getattr(s, "task", None)
+            if task is not None and not task.done():
+                return True
+    for v in list((getattr(spec, "_voices", None) or {}).values()):
+        done = getattr(v, "done", None)
+        if done is not None and not done.is_set():
+            return True
+    return False

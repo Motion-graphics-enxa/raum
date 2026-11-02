@@ -17,7 +17,7 @@ from pipeline_helpers import Harness, fake_check, fake_extract, not_implemented
 from test_pipeline_simul import DOC_DE, PAT_AR_HP, PAT_AR_SPK, Voice, config, idx, room, say, speak, until
 
 from raum.config import PipelineConfig
-from raum.events import make_event
+from raum.events import ParticipantInfo, make_event
 from raum.pipeline import draft as draft_mod
 from raum.pipeline import voicegate
 from raum.pipeline.base import AsrResult
@@ -47,11 +47,13 @@ class _Spy:
         self.inner = MockTranslator({"first_token_ms": 1, "token_ms": 0})
         self.reqs: list = []
         self.partials_at: list[int] = []  # transcript.partial events out when each request started
+        self.ended_at: list[int] = []  # utterance.end events out when each request started (0: while speaking)
         self.prios: list[str | None] = []
 
     async def stream(self, req):
         self.reqs.append(req)
         self.partials_at.append(len(self.h.of("transcript.partial")))
+        self.ended_at.append(len(self.h.of("utterance.end")))
         self.prios.append(_prio.get())
         async for d in self.inner.stream(req):
             yield d
@@ -155,17 +157,25 @@ async def test_drafts_start_after_1_5_s_of_speech_and_go_out_in_place(no_guard):
     assert h.p.draft._utts == {}
 
 
-async def test_the_switch_and_the_start_delay_turn_drafts_off(no_guard):
-    for opts in ({"draft_text": False}, {"draft_after_ms": 10_000.0}):
-        h = harness(**opts)
-        utt = await say(h, DOC_DE.id, 2.0)
-        await h.p.drain()
-        assert not drafts(h, utt), opts
-        assert h.one("translation.final", utt)["text"]
-    h = harness()
+@pytest.mark.parametrize("off", ["box", "mode", "delay", None])
+async def test_the_switch_means_no_draft_mt_at_all(no_guard, off):
+    """raum.yaml or the mode's ``pipeline.draft_text: false`` (or a start delay longer than the turn): not one MT
+    call while the speaker talks, no draft event; the turn itself is unchanged."""
+    h = harness(speculate=False, **({"draft_text": False} if off == "box" else {}),
+                **({"draft_after_ms": 10_000.0} if off == "delay" else {}))
+    if off == "mode":
+        h.p.mode = h.p.mode.model_copy(deep=True)
+        h.p.mode.pipeline.draft_text = False
+    spy = h.engines.translate = _Spy(h)  # type: ignore[assignment]
     utt = await say(h, DOC_DE.id, 2.0)
     await h.p.drain()
-    assert drafts(h, utt)  # the same room with the defaults: drafts
+    while_speaking = [r.text for r, ended in zip(spy.reqs, spy.ended_at, strict=True) if not ended]
+    if off is None:
+        assert drafts(h, utt) and while_speaking  # the same room with the defaults: drafts
+    else:
+        assert not drafts(h, utt) and while_speaking == [], off
+        assert [r.text for r in spy.reqs] == [h.one("transcript.final", utt)["text"]]  # the turn's MT only
+    assert h.one("translation.final", utt)["text"]
 
 
 async def test_low_confidence_partials_are_never_drafted(no_guard):
@@ -343,16 +353,20 @@ async def test_with_committed_segments_the_draft_is_only_the_uncommitted_tail(no
     h = room([DOC_DE, PAT_AR_HP])  # headphones: simultaneous, every clause complete (sentence ends commit)
     h.cfg.pipeline.draft_every_ms = 0.0
     spy = h.engines.translate = _Spy(h)  # type: ignore[assignment]
-    utt = await speak(h, DOC_DE.id, 2.0)  # still talking: the lanes stay open (no drain before the end)
-    await until(lambda: any(d.get("seg") == 2 for d in drafts(h, utt)))
-    segs = h.p.simul.lanes(utt)["ar"].segs
-    assert [s.src for s in segs][:2] == ["Guten Tag, Frau Demir.", "Ich bin Dr. Weber."]
-    out = drafts(h, utt)
-    assert out and all(d.get("seg") is not None for d in out)
-    tail = [d for d in out if d["seg"] == 2]
-    assert tail and tail[-1]["text"] == "ما الذي أتى"  # "Was führt": after the committed sentences only
-    draft_reqs = [r for r in spy.reqs if r.text == "Was führt"]
-    assert draft_reqs and all(r.segment for r in draft_reqs)  # a segment request, earlier segments as history
+    utt = await speak(h, DOC_DE.id, 1.5)  # still talking: the lanes stay open (no drain before the end)
+    lane = h.p.simul.lanes(utt)["ar"]
+    assert [s.src for s in lane.segs] == ["Guten Tag, Frau Demir.", "Ich bin Dr. Weber."]
+    # the 1.5 s round came while segment 1 was being translated (the live slot): skipped, no gap on screen
+    assert not drafts(h, utt) and h.p.draft.skipped
+    await until(lambda: all(s.text for s in lane.segs))
+    u = h.p._active[DOC_DE.id]
+    feed(h, u, h.of("transcript.partial", utt)[-1].data["text"])  # the next partial (the same words): a round
+    await until(lambda: bool(drafts(h, utt)))
+    d = drafts(h, utt)[-1]
+    assert d["seg"] == 2 and d["text"] == "ما الذي أتى بكِ إليّ اليوم؟"  # the tail after the committed sentences
+    req = spy.reqs[-1]
+    assert req.text == "Was führt Sie heute zu mir?" and req.segment  # a segment request, history behind it
+    assert req.earlier == [(s.src, s.text) for s in lane.segs]
     await h.p.speech_end(DOC_DE.id, None, 300.0)
     await h.p.drain()
     finals = [e.data for e in h.of("translation.final", utt)]
@@ -381,6 +395,72 @@ async def test_drafts_come_last_among_background_work(no_guard):
     feed(h, u, "Guten Tag Frau Demir")
     await asyncio.sleep(0.1)
     assert not spy.reqs and sched.running["background"] == 1  # the last free slot stays for the next partial
+    assert h.p.draft.skipped == {"background": 1}  # skipped, not queued
     sched.release("background")
+    feed(h, u, "Guten Tag Frau Demir ich")  # the next partial: its round
     await until(lambda: len(drafts(h)) == 1)
     assert spy.prios == [None] and sched.running["background"] == 0
+
+
+async def test_one_draft_mt_per_room_for_all_languages(no_guard):
+    tr = ParticipantInfo(id="b-tr1", role="b", lang="tr")
+    h = harness([DOC_DE, PAT_AR_SPK, tr])
+    gated = h.engines.translate = _Gated()  # type: ignore[assignment]
+    u = await open_utt(h)
+    feed(h, u, "Guten Tag Frau Demir")
+    await until(lambda: len(gated.calls) == 1)
+    await asyncio.sleep(0.05)
+    assert len(gated.calls) == 1 and h.p.draft.skipped.get("draft") == 1  # the other language skips its round
+    gated.release(0)
+    await until(lambda: len(drafts(h)) == 1)
+    feed(h, u, "Guten Tag Frau Demir")  # the next partial: the language that waited
+    await until(lambda: len(gated.calls) == 2)
+    gated.release(1)
+    await until(lambda: len(drafts(h)) == 2)
+    assert {d["target_lang"] for d in drafts(h)} == {"ar", "tr"} and gated.max_running == 1
+
+
+async def test_live_work_skips_the_round_and_preempts_a_draft_mt(no_guard):
+    h = harness()
+    gated = h.engines.translate = _Gated()  # type: ignore[assignment]
+    sched = h.p.scheduler = Scheduler(live_slots=2, check_slots=1, background_slots=2)
+    u = await open_utt(h)
+    await sched.acquire("live")  # a committed segment's MT (or the final's)
+    feed(h, u, "Guten Tag Frau Demir")
+    await asyncio.sleep(0.05)
+    assert not gated.calls and h.p.draft.skipped == {"live": 1}
+    sched.release("live")
+    feed(h, u, "Guten Tag Frau Demir ich")
+    await until(lambda: len(gated.calls) == 1)
+    await sched.acquire("live")  # live work starts while the draft MT runs: the draft MT is cancelled at once
+    await until(lambda: gated.running == 0)
+    assert h.p.draft.skipped.get("preempted.live") == 1 and sched.running["background"] == 0
+    gated.release(0)
+    await asyncio.sleep(0.02)
+    assert not drafts(h)
+    sched.release("live")
+
+
+async def test_a_voice_or_speculation_in_flight_skips_the_round(no_guard, monkeypatch):
+    from types import SimpleNamespace
+
+    h = harness()
+    spy = h.engines.translate = _Spy(h)  # type: ignore[assignment]
+    u = await open_utt(h)
+    h.p.spec._live = 1  # this room's live voice is being synthesised
+    feed(h, u, "Guten Tag Frau Demir")
+    await asyncio.sleep(0.02)
+    h.p.spec._live = 0
+    ahead = asyncio.ensure_future(asyncio.sleep(10))
+    h.p.spec._cands[(u.id, "ar")] = SimpleNamespace(task=ahead)  # a segment translated / voiced ahead
+    feed(h, u, "Guten Tag Frau Demir ich")
+    await asyncio.sleep(0.02)
+    ahead.cancel()
+    del h.p.spec._cands[(u.id, "ar")]
+    monkeypatch.setattr(voicegate, "busy", lambda now=None: True)  # a live voice in another room of the box
+    feed(h, u, "Guten Tag Frau Demir ich bin")
+    await asyncio.sleep(0.02)
+    assert not spy.reqs and h.p.draft.skipped == {"voice": 2, "spec": 1}
+    monkeypatch.setattr(voicegate, "busy", lambda now=None: False)
+    feed(h, u, "Guten Tag Frau Demir ich bin Doktor")
+    await until(lambda: len(drafts(h)) == 1)
