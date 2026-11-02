@@ -156,8 +156,10 @@ class RaumConfig(_Open):
     thresholds: VerifyThresholds = Field(default_factory=VerifyThresholds)
     pipeline: PipelineConfig = Field(default_factory=PipelineConfig)
     asr_min_conf: float = 0.55  # below: "please say that again" (V-03)
-    # below (and >= asr_min_conf): a confirm_on fact in the utterance is read back to the listener, not just noted
-    asr_confirm_conf: float = 0.7
+    # below (and >= asr_min_conf): a confirm_on fact in the utterance is read back to the listener, not just noted.
+    # Box, real phone speech (22 finals): median 0.89-0.91, p25 0.77-0.80; 0.7 asked ~1 in 5 (too chatty), 0.6 at
+    # most ~5 %. A room can be stricter: mode pipeline.asr_confirm_conf.
+    asr_confirm_conf: float = 0.6
 
     def data_dir(self) -> Path:
         p = Path(self.security.data_dir).expanduser()

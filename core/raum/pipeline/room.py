@@ -1145,7 +1145,8 @@ class RoomPipeline:
             return False
         why = [] if badge == "green" else [f"check:{badge}"]
         conf = getattr(rec, "conf", None)
-        if conf is not None and float(conf) < self.cfg.asr_confirm_conf:
+        floor = self.mode.pipeline.asr_confirm_conf
+        if conf is not None and float(conf) < (self.cfg.asr_confirm_conf if floor is None else floor):
             why.append("asr")
         if not why:
             await self._noted(rec, tgt, chosen, res.facts)

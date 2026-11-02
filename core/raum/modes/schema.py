@@ -67,6 +67,8 @@ class PipelineModeConfig(_Strict):
     # plays (or has none) continues it; its voice stops and both parts are transcribed, translated and spoken
     # as one (raum.pipeline.merge). 0 = off (everyday rooms: two short sentences stay two)
     merge_continuation_ms: float = Field(default=0.0, ge=0.0)
+    # this room's ASR confidence below which a fact is read back (None = raum.yaml asr_confirm_conf, 0.6)
+    asr_confirm_conf: float | None = Field(default=None, ge=0.0, le=1.0)
 
     @field_validator("simultaneous", mode="before")
     @classmethod

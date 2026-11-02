@@ -250,11 +250,30 @@ async def test_low_asr_confidence_on_a_fact_asks():
     from raum.pipeline import mockdata
 
     sz05 = next(ln for ln in mockdata.load_script("sprechzimmer").lines if ln.id == "sz-05")
-    saying(h, sz05.text["de"], "de", conf=0.62)  # >= asr_min_conf (translated), < asr_confirm_conf
+    saying(h, sz05.text["de"], "de", conf=0.58)  # >= asr_min_conf 0.55 (translated), < asr_confirm_conf 0.6
     utt = await h.say(DOC.id)
     await h.p.drain()
     (flag,) = flags(h, utt)
     assert flag["needs_confirm"] is True and flag["why"] == ["asr"]
+
+
+@pytest.mark.parametrize(("room_floor", "conf", "asked"), [(None, 0.65, False), (0.7, 0.65, True), (0.7, 0.75, False)])
+async def test_asr_confirm_floor_default_and_per_room(room_floor, conf, asked):
+    """Box data: 0.7 read back ~1 in 5 utterances with a fact; the default is 0.6, a room may be stricter."""
+    from raum.pipeline import mockdata
+
+    h = Harness()
+    Voice(h)
+    assert h.p.cfg.asr_confirm_conf == 0.6
+    if room_floor is not None:
+        h.p.mode = h.p.mode.model_copy(deep=True)
+        h.p.mode.pipeline.asr_confirm_conf = room_floor
+    sz05 = next(ln for ln in mockdata.load_script("sprechzimmer").lines if ln.id == "sz-05")
+    saying(h, sz05.text["de"], "de", conf=conf)
+    utt = await h.say(DOC.id)
+    await h.p.drain()
+    (flag,) = flags(h, utt)
+    assert flag["needs_confirm"] is asked
 
 
 async def test_guard_mismatch_asks_at_once_and_the_doctor_sees_it_unconfirmed():
