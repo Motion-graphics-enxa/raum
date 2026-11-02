@@ -98,7 +98,7 @@ from raum.events import (
 )
 from raum.glossary import Glossary, GlossaryError, parse_terms
 from raum.modes.schema import ModeConfig
-from raum.pipeline import readback, stats
+from raum.pipeline import codeswitch, readback, stats
 from raum.pipeline import texts as T
 from raum.pipeline._util import int16_to_float, lang_code, lang_name, load_prompt, render_prompt
 from raum.pipeline.base import AsrResult, Engines, TranslateRequest, TurnContext
@@ -206,6 +206,7 @@ class _Utt:
     hold: asyncio.Task[None] | None = None  # end-of-turn wait after a pause (speech_pause)
     prefix: np.ndarray | None = None  # merge.py: the audio of the cut utterance this one continues
     ref_upto: int = 0  # samples of this utterance's audio already in the speaker's voice sample (_grow_ref)
+    partial_texts: list[str] = field(default_factory=list)  # codeswitch.py: a phrase the final drops comes back
     stages: stats.Stages = field(default_factory=stats.Stages)  # stats.py: wait vs work, pipeline.timing stages
 
     def _with_prefix(self, chunks: list[np.ndarray]) -> np.ndarray:
@@ -590,6 +591,7 @@ class RoomPipeline:
         if u.closed or self.off_record or not res.text.strip():
             return
         u.seq += 1
+        u.partial_texts = [*u.partial_texts[-11:], res.text.strip()]
         await self.emit("transcript.partial", {"speaker": u.speaker, "lang": lang_code(res.lang) or u.lang,
                                                "text": res.text.strip(), "seq": u.seq}, utt=u.id)
         await self.simul.on_partial(u, res, audio)  # simul.py: speculate, commit stable complete clauses
@@ -667,6 +669,7 @@ class RoomPipeline:
                         audio, lang_hint=u.hint, partial=False, turn=replace(u.turn, speech_ms=n * 1000.0 / SAMPLE_RATE)),
                         ASR_TIMEOUT_S)
             res.ms = (time.monotonic() - t_asr) * 1000.0
+            res.text = codeswitch.restore(res.text, u.partial_texts, lang_code(res.lang) or u.hint)
             stats.mark("asr", "early_ms")
             if res.text.strip():  # speculate.py: MT + the utterance's voice now, in parallel with the verdict
                 if res.conf >= self.cfg.asr_min_conf:  # the voice sample as this turn's voice will use it
@@ -730,6 +733,7 @@ class RoomPipeline:
                     await self._say_again(u, u.lang if u.lang != "und" else None)
                 return
             timing["asr_ms"] = round((time.monotonic() - t_asr) * 1000.0, 1)
+            res.text = codeswitch.restore(res.text, u.partial_texts, lang_code(res.lang) or u.hint)
         # which transcript this is: the stable partial (simul.py), the early final of the pause, or a final pass
         timing["asr_from"] = "partial" if res.from_partial else ("early" if asr is not None else "final")
         src_lang = lang_code(res.lang) or u.hint or self._default_lang(u.role)

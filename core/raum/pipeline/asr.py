@@ -120,6 +120,7 @@ class WhisperCppASR:
         self.options = options or {}
         self.final_url = str(self.options.get("final_url") or "").rstrip("/") or None
         self._final_down_until = 0.0  # the final server refused a connection: finals on url for a while
+        self._logged_prompts: set[str] = set()
         timeout = httpx.Timeout(float(self.options.get("timeout_s", 15.0)), connect=2.0)
         self._own = client is None
         self._client = client or httpx.AsyncClient(timeout=timeout)
@@ -144,6 +145,10 @@ class WhisperCppASR:
         prompt = whisper_prompt(self.options.get("prompt"), getattr(turn, "asr_prompt", None), seed=seed)
         if prompt:
             data["prompt"] = prompt
+            if prompt not in self._logged_prompts and len(self._logged_prompts) < 32:  # once each (terms, no speech)
+                self._logged_prompts.add(prompt)
+                log.info("whisper prompt %s (%d chars, ~%d tokens): %s", hint or "auto", len(prompt),
+                         len(prompt.encode()) // 4 + len(prompt.split()), prompt)
         files = {"file": ("audio.wav", float_to_wav(audio, ASR_SAMPLE_RATE), "audio/wav")}
         # stage "asr" / "asr.partial" (pipeline/stats.py): wall_ms and audio_ms only. whisper.cpp's verbose_json
         # carries no processing timings (its server holds one mutex per request; a wait for it is inside wall_ms).

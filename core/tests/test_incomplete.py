@@ -359,3 +359,22 @@ async def test_whispers_full_stop_at_a_pause_is_not_a_sentence_end_for_the_trans
     await h.say(PAT.id, seconds=1.0)
     await h.p.drain()
     assert h.one("transcript.final")["text"] == "You should not take this medicine with alcohol."
+
+
+def test_a_latin_phrase_the_final_dropped_comes_back_from_the_partials():
+    # box, mix2-ru.wav: the partials had it; once the Russian went on, whisper dropped it from the final
+    from raum.pipeline.codeswitch import restore
+
+    partials = ["Доктор, я принимаю этот препарат каждый день.",
+                "Доктор, я принимаю этот препарат каждый день. But I think",
+                "Доктор, я принимаю этот препарат каждый день. But I think it is not working.",
+                "Доктор, я принимаю этот препарат каждый день, поэтому мне нужно"]
+    final = "Доктор, я принимаю этот препарат каждый день, поэтому мне нужна новая дозировка."
+    assert restore(final, partials, "ru") == ("Доктор, я принимаю этот препарат каждый день, but I think it is not "
+                                              "working, поэтому мне нужна новая дозировка.")
+    kept = "Доктор, я принимаю этот препарат каждый день, but I think it is not working, поэтому мне нужна новая доза."
+    assert restore(kept, partials, "ru") == kept  # the final has it: nothing doubled
+    assert restore(final, partials, "de") == final  # a Latin-script language: no way to tell by the script
+    assert restore("Совсем другой текст.", partials, "ru") == "Совсем другой текст."  # no anchor: no guess
+    assert restore("Принимайте Metformin 500 mg.", ["Принимайте Metformin 500 mg утром"], "ru") == \
+        "Принимайте Metformin 500 mg."  # one Latin word (a drug name, a unit): not a phrase
