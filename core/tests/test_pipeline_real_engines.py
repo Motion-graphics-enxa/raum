@@ -291,3 +291,30 @@ async def test_checker_gate_answers_warming_up_without_a_request():
     res = await second_check("Nehmen Sie 500 mg.", "de", "Take 500 mg.", "en", verifier=v, embedder=e,
                              thresholds=VerifyThresholds())
     assert res.similarity == 1.0
+
+
+async def test_whisper_segments_join_without_newlines():
+    """GX10: "Frühst\nück." — whisper.cpp's top-level text joins segments with "\n", and a segment boundary
+    can fall inside a word. Partials and finals both go through transcribe."""
+    from raum.pipeline.asr import WhisperCppASR
+    from raum.pipeline.base import TurnContext
+
+    def handler(segments, text):
+        def h(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, json={"text": text, "language": "de", "segments": segments})
+        return h
+
+    turn = TurnContext(room="sz-1", mode="sprechzimmer", speaker="a-1", role="a", utt="u-0001")
+    audio = np.zeros(16000, dtype=np.float32)
+    segs = [{"text": " Nehmen Sie die Tablette morgens. Aber erst nach dem Frühst"}, {"text": "ück."}]
+    for partial in (False, True):
+        asr = WhisperCppASR("http://w:1", client=client(handler(segs, " Nehmen ... Frühst\nück.\n")))
+        res = await asr.transcribe(audio, lang_hint="de", partial=partial, turn=turn)
+        assert res.text == "Nehmen Sie die Tablette morgens. Aber erst nach dem Frühstück."
+    segs = [{"text": " Guten Tag."}, {"text": "  Wie geht es\nIhnen?"}]
+    res = await WhisperCppASR("http://w:1", client=client(handler(segs, ""))).transcribe(
+        audio, lang_hint="de", partial=False, turn=turn)
+    assert res.text == "Guten Tag. Wie geht es Ihnen?"
+    res = await WhisperCppASR("http://w:1", client=client(handler([], " Frühst\nück.\n"))).transcribe(
+        audio, lang_hint="de", partial=False, turn=turn)
+    assert res.text == "Frühstück."  # no segments: the top-level text without its newlines

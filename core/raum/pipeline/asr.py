@@ -139,7 +139,7 @@ class WhisperCppASR:
         j = r.json()
         if isinstance(j, dict) and j.get("error"):
             raise RuntimeError(f"whisper.cpp: {j['error']}")
-        text = str(j.get("text", "")).strip()
+        text = _whisper_text(j)
         lang = lang_code(j.get("language") or j.get("detected_language")) or hint or ""
         conf, words = _confidence(j)
         return AsrResult(text=text, lang=lang, conf=conf, ms=(time.perf_counter() - t0) * 1000.0, words=words,
@@ -156,6 +156,18 @@ def whisper_prompt(configured: Any, glossary: str | None) -> str:
     n_text_ctx / 2 (224) prompt tokens, dropping from the front, and the text nearest the audio conditions the
     decoder most: the spelling hints survive a long configured prompt and weigh the most."""
     return " ".join(s for s in (str(configured or "").strip(), (glossary or "").strip()) if s)
+
+
+_SPACES = re.compile(r"\s+")
+
+
+def _whisper_text(j: dict[str, Any]) -> str:
+    """The transcript of a verbose_json response. whisper.cpp's top-level ``text`` joins the segments with
+    "\n", and a segment boundary can fall inside a word ("Frühst\nück."): concatenate the segment texts as
+    they are (each carries its own leading space), then collapse whitespace."""
+    segs = [s for s in (j.get("segments") or []) if isinstance(s, dict) and isinstance(s.get("text"), str)]
+    raw = "".join(s["text"] for s in segs) if segs else str(j.get("text", "")).replace("\n", "")
+    return _SPACES.sub(" ", raw).strip()
 
 
 def _confidence(j: dict[str, Any]) -> tuple[float, list[dict[str, Any]]]:
