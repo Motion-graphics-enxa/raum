@@ -26,6 +26,7 @@ def test_plan_example_parses():
 @pytest.mark.parametrize("etype,data", [
     ("participant.joined", {"id": "p1", "role": "b", "lang": "ar", "device": "phone", "path": "direct"}),
     ("utterance.start", {"speaker": "p1", "lang": "ar"}),
+    ("utterance.continued", {"speaker": "a-doc1", "into": "u-0003"}),
     ("transcript.partial", {"speaker": "p1", "lang": "ar", "text": "..", "seq": 1}),
     ("transcript.final", {"speaker": "p1", "lang": "ar", "text": "..", "asr_conf": 0.93}),
     ("translation.final", {"target_lang": "de", "text": ".."}),

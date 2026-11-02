@@ -37,7 +37,7 @@ export default function Listen() {
           return (
             <article key={tu.utt} className="listen__turn">
               <p lang={view} dir={isRtl(view) ? "rtl" : "ltr"}>{text}</p>
-              {view !== tu.lang ? <VerifyMark state={checkState(tu, view)} lang={lang} /> : null}
+              {view !== tu.lang && !tu.continuedIn ? <VerifyMark state={checkState(tu, view)} lang={lang} /> : null}
             </article>
           );
         })}

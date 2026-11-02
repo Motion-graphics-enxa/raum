@@ -59,6 +59,9 @@ export interface EventData {
   "participant.left": { id: string };
   "utterance.start": { speaker: string; lang: string };
   "utterance.end": { speaker: string; lang: string };
+  /** A sentence cut at a pause, merged again: this utterance (`utt`) goes on in `into`, which holds the whole
+   * sentence. Its voice was stopped and nothing more of it comes; it is no statement of its own. */
+  "utterance.continued": { speaker: string; into: string };
   "transcript.partial": { speaker: string; lang: string; text: string; seq: number };
   "transcript.final": { speaker: string; lang: string; text: string; asr_conf: number };
   "translation.delta": { target_lang: string; delta: string; seq?: number | null; seg?: number | null };
@@ -162,6 +165,7 @@ export const EVENT_TYPES = [
   "participant.left",
   "utterance.start",
   "utterance.end",
+  "utterance.continued",
   "transcript.partial",
   "transcript.final",
   "translation.delta",
