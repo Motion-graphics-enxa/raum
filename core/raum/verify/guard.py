@@ -1737,6 +1737,25 @@ def _shared_names(src: str, tgt: str, sf: list[_F]) -> list[tuple[tuple[int, int
     return rows
 
 
+_NON_LATIN = frozenset({"ar", "ru", "uk", "bg", "sr", "mk", "be", "kk", "el", "he", "fa", "ur", "ps", "zh", "ja",
+                        "ko", "hi", "th", "ka", "hy", "am", "ti"})
+
+
+def _unlisted_dropped(sf: list[_F], tf: list[_F], tgt_lang: str, glossary: Glossary | None) -> list[_F]:
+    """A glossary medication (or allergen) with no listed form in the target language that the translation does
+    not show in a known form (e.g. Arabic "راميبريل" or Turkish "levotiroksin" for a drug of the long list, listed
+    only in de/en/ru) is not compared: an unknown spelling is no evidence that the drug is missing (it would be a
+    false red). Hand-kept drugs (``prompt``, ``keep``) stay strict in Latin-script languages, as before."""
+    if glossary is None or tgt_lang == "de" or not glossary.terms:
+        return sf
+    unlisted = {t.de for t in glossary.terms if t.kind == "medication" and not t.forms.get(tgt_lang)
+                and (not t.prompt or not t.keep or tgt_lang in _NON_LATIN)}
+    if not unlisted:
+        return sf
+    shown = {f.value for f in tf if f.kind in ("medication", "allergy")}
+    return [f for f in sf if not (f.kind in ("medication", "allergy") and f.value in unlisted and f.value not in shown)]
+
+
 def check(src: str, src_lang: str, tgt: str, tgt_lang: str, *, kinds: Iterable[str] | None = None,
           confirm_on: Iterable[str] = (), glossary: Glossary | None = None) -> GuardResult:
     t0 = time.perf_counter()
@@ -1745,6 +1764,7 @@ def check(src: str, src_lang: str, tgt: str, tgt_lang: str, *, kinds: Iterable[s
     _tt, tf_all = _scan(tgt or "", tgt_lang, glossary)
     sf = [f for f in _select(sf_all, ks) if not f.heur]
     tf = [f for f in _select(tf_all, ks) if not f.heur]
+    sf = _unlisted_dropped(sf, tf, tgt_lang, glossary)
     rows = _compare(sf, tf)
     if "name" in ks and src and tgt:
         rows += _shared_names(src, tgt, sf_all)

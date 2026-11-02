@@ -76,6 +76,7 @@ from __future__ import annotations
 import asyncio
 import inspect
 import logging
+import os
 import re
 import time
 from collections import Counter, deque
@@ -371,6 +372,10 @@ class RoomPipeline:
         self._closed = False
         self._asks: dict[tuple[str, str], _Ask] = {}  # (role, lang) -> the read-back their next utterance answers
         self._asked: dict[tuple[Any, ...], str] = {}  # facts read back this session -> flag id: never asked twice
+        # testing the read-back path on the box: every fact that would be noted is read back (why "debug")
+        self.force_readback = os.environ.get("RAUM_DEBUG_FORCE_READBACK", "").strip() in ("1", "true", "yes")
+        if self.force_readback:
+            log.warning("RAUM_DEBUG_FORCE_READBACK: every confirm_on fact is read back (testing only)")
         self.simul = Simultaneous(self)  # simultaneous mode + stable partial as final (simul.py)
         self.spec = Speculator(self)  # speculative translation (speculate.py)
         self.merge = Continuations(self)  # a sentence cut at a pause, merged again (merge.py)
@@ -1148,6 +1153,8 @@ class RoomPipeline:
         floor = self.mode.pipeline.asr_confirm_conf
         if conf is not None and float(conf) < (self.cfg.asr_confirm_conf if floor is None else floor):
             why.append("asr")
+        if self.force_readback and not why:
+            why.append("debug")
         if not why:
             await self._noted(rec, tgt, chosen, res.facts)
             return False

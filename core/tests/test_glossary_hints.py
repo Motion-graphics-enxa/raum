@@ -62,42 +62,59 @@ async def test_whisper_sends_the_turn_prompt_after_the_configured_one():
     assert seen[-1]["prompt"] == "Metformin, Insulin."
 
 
+def order(prompt: str) -> list[str]:
+    """Whisper's prompt lists the most important term LAST (nearest the audio): most important first here."""
+    return prompt.rstrip(".").split(", ")[::-1] if prompt else []
+
+
+CURATED = ["Metformin", "Penicillin", "Ibuprofen", "Amoxicillin", "Insulin"]
+
+
 def test_prompt_lists_medications_first_in_the_speakers_language():
-    assert MED.asr_prompt("de") == ("Metformin, Penicillin, Ibuprofen, Amoxicillin, Insulin, Blutdruck, nüchtern, "
-                                    "zweimal täglich, Überweisung, Rezept.")
-    en = MED.asr_prompt("en")
-    assert en.startswith("Metformin, penicillin, ibuprofen, amoxicillin, insulin, blood pressure")
+    de = order(MED.asr_prompt("de"))
+    assert de[:7] == [*CURATED, "Metamizol", "Pantoprazol"]  # the room's drugs, then the long list by frequency
+    assert len(de) == ASR_PROMPT_MAX_TERMS and "Blutdruck" not in de and "Prednisolon" in de
+    assert MED.asr_prompt("de").endswith("Penicillin, Metformin.")
+    en = order(MED.asr_prompt("en"))
+    assert en[:6] == ["Metformin", "penicillin", "ibuprofen", "amoxicillin", "insulin", "metamizole"]
     assert "on an empty stomach" not in en  # a phrase of everyday words: no spelling to hint
-    assert MED.asr_prompt("ru").startswith("Метформин, пенициллин, ибупрофен")
+    assert order(MED.asr_prompt("ru"))[:3] == ["Метформин", "пенициллин", "ибупрофен"]
+    ar = order(MED.asr_prompt("ar"))
+    assert ar[0] == "ميتفورمين" and "Ramipril" not in ar  # the long list has no Arabic spellings: no Latin hints
     # language unknown: the language-neutral German forms (drugs, names), never German everyday words
     for unknown in (None, "und", "auto", ""):
-        assert MED.asr_prompt(unknown) == "Metformin, Penicillin, Ibuprofen, Amoxicillin, Insulin."
+        u = order(MED.asr_prompt(unknown))
+        assert u[:5] == CURATED and "Blutdruck" not in u and "Rezept" not in u
     legal = Glossary.load(get_mode("kanzlei").glossary)
-    assert legal.asr_prompt("de").startswith("Klagefrist, Kündigungsschutzklage, Arbeitsvertrag")
+    assert order(legal.asr_prompt("de"))[:3] == ["Klagefrist", "Kündigungsschutzklage", "Arbeitsvertrag"]
     assert legal.asr_prompt(None) == "" and Glossary().asr_prompt("de") == ""
     g = Glossary(terms=[Term(de="Rezept", kind="term"),  # file order: a term first ...
                         Term(de="Herr Yılmaz", kind="name"), *med("Ramipril")])
-    assert g.asr_prompt("de") == "Ramipril, Herr Yılmaz, Rezept."  # ... yet medications, then names lead
+    assert order(g.asr_prompt("de")) == ["Ramipril", "Herr Yılmaz", "Rezept"]  # ... yet medications, then names lead
 
 
 def test_prompt_is_capped():
     g = Glossary(terms=[Term(de=f"Wirkstoff{i:03d}", kind="medication", keep=True) for i in range(100)])
     p = g.asr_prompt("de")
     assert p.endswith(".") and len(p) <= ASR_PROMPT_MAX_CHARS
-    assert p.startswith("Wirkstoff000, Wirkstoff001, ") and len(p.split(", ")) < 100
+    assert order(p)[:2] == ["Wirkstoff000", "Wirkstoff001"] and len(p.split(", ")) < 100
     short = Glossary(terms=[Term(de=f"M{i:02d}", kind="medication", keep=True) for i in range(80)])
     assert len(short.asr_prompt("de").split(", ")) == ASR_PROMPT_MAX_TERMS
-    assert g.asr_prompt("de", max_terms=3) == "Wirkstoff000, Wirkstoff001, Wirkstoff002."
+    assert g.asr_prompt("de", max_terms=3) == "Wirkstoff002, Wirkstoff001, Wirkstoff000."
+    wide = Glossary(terms=[Term(de=f"W{i:03d}", kind="medication", keep=True, forms={"ru": [f"Препарат{i:03d}"]})
+                           for i in range(100)])
+    assert len(wide.asr_prompt("ru")) <= ASR_PROMPT_MAX_CHARS * 11 // 20  # Cyrillic: about twice the tokens
 
 
 def test_prompt_is_cached_and_rebuilt_when_the_glossary_changes():
     g = Glossary.load("glossaries/medical-de.yaml")
     first = g.asr_prompt("de")
     assert g.asr_prompt("de") is first  # cached
-    g.merge([Term(de="Ramipril", kind="medication", keep=True)])
-    assert g.asr_prompt("de").startswith("Metformin, Penicillin, Ibuprofen, Amoxicillin, Insulin, Ramipril, ")
-    g.add_correction("Blutdruck", "BP", "en")
-    assert "BP" in g.asr_prompt("en") and "blood pressure" not in g.asr_prompt("en")
+    g.merge([Term(de="Sacubitril", kind="medication", keep=True)])  # an upload: before the long list
+    assert order(g.asr_prompt("de"))[:6] == [*CURATED, "Sacubitril"]
+    before = g.asr_prompt("en")
+    g.add_correction("Metformin", "metformin hydrochloride", "en")  # a live correction rebuilds it
+    assert order(g.asr_prompt("en"))[0] == "metformin hydrochloride" and g.asr_prompt("en") != before
 
 
 class _RecordingASR:
@@ -134,7 +151,7 @@ async def test_sprechzimmer_and_kanzlei_send_the_glossary_with_every_asr_call():
     h.p.set_participants([DOC, stranger])
     await h.say(stranger.id, seconds=0.5)
     await h.p.drain()
-    assert {pr for _, pr in asr.calls} == {"Metformin, Penicillin, Ibuprofen, Amoxicillin, Insulin."}
+    assert {pr for _, pr in asr.calls} == {MED.asr_prompt(None)}
     await h.p.aclose()
 
 
@@ -153,15 +170,15 @@ async def test_a_term_merged_at_runtime_reaches_the_next_utterance():
     h = Harness()
     asr = h.engines.asr = _RecordingASR()  # type: ignore[assignment]
     await h.p.handle_control(Control(action="glossary", by="a",
-                                     value={"terms": [{"de": "Ramipril", "kind": "medication", "keep": True}]}))
+                                     value={"terms": [{"de": "Sacubitril", "kind": "medication", "keep": True}]}))
     await h.say(DOC.id, seconds=0.6)
     await h.p.drain()
-    assert asr.calls and all("Ramipril" in (pr or "") for _, pr in asr.calls)
+    assert asr.calls and all("Sacubitril" in (pr or "") for _, pr in asr.calls)
     await h.p.handle_control(Control(action="burn"))  # the session glossary is forgotten
     asr.calls.clear()
     await h.say(DOC.id, seconds=0.6)
     await h.p.drain()
-    assert asr.calls and not any("Ramipril" in (pr or "") for _, pr in asr.calls)
+    assert asr.calls and not any("Sacubitril" in (pr or "") for _, pr in asr.calls)
     await h.p.aclose()
 
 
@@ -256,3 +273,28 @@ async def test_the_room_shows_translates_and_checks_the_glossary_spelling():
     assert {"kind": "medication", "src": "Metformin", "tgt": "Metformin", "match": True} in facts["facts"]
     assert all("Medformin" not in str(e.data) for e in h.events if e.type != "transcript.partial")
     await h.p.aclose()
+
+
+# ---------------------------------------------------------------- the long drug list (ops: "Pregnisolon")
+
+
+def test_common_drugs_are_corrected_and_checked_without_false_reds():
+    fixed, _ = correct_medications("Nehmen Sie morgens 20 mg Pregnisolon.", "de", MED), None
+    assert fixed == "Nehmen Sie morgens 20 mg Prednisolon."
+    # listed in en / ru: strict; the translation keeping it is green, dropping it is red
+    assert not sz_check("Nehmen Sie Ramipril weiter.", "de", "Keep taking ramipril.", "en").red
+    assert not sz_check("Nehmen Sie Ramipril weiter.", "de", "Продолжайте принимать рамиприл.", "ru").red
+    assert sz_check("Nehmen Sie Ramipril weiter.", "de", "Keep taking your tablets.", "en").red
+    # not listed in ar / tr: another spelling is no evidence of a missing drug (no false red) ...
+    assert not sz_check("Nehmen Sie Ramipril weiter.", "de", "يرجى الاستمرار في تناول راميبريل.", "ar").red
+    assert not sz_check("Nehmen Sie Levothyroxin weiter.", "de", "Levotiroksin almaya devam edin.", "tr").red
+    # ... while the hand-kept drugs stay strict there, as before
+    assert sz_check("Nehmen Sie Metformin weiter.", "de", "يرجى الاستمرار في تناول الدواء.", "ar").red
+    # German alternate names ("aka")
+    assert med_rows(sz_check("Ich nehme L-Thyroxin.", "de", "I take levothyroxine.", "en")) == \
+        [("L-Thyroxin", "levothyroxine", True)]
+
+
+def test_the_long_list_stays_out_of_the_translate_prompt():
+    lines = MED.prompt_lines("de", "ru")
+    assert "Метформин" in lines and "Рамиприл" not in lines and len(lines) < 600

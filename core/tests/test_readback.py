@@ -459,3 +459,22 @@ def test_a_missing_second_opinion_is_no_reason_to_ask():
     assert ask_badge(CheckResult(similarity=None, badge="amber", reasons=["fact guard unavailable"])) == "amber"
     assert ask_badge(CheckResult(similarity=None, badge="red", reasons=["checker warming up"])) == "red"
     assert ask_badge(CheckResult(similarity=0.95, badge="green", reasons=[])) == "green"
+
+
+async def test_debug_switch_reads_back_a_green_fact(monkeypatch):
+    """RAUM_DEBUG_FORCE_READBACK=1 (box testing): a fact that would be noted is read back instead, so the spoken
+    read-back -> spoken "Ja" -> confirm via voice path can be run end to end."""
+    from raum.pipeline import mockdata
+
+    monkeypatch.setenv("RAUM_DEBUG_FORCE_READBACK", "1")
+    h = Harness()
+    Voice(h)
+    assert h.p.force_readback
+    sz05 = next(ln for ln in mockdata.load_script("sprechzimmer").lines if ln.id == "sz-05")
+    saying(h, sz05.text["de"], "de", conf=0.95)
+    utt = await h.say(DOC.id)
+    await h.p.drain()
+    (flag,) = flags(h, utt)
+    assert flag["needs_confirm"] is True and flag["why"] == ["debug"]
+    monkeypatch.delenv("RAUM_DEBUG_FORCE_READBACK")
+    assert not Harness().p.force_readback

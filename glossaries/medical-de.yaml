@@ -71,3 +71,657 @@ terms:
     tr: reçete
     ru: рецепт
     ar: وصفة طبية
+
+  # ---- common outpatient drugs (German prescribing, most prescribed first; ops 2 Nov). prompt: false = not in
+  # the translate prompt's fixed translations (the model knows the INN names; the prompt stays short); whisper's
+  # prompt (first 40 medications), the fuzzy spelling fix and the fact guard use them. Listed in de/en/ru only:
+  # in other languages the guard does not compare a drug the translation spells otherwise (no false red).
+  - de: Metamizol
+    kind: medication
+    keep: true
+    prompt: false
+    aka: [Novaminsulfon]
+    en: [metamizole, dipyrone]
+    ru: [Метамизол]
+  - de: Pantoprazol
+    kind: medication
+    keep: true
+    prompt: false
+    en: [pantoprazole]
+    ru: [Пантопразол]
+  - de: Ramipril
+    kind: medication
+    keep: true
+    prompt: false
+    en: [ramipril]
+    ru: [Рамиприл]
+  - de: Amlodipin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [amlodipine]
+    ru: [Амлодипин]
+  - de: Levothyroxin
+    kind: medication
+    keep: true
+    prompt: false
+    aka: [L-Thyroxin]
+    en: [levothyroxine]
+    ru: [Левотироксин, L-тироксин]
+  - de: Bisoprolol
+    kind: medication
+    keep: true
+    prompt: false
+    en: [bisoprolol]
+    ru: [Бисопролол]
+  - de: Metoprolol
+    kind: medication
+    keep: true
+    prompt: false
+    en: [metoprolol]
+    ru: [Метопролол]
+  - de: Simvastatin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [simvastatin]
+    ru: [Симвастатин]
+  - de: Atorvastatin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [atorvastatin]
+    ru: [Аторвастатин]
+  - de: Candesartan
+    kind: medication
+    keep: true
+    prompt: false
+    en: [candesartan]
+    ru: [Кандесартан]
+  - de: Torasemid
+    kind: medication
+    keep: true
+    prompt: false
+    en: [torasemide, torsemide]
+    ru: [Торасемид]
+  - de: Hydrochlorothiazid
+    kind: medication
+    keep: true
+    prompt: false
+    en: [hydrochlorothiazide]
+    ru: [Гидрохлоротиазид]
+  - de: Apixaban
+    kind: medication
+    keep: true
+    prompt: false
+    en: [apixaban]
+    ru: [Апиксабан]
+  - de: Rivaroxaban
+    kind: medication
+    keep: true
+    prompt: false
+    en: [rivaroxaban]
+    ru: [Ривароксабан]
+  - de: Prednisolon
+    kind: medication
+    keep: true
+    prompt: false
+    en: [prednisolone]
+    ru: [Преднизолон]
+  - de: Diclofenac
+    kind: medication
+    keep: true
+    prompt: false
+    aka: [Diclofenak]
+    en: [diclofenac]
+    ru: [Диклофенак]
+  - de: Omeprazol
+    kind: medication
+    keep: true
+    prompt: false
+    en: [omeprazole]
+    ru: [Омепразол]
+  - de: Acetylsalicylsäure
+    kind: medication
+    keep: true
+    prompt: false
+    aka: [Aspirin]
+    en: [acetylsalicylic acid, aspirin]
+    ru: [Ацетилсалициловая кислота, Ацетилсалициловой кислот, Аспирин]
+  - de: Allopurinol
+    kind: medication
+    keep: true
+    prompt: false
+    en: [allopurinol]
+    ru: [Аллопуринол]
+  - de: Valsartan
+    kind: medication
+    keep: true
+    prompt: false
+    en: [valsartan]
+    ru: [Валсартан]
+  - de: Clopidogrel
+    kind: medication
+    keep: true
+    prompt: false
+    en: [clopidogrel]
+    ru: [Клопидогрел]
+  - de: Paracetamol
+    kind: medication
+    keep: true
+    prompt: false
+    en: [paracetamol, acetaminophen]
+    ru: [Парацетамол]
+  - de: Insulin glargin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [insulin glargine]
+    ru: [Инсулин гларгин]
+  - de: Edoxaban
+    kind: medication
+    keep: true
+    prompt: false
+    en: [edoxaban]
+    ru: [Эдоксабан]
+  - de: Dabigatran
+    kind: medication
+    keep: true
+    prompt: false
+    en: [dabigatran]
+    ru: [Дабигатран]
+  - de: Lisinopril
+    kind: medication
+    keep: true
+    prompt: false
+    en: [lisinopril]
+    ru: [Лизиноприл]
+  - de: Enalapril
+    kind: medication
+    keep: true
+    prompt: false
+    en: [enalapril]
+    ru: [Эналаприл]
+  - de: Losartan
+    kind: medication
+    keep: true
+    prompt: false
+    en: [losartan]
+    ru: [Лозартан]
+  - de: Nebivolol
+    kind: medication
+    keep: true
+    prompt: false
+    en: [nebivolol]
+    ru: [Небиволол]
+  - de: Carvedilol
+    kind: medication
+    keep: true
+    prompt: false
+    en: [carvedilol]
+    ru: [Карведилол]
+  - de: Spironolacton
+    kind: medication
+    keep: true
+    prompt: false
+    en: [spironolactone]
+    ru: [Спиронолактон]
+  - de: Furosemid
+    kind: medication
+    keep: true
+    prompt: false
+    en: [furosemide]
+    ru: [Фуросемид]
+  - de: Lercanidipin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [lercanidipine]
+    ru: [Лерканидипин]
+  - de: Tamsulosin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [tamsulosin]
+    ru: [Тамсулозин]
+  - de: Sitagliptin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [sitagliptin]
+    ru: [Ситаглиптин]
+  - de: Empagliflozin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [empagliflozin]
+    ru: [Эмпаглифлозин]
+  - de: Dapagliflozin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [dapagliflozin]
+    ru: [Дапаглифлозин]
+  - de: Glimepirid
+    kind: medication
+    keep: true
+    prompt: false
+    en: [glimepiride]
+    ru: [Глимепирид]
+  - de: Semaglutid
+    kind: medication
+    keep: true
+    prompt: false
+    en: [semaglutide]
+    ru: [Семаглутид]
+  - de: Pregabalin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [pregabalin]
+    ru: [Прегабалин]
+  - de: Gabapentin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [gabapentin]
+    ru: [Габапентин]
+  - de: Tilidin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [tilidine]
+    ru: [Тилидин]
+  - de: Tramadol
+    kind: medication
+    keep: true
+    prompt: false
+    en: [tramadol]
+    ru: [Трамадол]
+  - de: Rosuvastatin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [rosuvastatin]
+    ru: [Розувастатин]
+  - de: Ezetimib
+    kind: medication
+    keep: true
+    prompt: false
+    en: [ezetimibe]
+    ru: [Эзетимиб]
+  - de: Colecalciferol
+    kind: medication
+    keep: true
+    prompt: false
+    en: [cholecalciferol, colecalciferol]
+    ru: [Колекальциферол, Холекальциферол]
+  - de: Salbutamol
+    kind: medication
+    keep: true
+    prompt: false
+    en: [salbutamol, albuterol]
+    ru: [Сальбутамол]
+  - de: Budesonid
+    kind: medication
+    keep: true
+    prompt: false
+    en: [budesonide]
+    ru: [Будесонид]
+  - de: Esomeprazol
+    kind: medication
+    keep: true
+    prompt: false
+    en: [esomeprazole]
+    ru: [Эзомепразол]
+  - de: Citalopram
+    kind: medication
+    keep: true
+    prompt: false
+    en: [citalopram]
+    ru: [Циталопрам]
+  - de: Escitalopram
+    kind: medication
+    keep: true
+    prompt: false
+    en: [escitalopram]
+    ru: [Эсциталопрам]
+  - de: Sertralin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [sertraline]
+    ru: [Сертралин]
+  - de: Mirtazapin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [mirtazapine]
+    ru: [Миртазапин]
+  - de: Venlafaxin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [venlafaxine]
+    ru: [Венлафаксин]
+  - de: Amitriptylin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [amitriptyline]
+    ru: [Амитриптилин]
+  - de: Quetiapin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [quetiapine]
+    ru: [Кветиапин]
+  - de: Cefuroxim
+    kind: medication
+    keep: true
+    prompt: false
+    en: [cefuroxime]
+    ru: [Цефуроксим]
+  - de: Ciprofloxacin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [ciprofloxacin]
+    ru: [Ципрофлоксацин]
+  - de: Clarithromycin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [clarithromycin]
+    ru: [Кларитромицин]
+  - de: Azithromycin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [azithromycin]
+    ru: [Азитромицин]
+  - de: Doxycyclin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [doxycycline]
+    ru: [Доксициклин]
+  - de: Cotrimoxazol
+    kind: medication
+    keep: true
+    prompt: false
+    en: [co-trimoxazole, cotrimoxazole]
+    ru: [Ко-тримоксазол, Котримоксазол]
+  - de: Nitrofurantoin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [nitrofurantoin]
+    ru: [Нитрофурантоин]
+  - de: Fosfomycin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [fosfomycin]
+    ru: [Фосфомицин]
+  - de: Levofloxacin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [levofloxacin]
+    ru: [Левофлоксацин]
+  - de: Oxycodon
+    kind: medication
+    keep: true
+    prompt: false
+    en: [oxycodone]
+    ru: [Оксикодон]
+  - de: Hydromorphon
+    kind: medication
+    keep: true
+    prompt: false
+    en: [hydromorphone]
+    ru: [Гидроморфон]
+  - de: Fentanyl
+    kind: medication
+    keep: true
+    prompt: false
+    en: [fentanyl]
+    ru: [Фентанил]
+  - de: Morphin
+    kind: medication
+    keep: true
+    prompt: false
+    aka: [Morphium]
+    en: [morphine]
+    ru: [Морфин]
+  - de: Naproxen
+    kind: medication
+    keep: true
+    prompt: false
+    en: [naproxen]
+    ru: [Напроксен]
+  - de: Etoricoxib
+    kind: medication
+    keep: true
+    prompt: false
+    en: [etoricoxib]
+    ru: [Эторикоксиб]
+  - de: Folsäure
+    kind: medication
+    keep: true
+    prompt: false
+    en: [folic acid]
+    ru: [Фолиевая кислота, Фолиевой кислот]
+  - de: Dexamethason
+    kind: medication
+    keep: true
+    prompt: false
+    en: [dexamethasone]
+    ru: [Дексаметазон]
+  - de: Hydrocortison
+    kind: medication
+    keep: true
+    prompt: false
+    en: [hydrocortisone]
+    ru: [Гидрокортизон]
+  - de: Methotrexat
+    kind: medication
+    keep: true
+    prompt: false
+    en: [methotrexate]
+    ru: [Метотрексат]
+  - de: Hydroxychloroquin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [hydroxychloroquine]
+    ru: [Гидроксихлорохин]
+  - de: Lorazepam
+    kind: medication
+    keep: true
+    prompt: false
+    en: [lorazepam]
+    ru: [Лоразепам]
+  - de: Diazepam
+    kind: medication
+    keep: true
+    prompt: false
+    en: [diazepam]
+    ru: [Диазепам]
+  - de: Zopiclon
+    kind: medication
+    keep: true
+    prompt: false
+    en: [zopiclone]
+    ru: [Зопиклон]
+  - de: Levetiracetam
+    kind: medication
+    keep: true
+    prompt: false
+    en: [levetiracetam]
+    ru: [Леветирацетам]
+  - de: Lamotrigin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [lamotrigine]
+    ru: [Ламотриджин]
+  - de: Carbamazepin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [carbamazepine]
+    ru: [Карбамазепин]
+  - de: Formoterol
+    kind: medication
+    keep: true
+    prompt: false
+    en: [formoterol]
+    ru: [Формотерол]
+  - de: Tiotropium
+    kind: medication
+    keep: true
+    prompt: false
+    en: [tiotropium]
+    ru: [Тиотропий, Тиотропи]
+  - de: Montelukast
+    kind: medication
+    keep: true
+    prompt: false
+    en: [montelukast]
+    ru: [Монтелукаст]
+  - de: Cetirizin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [cetirizine]
+    ru: [Цетиризин]
+  - de: Loratadin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [loratadine]
+    ru: [Лоратадин]
+  - de: Metoclopramid
+    kind: medication
+    keep: true
+    prompt: false
+    en: [metoclopramide]
+    ru: [Метоклопрамид]
+  - de: Ondansetron
+    kind: medication
+    keep: true
+    prompt: false
+    en: [ondansetron]
+    ru: [Ондансетрон]
+  - de: Loperamid
+    kind: medication
+    keep: true
+    prompt: false
+    en: [loperamide]
+    ru: [Лоперамид]
+  - de: Macrogol
+    kind: medication
+    keep: true
+    prompt: false
+    en: [macrogol, polyethylene glycol]
+    ru: [Макрогол]
+  - de: Lactulose
+    kind: medication
+    keep: true
+    prompt: false
+    aka: [Laktulose]
+    en: [lactulose]
+    ru: [Лактулоза, Лактулоз]
+  - de: Mesalazin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [mesalazine, mesalamine]
+    ru: [Месалазин]
+  - de: Digitoxin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [digitoxin]
+    ru: [Дигитоксин]
+  - de: Amiodaron
+    kind: medication
+    keep: true
+    prompt: false
+    en: [amiodarone]
+    ru: [Амиодарон]
+  - de: Phenprocoumon
+    kind: medication
+    keep: true
+    prompt: false
+    aka: [Marcumar]
+    en: [phenprocoumon]
+    ru: [Фенпрокумон]
+  - de: Heparin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [heparin]
+    ru: [Гепарин]
+  - de: Enoxaparin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [enoxaparin]
+    ru: [Эноксапарин]
+  - de: Estradiol
+    kind: medication
+    keep: true
+    prompt: false
+    en: [estradiol]
+    ru: [Эстрадиол]
+  - de: Alendronsäure
+    kind: medication
+    keep: true
+    prompt: false
+    en: [alendronic acid, alendronate]
+    ru: [Алендроновая кислота, Алендронов, Алендронат]
+  - de: Colchicin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [colchicine]
+    ru: [Колхицин]
+  - de: Febuxostat
+    kind: medication
+    keep: true
+    prompt: false
+    en: [febuxostat]
+    ru: [Фебуксостат]
+  - de: Methocarbamol
+    kind: medication
+    keep: true
+    prompt: false
+    en: [methocarbamol]
+    ru: [Метокарбамол]
+  - de: Butylscopolamin
+    kind: medication
+    keep: true
+    prompt: false
+    en: [butylscopolamine, hyoscine butylbromide]
+    ru: [Бутилскополамин]
+  - de: Sumatriptan
+    kind: medication
+    keep: true
+    prompt: false
+    en: [sumatriptan]
+    ru: [Суматриптан]
+  - de: Levodopa
+    kind: medication
+    keep: true
+    prompt: false
+    en: [levodopa]
+    ru: [Леводопа, Леводоп]
+  - de: Donepezil
+    kind: medication
+    keep: true
+    prompt: false
+    en: [donepezil]
+    ru: [Донепезил]

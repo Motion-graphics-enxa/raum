@@ -165,7 +165,7 @@ class Flag(_Data):
     facts: list[FlagFact] | None = None  # the facts, one chip each
     show_to: Role | None = None  # a flag nobody answers shows only on this role's screen (noted: "a")
     spoken: bool | None = None  # the question was read back aloud in target_lang
-    why: list[str] | None = None  # what made it uncertain: "guard", "check:amber", "check:red", "asr"
+    why: list[str] | None = None  # what made it uncertain: "guard", "check:amber", "check:red", "asr" ("debug": forced)
     seg: int | None = None  # simultaneous mode: the segment the guard flagged
 
 

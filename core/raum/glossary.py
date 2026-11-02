@@ -32,7 +32,7 @@ import yaml
 
 from raum.config import repo_root
 
-_META_KEYS = {"kind", "keep", "note"}
+_META_KEYS = {"kind", "keep", "note", "aka", "prompt"}
 _KINDS = {"term", "name", "medication"}
 _LANG_COL = re.compile(r"^[a-z]{2,3}$")
 MAX_TERMS = 2000
@@ -40,9 +40,18 @@ MAX_FIELD = 200
 # The recogniser prompt (``Glossary.asr_prompt``): whisper keeps at most 224 prompt tokens, and a long prompt
 # makes it "hear" prompt text in short or silent audio. 300 characters is ~60-100 tokens.
 ASR_PROMPT_MAX_TERMS = 40
-ASR_PROMPT_MAX_CHARS = 300
+ASR_PROMPT_MAX_CHARS = 500  # ~40 Latin drug names, ~150 of whisper's 224 prompt tokens
+# scripts whose characters cost about twice the tokens: the same token budget is fewer characters
+_ASR_WIDE_SCRIPTS = {"ru", "uk", "bg", "sr", "mk", "be", "ar", "fa", "ur", "he", "el", "hi", "th", "ka", "hy"}
 _ASR_PROMPT_MAX_WORDS = 3  # a longer phrase is everyday words: no spelling to hint, and it eats the budget
-_ASR_PROMPT_RANK = {"medication": 0, "name": 1}  # then every other term
+_ASR_PROMPT_RANK = {"medication": 0, "name": 1}  # then the long drug list (prompt: false), then every other term
+
+
+def _asr_rank(t: Term) -> int:
+    """Whisper's prompt order: the room's own and uploaded medications, names, the long drug list, other terms."""
+    if t.kind == "medication" and not t.prompt:
+        return 2
+    return _ASR_PROMPT_RANK.get(t.kind, 3)
 _UNKNOWN_LANGS = ("", "und", "auto")
 
 
@@ -56,6 +65,9 @@ class Term:
     kind: str = "term"
     keep: bool = False
     forms: dict[str, list[str]] = field(default_factory=dict)  # lang -> accepted forms (not incl. de)
+    # False: not in the translate prompt's fixed translations (a long drug list: the model knows the INN names,
+    # and every line lengthens the prompt); still in whisper's prompt, the fact guard and the spelling fix
+    prompt: bool = True
 
     def forms_for(self, lang: str) -> list[str]:
         """All accepted surface forms of this term in ``lang`` (first = preferred)."""
@@ -147,6 +159,8 @@ class Glossary:
         """Fixed translations for the translate prompt's ``{glossary}`` slot."""
         pairs = []
         for t in self.terms:
+            if not t.prompt:
+                continue
             s = t.preferred(src_lang) or t.de
             g = t.preferred(tgt_lang)
             if g:
@@ -173,10 +187,14 @@ class Glossary:
         hit = self._asr_prompts.get(code)
         if hit is not None and hit[0] == sig:
             return hit[1]
+        if code in _ASR_WIDE_SCRIPTS:
+            max_chars = min(max_chars, ASR_PROMPT_MAX_CHARS * 11 // 20)
         picked: list[str] = []
         seen: set[str] = set()
         size = 0
-        for t in sorted(self.terms, key=lambda t: _ASR_PROMPT_RANK.get(t.kind, 2)):  # stable: file order per kind
+        for t in sorted(self.terms, key=_asr_rank):  # stable: file order per rank
+            if code and code != "de" and not t.prompt and not t.forms.get(code):
+                continue  # a drug of the long list without a spelling in this language: not a Latin hint for it
             if code:
                 forms = t.forms_for(code)
                 form = forms[0] if forms else (t.de if t.kind != "term" else None)
@@ -190,7 +208,8 @@ class Glossary:
                 break  # in priority order: a medication never loses its place to a shorter term after it
             picked.append(form)
             seen.add(form.casefold())
-        prompt = ", ".join(picked) + "." if picked else ""
+        # most important LAST: nearest the audio, and whisper.cpp keeps the last 224 prompt tokens if it is long
+        prompt = ", ".join(reversed(picked)) + "." if picked else ""
         self._asr_prompts[code] = (sig, prompt)
         return prompt
 
@@ -244,9 +263,13 @@ def parse_terms(raw: Any) -> list[Term]:
             f = _forms(v)
             if f:
                 forms[lang] = f
+        aka = _forms(t["aka"]) if t.get("aka") else []  # other German spellings ("L-Thyroxin", "Morphium")
+        if aka:
+            forms["de"] = aka
         kind = str(t.get("kind") or "term").strip().lower()
         terms.append(Term(de=str(t["de"]).strip()[:MAX_FIELD], kind=kind if kind in _KINDS else "term",
-                          keep=_truthy(t.get("keep")), forms=forms))
+                          keep=_truthy(t.get("keep")), forms=forms,
+                          prompt=_truthy(t.get("prompt")) if "prompt" in t else True))
     return terms
 
 
@@ -255,7 +278,11 @@ def term_to_dict(t: Term) -> dict[str, Any]:
     d: dict[str, Any] = {"de": t.de, "kind": t.kind}
     if t.keep:
         d["keep"] = True
-    d.update({lang: list(forms) for lang, forms in t.forms.items()})
+    if not t.prompt:
+        d["prompt"] = False
+    d.update({lang: list(forms) for lang, forms in t.forms.items() if lang != "de"})
+    if t.forms.get("de"):
+        d["aka"] = list(t.forms["de"])
     return d
 
 
