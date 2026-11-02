@@ -171,11 +171,13 @@ export default function Admin() {
                       : "—"}
                   </td>
                   <td className="mono">{r.agent_connected ? "verbunden" : "—"}</td>
-                  <td className="admin__links">
-                    <Link to={`/t/${r.room}`}>Tisch</Link>
-                    <button type="button" className="admin__link" onClick={() => setCreated(r.room)}>
-                      QR
-                    </button>
+                  <td>
+                    <span className="admin__links">
+                      <Link to={`/t/${r.room}`}>Tisch</Link>
+                      <button type="button" className="admin__link" onClick={() => setCreated(r.room)}>
+                        QR
+                      </button>
+                    </span>
                   </td>
                 </tr>
               ))}

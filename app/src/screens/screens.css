@@ -698,7 +698,7 @@
 
 /* ---------------------------------------------------------------- home */
 .home__top {
-  padding: var(--s-6) var(--s-5) var(--s-5);
+  padding: var(--s-6) max(var(--s-5), calc((100% - 880px) / 2 + var(--s-5))) var(--s-5);
 }
 .home__brand {
   display: flex;
