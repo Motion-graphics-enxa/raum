@@ -1,6 +1,6 @@
 # RAUM build status
 
-_Read by the ops session. Updated at every milestone. Last update: Mon 2 Nov, ~17:25 (main b287e75)._
+_Read by the ops session. Updated at every milestone. Last update: Mon 2 Nov, ~17:40 (main 3d50fca)._
 
 ## What works (on `main`)
 - **Live on the GX10 (ops):** real engines (whisper.cpp large-v3-turbo, gemma4:26b, gpt-oss:120b, bge-m3, Piper binary), fact guard, encrypted sessions + audit chain. Measured warm: vad 320 / asr 249 / first words 677 / sentence 888 / voice 1399 / check 1425 ms.
@@ -12,6 +12,8 @@ _Read by the ops session. Updated at every milestone. Last update: Mon 2 Nov, ~1
 - **Semantic end of turn (ops, 47ed350):** VAD 0.25 s pause -> early final ASR + smart-turn + LiveKit text turn model -> end now / 1.0 s / 1.6 s; speech in the wait continues the utterance. Extra `turn`; off in mock.
 - **F-10 voice lock (4a28867):** ECAPA per device (off by default; `models.voicelock`, extra `voicelock`), `voice.lock` event, `voice_lock_reset`; the speaker's phone notes an ignored turn and can re-learn.
 - **A-03 speakerphone, C-12 reconnect, F-05 admin, F-03 install (fefd0bf):** `raum speakerphone`; phones rejoin and catch up, a departed phone stays a target 120 s, ids continue across agents; admin room sheets (devices, latency, QR, glossary, burn one room); `install.sh --user-space`.
+- **F-08 desktop (Tauri v2) + F-09 Android (WebView):** `desktop/`, `android/`; box address form (checks /api/health), mic for the box only, `raum://` links, local-CA trust documented in their READMEs. CI only on dispatch / `v*` tags: `gh workflow run desktop.yml`, `gh workflow run android.yml -f link_host=<box ip>`. Join shows "Open in the RAUM app" in Android browsers.
+- **App:** simultaneous-mode segments joined per (utt, lang, seg) in the store; merged utterances; voice lock note.
 - **Voice:** resident Piper process per voice (restart on hang/death); TTS interface `synthesize(text, lang, voice_ref, rate)`; `http` engine for a voice-cloning service (:8090, fallback piper), voice sample in memory only (`pipeline/voice.py`, privacy test).
 - **F-07 document camera:** `POST /api/rooms/{room}/document` -> `document.ready` (photo never stored); camera in the Sprechzimmer/Kanzlei menu, cards in the transcript (frame in the viewer's language, reading in its own).
 - **N-02 deal glossary:** `POST|GET /api/rooms/{room}/glossary` (YAML/CSV); compact row in the Verhandlungsraum menu. **K-02** explain simply hardened (background, falls back to the plain translation).
@@ -26,10 +28,8 @@ _Read by the ops session. Updated at every milestone. Last update: Mon 2 Nov, ~1
 ## In flight (parallel agents, worktree branches; the integrator merges)
 1. Simultaneous mode + speculative MT on ops' end of turn, plus latency: speculate at the pause, voice on the first phrase, reuse the newest partial, `tts_synth_first_ms` / `tts_publish_first_ms`.
 2. Guard English false reds (10.30 am, EUR 1.2m, 950k, at nine, half past two / halb drei, the third of November, number words > 20, at 2 / 14 Uhr) + F -> C in the prompt.
-3. F-08 Tauri desktop + F-09 Android (CI builds on workflow_dispatch / tags).
 
 ## Integrator TODO
-- After simultaneous mode: app store joins `seg` segments per (utt, lang); merged-utterance re-final.
 - Gespraech mode (P1 from the user): `modes/gespraech.yaml` (gs), `checker: off` mode option, guard numbers/dates/times only without confirm_on, fastest simultaneous settings, no glossary, room card.
 - 3-language rooms: second gpt-oss check only for the professional's pair (or batch targets).
 - Consent copy for AI voice cloning; spoken AI disclosure for the speakerphone participant (no consent screen).
