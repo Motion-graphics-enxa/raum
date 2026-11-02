@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Status note: wash with a 2dp pen on the start edge (the web app's banner). -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/paper_2" />
+        </shape>
+    </item>
+    <item android:width="2dp" android:gravity="start">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/rule_strong" />
+        </shape>
+    </item>
+</layer-list>

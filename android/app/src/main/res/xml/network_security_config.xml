@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The box serves HTTPS with its own local CA (Caddy `tls internal`, plan §9.3 B). Android 7+ apps
+  ignore user-installed CAs unless they opt in; RAUM opts in, so a phone that installed the box's
+  root.crt (Settings > Security > Encryption & credentials > Install a certificate > CA certificate)
+  trusts the box. Applies to the WebView and to the health check alike. Nothing else is relaxed:
+  no plain HTTP, no pinning bypass, normal hostname checks.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

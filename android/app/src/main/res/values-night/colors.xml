@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tokens from app/src/styles/tokens.css, dark theme (Blaupause). -->
+<resources>
+    <color name="paper">#0b2a45</color>
+    <color name="paper_2">#0f3352</color>
+    <color name="ink">#eaf4fb</color>
+    <color name="ink_2">#b4cde0</color>
+    <color name="ink_3">#8eadc5</color>
+    <color name="rule_strong">#4b7aa2</color>
+    <color name="brand">#071d33</color>
+    <color name="brand_ink">#eaf4fb</color>
+    <color name="brand_ink_2">#9fc2dc</color>
+    <color name="button">#eaf4fb</color>
+    <color name="button_pressed">#b4cde0</color>
+    <color name="button_ink">#0b2a45</color>
+    <color name="bad">#ff8585</color>
+    <color name="bad_wash">#43303f</color>
+    <color name="focus">#9fd3ff</color>
+</resources>

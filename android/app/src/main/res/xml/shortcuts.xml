@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Long-press the launcher icon: change which box the app opens. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutId="box-address"
+        android:shortcutShortLabel="@string/shortcut_box">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="raum://setup"
+            android:targetClass="de.raum.android.MainActivity"
+            android:targetPackage="de.raum.android" />
+    </shortcut>
+</shortcuts>

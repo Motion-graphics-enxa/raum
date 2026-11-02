@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">RAUM</string>
+    <string name="slogan">Translates. Checks. Forgets.</string>
+    <string name="tagline">What\'s said in the room stays in the room.</string>
+    <string name="label">Box address</string>
+    <string name="hint">As on the box\'s room page or QR code. Only the start, without /j/…</string>
+    <string name="connect">Connect</string>
+    <string name="shortcut_box">Box address</string>
+    <string name="checking">Checking %1$s …</string>
+    <string name="pending">Room %1$s opens once the box is connected.</string>
+    <string name="other_box">This link is for another box (%1$s). Tap Connect to switch to it.</string>
+    <string name="problem_address">That is not a box address. Example: https://192.168.1.50:5180</string>
+    <string name="problem_insecure">Use https://. The microphone only works over a secure connection.</string>
+    <string name="problem_tls">This phone does not trust the box\'s certificate yet. Install the box\'s root certificate (raum-root.crt): Settings › Security › Encryption &amp; credentials › Install a certificate › CA certificate. Then connect again.</string>
+    <string name="problem_unreachable">No answer from the box. Is it switched on, and is this phone on the same Wi-Fi (or the tunnel)?</string>
+    <string name="problem_not_raum">Something answered at this address, but it is not a RAUM box.</string>
+    <string name="mic_denied">Microphone is off for RAUM. Settings › Apps › RAUM › Permissions › Microphone.</string>
+</resources>

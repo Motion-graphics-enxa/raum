@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tokens from app/src/styles/tokens.css (Berliner Blau), light theme. -->
+<resources>
+    <color name="paper">#f6f9fb</color>
+    <color name="paper_2">#eaf0f5</color>
+    <color name="ink">#0a1d30</color>
+    <color name="ink_2">#33495f</color>
+    <color name="ink_3">#566c82</color>
+    <color name="rule_strong">#8fa3b6</color>
+    <color name="brand">#0d3a61</color>
+    <color name="brand_ink">#eef6fc</color>
+    <color name="brand_ink_2">#b9d3e8</color>
+    <color name="button">#0d3a61</color>
+    <color name="button_pressed">#164f82</color>
+    <color name="button_ink">#eef6fc</color>
+    <color name="bad">#c01d2c</color>
+    <color name="bad_wash">#fbe5e6</color>
+    <color name="focus">#1b6fd1</color>
+</resources>

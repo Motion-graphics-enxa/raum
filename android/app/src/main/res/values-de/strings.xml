@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="slogan">Übersetzt. Prüft. Vergisst.</string>
+    <string name="tagline">Was im Raum gesagt wird, bleibt im Raum.</string>
+    <string name="label">Adresse der Box</string>
+    <string name="hint">Wie auf der Raumseite oder im QR-Code der Box. Nur der Anfang, ohne /j/…</string>
+    <string name="connect">Verbinden</string>
+    <string name="shortcut_box">Adresse der Box</string>
+    <string name="checking">Prüfe %1$s …</string>
+    <string name="pending">Raum %1$s öffnet sich, sobald die Box verbunden ist.</string>
+    <string name="other_box">Dieser Link gehört zu einer anderen Box (%1$s). Zum Wechseln auf Verbinden tippen.</string>
+    <string name="problem_address">Das ist keine Adresse einer Box. Beispiel: https://192.168.1.50:5180</string>
+    <string name="problem_insecure">Bitte https:// verwenden. Das Mikrofon funktioniert nur über eine sichere Verbindung.</string>
+    <string name="problem_tls">Dieses Telefon vertraut dem Zertifikat der Box noch nicht. Stammzertifikat der Box (raum-root.crt) installieren: Einstellungen › Sicherheit › Verschlüsselung &amp; Anmeldedaten › Zertifikat installieren › CA-Zertifikat. Dann erneut verbinden.</string>
+    <string name="problem_unreachable">Keine Antwort von der Box. Ist sie eingeschaltet und ist dieses Telefon im selben WLAN (oder im Tunnel)?</string>
+    <string name="problem_not_raum">Unter dieser Adresse antwortet etwas, aber es ist keine RAUM-Box.</string>
+    <string name="mic_denied">Das Mikrofon ist für RAUM aus. Einstellungen › Apps › RAUM › Berechtigungen › Mikrofon.</string>
+</resources>

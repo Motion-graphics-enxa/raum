@@ -46,6 +46,8 @@ Use `scripts/dev.sh --https` so phones on the same network can use the microphon
 | `raum.yaml`, `profiles/` | model registry and hardware profiles |
 | `eval/` | test sets, evaluation, model bake-off, load test |
 | `deploy/` | Caddy, LiveKit, nftables privacy meter, services, push script |
+| `desktop/` | desktop app (Tauri v2): the box's web app in a window, Mac / Windows / Linux |
+| `android/` | Android app (WebView): the box's web app, microphone and QR links handled natively |
 
 ## Status
 

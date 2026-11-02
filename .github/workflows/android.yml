@@ -1,0 +1,74 @@
+# F-09 Android shell (android/): unit tests and a debug APK (signed with the runner's throwaway
+# debug key; nothing secret in the repo). Manual (Actions > android > Run workflow) or on a v* tag.
+# No push/PR triggers: private repo, limited minutes.
+name: android
+
+on:
+  workflow_dispatch:
+    inputs:
+      link_host:
+        description: "Host for https://<host>/j/<room> QR links (e.g. 192.168.1.50). * = any host (Android 11 and older only)"
+        type: string
+        default: "*"
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: android
+    env:
+      LINK_HOST: ${{ inputs.link_host || '*' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          gradle-version: "8.11.1"
+
+      - name: Android SDK packages
+        # Usually preinstalled on the runner image; otherwise AGP would fetch them itself.
+        # (yes || true): under pipefail, `yes` dying of SIGPIPE must not fail the step.
+        run: |
+          sdkmanager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [ -x "$sdkmanager" ]; then
+            (yes || true) | "$sdkmanager" --install "platforms;android-35" "build-tools;35.0.0" > /dev/null
+          fi
+
+      - name: Check the link host
+        run: |
+          if ! [[ "$LINK_HOST" == "*" || "$LINK_HOST" =~ ^[A-Za-z0-9.-]+$ ]]; then
+            echo "::error::link_host must be * or a host name / IPv4 address"; exit 1
+          fi
+
+      - name: Unit tests and debug APK
+        run: gradle --no-daemon testDebugUnitTest assembleDebug "-PraumLinkHost=$LINK_HOST"
+
+      - name: Name the APK
+        run: |
+          host="${LINK_HOST//\*/any}"
+          mv app/build/outputs/apk/debug/app-debug.apk "app/build/outputs/apk/debug/raum-${GITHUB_REF_NAME//\//-}-links-${host}-debug.apk"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: raum-android-debug-apk
+          if-no-files-found: error
+          retention-days: 14
+          path: android/app/build/outputs/apk/debug/*.apk
