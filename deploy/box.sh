@@ -29,21 +29,36 @@ export RAUM_HOME="$ROOT"
 pidof_svc() { cat "$RUN/$1.pid" 2>/dev/null || true; }
 alive() { local p; p=$(pidof_svc "$1"); [ -n "$p" ] && kill -0 "$p" 2>/dev/null; }
 
+# Each service runs in its own process group (setsid), so stop takes down every child too:
+# uv run -> python, and the vite preview server. Without setsid (macOS) we fall back to pkill -P.
+SETSID=""
+command -v setsid >/dev/null 2>&1 && SETSID=setsid
+
 start_svc() {
   local name=$1; shift
   if alive "$name"; then echo "$name: already running (pid $(pidof_svc "$name"))"; return; fi
-  ( cd "$ROOT/$1" && shift && exec nohup "$@" ) >>"$RUN/$name.log" 2>&1 &
+  ( cd "$ROOT/$1" && shift && exec $SETSID nohup "$@" ) >>"$RUN/$name.log" 2>&1 &
   echo $! >"$RUN/$name.pid"
   echo "$name: started (pid $!, log $RUN/$name.log)"
+}
+
+kill_tree() {  # signal a service's whole tree
+  local sig=$1 p=$2
+  if [ -n "$SETSID" ]; then
+    kill "-$sig" -- "-$p" 2>/dev/null || kill "-$sig" "$p" 2>/dev/null || true
+  else
+    pkill "-$sig" -P "$p" 2>/dev/null || true
+    kill "-$sig" "$p" 2>/dev/null || true
+  fi
 }
 
 stop_svc() {
   local name=$1 p
   p=$(pidof_svc "$name")
   if [ -n "$p" ] && kill -0 "$p" 2>/dev/null; then
-    kill "$p" 2>/dev/null || true
+    kill_tree TERM "$p"
     for _ in $(seq 1 20); do kill -0 "$p" 2>/dev/null || break; sleep 0.25; done
-    kill -9 "$p" 2>/dev/null || true
+    kill_tree KILL "$p"
     echo "$name: stopped"
   fi
   rm -f "$RUN/$name.pid"
@@ -56,7 +71,7 @@ start_all() {
   start_svc agent core uv run raum agent start
   if [ "${RAUM_APP:-0}" = 1 ]; then
     [ -f app/dist/index.html ] || (cd app && npm run build --silent)
-    start_svc app app npm run preview -- --host 0.0.0.0 --port 5180 --strictPort
+    start_svc app app node_modules/.bin/vite preview --host 0.0.0.0 --port 5180 --strictPort
   fi
   for _ in $(seq 1 40); do
     curl -fsS -m 1 "http://127.0.0.1:$PORT/api/health" >/dev/null 2>&1 && { echo "core: healthy on :$PORT"; return 0; }
@@ -65,7 +80,13 @@ start_all() {
   echo "core: not healthy yet; see $RUN/core.log" >&2
 }
 
-stop_all() { stop_svc app; stop_svc agent; stop_svc core; }
+stop_all() {
+  stop_svc app; stop_svc agent; stop_svc core
+  # orphans left by an older box.sh (before process groups): free our ports
+  if command -v fuser >/dev/null 2>&1; then
+    fuser -k -TERM 5180/tcp "$PORT"/tcp >/dev/null 2>&1 || true
+  fi
+}
 
 case "${1:-status}" in
   start) start_all ;;

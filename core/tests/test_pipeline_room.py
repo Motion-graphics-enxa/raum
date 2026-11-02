@@ -349,7 +349,8 @@ async def test_voice_output_goes_to_sink_and_failure_disables_it(no_guard):
     h.p.tts_sink = sink
     utt = await h.say(DOC.id)
     await h.p.drain()
-    assert got == [("ar", 320, 16000), ("ar", 320, 16000)]
+    # spoken clause by clause (C-13): every clause yields the voice's two chunks, in order
+    assert got and len(got) % 2 == 0 and all(g == ("ar", 320, 16000) for g in got)
     assert h.one("pipeline.timing", utt)["tts_first_ms"] is not None
 
     broken = _Voice(fail=True)
@@ -391,3 +392,20 @@ async def test_irrelevant_or_bad_controls_are_harmless(no_guard):
     assert h.events == []
     await h.p.aclose()
     assert await h.p.speech_start(DOC.id) is None
+
+
+def test_take_clause_splits_speakable_prefixes():
+    from raum.pipeline.room import take_clause
+
+    assert take_clause("Nehmen Sie zweimal täglich") == ("", "Nehmen Sie zweimal täglich")
+    head, rest = take_clause("Guten Tag, Frau Demir. Ich bin Dr. Weber. Was")
+    assert head == "Guten Tag, Frau Demir. Ich bin Dr. Weber." and rest == " Was"
+    # ordinals and abbreviations never end a clause
+    assert take_clause("Kommen Sie am Donnerstag, dem 12. November wieder")[0] == ""
+    assert take_clause("Bitte kommen Sie zu Dr. Weber")[0] == ""
+    # a comma ends a clause only once it is long enough to be worth speaking
+    assert take_clause("Ja, gut")[0] == ""
+    head, rest = take_clause("Nehmen Sie die Tabletten bitte immer morgens, und abends")
+    assert head == "Nehmen Sie die Tabletten bitte immer morgens," and rest == " und abends"
+    head, _ = take_clause("أتناول ٥٠٠ ملغ من الميتفورمين مرتين يوميًا، وعندي")
+    assert head.endswith("يوميًا،")

@@ -140,6 +140,30 @@ class _Turn:
     translations: dict[str, str] = field(default_factory=dict)
 
 
+_CLAUSE_END = re.compile(r"[.!?;:…。！？،؛؟](?=\s)|,(?=\s)")
+_ABBREV = re.compile(r"(?:\b(?:Dr|Fr|Hr|Prof|Nr|ca|bzw|z\.B|u\.a|St|Mr|Mrs|Ms|No|vs)\.|\d\.)$", re.IGNORECASE)
+MIN_CLAUSE_CHARS = 16
+
+
+def take_clause(buf: str) -> tuple[str, str]:
+    """Split off the longest speakable prefix that ends at a clause boundary (sentence end, or a comma
+    once the clause is long enough). Ordinals and abbreviations ("12.", "Dr.") never end a clause."""
+    cut = -1
+    for m in _CLAUSE_END.finditer(buf):
+        end = m.end()
+        head = buf[:end]
+        if len(head.strip()) < MIN_CLAUSE_CHARS:
+            continue
+        if m.group(0) == "," and len(head.strip()) < 2 * MIN_CLAUSE_CHARS:
+            continue
+        if m.group(0) == "." and _ABBREV.search(head):
+            continue
+        cut = end
+    if cut < 0:
+        return "", buf
+    return buf[:cut].strip(), buf[cut:]
+
+
 class RoomPipeline:
     def __init__(self, room: str, mode: ModeConfig, engines: Engines, emit: Emit, config: RaumConfig) -> None:
         self.room = room
@@ -424,9 +448,13 @@ class RoomPipeline:
         req = self._request(rec, tgt, context)
         parts: list[str] = []
         first_ms: float | None = None
+        # C-13: voice starts on the first clause while the rest of the sentence still streams
+        voice_q: asyncio.Queue[str | None] | None = asyncio.Queue() if self._tts_enabled() else None
+        tts_task = self._spawn(self._speak_stream(tgt, voice_q, t0)) if voice_q is not None else None
+        pending = ""
 
         async def run() -> None:
-            nonlocal first_ms
+            nonlocal first_ms, pending
             async for delta in self.engines.translate.stream(req):
                 if not delta:
                     continue
@@ -435,6 +463,11 @@ class RoomPipeline:
                 parts.append(delta)
                 await self.emit("translation.delta", {"target_lang": tgt, "delta": delta, "seq": len(parts)},
                                 utt=u.id)
+                if voice_q is not None:
+                    pending += delta
+                    clause, pending = take_clause(pending)
+                    if clause:
+                        voice_q.put_nowait(clause)
 
         try:
             async with self.sched.slot("live"):
@@ -444,8 +477,14 @@ class RoomPipeline:
         except Exception as e:  # noqa: BLE001
             log.warning("translation %s -> %s failed for %s: %s: %s", rec.lang, tgt, u.id, e.__class__.__name__, e)
             if not parts:
+                if voice_q is not None:
+                    voice_q.put_nowait(None)
                 await self.emit("pipeline.timing", {**timing, "target_lang": tgt}, utt=u.id)
                 return
+        if voice_q is not None:
+            if pending.strip():
+                voice_q.put_nowait(pending.strip())
+            voice_q.put_nowait(None)
         text = "".join(parts).strip()
         timing["mt_first_ms"] = round(first_ms, 1) if first_ms is not None else None
         timing["mt_full_ms"] = round((time.monotonic() - t0) * 1000.0, 1)
@@ -465,11 +504,11 @@ class RoomPipeline:
         flagged = await self._fact_flags(rec, tgt, res)
 
         # never blocks the live path: second check + voice, then the timing line
-        self._spawn(self._after_final(rec, tgt, text, res, ok, flagged, t0, t_final, timing))
+        self._spawn(self._after_final(rec, tgt, text, res, ok, flagged, t0, t_final, timing, tts_task))
 
     async def _after_final(self, rec: _Turn, tgt: str, text: str, gres: guard.GuardResult | None, guard_ok: bool,
-                           flagged: bool, t0: float, t_final: float, timing: dict[str, Any]) -> None:
-        tts_task = self._spawn(self._speak(tgt, text, t0)) if self._tts_enabled() else None
+                           flagged: bool, t0: float, t_final: float, timing: dict[str, Any],
+                           tts_task: asyncio.Task[float | None] | None = None) -> None:
         check_ms: float | None = None
         try:
             check_ms = await self._check(rec, tgt, text, gres, guard_ok, flagged, t_final)
@@ -506,6 +545,19 @@ class RoomPipeline:
 
     def _tts_enabled(self) -> bool:
         return self.engines.tts is not None and not self._tts_disabled
+
+    async def _speak_stream(self, tgt: str, q: asyncio.Queue[str | None], t0: float) -> float | None:
+        """Speak clauses in order as they arrive; returns ms from the speaker's stop to the first audio."""
+        first: float | None = None
+        while True:
+            clause = await q.get()
+            if clause is None:
+                return first
+            if self._tts_disabled:
+                continue
+            f = await self._speak(tgt, clause, t0)
+            if first is None:
+                first = f
 
     async def _speak(self, tgt: str, text: str, t0: float) -> float | None:
         tts = self.engines.tts
