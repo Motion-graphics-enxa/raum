@@ -7,11 +7,14 @@ longer (``max_s``); they never end a turn.
 
 ``unfinished(text, lang)`` -> a short reason, or None:
 
-* ``verb-final`` (de): the last clause has a finite modal or auxiliary verb (dürfen, müssen, können,
-  sollen, wollen, mögen/möchten, haben, sein, werden) and does not end in a verb form: an infinitive
+* ``verb-final`` (de): the last clause has a finite modal verb (dürfen, müssen, können, sollen, wollen,
+  mögen/möchten) and does not end in a verb form: an infinitive
   (a common verb, also with a separable / inseparable prefix, "-ieren", "zu" + infinitive), a participle
   ("ge...t/en", "-iert", "be-/ver-/er-/ent-..."), the finite verb itself (a subordinate clause:
   "..., dass Sie das nehmen dürfen") or a separable particle ("Ist das Fenster zu?").
+* ``aux-open`` (de): the same with only haben / sein / werden, when nothing but function words follow the
+  auxiliary ("Sie haben das", "Das ist") or the clause ends in "nicht"; with a predicate complement
+  ("Ich bin allergisch gegen Penicillin.", "Haben Sie Schmerzen?") no opinion: the model decides.
 * ``neg-scope`` (de): the last clause ends in a time adverb where a negation commonly follows
   ("Nehmen Sie das ab morgen" [pause] "nicht mehr").
 * ``aux-final`` (en): ends in a modal / auxiliary / "not" / "to" ("You may" [pause] "not take it").
@@ -141,6 +144,29 @@ der die das dem den deren dessen denen welche welcher welches welchem welchen wi
 warum wieso weshalb wann wer wen wem womit wofür worauf
 """)
 
+_NEG_DE = _set("nicht nie niemals keineswegs")
+# words after haben / sein / werden that are not a predicate complement
+_FUNCTION_DE = _set("""
+ich du er sie es wir ihr man mich dich ihn uns euch ihm ihnen sich mir dir
+das der die den dem des dies diese dieser dieses diesen diesem ein eine einen einem einer eines
+kein keine keinen keinem keiner keines mein meine meinen meinem meiner dein deine deinen deinem deiner
+sein seine seinen seinem seiner ihre ihren ihrem ihrer ihres unser unsere unseren unserem euer eure
+noch schon auch nur doch ja nein denn mal hier da dort dann sehr so wieder immer nie nicht mehr bitte also
+eigentlich vielleicht wohl gerade gern gerne oft manchmal selten etwa ganz gestern vorgestern bereits
+was wie wo wer wen wem wann warum
+mit von bei für gegen an auf in im am zum zur vom beim aus nach seit über unter vor durch ohne um zu
+und oder aber
+""")
+_POLITE_DE = _set("sie ihnen ihr ihre ihren ihrem ihrer ihres")
+
+
+def _complement_de(raw: str, w: str) -> bool:
+    """A noun (capitalised, not the polite "Sie"), adjective or other content word."""
+    if raw[:1].isupper():
+        return w not in _POLITE_DE
+    return w not in _FUNCTION_DE and w not in _FINITE_DE
+
+
 def _last_clause(text: str) -> tuple[list[str], bool]:
     """Words of the last clause, and whether a comma (not a sentence end) came right before it."""
     pieces = _CLAUSE_SPLIT.split(text)
@@ -175,7 +201,17 @@ def _unfinished_de(text: str) -> str | None:
         return None
     if subordinate:
         return None  # its own finite verb would be last; leave it to the model
-    return "verb-final" if any(w in _MODAL_DE for w in finite) else "aux-open"
+    if any(w in _MODAL_DE for w in finite):
+        return "verb-final"
+    # only haben / sein / werden: as the full verb with a predicate complement ("Ich bin allergisch gegen
+    # Penicillin.", "Haben Sie Schmerzen?") the clause is finished; it is open when only function words
+    # follow the auxiliary ("Sie haben das" [pause] "nicht genommen") or it ends in a negation
+    if last in _NEG_DE:
+        return "aux-open"
+    at = next(i for i, w in enumerate(lower) if w in _AUX_DE)
+    if any(_complement_de(raw, w) for raw, w in zip(words[at + 1:], lower[at + 1:], strict=True)):
+        return None
+    return "aux-open"
 
 
 # ---------------------------------------------------------------- English
