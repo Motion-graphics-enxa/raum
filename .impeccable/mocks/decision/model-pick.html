@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Noto+Sans+Arabic:wght@400&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:390px;height:844px;overflow:hidden}
+body{background:#fff;color:#1c2733;font-family:"Hanken Grotesk",system-ui,sans-serif;position:relative}
+.band{background:#7cb6de;padding:18px 18px 16px;color:#0f2233}
+.band h1{font-size:24px;font-weight:800;letter-spacing:-.01em}
+.band p{font-size:13px;font-weight:600;margin-top:2px}
+.band .r{position:absolute;right:18px;top:20px;display:flex;gap:8px}
+.pill{background:#fff;color:#1c2733;font-size:13px;font-weight:700;padding:6px 10px;border-radius:4px}
+.stripes{height:8px;background:linear-gradient(90deg,#3f9a5b 0 25%,#f2a33a 25% 50%,#c9cdd1 50% 75%,#7cb6de 75%)}
+.meta{display:flex;gap:16px;padding:12px 18px;font-size:13px;font-weight:600;color:#4a5866;border-bottom:1px solid #e3e6e9}
+.turn{padding:18px}
+.pic{width:40px;height:40px;background:#3f9a5b;border-radius:3px;display:grid;place-items:center}
+.pic svg{width:26px;height:26px}
+.head{display:flex;align-items:center;gap:10px}
+.head b{font-size:14px}
+.head span{font-size:12px;color:#4a5866;display:block}
+.hero{font-size:30px;font-weight:700;line-height:1.18;letter-spacing:-.015em;margin-top:14px}
+.src{font-family:"Noto Sans Arabic";font-size:16px;color:#4a5866;margin-top:10px;text-align:right}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:16px}
+.f{border-top:4px solid #3f9a5b;background:#f2f4f6;padding:8px}
+.f b{font-size:17px;display:block}
+.f span{font-size:12px;color:#4a5866}
+.old{padding:0 18px;color:#4a5866;font-size:16px;border-top:1px solid #e3e6e9;padding-top:14px}
+.dock{position:absolute;left:0;right:0;bottom:0;height:170px;background:#3f9a5b;display:flex;justify-content:space-around;align-items:center;color:#fff;font-weight:700;font-size:13px}
+.dock div{display:flex;flex-direction:column;align-items:center;gap:8px}
+.sq{width:52px;height:52px;background:rgba(255,255,255,.2);border-radius:3px}
+.mic{width:96px;height:96px;background:#fff;border-radius:50%;display:grid;place-items:center}
+.mic::after{content:"";width:20px;height:34px;border-radius:10px;background:#1c2733}
+</style></head><body>
+<div class="band"><h1>Consultation room</h1><p>Sprechzimmer · SZ-7921</p><div class="r"><span class="pill">● Live</span><span class="pill">≡</span></div></div>
+<div class="stripes"></div>
+<div class="meta"><span>You: German</span><span>Patient: Arabic</span><span>Speaker</span></div>
+<div class="turn">
+  <div class="head"><span class="pic"><svg viewBox="0 0 26 26"><circle cx="13" cy="6" r="3.4" fill="#fff"/><path d="M7 24l2-9h8l2 9" fill="#fff"/><path d="M9 15l4 3 4-3" stroke="#3f9a5b" stroke-width="1.6" fill="none"/></svg></span><div><b>Patient</b><span>Checked</span></div></div>
+  <p class="hero">I take 500 mg Metformin twice a day, and I am allergic to penicillin.</p>
+  <p class="src" dir="rtl" lang="ar">أتناول ٥٠٠ ملغ من الميتفورمين مرتين يوميًا، وعندي حساسية من البنسلين.</p>
+  <div class="facts"><div class="f"><b>500 mg</b><span>Dose</span></div><div class="f"><b>2× a day</b><span>Frequency</span></div><div class="f"><b>Penicillin</b><span>Allergy</span></div></div>
+</div>
+<div class="old">You said: Good day. What brings you here today?</div>
+<div class="dock"><div><span class="sq"></span>Repeat</div><div><span class="mic"></span>Tap to speak</div><div><span class="sq"></span>End</div></div>
+</body></html>

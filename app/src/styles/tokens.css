@@ -1,99 +1,103 @@
 /*
- * RAUM visual world: Milchglas, the frosted glass door of a Berlin practice.
- * You see that a conversation is happening, never what is said. Draft words sit behind the frost;
- * when a sentence is final the glass clears.
- * Light = mist field with white frosted panes. Dark = Prussian night field with navy panes.
- * Berliner Blau stays the brand. Semantic pens (verified / unsure / mismatch) stay separate from it.
- * Every pane has a solid fallback where backdrop-filter is missing (see base.css @supports).
+ * RAUM visual world: Altbau Daylight.
+ * The Berlin Altbau room a practice or law office really sits in: a limewash wall in daylight above,
+ * the room's oil-paint dado below, one dark Begleitstrich between them. The newest sentence stands in the
+ * window's light; drafts wait in the shade. Light = morning daylight. Dark = the same room in the evening.
+ *
+ * Depth has one rule: the wall, a sheet on the wall, a sheet lifted for an interruption. Nothing else casts a
+ * shadow. Semantic pens (checked / unsure / mismatch) stay separate from the room paints.
  */
-@import "@fontsource-variable/atkinson-hyperlegible-next/wght.css";
-@import "@fontsource-variable/atkinson-hyperlegible-mono/wght.css";
+@import "@fontsource-variable/sofia-sans/wght.css";
+@import "@fontsource-variable/sofia-sans-extra-condensed/wght.css";
+@import "@fontsource-variable/sofia-sans-semi-condensed/wght.css";
 @import "@fontsource-variable/noto-sans-arabic/wght.css";
 
 :root {
   color-scheme: light;
 
-  /* field (the room behind the glass) */
-  --paper: #e9f0f6; /* field base; also the solid fallback ground */
-  --field:
-    radial-gradient(120% 70% at 0% 0%, rgb(22 79 130 / 0.2), transparent 60%),
-    radial-gradient(90% 60% at 100% 100%, rgb(var(--room-rgb) / 0.18), transparent 65%),
-    radial-gradient(70% 50% at 100% 10%, rgb(255 255 255 / 0.9), transparent 70%),
-    linear-gradient(180deg, #eef3f8 0%, #e3ebf3 100%);
+  /* ---------------------------------------------------------- the room */
+  --wall: #f4f4f1; /* Kalkweiß: limewash in north daylight */
+  --wall-2: #ebebe6; /* the wall a step into the room, recessed fields */
+  --wall-3: #e1e2dc; /* pressed, selected-quiet */
+  --shade: #e4e7e6; /* cool daylight shadow: where a draft waits */
+  --sheet: #fcfcfa; /* a sheet on the wall: what text sits on longest */
+  --sheet-2: #f7f7f3; /* a sheet inside a sheet region (table rows, recessed cells) */
+  --sun: 255 224 168; /* window daylight (rgb triplet, used with alpha) */
+  --sunlight: linear-gradient(
+    112deg,
+    rgb(var(--sun) / 0.62) 0%,
+    rgb(var(--sun) / 0.44) 34%,
+    rgb(var(--sun) / 0.16) 62%,
+    rgb(var(--sun) / 0) 82%
+  );
+  /* the window cross falls through the light as two soft shadows */
+  --mullion: rgb(120 92 52 / 0.07);
 
-  /* panes: frosted glass */
-  --glass: rgb(255 255 255 / 0.6);
-  --glass-strong: rgb(255 255 255 / 0.8); /* header, dock, sheets: what text sits on longest */
-  --glass-solid: #f7fafc; /* fallback without backdrop-filter */
-  --glass-solid-strong: #fbfdfe;
-  --glass-rim: rgb(255 255 255 / 0.9); /* the bright top edge of a pane */
-  --glass-edge: rgb(13 58 97 / 0.12); /* the pane's outer hairline */
-  --glass-hi: inset 0 1px 0 rgb(255 255 255 / 0.95);
-  --blur: blur(22px) saturate(1.6);
-  --frost: rgb(255 255 255 / 0.42); /* the extra frost a draft sits behind */
+  /* ---------------------------------------------------------- ink (walnut) */
+  --ink: #211b17;
+  --ink-2: #4d443d; /* 8.8:1 on the wall */
+  --ink-3: #6b6158; /* 5.4:1 on the wall */
+  --rule: rgb(33 27 23 / 0.12);
+  --rule-strong: rgb(33 27 23 / 0.26);
+  --strich: #211b17; /* the Begleitstrich: wall meets dado */
+  --link: #2d4f96;
+  --focus: #2d4f96;
 
-  --paper-2: rgb(255 255 255 / 0.55); /* recessed pane inside a pane */
-  --paper-3: rgb(13 58 97 / 0.07); /* pressed / active */
-  --ink: #0a1d30;
-  --ink-2: #2b4157; /* 9.6:1 on the lightest pane */
-  --ink-3: #4b6177; /* 5.9:1 on the lightest pane */
-  --rule: rgb(13 58 97 / 0.12);
-  --rule-strong: rgb(13 58 97 / 0.3);
+  /* ---------------------------------------------------------- room paints (the dado). White text ≥ 5:1 on each */
+  --paint-sprechzimmer: #5d7350; /* Resedagrün */
+  --paint-kanzlei: #7a2f28; /* Ochsenblut */
+  --paint-verhandlungsraum: #2d4f96; /* Kobalt, from the tiled stove */
+  --paint-gespraech: #4f6475; /* Taubenblau */
+  --paint: var(--paint-gespraech); /* set per room by .room--<mode> */
+  --paint-ink: #ffffff;
+  --paint-ink-2: rgb(255 255 255 / 0.82);
+  --paint-sheen: rgb(255 255 255 / 0.14); /* oil paint catches the light */
+  --paint-well: rgb(255 255 255 / 0.14);
+  --paint-rim: rgb(255 255 255 / 0.42);
 
-  /* Berliner Blau */
-  --brand: #0d3a61;
-  --brand-2: #164f82;
-  --brand-ink: #f2f8fd;
-  --brand-ink-2: #c4dbee;
-  --brand-rule: rgb(255 255 255 / 0.18);
-  --brand-grad: linear-gradient(160deg, #1a5a92 0%, #0d3a61 55%, #0a2e4f 100%);
-  --link: #145089;
+  /* brand: the RAUM wordmark and primary actions are walnut ink on limewash */
+  --brand: #211b17;
+  --brand-2: #3a312a;
+  --brand-ink: #f8f7f3;
+  --brand-ink-2: #d9d3ca;
 
-  /* semantic pens */
-  --ok: #12683f;
-  --ok-wash: rgb(18 104 63 / 0.1);
-  --unsure: #8a4f00;
-  --unsure-wash: rgb(176 108 0 / 0.12);
-  --bad: #b3192a;
-  --bad-wash: rgb(179 25 42 / 0.09);
-  --pending: #5a7085;
-  --live: #1f9d63; /* the live dot */
+  /* ---------------------------------------------------------- semantic pens */
+  --ok: #1d6b3a;
+  --ok-wash: rgb(29 107 58 / 0.09);
+  --unsure: #8f5300;
+  --unsure-wash: rgb(176 108 0 / 0.11);
+  --bad: #b4231b;
+  --bad-wash: rgb(180 35 27 / 0.08);
+  --pending: #6b6158;
+  --live: #23934f;
 
   /* speaker plates: who is talking */
-  --them: #0d3a61; /* the other person: Berliner Blau plate */
-  --them-ink: #f2f8fd;
-  --you: rgb(13 58 97 / 0.08);
-  --you-ink: #2b4157;
+  --them: var(--paint);
+  --them-ink: #ffffff;
+  --you: var(--wall-3);
+  --you-ink: #4d443d;
 
-  /* room layers */
-  --room-sprechzimmer: #0a6675;
-  --room-kanzlei: #5945a4;
-  --room-verhandlungsraum: #9c336b;
-  --room-gespraech: var(--ink);
-  --room-rgb: 10 111 128; /* tints the field (set per room on .screen) */
-  --band-sprechzimmer: #0a6675;
-  --band-kanzlei: #5945a4;
-  --band-verhandlungsraum: #9c336b;
-  --band-gespraech: var(--brand);
-
-  /* type */
-  --font-text: "Atkinson Hyperlegible Next Variable", "Noto Sans Arabic Variable", system-ui, -apple-system,
-    "Segoe UI", Roboto, "Noto Sans", sans-serif;
-  --font-mono: "Atkinson Hyperlegible Mono Variable", "Noto Sans Arabic Variable", ui-monospace, "SF Mono",
-    Menlo, Consolas, monospace;
-  --font-label: var(--font-text); /* labels are sentence-case words, not technical lettering */
+  /* ---------------------------------------------------------- type */
+  --font-text: "Sofia Sans Variable", "Noto Sans Arabic Variable", system-ui, -apple-system, "Segoe UI", Roboto,
+    "Noto Sans", sans-serif;
+  --font-display: "Sofia Sans Extra Condensed Variable", "Sofia Sans Variable", "Noto Sans Arabic Variable",
+    system-ui, sans-serif;
+  --font-figure: "Sofia Sans Semi Condensed Variable", "Sofia Sans Variable", "Noto Sans Arabic Variable",
+    system-ui, sans-serif;
+  --font-mono: var(--font-figure); /* ids and timings: tabular figures in the house face, not a costume mono */
+  --font-label: var(--font-text);
   --label-case: none;
 
   /* recency ramp (hierarchy is carried by this ramp only) */
-  --ramp-0: clamp(1.75rem, 1.1rem + 2.6vw, 2.125rem);
+  --ramp-0: clamp(1.75rem, 1.15rem + 2.4vw, 2.125rem);
   --ramp-1: 1.3125rem;
   --ramp-2: 1.125rem;
-  --ramp-3: 1rem;
+  --ramp-3: 1.0625rem;
   --source: 1.0625rem;
   --label: 0.8125rem;
-  --label-track: 0.005em;
+  --label-track: 0.01em;
 
-  /* space (4px base) */
+  /* space (4 px base, 8 px module: the Begleitstrich sits on it everywhere) */
   --s-1: 4px;
   --s-2: 8px;
   --s-3: 12px;
@@ -105,136 +109,159 @@
 
   --line: 1px;
   --line-2: 2px;
-  --radius: 12px; /* controls, fields, chips */
-  --radius-lg: 22px; /* panes */
+  --strich-w: 4px;
+  --radius: 6px; /* controls, fields */
+  --radius-sm: 4px; /* chips, sheets' inner parts */
+  --radius-lg: 6px; /* sheets */
   --radius-pill: 999px;
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --t-draw: 220ms;
-  --t-clear: 280ms; /* the frost clears: draft -> final */
-  --shadow-pane: 0 1px 2px rgb(10 29 48 / 0.05), 0 14px 36px -12px rgb(10 29 48 / 0.22);
-  --shadow-float: 0 2px 6px rgb(10 29 48 / 0.06), 0 24px 48px -16px rgb(10 29 48 / 0.3);
-  --shadow-sheet: var(--shadow-pane);
-  --scrim: rgb(6 20 34 / 0.34);
-  --focus: #1b6fd1;
+
+  /* motion: one easing; the light falls slower than anything else moves */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --t-quick: 160ms;
+  --t-draw: 240ms;
+  --t-clear: 420ms; /* Lichtfall: draft -> final */
+  --t-sweep: 460ms;
+
+  /* depth: one rule */
+  --shadow-sheet: 0 1px 0 rgb(33 27 23 / 0.05), 0 12px 28px -16px rgb(74 52 30 / 0.34);
+  --shadow-lift: 0 2px 4px rgb(33 27 23 / 0.06), 0 26px 48px -18px rgb(74 52 30 / 0.46);
+  --scrim: rgb(33 27 23 / 0.42);
+
+  /* legacy names (older rules still read them): every one resolves into this world */
+  --paper: var(--wall);
+  --paper-2: var(--wall-2);
+  --paper-3: var(--wall-3);
+  --glass: var(--sheet);
+  --glass-strong: var(--sheet);
+  --glass-solid: var(--sheet);
+  --glass-solid-strong: var(--sheet);
+  --glass-rim: var(--rule);
+  --glass-edge: var(--rule);
+  --glass-hi: 0 0 0 0 transparent;
+  --blur: none;
+  --frost: var(--shade);
+  --shadow-pane: var(--shadow-sheet);
+  --shadow-float: var(--shadow-lift);
+  --room-sprechzimmer: var(--paint-sprechzimmer);
+  --room-kanzlei: var(--paint-kanzlei);
+  --room-verhandlungsraum: var(--paint-verhandlungsraum);
+  --room-gespraech: var(--paint-gespraech);
+  --band-sprechzimmer: var(--paint-sprechzimmer);
+  --band-kanzlei: var(--paint-kanzlei);
+  --band-verhandlungsraum: var(--paint-verhandlungsraum);
+  --band-gespraech: var(--paint-gespraech);
+  --brand-grad: var(--brand);
 }
 
-/* the room tints the field behind the glass */
+/* each room is painted its own colour below the line */
+.room--sprechzimmer {
+  --paint: var(--paint-sprechzimmer);
+}
 .room--kanzlei {
-  --room-rgb: 89 69 164;
+  --paint: var(--paint-kanzlei);
 }
 .room--verhandlungsraum {
-  --room-rgb: 156 51 107;
+  --paint: var(--paint-verhandlungsraum);
 }
 .room--gespraech {
-  --room-rgb: 22 79 130;
+  --paint: var(--paint-gespraech);
 }
 
+/* the same room in the evening: warm walnut dark, never a techy navy-black */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --paper: #06182a;
-    --field:
-      radial-gradient(110% 70% at 0% 0%, rgb(29 95 154 / 0.45), transparent 62%),
-      radial-gradient(90% 60% at 100% 100%, rgb(var(--room-rgb) / 0.38), transparent 65%),
-      radial-gradient(60% 40% at 90% 5%, rgb(120 180 230 / 0.12), transparent 70%),
-      linear-gradient(180deg, #071c31 0%, #041222 100%);
-    --glass: rgb(20 48 76 / 0.5);
-    --glass-strong: rgb(16 40 64 / 0.74);
-    --glass-solid: #102b46;
-    --glass-solid-strong: #0d2540;
-    --glass-rim: rgb(255 255 255 / 0.16);
-    --glass-edge: rgb(0 0 0 / 0.35);
-    --glass-hi: inset 0 1px 0 rgb(255 255 255 / 0.1);
-    --frost: rgb(160 200 235 / 0.08);
-    --paper-2: rgb(255 255 255 / 0.06);
-    --paper-3: rgb(255 255 255 / 0.1);
-    --ink: #eef5fb;
-    --ink-2: #c3d6e6;
-    --ink-3: #98b2c8;
-    --rule: rgb(190 220 245 / 0.14);
-    --rule-strong: rgb(190 220 245 / 0.32);
-    --brand: #0a2a48;
-    --brand-2: #13406a;
-    --brand-ink: #eef5fb;
-    --brand-ink-2: #a9c8e0;
-    --brand-grad: linear-gradient(160deg, #2a77b8 0%, #165089 55%, #0f3a66 100%);
-    --link: #9fd3ff;
-    --ok: #6adba4;
-    --ok-wash: rgb(106 219 164 / 0.12);
-    --unsure: #f3bb62;
-    --unsure-wash: rgb(243 187 98 / 0.13);
-    --bad: #ff8f8f;
-    --bad-wash: rgb(255 143 143 / 0.12);
-    --pending: #98b2c8;
-    --live: #6adba4;
-    --them: #2a6fae;
-    --them-ink: #ffffff;
-    --you: rgb(255 255 255 / 0.1);
-    --you-ink: #c3d6e6;
-    --room-sprechzimmer: #6fd6e3;
-    --room-kanzlei: #bcaeff;
-    --room-verhandlungsraum: #ffa6d4;
-    --band-sprechzimmer: #6fd6e3;
-    --band-kanzlei: #bcaeff;
-    --band-verhandlungsraum: #ffa6d4;
-    --band-gespraech: var(--ink);
-    --shadow-pane: 0 1px 2px rgb(0 0 0 / 0.3), 0 16px 40px -12px rgb(0 0 0 / 0.55);
-    --shadow-float: 0 2px 8px rgb(0 0 0 / 0.3), 0 28px 56px -16px rgb(0 0 0 / 0.65);
-    --scrim: rgb(2 10 20 / 0.55);
-    --focus: #9fd3ff;
+    --wall: #1c1916;
+    --wall-2: #24201c;
+    --wall-3: #2e2924;
+    --shade: #171512;
+    --sheet: #272220;
+    --sheet-2: #2c2723;
+    --sun: 255 186 112;
+    --sunlight: linear-gradient(
+      112deg,
+      rgb(var(--sun) / 0.2) 0%,
+      rgb(var(--sun) / 0.13) 36%,
+      rgb(var(--sun) / 0.04) 64%,
+      rgb(var(--sun) / 0) 84%
+    );
+    --mullion: rgb(0 0 0 / 0.16);
+    --ink: #f3efe8;
+    --ink-2: #d4cabe;
+    --ink-3: #ab9f92;
+    --rule: rgb(243 239 232 / 0.12);
+    --rule-strong: rgb(243 239 232 / 0.28);
+    --strich: #0c0a09;
+    --link: #a9c1f2;
+    --focus: #a9c1f2;
+    --paint-sprechzimmer: #5a6f4d;
+    --paint-kanzlei: #7c322b;
+    --paint-verhandlungsraum: #34558f;
+    --paint-gespraech: #4e6273;
+    --paint-sheen: rgb(255 255 255 / 0.1);
+    --brand: #f3efe8;
+    --brand-2: #ffffff;
+    --brand-ink: #1c1916;
+    --brand-ink-2: #4d443d;
+    --ok: #7fd39b;
+    --ok-wash: rgb(127 211 155 / 0.12);
+    --unsure: #f0b860;
+    --unsure-wash: rgb(240 184 96 / 0.12);
+    --bad: #ff8a7a;
+    --bad-wash: rgb(255 138 122 / 0.11);
+    --pending: #ab9f92;
+    --live: #6fd08f;
+    --you-ink: #d4cabe;
+    --shadow-sheet: 0 1px 0 rgb(0 0 0 / 0.25), 0 14px 30px -16px rgb(0 0 0 / 0.6);
+    --shadow-lift: 0 2px 6px rgb(0 0 0 / 0.3), 0 28px 52px -18px rgb(0 0 0 / 0.7);
+    --scrim: rgb(8 6 5 / 0.6);
   }
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --paper: #06182a;
-  --field:
-    radial-gradient(110% 70% at 0% 0%, rgb(29 95 154 / 0.45), transparent 62%),
-    radial-gradient(90% 60% at 100% 100%, rgb(var(--room-rgb) / 0.38), transparent 65%),
-    radial-gradient(60% 40% at 90% 5%, rgb(120 180 230 / 0.12), transparent 70%),
-    linear-gradient(180deg, #071c31 0%, #041222 100%);
-  --glass: rgb(20 48 76 / 0.5);
-  --glass-strong: rgb(16 40 64 / 0.74);
-  --glass-solid: #102b46;
-  --glass-solid-strong: #0d2540;
-  --glass-rim: rgb(255 255 255 / 0.16);
-  --glass-edge: rgb(0 0 0 / 0.35);
-  --glass-hi: inset 0 1px 0 rgb(255 255 255 / 0.1);
-  --frost: rgb(160 200 235 / 0.08);
-  --paper-2: rgb(255 255 255 / 0.06);
-  --paper-3: rgb(255 255 255 / 0.1);
-  --ink: #eef5fb;
-  --ink-2: #c3d6e6;
-  --ink-3: #98b2c8;
-  --rule: rgb(190 220 245 / 0.14);
-  --rule-strong: rgb(190 220 245 / 0.32);
-  --brand: #0a2a48;
-  --brand-2: #13406a;
-  --brand-ink: #eef5fb;
-  --brand-ink-2: #a9c8e0;
-  --brand-grad: linear-gradient(160deg, #2a77b8 0%, #165089 55%, #0f3a66 100%);
-  --link: #9fd3ff;
-  --ok: #6adba4;
-  --ok-wash: rgb(106 219 164 / 0.12);
-  --unsure: #f3bb62;
-  --unsure-wash: rgb(243 187 98 / 0.13);
-  --bad: #ff8f8f;
-  --bad-wash: rgb(255 143 143 / 0.12);
-  --pending: #98b2c8;
-  --live: #6adba4;
-  --them: #2a6fae;
-  --them-ink: #ffffff;
-  --you: rgb(255 255 255 / 0.1);
-  --you-ink: #c3d6e6;
-  --room-sprechzimmer: #6fd6e3;
-  --room-kanzlei: #bcaeff;
-  --room-verhandlungsraum: #ffa6d4;
-  --band-sprechzimmer: #6fd6e3;
-  --band-kanzlei: #bcaeff;
-  --band-verhandlungsraum: #ffa6d4;
-  --band-gespraech: var(--ink);
-  --shadow-pane: 0 1px 2px rgb(0 0 0 / 0.3), 0 16px 40px -12px rgb(0 0 0 / 0.55);
-  --shadow-float: 0 2px 8px rgb(0 0 0 / 0.3), 0 28px 56px -16px rgb(0 0 0 / 0.65);
-  --scrim: rgb(2 10 20 / 0.55);
-  --focus: #9fd3ff;
+  --wall: #1c1916;
+  --wall-2: #24201c;
+  --wall-3: #2e2924;
+  --shade: #171512;
+  --sheet: #272220;
+  --sheet-2: #2c2723;
+  --sun: 255 186 112;
+  --sunlight: linear-gradient(
+    112deg,
+    rgb(var(--sun) / 0.2) 0%,
+    rgb(var(--sun) / 0.13) 36%,
+    rgb(var(--sun) / 0.04) 64%,
+    rgb(var(--sun) / 0) 84%
+  );
+  --mullion: rgb(0 0 0 / 0.16);
+  --ink: #f3efe8;
+  --ink-2: #d4cabe;
+  --ink-3: #ab9f92;
+  --rule: rgb(243 239 232 / 0.12);
+  --rule-strong: rgb(243 239 232 / 0.28);
+  --strich: #0c0a09;
+  --link: #a9c1f2;
+  --focus: #a9c1f2;
+  --paint-sprechzimmer: #5a6f4d;
+  --paint-kanzlei: #7c322b;
+  --paint-verhandlungsraum: #34558f;
+  --paint-gespraech: #4e6273;
+  --paint-sheen: rgb(255 255 255 / 0.1);
+  --brand: #f3efe8;
+  --brand-2: #ffffff;
+  --brand-ink: #1c1916;
+  --brand-ink-2: #4d443d;
+  --ok: #7fd39b;
+  --ok-wash: rgb(127 211 155 / 0.12);
+  --unsure: #f0b860;
+  --unsure-wash: rgb(240 184 96 / 0.12);
+  --bad: #ff8a7a;
+  --bad-wash: rgb(255 138 122 / 0.11);
+  --pending: #ab9f92;
+  --live: #6fd08f;
+  --you-ink: #d4cabe;
+  --shadow-sheet: 0 1px 0 rgb(0 0 0 / 0.25), 0 14px 30px -16px rgb(0 0 0 / 0.6);
+  --shadow-lift: 0 2px 6px rgb(0 0 0 / 0.3), 0 28px 52px -18px rgb(0 0 0 / 0.7);
+  --scrim: rgb(8 6 5 / 0.6);
 }

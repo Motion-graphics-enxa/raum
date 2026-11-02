@@ -2,32 +2,30 @@
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: transparent; /* the field (body::before) shows through every pane */
+  background: var(--wall);
 }
 
 /* ---------------------------------------------------------------- banners */
-/* banners: a glass toast under the header. A leading dot in the tone; reconnecting spins. */
+/* A note pinned to the wall under the door plate: a sheet with a leading mark in the pen. */
 .banner {
-  --c: var(--ink-2);
+  --c: var(--ink-3);
   position: relative;
   z-index: 4;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 4px 10px;
-  margin: var(--s-2) var(--s-3) 0;
-  padding: 10px var(--s-4) 10px 14px;
+  margin: var(--s-2) var(--s-4) 0;
+  padding: 11px var(--s-4) 11px 14px;
   font-size: 0.9375rem;
   font-weight: 650;
   line-height: 1.35;
   color: var(--ink);
-  background: var(--glass-strong);
-  border: var(--line) solid color-mix(in oklab, var(--c) 40%, var(--glass-rim));
-  border-radius: 16px;
-  box-shadow: var(--glass-hi), var(--shadow-pane);
-  -webkit-backdrop-filter: var(--blur);
-  backdrop-filter: var(--blur);
-  animation: turn-in 240ms var(--ease-out) both;
+  background: var(--sheet);
+  border: var(--line) solid color-mix(in oklab, var(--c) 45%, var(--rule));
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sheet);
+  animation: turn-in 300ms var(--ease-out) both;
 }
 .banner::before {
   content: "";
@@ -39,11 +37,11 @@
 }
 .banner--warn {
   --c: var(--unsure);
-  background: color-mix(in oklab, var(--unsure) 10%, var(--glass-strong));
+  background: color-mix(in oklab, var(--unsure) 7%, var(--sheet));
 }
 .banner--bad {
   --c: var(--bad);
-  background: color-mix(in oklab, var(--bad) 9%, var(--glass-strong));
+  background: color-mix(in oklab, var(--bad) 6%, var(--sheet));
 }
 .banner--reconnect::before {
   background: transparent;
@@ -53,49 +51,62 @@
 }
 .banner--off {
   --c: var(--ink-3);
-  color: var(--ink);
+  background: var(--wall-2);
+  box-shadow: none;
 }
 .banner__btn {
   border: 0;
   background: none;
   color: inherit;
   text-decoration: underline;
-  font-weight: 700;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.2em;
+  font-weight: 760;
   padding: 0;
 }
 
+/* ---------------------------------------------------------------- wordmark */
+.join__word,
+.home__word {
+  font-family: var(--font-display);
+  font-weight: 860;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 0.82;
+}
+
 /* ---------------------------------------------------------------- join */
+.screen--join {
+  min-height: 100dvh;
+}
+.tblock--join {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  padding-bottom: 0;
+}
 .join__brand {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--s-1) var(--s-3);
-  padding: var(--s-3) 0 var(--s-3);
-  margin-bottom: var(--s-2);
-  border-bottom: var(--line) solid var(--rule);
-}
-.tblock--join {
-  max-width: 560px;
-}
-@media (min-width: 600px) {
-  .tblock--join {
-    margin-inline: auto;
-    width: calc(100% - 2 * var(--s-3));
-  }
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-2) var(--s-4);
+  padding: var(--s-2) 0 var(--s-4);
+  margin-bottom: var(--s-3);
+  border-bottom: var(--strich-w) solid var(--strich);
+  animation: fade-in 400ms var(--ease-out) both;
 }
 .join__word {
-  font-weight: 800;
-  font-size: 2.5rem;
-  letter-spacing: 0.08em;
-  line-height: 1;
+  font-size: 3.25rem;
 }
 .join__slogan {
-  font-family: var(--font-label);
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   font-weight: 650;
-  letter-spacing: var(--label-track);
-  text-transform: var(--label-case);
   color: var(--ink-2);
+  padding-bottom: 3px;
+}
+.tblock--join .tblock__status {
+  font-family: var(--font-figure);
 }
 .join {
   flex: 1;
@@ -103,40 +114,60 @@
   align-content: start;
   gap: var(--s-4);
   width: 100%;
-  max-width: 560px;
+  max-width: 600px;
   margin: 0 auto;
-  padding: var(--s-5) var(--s-3) calc(env(safe-area-inset-bottom, 0px) + var(--s-5));
+  padding: var(--s-5) var(--s-4) 0;
+}
+.join > * {
+  animation: turn-in 420ms var(--ease-out) both;
+}
+.join > :nth-child(2) {
+  animation-delay: 60ms;
+}
+.join > :nth-child(3) {
+  animation-delay: 120ms;
+}
+.join > :nth-child(4) {
+  animation-delay: 180ms;
+}
+.join > :nth-child(5) {
+  animation-delay: 240ms;
+}
+.join > :nth-child(n + 6) {
+  animation-delay: 300ms;
 }
 .join__role {
-  padding: 0 var(--s-2);
-}
-/* each decision is one frosted pane */
-.join__lang {
-  padding: var(--s-4);
-  background: var(--glass);
-  border: var(--line) solid var(--glass-rim);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--glass-hi), 0 0 0 1px var(--glass-edge), var(--shadow-pane);
-  -webkit-backdrop-filter: var(--blur);
-  backdrop-filter: var(--blur);
-}
-.join__role {
-  font-size: 2.25rem;
-  line-height: 1.15;
-  font-weight: 720;
-  letter-spacing: -0.015em;
+  font-size: clamp(2.25rem, 1.8rem + 2vw, 2.75rem);
+  line-height: 1.05;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  padding-bottom: var(--s-2);
 }
 .join__role-pre {
   display: block;
-  font-size: 1.375rem;
-  font-weight: 500;
+  font-size: 1.25rem;
+  font-weight: 560;
   letter-spacing: 0;
   color: var(--ink-2);
   margin-bottom: var(--s-1);
 }
+.join__role-name {
+  display: inline;
+  background-image: linear-gradient(var(--paint), var(--paint));
+  background-size: 100% 0.16em;
+  background-position: 0 92%;
+  background-repeat: no-repeat;
+  padding-bottom: 0.04em;
+}
+/* each decision is one sheet on the wall */
 .join__lang {
   display: grid;
   gap: var(--s-2);
+  padding: var(--s-4);
+  background: var(--sheet);
+  border: var(--line) solid var(--rule);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sheet);
 }
 .field {
   position: relative;
@@ -146,12 +177,15 @@
   min-height: 60px;
   padding: 0 var(--s-4);
   border: 1.5px solid var(--rule-strong);
-  border-radius: 16px;
-  background: var(--glass-strong);
-  box-shadow: var(--glass-hi);
+  border-radius: var(--radius);
+  background: var(--wall);
+  transition: border-color var(--t-quick) var(--ease-out);
+}
+.field:hover {
+  border-color: var(--ink-3);
 }
 .field:focus-within {
-  outline: 2px solid var(--focus);
+  outline: 2.5px solid var(--focus);
   outline-offset: 2px;
 }
 .field .icon {
@@ -164,33 +198,42 @@
   border: 0;
   background: transparent;
   font-size: 1.3125rem;
-  font-weight: 650;
+  font-weight: 700;
   padding: var(--s-3) 0;
   outline: none;
 }
 .field__hint {
   font-size: var(--label);
-  letter-spacing: var(--label-track);
-  text-transform: var(--label-case);
+  font-weight: 700;
   color: var(--link);
   pointer-events: none;
 }
 .join__consent {
+  position: relative;
   display: grid;
   gap: var(--s-3);
   padding: var(--s-5) var(--s-4);
-  border: var(--line) solid var(--glass-rim);
+  border: var(--line) solid var(--rule);
   border-radius: var(--radius-lg);
-  background: color-mix(in oklab, var(--brand-2) 7%, var(--glass));
-  box-shadow: var(--glass-hi), 0 0 0 1px var(--glass-edge), var(--shadow-pane);
-  -webkit-backdrop-filter: var(--blur);
-  backdrop-filter: var(--blur);
-  position: relative;
+  background: var(--sheet);
+  box-shadow: var(--shadow-sheet);
+  overflow: hidden;
+  isolation: isolate;
+}
+/* the consent sits in the window's light: read in daylight, nothing hidden */
+.join__consent::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--sunlight);
+  pointer-events: none;
 }
 .join__consent-title {
   font-size: 1.5rem;
-  line-height: 1.25;
-  font-weight: 720;
+  line-height: 1.22;
+  font-weight: 780;
+  letter-spacing: -0.01em;
 }
 .join__consent-body {
   font-size: 1.125rem;
@@ -198,41 +241,84 @@
   color: var(--ink-2);
   max-width: 60ch;
 }
-.join__consent-de {
-  font-size: 0.9375rem;
+.join__consent-de,
+.join__aiact {
+  font-size: 0.875rem;
   color: var(--ink-3);
   border-top: var(--line) solid var(--rule);
   padding-top: var(--s-3);
 }
+/* the one action sits on the dado, in reach of the thumb */
 .join__go {
   display: grid;
   gap: var(--s-3);
-  /* the one action stays in reach on a phone: pinned to the bottom of the sheet */
   position: sticky;
   bottom: 0;
-  margin: 0 calc(var(--s-5) * -1) calc((env(safe-area-inset-bottom, 0px) + var(--s-5)) * -1);
-  padding: var(--s-4) var(--s-4) calc(env(safe-area-inset-bottom, 0px) + var(--s-4));
-  background: var(--glass-strong);
-  border-top: var(--line) solid var(--glass-rim);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  box-shadow: 0 -12px 32px -16px rgb(10 29 48 / 0.25);
-  -webkit-backdrop-filter: var(--blur);
-  backdrop-filter: var(--blur);
+  z-index: 3;
+  margin: var(--s-3) calc(var(--s-4) * -1) 0;
+  padding: var(--s-5) var(--s-4) calc(env(safe-area-inset-bottom, 0px) + var(--s-4));
+  background: linear-gradient(var(--paint), var(--paint)) bottom / 100% 100% no-repeat;
+  color: var(--paint-ink);
+  box-shadow: inset 0 1px 0 var(--paint-sheen);
+  animation: dado-paint 560ms var(--ease-out) 160ms both !important;
+}
+.join__go::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: calc(var(--strich-w) * -1);
+  height: var(--strich-w);
+  background: var(--strich);
+  transform-origin: left center;
+  animation: strich-draw 480ms var(--ease-out) both;
+}
+@media (min-width: 600px) {
+  .join__go {
+    margin-inline: 0;
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    margin-bottom: var(--s-6);
+  }
+}
+.join__go .btn {
+  background: #f4f4f1;
+  border-color: #f4f4f1;
+  color: #211b17;
+  box-shadow: 0 12px 24px -14px rgb(0 0 0 / 0.6);
+}
+@media (hover: hover) {
+  .join__go .btn:hover:not(:disabled) {
+    background: #ffffff;
+    border-color: #ffffff;
+  }
+}
+.join__go :focus-visible {
+  outline-color: #fff;
 }
 .join__app {
   justify-self: center;
   font-size: 0.875rem;
-  color: var(--link);
-  text-underline-offset: 0.2em;
+  font-weight: 650;
+  color: var(--paint-ink);
 }
 .join__note {
   font-size: 0.875rem;
-  color: var(--ink-3);
+  color: var(--paint-ink-2);
   text-align: center;
 }
 .join__error {
   color: var(--bad);
-  font-weight: 650;
+  font-weight: 700;
+}
+.join__go .join__error {
+  justify-self: stretch;
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--radius-sm);
+  background: var(--sheet);
+}
+@keyframes dado-paint {
+  from {
+    background-size: 100% 0%;
+  }
 }
 
 /* ---------------------------------------------------------------- talk */
@@ -243,31 +329,31 @@
 .talk-scroll {
   flex: 1;
   overflow-y: auto;
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 36px);
-  mask-image: linear-gradient(to bottom, transparent 0, #000 36px);
   overscroll-behavior: contain;
-  padding: 0 var(--s-4);
+  padding: 0 var(--s-4); /* the header's hairline is the edge: nothing fades under it */
   scroll-padding-bottom: var(--s-6);
 }
 .turns {
   display: grid;
   max-width: 720px;
   margin: 0 auto;
-  padding: var(--s-4) 0 var(--s-6);
+  padding: var(--s-3) 0 var(--s-6);
 }
 .talk-empty {
   display: grid;
   justify-items: center;
   text-align: center;
   gap: var(--s-3);
-  padding: var(--s-7) 0 var(--s-6);
+  padding: var(--s-6) 0;
   max-width: 420px;
   margin: 0 auto;
+  animation: turn-in 480ms var(--ease-out) both;
 }
 .talk-empty__title {
   font-size: 1.5rem;
-  font-weight: 700;
-  line-height: 1.25;
+  font-weight: 780;
+  line-height: 1.22;
+  letter-spacing: -0.01em;
 }
 .talk-empty__body {
   color: var(--ink-2);
@@ -275,17 +361,19 @@
   max-width: 32ch;
 }
 
+/* the room in plan view while it waits: walls in ink, the seats painted when someone sits down */
 .plan {
   width: min(100%, 300px);
   height: auto;
   margin-bottom: var(--s-3);
+  overflow: visible;
 }
 .plan__wall {
   stroke: var(--ink);
   stroke-width: 1.5;
 }
 .plan__hatchline {
-  stroke: var(--ink-2);
+  stroke: var(--ink-3);
   stroke-width: 1;
 }
 .plan__door,
@@ -294,6 +382,9 @@
   stroke: var(--ink);
   stroke-width: 1.5;
 }
+.plan__desk {
+  fill: var(--sheet);
+}
 .plan__swing {
   fill: none;
   stroke: var(--ink-3);
@@ -301,28 +392,35 @@
   stroke-dasharray: 4 3;
 }
 .plan__seat rect {
-  fill: none;
+  fill: var(--wall);
   stroke: var(--ink-3);
   stroke-width: 1.5;
   stroke-dasharray: 4 3;
-  transition: stroke 200ms var(--ease-out);
+  transition: fill 320ms var(--ease-out), stroke 320ms var(--ease-out);
 }
 .plan__seat.is-in rect {
-  stroke: var(--link);
+  fill: var(--paint);
+  stroke: var(--strich);
   stroke-dasharray: none;
-  fill: color-mix(in oklab, var(--link) 14%, transparent);
+}
+.plan__seat:not(.is-in) rect {
+  animation: seat-wait 2.4s ease-in-out infinite;
+}
+@keyframes seat-wait {
+  50% {
+    stroke-opacity: 0.35;
+  }
 }
 .plan__seat text,
 .plan__dimtext {
   font-family: var(--font-label);
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  text-transform: var(--label-case);
+  font-size: 11px;
+  font-weight: 650;
   fill: var(--ink-2);
 }
 .plan__seat.is-in text {
   fill: var(--ink);
-  font-weight: 700;
+  font-weight: 800;
 }
 .plan__dim {
   stroke: var(--ink-3);
@@ -330,75 +428,89 @@
   fill: none;
 }
 
-/* the dock: one glass bar, the mic orb in the middle, two labelled side actions */
+/* the dado: the room's oil paint under the Begleitstrich. The mic orb and the two side actions live on it.
+   When the room opens, the line is drawn first, then the paint rises below it. */
 .dock {
+  position: relative;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: var(--s-2);
-  margin: 0 var(--s-3) calc(env(safe-area-inset-bottom, 0px) + var(--s-2));
-  padding: var(--s-3) var(--s-2) var(--s-3);
-  background: var(--glass-strong);
-  border: var(--line) solid var(--glass-rim);
-  border-radius: 28px;
-  box-shadow: var(--glass-hi), 0 0 0 1px var(--glass-edge), var(--shadow-float);
-  -webkit-backdrop-filter: var(--blur);
-  backdrop-filter: var(--blur);
+  padding: 10px var(--s-3) calc(env(safe-area-inset-bottom, 0px) + var(--s-2));
+  background: linear-gradient(var(--paint), var(--paint)) bottom / 100% 100% no-repeat;
+  color: var(--paint-ink);
+  box-shadow: inset 0 1px 0 var(--paint-sheen);
+  animation: dado-paint 560ms var(--ease-out) 140ms both;
+  transition: background-color 400ms var(--ease-out);
+}
+.dock::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: calc(var(--strich-w) * -1);
+  height: var(--strich-w);
+  background: var(--strich);
+  transform-origin: left center;
+  animation: strich-draw 460ms var(--ease-out) both;
+}
+.dock > * {
+  animation: fade-in 320ms var(--ease-out) 360ms both;
 }
 .dock__side {
   display: grid;
   justify-items: center;
   gap: 6px;
-  min-height: 72px;
+  min-height: 76px;
   padding: var(--s-2) var(--s-1);
   border: 0;
   background: transparent;
-  color: var(--ink);
-  font-family: var(--font-label);
+  color: var(--paint-ink);
   font-size: 0.8125rem;
-  letter-spacing: 0;
-  text-transform: var(--label-case);
-  font-weight: 650;
+  font-weight: 720;
   line-height: 1.25;
   text-align: center;
-  border-radius: 18px;
+  border-radius: var(--radius);
 }
 .dock__side .icon {
-  width: 26px;
-  height: 26px;
-  stroke-width: 1.6;
+  padding: 10px;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  stroke-width: 1.7;
+  background: var(--paint-well);
+  box-shadow: inset 0 0 0 1.5px var(--paint-rim);
+  transition: background var(--t-quick) var(--ease-out), color var(--t-quick) var(--ease-out),
+    transform 120ms var(--ease-out);
 }
 @media (hover: hover) {
-  .dock__side:hover {
-    background: var(--paper-3);
+  .dock__side:hover .icon {
+    background: rgb(255 255 255 / 0.24);
   }
 }
-.dock__side .icon {
-  padding: 9px;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--paper-2);
-  box-shadow: inset 0 0 0 1px var(--rule);
-}
-.dock__side.is-active {
-  color: var(--ink);
+.dock__side:active .icon {
+  transform: scale(0.94);
 }
 .dock__side.is-active .icon {
-  background: var(--brand-grad);
-  color: #fff;
+  background: #f4f4f1;
+  color: #211b17;
   box-shadow: none;
 }
 .dock__side--empty {
   visibility: hidden;
 }
 
+/* off the record: the paint goes grey and the conversation steps back */
+.screen--talk.is-off {
+  --paint: #6f675f;
+}
 .screen--talk.is-off .turns,
 .screen--talk.is-off .talk-empty {
   filter: grayscale(1);
   opacity: 0.45;
+  transition: opacity 400ms var(--ease-out), filter 400ms var(--ease-out);
 }
 
+/* the menu: a sheet lifted from the dado */
 .menu {
   position: fixed;
   inset: 0;
@@ -406,28 +518,24 @@
   display: grid;
   align-items: end;
   background: var(--scrim);
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
-  animation: fade-in 160ms var(--ease-out) both;
+  animation: fade-in 180ms var(--ease-out) both;
 }
 .menu__sheet {
   position: relative;
-  background: var(--glass-strong);
+  background: var(--wall);
   padding: var(--s-6) var(--s-4) calc(env(safe-area-inset-bottom, 0px) + var(--s-4));
   display: grid;
   gap: var(--s-3);
   max-width: 640px;
   width: 100%;
+  max-height: 92dvh;
+  overflow-y: auto;
   margin: 0 auto;
-  border: var(--line) solid var(--glass-rim);
-  border-bottom: 0;
-  border-radius: 28px 28px 0 0;
-  box-shadow: var(--glass-hi), var(--shadow-float);
-  -webkit-backdrop-filter: var(--blur);
-  backdrop-filter: var(--blur);
-  animation: sheet-up 280ms var(--ease-out) both;
+  border-radius: 16px 16px 0 0;
+  border-top: var(--strich-w) solid var(--strich);
+  box-shadow: var(--shadow-lift);
+  animation: sheet-up 340ms var(--ease-out) both;
 }
-/* the grabber */
 .menu__sheet::before {
   content: "";
   position: absolute;
@@ -439,14 +547,10 @@
   border-radius: 3px;
   background: var(--rule-strong);
 }
-.menu__sheet {
-  max-height: 92dvh;
-  overflow-y: auto;
-}
 .menu__sec {
   display: grid;
   gap: var(--s-2);
-  padding-bottom: var(--s-3);
+  padding-bottom: var(--s-4);
   border-bottom: var(--line) solid var(--rule);
 }
 .menu__list {
@@ -467,46 +571,96 @@
   min-height: 56px;
   padding: 0 var(--s-2);
   border: 0;
+  border-radius: var(--radius-sm);
   background: none;
   color: var(--ink);
   font-size: 1.125rem;
-  font-weight: 600;
+  font-weight: 650;
   text-decoration: none;
   text-align: start;
+  transition: background var(--t-quick) var(--ease-out);
+}
+@media (hover: hover) {
+  .menu__list button:hover,
+  .menu__list a:hover {
+    background: var(--wall-2);
+  }
 }
 .menu__list .icon {
-  color: var(--link);
+  color: var(--ink-2);
 }
 
 /* ---------------------------------------------------------------- summary */
+.screen--summary > .tblock {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
 .sum {
   flex: 1;
   width: 100%;
-  max-width: 760px;
+  max-width: 800px;
   margin: 0 auto;
-  padding: var(--s-5) var(--s-4) var(--s-7);
+  padding: var(--s-4) var(--s-4) var(--s-7);
   display: grid;
   align-content: start;
   gap: var(--s-5);
 }
 .sum__waiting {
+  display: grid;
+  justify-items: center;
+  gap: var(--s-3);
   font-size: 1.25rem;
+  font-weight: 650;
   color: var(--ink-2);
   padding: var(--s-7) 0;
   text-align: center;
 }
+.sum__waiting::before {
+  content: "";
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 3px solid var(--rule-strong);
+  border-top-color: var(--paint);
+  animation: spin 900ms linear infinite;
+}
+/* the summary is one sheet of paper on the wall, the room's paint along its head */
 .sheet {
   position: relative;
-  background: var(--glass-strong);
-  border: var(--line) solid var(--glass-rim);
+  background: var(--sheet);
+  border: var(--line) solid var(--rule);
   border-radius: var(--radius-lg);
-  padding: var(--s-5) var(--s-5) 0;
+  padding: var(--s-6) var(--s-5) 0;
   display: grid;
   gap: var(--s-5);
   overflow: hidden;
-  box-shadow: var(--glass-hi), 0 0 0 1px var(--glass-edge), var(--shadow-pane);
-  -webkit-backdrop-filter: var(--blur);
-  backdrop-filter: var(--blur);
+  box-shadow: var(--shadow-sheet);
+  animation: turn-in 480ms var(--ease-out) both;
+}
+.sheet::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 10px;
+  background: var(--paint);
+  border-bottom: var(--strich-w) solid var(--strich);
+}
+.screen--summary .sheet {
+  --paint: var(--paint-gespraech);
+}
+.sheet--sprechzimmer,
+.screen--summary:has(.tblock--sprechzimmer) .sheet {
+  --paint: var(--paint-sprechzimmer);
+}
+.sheet--kanzlei,
+.screen--summary:has(.tblock--kanzlei) .sheet {
+  --paint: var(--paint-kanzlei);
+}
+.sheet--verhandlungsraum,
+.screen--summary:has(.tblock--verhandlungsraum) .sheet {
+  --paint: var(--paint-verhandlungsraum);
 }
 .sheet__sec {
   position: relative;
@@ -518,14 +672,15 @@
   flex-wrap: wrap;
   align-items: baseline;
   gap: var(--s-1) var(--s-3);
-  font-family: var(--font-label);
-  font-size: 0.8125rem;
-  letter-spacing: var(--label-track);
-  text-transform: var(--label-case);
-  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 780;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1;
   color: var(--ink);
-  padding-bottom: var(--s-1);
-  border-bottom: var(--line) solid var(--rule-strong);
+  padding-bottom: var(--s-2);
+  border-bottom: var(--line-2) solid var(--ink);
 }
 .sheet__h2 {
   color: var(--ink-3);
@@ -533,7 +688,7 @@
   text-transform: none;
   letter-spacing: 0;
   font-family: var(--font-text);
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
 }
 .sheet__items {
   list-style: none;
@@ -544,16 +699,16 @@
 .sheet__items li {
   display: grid;
   gap: 2px;
-  padding: var(--s-2) 0;
-  border-bottom: var(--line) dashed var(--rule);
+  padding: var(--s-3) 0;
+  border-bottom: var(--line) solid var(--rule);
 }
 .sheet__items li:last-child {
   border-bottom: 0;
 }
 .sheet__main {
   font-size: 1.1875rem;
-  line-height: 1.4;
-  font-weight: 600;
+  line-height: 1.42;
+  font-weight: 620;
 }
 .sheet__other {
   font-size: 1rem;
@@ -575,7 +730,7 @@
   font-size: 1rem;
   color: var(--ink-2);
 }
-/* checked facts: the drawing's revision schedule, right above the title block */
+/* checked facts: the list the professional signs */
 .checks {
   list-style: none;
   margin: 0;
@@ -585,11 +740,11 @@
 .check {
   --c: var(--ok);
   display: grid;
-  grid-template-columns: 18px minmax(0, 1fr) auto;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
   align-items: start;
   gap: var(--s-3);
-  padding: var(--s-2) 0;
-  border-bottom: var(--line) dashed var(--rule);
+  padding: var(--s-3) 0;
+  border-bottom: var(--line) solid var(--rule);
 }
 .check:last-child {
   border-bottom: 0;
@@ -603,17 +758,21 @@
 .check__mark {
   display: grid;
   place-items: center;
-  height: 1.5rem;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  border-radius: 50%;
   color: var(--c);
+  box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--c) 60%, transparent);
 }
 .check__mark .icon {
-  width: 18px;
-  height: 18px;
-  stroke-width: 2.25;
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.6;
 }
 .check__ring {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   border: 2px dotted currentColor;
 }
@@ -625,10 +784,9 @@
 .check__main {
   font-size: 1.0625rem;
   line-height: 1.4;
-  font-weight: 600;
+  font-weight: 680;
   overflow-wrap: anywhere;
 }
-/* read back and never answered: underlined dotted, like every unsure item on the sheet */
 .check--unconfirmed .check__main {
   text-decoration: underline dotted var(--unsure);
   text-decoration-thickness: 2px;
@@ -644,11 +802,8 @@
   line-height: 1.6;
 }
 .check__status {
-  font-family: var(--font-label);
-  font-size: 0.6875rem;
-  letter-spacing: var(--label-track);
-  text-transform: var(--label-case);
-  font-weight: 650;
+  font-size: 0.75rem;
+  font-weight: 720;
   line-height: 1.5rem;
   color: var(--c);
   white-space: nowrap;
@@ -656,9 +811,11 @@
 .check--noted .check__status {
   color: var(--ink-3);
 }
+/* the document's title block along its foot */
 .sheet__tb {
-  margin: var(--s-2) calc(var(--s-5) * -1 + 6px) 6px;
+  margin: var(--s-2) calc(var(--s-5) * -1) 0;
   border-top: var(--line-2) solid var(--ink);
+  background: var(--sheet-2);
 }
 .sheet__tb dl {
   display: grid;
@@ -666,25 +823,40 @@
   margin: 0;
 }
 .sheet__tb div {
-  padding: var(--s-2) var(--s-3);
-  border-inline-end: var(--line) solid var(--ink);
+  padding: var(--s-3) var(--s-4);
+  border-inline-end: var(--line) solid var(--rule-strong);
   min-width: 0;
 }
 .sheet__tb div:last-child {
   border-inline-end: 0;
 }
 .sheet__tb dt {
-  font-family: var(--font-label);
-  font-size: 0.625rem;
-  letter-spacing: var(--label-track);
-  text-transform: var(--label-case);
+  font-size: 0.6875rem;
+  font-weight: 650;
   color: var(--ink-3);
 }
 .sheet__tb dd {
   margin: 0;
-  font-size: 0.8125rem;
-  font-weight: 650;
+  font-size: 0.875rem;
+  font-weight: 720;
   overflow-wrap: anywhere;
+}
+@media (max-width: 480px) {
+  .sheet {
+    padding-inline: var(--s-4);
+  }
+  .sheet__tb {
+    margin-inline: calc(var(--s-4) * -1);
+  }
+  .sheet__tb dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .sheet__tb div:nth-child(2) {
+    border-inline-end: 0;
+  }
+  .sheet__tb div:nth-child(-n + 2) {
+    border-bottom: var(--line) solid var(--rule-strong);
+  }
 }
 .sum__actions {
   display: grid;
@@ -696,12 +868,14 @@
   gap: var(--s-4);
   align-items: center;
   padding: var(--s-4);
-  border: var(--line) solid var(--rule-strong);
-  border-radius: var(--radius);
+  background: var(--sheet);
+  border: var(--line) solid var(--rule);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sheet);
 }
 .sum__th {
-  font-size: 1.125rem;
-  font-weight: 700;
+  font-size: 1.1875rem;
+  font-weight: 780;
 }
 .sum__tb {
   color: var(--ink-2);
@@ -711,26 +885,27 @@
   display: grid;
   gap: var(--s-3);
   padding: var(--s-4);
-  border: var(--line-2) solid var(--bad);
-  border-radius: var(--radius);
+  background: var(--sheet);
+  border: 2px solid var(--bad);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lift);
+  animation: rb-lift 360ms var(--ease-out) both;
 }
 .sum__burnask p {
-  font-weight: 650;
-  font-size: 1.0625rem;
+  font-weight: 720;
+  font-size: 1.125rem;
 }
 .sum__back {
   justify-self: center;
-  font-family: var(--font-label);
   font-size: var(--label);
-  letter-spacing: var(--label-track);
-  text-transform: var(--label-case);
+  font-weight: 700;
   padding: var(--s-2);
 }
 
-/* the burn: line work retracts stroke by stroke, then the stamp lands */
+/* the burn: the sheet is wiped section by section, then the stamp lands */
 .sum.is-burning .sheet__sec,
 .sum.is-burning .sheet__tb {
-  animation: erase 520ms var(--ease-out) forwards;
+  animation: erase 560ms var(--ease-out) forwards;
 }
 .sum.is-burning .sheet__sec:nth-child(2) {
   animation-delay: 90ms;
@@ -753,7 +928,7 @@
 @keyframes erase {
   to {
     clip-path: inset(0 100% 0 0);
-    opacity: 0.2;
+    opacity: 0.15;
   }
 }
 [dir="rtl"] .sum.is-burning .sheet__sec {
@@ -762,54 +937,60 @@
 @keyframes erase-rtl {
   to {
     clip-path: inset(0 0 0 100%);
-    opacity: 0.2;
+    opacity: 0.15;
   }
 }
 
-/* the stamp: an impression, pressed onto the sheet's title block */
+/* the stamp: a rubber-stamp impression pressed onto the title block */
 .stamp {
   display: inline-grid;
   justify-items: center;
   gap: 2px;
   padding: var(--s-2) var(--s-4) var(--s-3);
   border: 3px solid var(--bad);
-  border-radius: 3px;
+  border-radius: 4px;
   color: var(--bad);
-  background: color-mix(in oklab, var(--paper) 88%, transparent);
-  transform: rotate(-3deg);
-  box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--bad) 35%, transparent);
-  animation: stamp-in 420ms var(--ease-out) both;
+  background: color-mix(in oklab, var(--sheet) 90%, transparent);
+  transform: rotate(-4deg);
+  box-shadow: inset 0 0 0 2px color-mix(in oklab, var(--sheet) 100%, transparent),
+    inset 0 0 0 3.5px color-mix(in oklab, var(--bad) 55%, transparent);
+  animation: stamp-in 460ms var(--ease-out) both;
 }
 .stamp__title {
-  font-family: var(--font-label);
-  font-size: clamp(1.25rem, 0.9rem + 1.8vw, 1.75rem);
-  letter-spacing: 0.07em;
-  text-transform: var(--label-case);
-  font-weight: 800;
-  line-height: 1.1;
+  font-family: var(--font-display);
+  font-size: clamp(1.625rem, 1.2rem + 1.8vw, 2.25rem);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-weight: 860;
+  line-height: 1;
   text-align: center;
 }
 .stamp__time,
 .stamp__hash {
   font-size: 0.8125rem;
+  font-weight: 650;
   color: var(--bad);
   letter-spacing: 0.02em;
 }
 @keyframes stamp-in {
-  from {
+  0% {
     opacity: 0;
-    transform: rotate(-3deg) scale(1.18);
+    transform: rotate(-4deg) scale(1.35);
+  }
+  60% {
+    opacity: 1;
+    transform: rotate(-4deg) scale(0.97);
   }
 }
 .sheet--burned {
-  padding-top: 0;
+  padding-top: var(--s-5);
   min-height: 0;
 }
 .sheet__erased {
   display: block;
   width: 100%;
   height: clamp(180px, 34vh, 320px);
-  margin-top: var(--s-5);
+  margin-top: var(--s-3);
 }
 .sheet__erased path {
   stroke: var(--rule);
@@ -821,7 +1002,7 @@
 .sheet--burned .stamp {
   position: absolute;
   inset-inline-end: var(--s-4);
-  bottom: calc(100% + 2px); /* pressed onto the title block's top rule; its cells stay legible */
+  bottom: calc(100% + 4px);
 }
 .sum__burned-note {
   max-width: 44ch;
@@ -835,11 +1016,14 @@
 }
 
 /* ---------------------------------------------------------------- listen */
+.screen--listen .tblock__name {
+  font-size: 2rem;
+}
 .listen {
   display: grid;
   gap: var(--s-4);
   padding: var(--s-5) var(--s-5) var(--s-7);
-  max-width: 720px;
+  max-width: 760px;
   margin: 0 auto;
   width: 100%;
 }
@@ -849,11 +1033,19 @@
   justify-items: start;
   padding-bottom: var(--s-4);
   border-bottom: var(--line) solid var(--rule);
+  animation: turn-in 300ms var(--ease-out) both;
+}
+.listen__turn:last-of-type {
+  padding: var(--s-4);
+  border: var(--line) solid var(--rule);
+  border-radius: var(--radius-lg);
+  background: var(--sheet);
+  box-shadow: var(--shadow-sheet);
 }
 .listen__turn p {
   font-size: 1.375rem;
   line-height: 1.35;
-  font-weight: 600;
+  font-weight: 620;
 }
 .listen__idle {
   color: var(--ink-3);
@@ -861,110 +1053,217 @@
   text-align: center;
 }
 
-/* ---------------------------------------------------------------- home */
-.home__top {
-  padding: var(--s-6) max(var(--s-5), calc((100% - 880px) / 2 + var(--s-5))) var(--s-5);
+/* ---------------------------------------------------------------- home: four rooms, four doors */
+.screen--home {
+  background: var(--wall);
+}
+.home__top.tblock {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top, 0px) + var(--s-7)) var(--s-5) var(--s-5);
+  background: transparent;
 }
 .home__brand {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--s-2) var(--s-4);
+  align-items: flex-end;
+  gap: var(--s-3) var(--s-5);
+  padding-bottom: var(--s-4);
+  border-bottom: var(--strich-w) solid var(--strich);
+  animation: fade-in 500ms var(--ease-out) both;
 }
 .home__word {
-  font-weight: 800;
-  font-size: clamp(2.75rem, 2rem + 4vw, 4.5rem);
-  letter-spacing: 0.08em;
-  line-height: 1;
+  font-size: clamp(4.5rem, 3rem + 7vw, 8.5rem);
 }
 .home__slogan {
-  font-family: var(--font-label);
-  font-size: 0.9375rem;
-  letter-spacing: var(--label-track);
-  text-transform: var(--label-case);
-  color: var(--brand-ink-2);
+  font-size: clamp(1.0625rem, 0.95rem + 0.5vw, 1.375rem);
+  font-weight: 700;
+  color: var(--ink);
+  padding-bottom: 0.45em;
 }
 .home__tag {
   margin-top: var(--s-3);
-  color: var(--brand-ink-2);
+  max-width: 40ch;
   font-size: 1.125rem;
+  font-weight: 500;
+  color: var(--ink-2);
+  animation: fade-in 500ms var(--ease-out) 120ms both;
 }
 .home {
   width: 100%;
-  max-width: 880px;
+  max-width: 1080px;
   margin: 0 auto;
-  padding: var(--s-6) var(--s-5) var(--s-7);
+  padding: var(--s-4) var(--s-5) var(--s-7);
   display: grid;
   gap: var(--s-6);
 }
 .home__rooms {
   list-style: none;
   margin: 0;
-  padding: var(--s-2);
+  padding: 0;
   display: grid;
-  gap: 4px;
-  background: var(--glass);
-  border: var(--line) solid var(--glass-rim);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--glass-hi), 0 0 0 1px var(--glass-edge), var(--shadow-pane);
-  -webkit-backdrop-filter: var(--blur);
-  backdrop-filter: var(--blur);
-}
-.home__rooms li + li {
-  border-top: var(--line) solid var(--rule);
-}
-.home__room {
-  display: flex;
-  align-items: center;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: var(--s-4);
-  width: 100%;
-  padding: var(--s-4) var(--s-2);
-  border: 0;
-  background: transparent;
-  text-align: start;
 }
+.home__rooms li {
+  display: grid;
+  animation: turn-in 520ms var(--ease-out) both;
+}
+.home__rooms li:nth-child(2) {
+  animation-delay: 80ms;
+}
+.home__rooms li:nth-child(3) {
+  animation-delay: 160ms;
+}
+.home__rooms li:nth-child(4) {
+  animation-delay: 240ms;
+}
+/* a door: limewash above with the room's name, its paint below the Begleitstrich */
 .home__room {
-  border-radius: 16px;
+  --paint: var(--paint-gespraech);
+  --dado: 46%;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  align-content: start;
+  gap: var(--s-3);
+  width: 100%;
+  min-height: clamp(360px, 52vh, 460px);
+  padding: var(--s-5) var(--s-4) calc(var(--dado) + var(--s-5));
+  border: var(--line) solid var(--rule);
+  border-radius: var(--radius-lg);
+  background: var(--sheet);
+  box-shadow: var(--shadow-sheet);
+  color: var(--ink);
+  text-align: start;
+  transition: box-shadow 320ms var(--ease-out), transform 320ms var(--ease-out);
 }
-.home__room:hover {
-  background: var(--paper-3);
+.home__room--sprechzimmer {
+  --paint: var(--paint-sprechzimmer);
+}
+.home__room--kanzlei {
+  --paint: var(--paint-kanzlei);
+}
+.home__room--verhandlungsraum {
+  --paint: var(--paint-verhandlungsraum);
+}
+.home__room::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: var(--dado);
+  z-index: -1;
+  background: var(--paint);
+  border-top: var(--strich-w) solid var(--strich);
+  box-shadow: inset 0 1px 0 var(--paint-sheen);
+  transition: height 420ms var(--ease-out);
+}
+/* daylight across the wall part of the door */
+.home__room::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background: var(--sunlight);
+  opacity: 0.55;
+  transition: opacity 420ms var(--ease-out);
+}
+@media (hover: hover) {
+  .home__room:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lift);
+  }
+  .home__room:hover::after {
+    height: calc(var(--dado) + 5%);
+  }
+  .home__room:hover::before {
+    opacity: 1;
+  }
+}
+.home__room:active {
+  transform: translateY(0);
+}
+.home__room .hatch {
+  display: none;
 }
 .home__room-text {
   display: grid;
-  gap: 2px;
+  gap: var(--s-2);
 }
 .home__room-name {
-  display: flex;
-  align-items: center;
-  gap: var(--s-2);
-  font-size: 1.5rem;
-  font-weight: 720;
+  display: grid;
+  gap: var(--s-3);
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 1.3rem + 0.8vw, 2.25rem);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.015em;
+  line-height: 0.9;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+}
+.home__room-sub {
+  position: relative;
 }
 .home__room-name .icon {
-  color: var(--ink-2);
+  width: 30px;
+  height: 30px;
+  stroke-width: 1.6;
+  color: var(--paint);
 }
 .home__room-sub {
   color: var(--ink-2);
+  font-size: 0.9375rem;
+  font-weight: 560;
+  line-height: 1.4;
+  max-width: 30ch;
 }
 .home__links {
-  font-family: var(--font-label);
   font-size: var(--label);
-  letter-spacing: var(--label-track);
-  text-transform: var(--label-case);
+  font-weight: 700;
 }
 .home__codes {
   display: grid;
   gap: var(--s-4);
+  padding: var(--s-5);
+  background: var(--sheet);
+  border: var(--line) solid var(--rule);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sheet);
+  animation: rb-lift 420ms var(--ease-out) both;
+}
+@media (max-width: 520px) {
+  .home__room {
+    min-height: 220px;
+    --dado: 38%;
+  }
+  .home__top.tblock {
+    padding-top: calc(env(safe-area-inset-top, 0px) + var(--s-6));
+  }
 }
 
-/* ---------------------------------------------------------------- glass: home header */
-.home__top.tblock {
-  margin: var(--s-3) auto 0;
-  width: calc(100% - 2 * var(--s-3));
-  max-width: 880px;
-  padding: var(--s-5);
+.home__room-name .icon {
+  display: none;
 }
-.home__slogan,
-.home__tag {
+/* Join: one heading, "You join as Patient" */
+.join__role-pre {
+  display: inline;
+  font-size: inherit;
+  font-weight: 520;
+  letter-spacing: -0.02em;
   color: var(--ink-2);
+  margin: 0;
+}
+/* a pair of languages: drawn arrows, not a glyph */
+.pair-icon {
+  width: 1.05em;
+  height: 1.05em;
+  vertical-align: -0.16em;
+  margin-inline: 0.2em;
+  stroke-width: 2;
 }

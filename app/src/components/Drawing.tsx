@@ -93,39 +93,33 @@ function cloudPath(w: number, h: number, r: number): string {
   return d + "Z";
 }
 
-const HATCH: Record<string, ReactNode> = {
-  gespraech: <path d="M-2 3h16M-2 9h16" />, // plain courses: the open room
-  sprechzimmer: <path d="M-2 6l8-8M-2 14L14-2M6 14l8-8" />,
-  kanzlei: <path d="M-2 6l8-8M-2 14L14-2M6 14l8-8M-2 6l8 8M-2-2l16 16M6-2l8 8" />,
-  verhandlungsraum: (
-    <g className="hatch__dots">
-      <circle cx="2" cy="2" r="1.1" />
-      <circle cx="8" cy="2" r="1.1" />
-      <circle cx="5" cy="6" r="1.1" />
-      <circle cx="11" cy="6" r="1.1" />
-      <circle cx="2" cy="10" r="1.1" />
-      <circle cx="8" cy="10" r="1.1" />
-    </g>
-  ),
-};
-
+/**
+ * The room mark: a swatch of the room's wall. Limewash above, the room's oil-paint dado below, the dark
+ * Begleitstrich between them. Same name and props as the old material hatch, so every screen keeps its markup.
+ */
 export function Hatch({ mode, size = 20, className = "" }: { mode: string; size?: number; className?: string }) {
-  const id = `hatch-${mode}`;
+  const id = `mark-${mode}-${size}`;
+  const s = 24;
+  const line = 15; // the dado line sits at 5/8 of the height, on the module
   return (
     <svg
       className={`hatch hatch--${mode} ${className}`}
       width={size}
       height={size}
-      viewBox={`0 0 ${size} ${size}`}
+      viewBox={`0 0 ${s} ${s}`}
       aria-hidden="true"
     >
       <defs>
-        <pattern id={id} width="12" height="12" patternUnits="userSpaceOnUse">
-          {HATCH[mode] ?? HATCH.sprechzimmer}
-        </pattern>
+        <clipPath id={id}>
+          <rect x="1" y="1" width={s - 2} height={s - 2} rx="2.5" />
+        </clipPath>
       </defs>
-      <rect x="0.75" y="0.75" width={size - 1.5} height={size - 1.5} className="hatch__frame" />
-      <rect x="0.75" y="0.75" width={size - 1.5} height={size - 1.5} fill={`url(#${id})`} className="hatch__fill" />
+      <g clipPath={`url(#${id})`}>
+        <rect x="0" y="0" width={s} height={s} className="hatch__wall" />
+        <rect x="0" y={line} width={s} height={s - line} className="hatch__paint" />
+        <path d={`M0 ${line}H${s}`} className="hatch__strich" />
+      </g>
+      <rect x="1" y="1" width={s - 2} height={s - 2} rx="2.5" className="hatch__frame" />
     </svg>
   );
 }

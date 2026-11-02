@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:390px;height:844px;overflow:hidden}
+body{background:#f3f4f6;color:#111827;font-family:-apple-system,system-ui,"Segoe UI",sans-serif;position:relative}
+.half{height:380px;padding:24px 20px;background:#fff}
+.flip{transform:rotate(180deg);background:#eef2ff}
+.half small{font-size:13px;color:#6b7280;font-weight:600}
+.half p{font-size:28px;font-weight:600;line-height:1.25;margin-top:10px}
+.half span{display:block;margin-top:10px;font-size:15px;color:#6b7280}
+.chips{display:flex;gap:6px;margin-top:14px}
+.chips i{font-style:normal;font-size:13px;background:#eef2ff;color:#2563eb;padding:5px 10px;border-radius:999px;font-weight:600}
+.bar{height:84px;display:flex;align-items:center;justify-content:center;gap:28px;background:#f3f4f6}
+.mic{width:64px;height:64px;border-radius:50%;background:#2563eb;display:grid;place-items:center;box-shadow:0 6px 16px rgba(37,99,235,.35)}
+.mic::after{content:"";width:14px;height:24px;border-radius:7px;background:#fff}
+.ghost{width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid #e5e7eb}
+</style></head><body>
+<div class="half flip"><small>Patient · Arabic</small><p dir="rtl" lang="ar" style="text-align:right">مرحبًا. ما الذي أتى بك إليّ اليوم؟</p><span>Good day. What brings you here today?</span></div>
+<div class="bar"><span class="ghost"></span><span class="mic"></span><span class="ghost"></span></div>
+<div class="half"><small>Patient said</small><p>I take 500 mg Metformin twice a day, and I am allergic to penicillin.</p><div class="chips"><i>500 mg</i><i>2× a day</i><i>Penicillin</i></div></div>
+</body></html>

@@ -1,3 +1,5 @@
+/* Pickers on the wall: language field + one-tap chips, and the two-option segmented choice (.seg).
+   Selected = a raised sheet with a 2 px walnut rim and a small room-paint marker; unselected = flat recess. */
 .langpick {
   display: grid;
   gap: var(--s-3);
@@ -5,6 +7,7 @@
 /* the whole field is the tap target: the native select covers it */
 .field--select {
   position: relative;
+  min-height: 60px;
 }
 .field.field--select select {
   position: absolute;
@@ -23,6 +26,12 @@
 }
 .field--select .field__hint {
   margin-inline-start: auto;
+  font-family: var(--font-text);
+  font-size: 0.875rem;
+  font-weight: 650;
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 0.22em;
 }
 .chips {
   display: flex;
@@ -30,56 +39,106 @@
   gap: var(--s-2);
 }
 .chip {
-  min-height: 46px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 52px;
   padding: 0 var(--s-4);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-pill);
-  background: var(--glass);
+  border: var(--line) solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--wall-2);
   color: var(--ink);
-  font-size: 1.0625rem;
+  font-size: 1.125rem;
   font-weight: 600;
-  box-shadow: var(--glass-hi);
-  transition: background 140ms var(--ease-out), color 140ms var(--ease-out);
+  transition: background var(--t-quick) var(--ease-out), box-shadow var(--t-quick) var(--ease-out),
+    border-color var(--t-quick) var(--ease-out);
+}
+@media (hover: hover) {
+  .chip:hover:not(.is-on) {
+    background: var(--wall-3);
+    border-color: var(--rule-strong);
+  }
 }
 .chip.is-on {
+  background: var(--sheet);
   border-color: transparent;
-  background: var(--brand-grad);
-  color: #fff;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.22), 0 6px 16px -8px rgb(13 58 97 / 0.7);
+  box-shadow: inset 0 0 0 2px var(--ink), var(--shadow-sheet);
+  font-weight: 750;
+}
+.chip.is-on::before {
+  content: "";
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--paint);
 }
 .chip--more {
+  background: transparent;
   border-style: dashed;
+  border-color: var(--rule-strong);
   color: var(--link);
 }
+
 .seg {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 4px;
-  padding: 4px;
-  border: 1px solid var(--rule);
-  border-radius: 18px;
-  background: var(--paper-2);
+  gap: var(--s-2);
 }
 .seg__opt {
+  position: relative;
   display: grid;
-  gap: 2px;
+  gap: 3px;
+  align-content: start;
   justify-items: start;
+  min-height: 72px;
   text-align: start;
-  padding: var(--s-3) var(--s-4);
-  border: 0;
-  border-radius: 14px;
-  background: transparent;
+  padding: var(--s-3) var(--s-4) var(--s-3) calc(var(--s-4) + 18px);
+  border: var(--line) solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--wall-2);
   color: var(--ink);
+  transition: background var(--t-quick) var(--ease-out), box-shadow var(--t-quick) var(--ease-out),
+    transform 120ms var(--ease-out);
+}
+/* the radio mark: an empty square that fills with the room's paint */
+.seg__opt::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: var(--s-3);
+  top: calc(var(--s-3) + 0.3rem);
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  border: 1.5px solid var(--rule-strong);
+  background: transparent;
+  transition: background var(--t-quick) var(--ease-out), border-color var(--t-quick) var(--ease-out);
+}
+@media (hover: hover) {
+  .seg__opt:hover:not(.is-on) {
+    background: var(--wall-3);
+  }
+}
+.seg__opt:active {
+  transform: translateY(1px);
 }
 .seg__opt.is-on {
-  background: var(--glass-strong);
-  box-shadow: var(--glass-hi), 0 0 0 1.5px var(--link), 0 6px 16px -10px rgb(10 29 48 / 0.4);
+  background: var(--sheet);
+  border-color: transparent;
+  box-shadow: inset 0 0 0 2px var(--ink), var(--shadow-sheet);
+}
+.seg__opt.is-on::before {
+  border-color: var(--paint);
+  background: var(--paint);
 }
 .seg__name {
-  font-weight: 700;
-  font-size: 1.0625rem;
+  font-weight: 750;
+  font-size: 1.125rem;
+  line-height: 1.25;
 }
 .seg__hint {
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
+  line-height: 1.35;
   color: var(--ink-2);
 }

@@ -200,3 +200,10 @@ export const ROOM_ICONS: Record<string, (p: P) => React.ReactElement> = {
   scale: Scale,
   handshake: Handshake,
 };
+
+/** Two languages, both ways: a pair of drawn arrows (never the ⇄ glyph). */
+export const Pair = (p: P) => (
+  <I {...p}>
+    <path d="M4 9h15M15 5l4 4-4 4M20 15H5M9 11l-4 4 4 4" />
+  </I>
+);

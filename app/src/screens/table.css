@@ -1,26 +1,41 @@
-/* Table screen: laptop or monitor, read from 3 m. Everything scales with the viewport. */
+/* Table screen: laptop or monitor, read from 3 m. Altbau Daylight: the header on the wall, the conversation
+   as one sheet split by one centre line (the two languages mirror across it), the glass box as a hairline
+   module grid, and the room's paint along the floor under the Begleitstrich. Everything scales with the viewport. */
 .screen--table {
+  --tpad: clamp(16px, 2vw, 40px);
   height: 100dvh;
   overflow: hidden;
   font-size: clamp(16px, 0.55rem + 0.75vw, 22px);
+  background: var(--wall);
+}
+/* the dado: the room's paint owns the floor of the screen */
+.screen--table::after {
+  content: "";
+  flex: none;
+  height: clamp(20px, 3.2vh, 40px);
+  background: var(--paint);
+  border-top: var(--strich-w) solid var(--strich);
+  box-shadow: inset 0 1px 0 var(--paint-sheen);
+  transform-origin: left center;
+  animation: paint-rise 700ms var(--ease-out) 200ms both;
 }
 .ttop {
-  padding: var(--s-3) clamp(16px, 2vw, 40px);
-  margin: var(--s-3) var(--s-3) var(--s-3);
+  padding: var(--s-4) var(--tpad) var(--s-3);
 }
 .ttop .tblock__row {
   gap: clamp(12px, 1.5vw, 28px);
 }
 .ttop__name {
-  font-size: clamp(1.25rem, 0.8rem + 1.2vw, 2rem);
+  font-size: clamp(1.5rem, 0.9rem + 1.6vw, 2.75rem);
 }
 .ttop__room,
 .ttop__langs {
   font-size: clamp(0.875rem, 0.6rem + 0.5vw, 1.125rem);
-  font-weight: 650;
-  letter-spacing: 0.06em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--ink-2);
   padding-inline-start: clamp(12px, 1.5vw, 28px);
-  border-inline-start: var(--line) solid var(--rule);
+  border-inline-start: var(--line) solid var(--rule-strong);
 }
 .ttop .tblock__status {
   font-size: clamp(0.75rem, 0.55rem + 0.4vw, 1rem);
@@ -31,50 +46,67 @@
   min-height: 0;
   display: grid;
   grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr);
-  gap: var(--s-3);
-  padding: 0 var(--s-3) var(--s-3);
+  gap: var(--s-4);
+  padding: 0 var(--tpad) var(--s-4);
 }
 
-/* ---------------------------------------------------------------- conversation */
+/* ---------------------------------------------------------------- conversation: one sheet, one centre line */
 .tconv,
 .glass {
-  background: var(--glass);
-  border: var(--line) solid var(--glass-rim);
+  background: var(--sheet);
+  border: var(--line) solid var(--rule);
   border-radius: var(--radius-lg);
-  box-shadow: var(--glass-hi), 0 0 0 1px var(--glass-edge), var(--shadow-pane);
-  -webkit-backdrop-filter: var(--blur);
-  backdrop-filter: var(--blur);
+  box-shadow: var(--shadow-sheet);
   overflow: hidden;
 }
 .tconv {
+  position: relative;
   display: flex;
   flex-direction: column;
   min-height: 0;
 }
+/* bilateral law: one hairline down the middle, never crossed */
+.tconv::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: var(--rule-strong);
+  pointer-events: none;
+  z-index: 1;
+}
 .tconv__head {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: clamp(16px, 2vw, 40px);
-  padding: var(--s-2) clamp(16px, 2vw, 40px);
-  border-bottom: var(--line) solid var(--rule);
-  background: var(--paper-2);
+  column-gap: calc(var(--tpad) * 2);
+  padding: var(--s-3) var(--tpad);
+  border-bottom: var(--line) solid var(--rule-strong);
+  background: var(--sheet-2);
 }
 .tconv__head .label {
-  font-size: clamp(0.75rem, 0.5rem + 0.5vw, 1rem);
+  font-size: clamp(0.8125rem, 0.55rem + 0.5vw, 1.0625rem);
+  font-weight: 750;
+  color: var(--ink);
+}
+.tconv__head .label:last-child {
+  text-align: end;
 }
 .tconv__scroll {
   flex: 1;
   overflow-y: auto;
   -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 48px);
   mask-image: linear-gradient(to bottom, transparent 0, #000 48px);
-  padding: 0 clamp(16px, 2vw, 40px) var(--s-6);
+  padding: 0 var(--tpad) var(--s-6);
 }
 .trow {
+  position: relative;
   display: grid;
   gap: var(--s-2);
-  padding: clamp(12px, 1.4vw, 24px) 0;
+  padding: clamp(14px, 1.5vw, 26px) 0;
   border-bottom: var(--line) solid var(--rule);
-  animation: turn-in 240ms var(--ease-out) both;
+  animation: turn-in 260ms var(--ease-out) both;
 }
 .trow__gutter {
   display: flex;
@@ -82,31 +114,38 @@
   gap: var(--s-3);
 }
 .trow__who {
-  font-family: var(--font-label);
-  letter-spacing: var(--label-track);
-  text-transform: var(--label-case);
-  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 1.6em;
+  padding: 0 0.7em 0 0.55em;
+  border-radius: var(--radius-pill);
+  background: var(--wall-3);
   color: var(--ink-2);
+  font-family: var(--font-label);
+  font-weight: 750;
+  font-size: max(13px, 0.72em);
 }
 .trow__cols {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: clamp(16px, 2vw, 40px);
+  column-gap: calc(var(--tpad) * 2);
+  align-items: start;
 }
 .trow__text {
   font-size: 1.1em;
   line-height: 1.35;
   font-weight: 560;
+  color: var(--ink);
   overflow-wrap: anywhere;
+}
+.trow__text[lang="ar"],
+.trow__text[lang="fa"] {
+  line-height: 1.6;
 }
 .trow__text.is-src {
   color: var(--ink-2);
-}
-.trow.is-hero .trow__text {
-  font-size: clamp(1.5rem, 0.8rem + 1.6vw, 2.75rem);
-  line-height: 1.22;
-  font-weight: 650;
-  letter-spacing: -0.01em;
+  font-weight: 500;
 }
 .trow__empty {
   color: var(--ink-3);
@@ -114,6 +153,33 @@
 .trow__facts {
   padding-top: var(--s-2);
 }
+.trow.is-red .trow__who {
+  background: var(--bad-wash);
+  color: var(--bad);
+}
+
+/* the newest sentence stands in the window's light, at full size */
+.trow.is-hero {
+  margin-inline: calc(var(--tpad) * -1);
+  padding-inline: var(--tpad);
+  background: var(--sunlight);
+  border-bottom-color: transparent;
+}
+.trow.is-hero .trow__who {
+  background: var(--paint);
+  color: var(--paint-ink);
+  font-size: max(16px, 0.85em);
+}
+.trow.is-hero .trow__text {
+  font-size: clamp(1.625rem, 0.8rem + 1.7vw, 3rem);
+  line-height: 1.2;
+  font-weight: 680;
+  letter-spacing: -0.012em;
+}
+.trow.is-hero .trow__text.is-src {
+  font-weight: 560;
+}
+
 /* trust signals readable from 3 m: the newest turn at full size, older turns one step down */
 .trow .vmark {
   font-size: max(14px, 0.72em);
@@ -132,20 +198,6 @@
 .trow .dim__kind {
   font-size: max(12px, 0.62em);
 }
-.trow .dim {
-  grid-template-rows: auto 16px auto;
-}
-.trow .dim__line,
-.trow .dim__end,
-.trow .dim__end::before {
-  height: 16px;
-}
-.trow .dim__end::after {
-  height: 14px;
-}
-.trow__who {
-  font-size: max(13px, 0.72em);
-}
 .trow.is-hero .vmark {
   font-size: max(20px, 1em);
   min-height: 46px;
@@ -158,43 +210,42 @@
 .trow.is-hero .dim__kind {
   font-size: max(14px, 0.8em);
 }
-.trow.is-hero .dim__line::before {
-  border-top-width: 2.5px;
-}
-.trow.is-hero .dim__end::after {
-  border-left-width: 2.5px;
-}
-.trow.is-hero .trow__who {
-  font-size: max(16px, 0.85em);
-}
 
+/* empty: the two QR codes, one each side of the line */
 .tjoin {
   display: grid;
   gap: var(--s-5);
-  justify-items: start;
   padding: clamp(24px, 4vw, 64px) 0;
 }
 .tjoin__lead {
-  font-size: clamp(1.5rem, 0.8rem + 1.6vw, 2.5rem);
-  font-weight: 700;
-  line-height: 1.2;
-  max-width: 22ch;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-size: clamp(2rem, 1rem + 2.6vw, 4rem);
+  font-weight: 780;
+  line-height: 0.95;
+  letter-spacing: 0.01em;
+  max-width: 18ch;
 }
 .tjoin__codes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: clamp(24px, 3vw, 56px);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: calc(var(--tpad) * 2);
 }
 .tjoin__code {
   margin: 0;
   display: grid;
-  gap: var(--s-2);
+  gap: var(--s-3);
+  justify-items: start;
+}
+.tjoin__code:last-child {
+  justify-items: end;
+  text-align: end;
 }
 .tjoin__code figcaption {
   display: grid;
 }
 .tjoin__role {
-  font-weight: 700;
+  font-weight: 750;
   font-size: 1.15em;
 }
 .tjoin__url {
@@ -202,130 +253,169 @@
   color: var(--ink-3);
 }
 
-/* ---------------------------------------------------------------- glass box */
+/* ---------------------------------------------------------------- glass box: one hairline module grid */
 .glass {
   min-height: 0;
   overflow-y: auto;
   display: grid;
   align-content: start;
-  overflow-y: auto;
 }
 .glass__block {
-  padding: clamp(14px, 1.5vw, 28px) clamp(16px, 1.8vw, 32px);
+  padding: clamp(14px, 1.4vw, 26px) clamp(16px, 1.6vw, 28px);
   border-bottom: var(--line) solid var(--rule);
   display: grid;
   gap: var(--s-3);
   min-width: 0;
 }
+.glass__block:last-child {
+  border-bottom: 0;
+}
 .glass__h {
   font-family: var(--font-label);
-  font-size: 0.75em;
+  font-size: max(13px, 0.72em);
   letter-spacing: var(--label-track);
-  text-transform: var(--label-case);
-  font-weight: 700;
-  color: var(--ink-3);
+  font-weight: 750;
+  color: var(--ink-2);
 }
 .glass__idle {
   color: var(--ink-3);
+  list-style: none;
 }
+/* the privacy meter: the one big figure on the screen */
 .glass__privacy {
-  background: color-mix(in oklab, var(--ok) 7%, transparent);
+  grid-template-columns: auto 1fr;
+  align-items: end;
+  column-gap: var(--s-5);
+  background: var(--ok-wash);
+}
+.glass__privacy .glass__seal {
+  grid-column: 1 / -1;
 }
 .glass__meter {
   display: grid;
-  gap: 0;
+  gap: 2px;
+  min-width: 0;
 }
 .glass__meter-n {
-  font-size: clamp(3rem, 1.5rem + 4vw, 6rem);
+  font-family: var(--font-display);
+  font-size: clamp(4rem, 2rem + 5vw, 8rem);
   font-weight: 800;
-  line-height: 0.95;
+  line-height: 0.82;
   color: var(--ok);
-  letter-spacing: -0.03em;
+  letter-spacing: -0.01em;
 }
 .glass__meter-l {
-  font-weight: 650;
-  font-size: 1em;
+  font-weight: 700;
+  font-size: 0.95em;
+  color: var(--ink);
+}
+.glass__meter--small {
+  padding-inline-start: var(--s-5);
+  border-inline-start: var(--line) solid var(--rule-strong);
 }
 .glass__meter--small .mono {
-  font-size: 1.4em;
-  font-weight: 700;
+  font-size: 1.5em;
+  font-weight: 750;
+  line-height: 1.1;
 }
 .glass__meter--small .glass__meter-l {
   font-weight: 500;
   color: var(--ink-2);
-  font-size: 0.85em;
+  font-size: 0.8em;
 }
 .glass__seal {
-  font-family: var(--font-label);
-  font-size: 0.75em;
-  letter-spacing: var(--label-track);
-  text-transform: var(--label-case);
-  color: var(--ink-3);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: max(13px, 0.72em);
+  font-weight: 650;
+  color: var(--ink-2);
+}
+.glass__seal::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
 }
 .glass__seal.is-sealed {
   color: var(--ok);
-  font-weight: 700;
+  font-weight: 750;
+}
+.glass__seal.is-sealed::before {
+  background: currentColor;
 }
 .glass__src {
   color: var(--ink-3);
 }
+
+/* devices: ruled rows, the connection path named and drawn as its line type */
 .plates {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  gap: var(--s-2);
+  border-top: var(--line) solid var(--rule);
 }
 .plate {
   display: grid;
-  grid-template-columns: 1fr auto auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
   gap: var(--s-3);
   align-items: baseline;
-  padding: var(--s-2) var(--s-3);
-  border: 1.5px solid var(--rule-strong);
-  border-radius: var(--radius);
-  background: var(--glass-strong);
-}
-.plate--tunnel {
-  border-style: dashed;
-}
-.plate--relayed {
-  border-style: dotted;
+  padding: var(--s-2) 0;
+  border-bottom: var(--line) solid var(--rule);
 }
 .plate__who {
-  font-weight: 700;
+  font-weight: 750;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .plate__lang,
-.plate__dev,
-.plate__path {
+.plate__dev {
   font-size: 0.8em;
   color: var(--ink-2);
 }
 .plate__path {
+  font-size: 0.8em;
   color: var(--ink);
-  font-weight: 650;
+  font-weight: 700;
+  text-decoration: underline solid var(--ok);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.3em;
 }
+.plate--tunnel .plate__path {
+  text-decoration-style: dashed;
+  text-decoration-color: var(--ink-2);
+}
+.plate--relayed .plate__path {
+  text-decoration-style: dotted;
+  text-decoration-color: var(--unsure);
+}
+
 .models {
   display: grid;
-  gap: 4px;
   margin: 0;
+  border-top: var(--line) solid var(--rule);
 }
 .models div {
   display: grid;
   grid-template-columns: 6.5rem 1fr;
   gap: var(--s-3);
+  padding: 6px 0;
+  border-bottom: var(--line) solid var(--rule);
 }
 .models dt {
   font-family: var(--font-label);
-  font-size: 0.75em;
-  letter-spacing: var(--label-track);
-  text-transform: var(--label-case);
+  font-size: max(12px, 0.7em);
+  font-weight: 650;
   color: var(--ink-3);
   padding-top: 2px;
 }
 .models dd {
   margin: 0;
-  font-size: 0.875em;
+  font-size: 0.85em;
+  font-weight: 600;
   overflow-wrap: anywhere;
 }
 .glass__models {
@@ -333,7 +423,7 @@
   color: var(--ink-2);
 }
 .glass .stamp {
-  padding: var(--s-5) var(--s-3);
+  margin: var(--s-4);
 }
 
 @media (max-width: 860px) {
@@ -345,8 +435,13 @@
     grid-template-columns: 1fr;
   }
   .tconv {
-    border-inline-end: 0;
-    border-bottom: var(--line-2) solid var(--ink);
     max-height: 70dvh;
+  }
+  .glass__privacy {
+    grid-template-columns: 1fr;
+  }
+  .glass__meter--small {
+    padding-inline-start: 0;
+    border-inline-start: 0;
   }
 }

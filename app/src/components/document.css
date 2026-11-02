@@ -1,5 +1,5 @@
-/* F-07 document camera: the read document is a drawing sheet (2 px ink frame, inner margin line 6 px in,
-   light-print title block at the foot); its figures are dimensions; work in progress is dashed. */
+/* F-07 document camera: the read document is a sheet pinned on the wall; its figures are fact chips;
+   reading in progress waits in the shade with a dashed edge. */
 .doccam {
   display: grid;
   gap: var(--s-3);
@@ -17,13 +17,13 @@
 }
 .doccam__privacy {
   font-size: 0.875rem;
-  line-height: 1.4;
+  line-height: 1.45;
   color: var(--ink-3);
   max-width: 40ch;
 }
 .doccam__error {
   color: var(--bad);
-  font-weight: 600;
+  font-weight: 650;
   max-width: 60ch;
 }
 
@@ -33,82 +33,61 @@
   display: grid;
   gap: var(--s-4);
   min-width: 0;
+  margin: var(--s-2) 0;
   padding: var(--s-5) var(--s-5) 0;
-  border: var(--line) solid var(--glass-rim);
+  border: var(--line) solid var(--rule);
   border-radius: var(--radius-lg);
-  background: var(--glass);
-  box-shadow: var(--glass-hi), 0 0 0 1px var(--glass-edge), var(--shadow-pane);
-  -webkit-backdrop-filter: var(--blur);
-  backdrop-filter: var(--blur);
-  animation: doc-in 240ms var(--ease-out) both;
-}
-.docsheet::before {
-  content: "";
-  position: absolute;
-  inset: 6px;
-  border: var(--line) solid var(--rule-strong);
-  pointer-events: none;
-}
-@keyframes doc-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
+  background: var(--sheet);
+  box-shadow: var(--shadow-sheet);
+  overflow: hidden;
+  animation: turn-in 260ms var(--ease-out) both;
 }
 
 .docsheet__head {
-  position: relative;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: var(--s-3);
-  padding-bottom: var(--s-1);
+  padding-bottom: var(--s-2);
   border-bottom: var(--line) solid var(--rule-strong);
-  font-family: var(--font-label);
-  font-size: 0.8125rem;
-  font-weight: 700;
-  letter-spacing: var(--label-track);
-  text-transform: var(--label-case);
+  font-size: 0.875rem;
+  font-weight: 750;
   color: var(--ink);
 }
 .docsheet__pair,
 .docsheet__ms {
-  font-weight: 560;
+  font-weight: 600;
   color: var(--ink-3);
   unicode-bidi: isolate;
 }
 
 .docsheet__title {
-  position: relative;
   font-size: var(--ramp-1);
   line-height: 1.3;
-  font-weight: 560;
+  font-weight: 700;
   color: var(--ink);
 }
 .docsheet__text {
-  position: relative;
   font-size: var(--ramp-2);
-  line-height: 1.5;
+  line-height: 1.55;
   color: var(--ink);
-  max-width: 60ch;
+  max-width: 62ch;
   overflow-wrap: anywhere;
 }
 .docsheet__text[lang="ar"],
 .docsheet__text[lang="fa"],
 .docsheet__text[lang="ur"] {
-  line-height: 1.7;
+  line-height: 1.75;
 }
 /* an unreadable passage: the model's own question mark, in the unsure pen */
 .docsheet__q {
   color: var(--unsure);
-  font-weight: 700;
+  font-weight: 800;
   font-size: 0.875em;
   margin-inline-start: 0.15em;
 }
 
-/* figures read off the paper: dimensions whose values may be phrases, so they may wrap */
 .docsheet__facts {
-  position: relative;
   padding-top: var(--s-1);
 }
 .docsheet__facts .dim {
@@ -116,12 +95,10 @@
 }
 .docsheet__facts .dim__value {
   white-space: normal;
-  text-align: center;
   overflow-wrap: anywhere;
 }
 
 .docsheet__note {
-  position: relative;
   display: flex;
   align-items: baseline;
   gap: var(--s-2);
@@ -133,24 +110,23 @@
   flex: none;
   width: 18px;
   transform: translateY(-0.3em);
-  border-top: 2px dotted var(--unsure);
+  border-top: 3px dotted var(--unsure);
 }
 .docsheet__src {
   unicode-bidi: isolate;
   color: var(--ink);
-  font-weight: 640;
+  font-weight: 700;
 }
 .docsheet__advice {
-  position: relative;
   font-size: 0.875rem;
   color: var(--ink-3);
 }
 
-/* light-print title block at the foot of the sheet */
+/* the sheet's foot: a hairline-ruled title block on the wall tone */
 .docsheet__tb {
-  position: relative;
-  margin: 0 calc(var(--s-5) * -1 + 6px) 6px;
-  border-top: var(--line-2) solid var(--ink);
+  margin: 0 calc(var(--s-5) * -1);
+  background: var(--sheet-2);
+  border-top: var(--line-2) solid var(--strich);
 }
 .docsheet__tb dl {
   display: grid;
@@ -159,49 +135,43 @@
 }
 .docsheet__tb div {
   min-width: 0;
-  padding: var(--s-2) var(--s-3);
-  border-inline-end: var(--line) solid var(--ink);
+  padding: var(--s-2) var(--s-4);
+  border-inline-end: var(--line) solid var(--rule);
 }
 .docsheet__tb div:last-child {
   border-inline-end: 0;
 }
 .docsheet__tb dt {
-  font-family: var(--font-label);
-  font-size: 0.625rem;
-  letter-spacing: var(--label-track);
-  text-transform: var(--label-case);
+  font-size: 0.6875rem;
+  font-weight: 600;
   color: var(--ink-3);
 }
 .docsheet__tb dd {
   margin: 0;
-  font-size: 0.8125rem;
-  font-weight: 650;
+  font-family: var(--font-figure);
+  font-size: 0.875rem;
+  font-weight: 700;
   overflow-wrap: anywhere;
 }
 
-/* reading: the frame in the dashed line type of a check in progress, no paper shadow yet */
+/* reading: in the shade, dashed edge, no shadow yet */
 .docsheet--reading {
-  border-style: dashed;
-  border-color: var(--pending);
+  background: var(--shade);
+  border: 1.5px dashed var(--rule-strong);
   box-shadow: none;
   padding-bottom: var(--s-5);
 }
-.docsheet--reading::before {
-  border-style: dashed;
-  border-color: var(--rule);
-}
 .docsheet--reading .docsheet__head {
   border-bottom-style: dashed;
-  border-bottom-color: var(--pending);
   color: var(--ink-2);
 }
 .docsheet__placeholder {
-  position: relative;
   display: flex;
-  gap: var(--s-5);
+  gap: var(--s-3);
 }
 .docsheet__placeholder .dim {
   min-width: 96px;
+  animation: breathe 1.6s ease-in-out infinite;
 }
 
 @media (max-width: 420px) {
@@ -209,6 +179,6 @@
     padding-inline: var(--s-4);
   }
   .docsheet__tb {
-    margin-inline: calc(var(--s-4) * -1 + 6px);
+    margin-inline: calc(var(--s-4) * -1);
   }
 }

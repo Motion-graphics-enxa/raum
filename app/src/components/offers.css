@@ -1,57 +1,66 @@
+/* N-01 offers: a hairline-ruled row of the latest amounts; the newest one stands out in ink. */
 .offers {
   display: flex;
   list-style: none;
-  margin: 0;
-  padding: var(--s-2) var(--s-4) var(--s-3);
-  gap: 0;
-  border-bottom: var(--line) solid var(--rule);
-  background: var(--paper-2);
+  margin: var(--s-2) var(--s-4) 0;
+  padding: 0;
+  border-top: var(--line) solid var(--rule-strong);
+  border-bottom: var(--line) solid var(--rule-strong);
   overflow-x: auto;
 }
 .offers__item {
   display: grid;
-  grid-template-rows: auto 12px auto;
-  justify-items: center;
-  min-width: 96px;
+  grid-template-rows: auto 3px auto;
+  gap: 4px;
+  align-content: center;
+  min-width: 104px;
   flex: 1 0 auto;
+  padding: var(--s-2) var(--s-3);
   color: var(--ink-3);
 }
+.offers__item + .offers__item {
+  border-inline-start: var(--line) solid var(--rule);
+}
 .offers__amount {
+  font-family: var(--font-figure);
+  font-variant-numeric: tabular-nums;
   font-weight: 650;
-  font-size: 0.9375rem;
+  font-size: 1rem;
   color: var(--ink-2);
-  padding: 0 var(--s-2);
+  white-space: nowrap;
+}
+.offers__item.is-latest {
+  background: var(--sheet);
 }
 .offers__item.is-latest .offers__amount {
   color: var(--ink);
-  font-size: 1.0625rem;
+  font-weight: 800;
+  font-size: 1.25rem;
 }
 .offers__line {
-  position: relative;
+  display: block;
   width: 100%;
-  height: 12px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--rule);
 }
-.offers__line::before {
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  top: 50%;
-  border-top: 1.5px solid var(--room-verhandlungsraum);
+.offers__item.is-latest .offers__line {
+  background: var(--paint);
+  transform-origin: left center;
+  animation: offer-draw var(--t-draw) var(--ease-out) both;
 }
-.offers__line::after {
-  content: "";
-  position: absolute;
-  inset-inline-start: 0;
-  top: 1px;
-  height: 10px;
-  border-left: 1.75px solid var(--room-verhandlungsraum);
-  transform: rotate(45deg);
+[dir="rtl"] .offers__item.is-latest .offers__line {
+  transform-origin: right center;
+}
+@keyframes offer-draw {
+  from {
+    transform: scaleX(0);
+  }
 }
 .offers__by {
-  font-family: var(--font-label);
-  font-size: 0.625rem;
-  letter-spacing: var(--label-track);
-  text-transform: var(--label-case);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .offer-tl {
@@ -59,34 +68,35 @@
   margin: 0;
   padding: 0;
   display: grid;
-  gap: var(--s-2);
 }
 .offer-tl__row {
   display: grid;
   grid-template-columns: 7rem 1fr auto;
   align-items: center;
   gap: var(--s-3);
+  padding: var(--s-2) 0;
+  border-bottom: var(--line) solid var(--rule);
+}
+.offer-tl__row:last-child {
+  border-bottom: 0;
 }
 .offer-tl__who {
-  font-family: var(--font-label);
   font-size: var(--label);
-  letter-spacing: var(--label-track);
-  text-transform: var(--label-case);
-  color: var(--ink-3);
+  font-weight: 650;
+  color: var(--ink-2);
 }
 .offer-tl__bar {
   height: 10px;
-  border: 1.5px solid var(--room-verhandlungsraum);
-  background: repeating-linear-gradient(
-    45deg,
-    color-mix(in oklab, var(--room-verhandlungsraum) 45%, transparent) 0 1.5px,
-    transparent 1.5px 6px
-  );
+  border-radius: 2px;
+  background: var(--paint);
 }
 .offer-tl__row--b .offer-tl__bar {
-  border-style: dashed;
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--paint);
 }
 .offer-tl__amount {
-  font-weight: 700;
+  font-family: var(--font-figure);
+  font-variant-numeric: tabular-nums;
+  font-weight: 750;
   font-size: 1.125rem;
 }

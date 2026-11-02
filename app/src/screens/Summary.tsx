@@ -8,7 +8,7 @@ import { useEventSocket } from "../lib/live";
 import { deviceLang, loadJoin } from "../lib/session";
 import { RoomStore, useRoomModel } from "../lib/store";
 import { Hatch } from "../components/Drawing";
-import { Check, Cross, Key, Printer } from "../components/Icons";
+import { Check, Cross, Key, Pair, Printer } from "../components/Icons";
 import { QR } from "../components/QR";
 import { resolveMode } from "./Join";
 import "./screens.css";
@@ -163,7 +163,7 @@ export default function SummaryScreen() {
                 <div>
                   <dt>{t(lang, "join.language")}</dt>
                   <dd className="mono">
-                    {summary.lang_a.toUpperCase()} ⇄ {summary.lang_b.toUpperCase()}
+                    {summary.lang_a.toUpperCase()}<Pair className="icon pair-icon" />{summary.lang_b.toUpperCase()}
                   </dd>
                 </div>
                 <div>
@@ -248,7 +248,7 @@ export default function SummaryScreen() {
                   </div>
                   <div>
                     <dt>{t(lang, "join.language")}</dt>
-                    <dd className="mono">{summary ? `${summary.lang_a.toUpperCase()} ⇄ ${summary.lang_b.toUpperCase()}` : "—"}</dd>
+                    <dd className="mono">{summary ? (<>{summary.lang_a.toUpperCase()}<Pair className="icon pair-icon" />{summary.lang_b.toUpperCase()}</>) : "—"}</dd>
                   </div>
                   <div>
                     <dt>gez.</dt>

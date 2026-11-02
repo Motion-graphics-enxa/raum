@@ -1,3 +1,5 @@
+/* Admin: the operator's laptop. One hairline module grid on sheets; figures tabular; each room carries its
+   paint (a strip under the Begleitstrich at the top of its sheet). The privacy meter is the one big figure. */
 .admin {
   width: 100%;
   max-width: 1200px;
@@ -6,61 +8,73 @@
   display: grid;
   gap: var(--s-6);
 }
+
+/* the meter band: modules split by hairlines */
 .admin__band {
   display: grid;
   grid-template-columns: auto auto auto 1fr;
-  gap: var(--s-6);
-  align-items: end;
-  padding: var(--s-5);
-  border: var(--line) solid var(--glass-rim);
+  align-items: stretch;
+  border: var(--line) solid var(--rule);
   border-radius: var(--radius-lg);
-  background: var(--glass);
-  box-shadow: var(--glass-hi), 0 0 0 1px var(--glass-edge), var(--shadow-pane);
-  -webkit-backdrop-filter: var(--blur);
-  backdrop-filter: var(--blur);
+  background: var(--sheet);
+  box-shadow: var(--shadow-sheet);
+  overflow: hidden;
 }
 .admin__meter {
   display: grid;
+  align-content: end;
+  gap: var(--s-1);
+  padding: var(--s-4) var(--s-5);
+  border-inline-end: var(--line) solid var(--rule);
+}
+.admin__meter:first-child {
+  background: var(--ok-wash);
 }
 .admin__meter-n {
-  font-size: 3.5rem;
+  font-family: var(--font-display);
+  font-size: 4.5rem;
   font-weight: 800;
-  line-height: 1;
+  line-height: 0.82;
   color: var(--ok);
-  letter-spacing: -0.02em;
 }
 .admin__meter-n--s {
+  font-family: var(--font-figure);
   font-size: 1.75rem;
+  font-weight: 750;
+  line-height: 1.05;
   color: var(--ink);
 }
 .admin__controls {
   display: flex;
   gap: var(--s-3);
   justify-content: flex-end;
+  align-items: center;
   flex-wrap: wrap;
+  padding: var(--s-4) var(--s-5);
 }
 .admin__sec {
   display: grid;
   gap: var(--s-3);
 }
 .admin__h {
-  font-family: var(--font-label);
-  font-size: 0.8125rem;
-  letter-spacing: var(--label-track);
-  text-transform: var(--label-case);
-  font-weight: 700;
-  padding-bottom: var(--s-1);
-  border-bottom: var(--line) solid var(--rule-strong);
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-size: 1.5rem;
+  line-height: 1;
+  letter-spacing: 0.015em;
+  font-weight: 780;
+  padding-bottom: var(--s-2);
+  border-bottom: var(--strich-w) solid var(--strich);
 }
+
+/* new room: one module per room, its paint under the line */
 .admin__new {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  border: var(--line) solid var(--glass-rim);
+  border: var(--line) solid var(--rule);
   border-radius: var(--radius-lg);
-  background: var(--glass);
-  box-shadow: var(--glass-hi), 0 0 0 1px var(--glass-edge), var(--shadow-pane);
-  -webkit-backdrop-filter: var(--blur);
-  backdrop-filter: var(--blur);
+  background: var(--sheet);
+  box-shadow: var(--shadow-sheet);
   overflow: hidden;
 }
 .admin__mode {
@@ -74,24 +88,28 @@
   border-inline-end: var(--line) solid var(--rule);
   background: transparent;
   text-align: start;
+  transition: background var(--t-quick) var(--ease-out);
 }
 .admin__mode:last-child {
   border-inline-end: 0;
 }
-.admin__mode:hover {
-  background: var(--paper-2);
+@media (hover: hover) {
+  .admin__mode:hover:not(:disabled) {
+    background: var(--wall-2);
+  }
 }
 .admin__mode .hatch {
   grid-row: span 2;
 }
 .admin__mode-name {
-  font-weight: 720;
+  font-weight: 750;
   font-size: 1.125rem;
 }
 .admin__mode-tag {
   color: var(--ink-2);
   font-size: 0.875rem;
 }
+
 .admin__table {
   width: 100%;
   border-collapse: collapse;
@@ -99,10 +117,7 @@
 }
 .admin__table th {
   text-align: start;
-  font-family: var(--font-label);
   font-size: var(--label);
-  letter-spacing: var(--label-track);
-  text-transform: var(--label-case);
   color: var(--ink-3);
   font-weight: 650;
   padding: var(--s-2) var(--s-3) var(--s-2) 0;
@@ -124,11 +139,10 @@
 }
 .admin__links {
   display: flex;
-  gap: var(--s-3);
-  font-family: var(--font-label);
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-4);
   font-size: var(--label);
-  letter-spacing: var(--label-track);
-  text-transform: var(--label-case);
+  font-weight: 650;
 }
 .admin__link {
   border: 0;
@@ -136,18 +150,11 @@
   padding: 0;
   color: var(--link);
   text-decoration: underline;
-  text-underline-offset: 0.18em;
+  text-underline-offset: 0.22em;
   font: inherit;
-  letter-spacing: inherit;
-  text-transform: inherit;
 }
-.admin__empty {
-  color: var(--ink-3);
-}
-.admin__count {
-  color: var(--ink-3);
-  font-weight: 560;
-  margin-inline-start: var(--s-2);
+.admin__link:hover {
+  text-decoration-thickness: 2px;
 }
 .admin__link--bad {
   color: var(--bad);
@@ -156,6 +163,15 @@
   color: var(--ink-3);
   text-decoration: none;
   cursor: default;
+}
+.admin__empty {
+  color: var(--ink-3);
+}
+.admin__count {
+  font-family: var(--font-figure);
+  color: var(--ink-3);
+  font-weight: 600;
+  margin-inline-start: var(--s-2);
 }
 .admin__sealnote {
   flex-basis: 100%;
@@ -199,7 +215,7 @@
   align-items: center;
   gap: var(--s-2);
   font-size: 0.875rem;
-  font-weight: 650;
+  font-weight: 700;
 }
 .admin__verdict.is-ok {
   color: var(--ok);
@@ -208,22 +224,27 @@
   color: var(--bad);
 }
 
-/* ---------------------------------------------------------------- one room: a drawing sheet */
-
+/* ---------------------------------------------------------------- one room: a sheet, painted along its top */
 .aroom {
-  border: var(--line) solid var(--glass-rim);
+  border: var(--line) solid var(--rule);
   border-radius: var(--radius-lg);
-  background: var(--glass);
-  box-shadow: var(--glass-hi), 0 0 0 1px var(--glass-edge), var(--shadow-pane);
-  -webkit-backdrop-filter: var(--blur);
-  backdrop-filter: var(--blur);
+  background: var(--sheet);
+  box-shadow: var(--shadow-sheet);
   overflow: hidden;
+  animation: turn-in 260ms var(--ease-out) both;
+}
+.aroom::before {
+  content: "";
+  display: block;
+  height: 8px;
+  background: var(--paint);
+  border-bottom: var(--strich-w) solid var(--strich);
 }
 .aroom + .aroom {
   margin-top: var(--s-4);
 }
-.aroom.is-burned {
-  border-color: var(--rule-strong);
+.aroom.is-burned::before {
+  background: var(--wall-3);
 }
 .aroom.is-burned .aroom__cells {
   opacity: 0.55;
@@ -234,7 +255,7 @@
   align-items: center;
   gap: var(--s-2) var(--s-4);
   padding: var(--s-3) var(--s-4);
-  border-bottom: var(--line) solid var(--rule-strong);
+  border-bottom: var(--line) solid var(--rule);
 }
 .aroom__mode {
   display: inline-flex;
@@ -242,20 +263,24 @@
   gap: var(--s-2);
 }
 .aroom__id {
-  font-weight: 700;
-  font-size: 1.0625rem;
+  font-weight: 750;
+  font-size: 1.125rem;
+  letter-spacing: 0.03em;
 }
 .aroom__name {
   color: var(--ink-2);
+  font-weight: 600;
 }
 .aroom__state {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  min-height: 26px;
+  padding: 0 10px 0 8px;
+  border-radius: var(--radius-pill);
+  border: var(--line) solid var(--rule-strong);
   font-size: var(--label);
-  letter-spacing: var(--label-track);
-  text-transform: var(--label-case);
-  font-weight: 650;
+  font-weight: 700;
   color: var(--ink-2);
 }
 .aroom__dot {
@@ -266,9 +291,12 @@
 }
 .aroom__state.is-live {
   color: var(--ok);
+  border-color: currentColor;
+  background: var(--ok-wash);
 }
 .aroom__state.is-live .aroom__dot {
-  background: currentColor;
+  background: var(--live);
+  border-color: var(--live);
 }
 .aroom__meta {
   font-size: 0.8125rem;
@@ -286,7 +314,7 @@
   align-content: start;
   gap: var(--s-2);
   padding: var(--s-3) var(--s-4) var(--s-4);
-  border-inline-end: var(--line) solid var(--rule-strong);
+  border-inline-end: var(--line) solid var(--rule);
   min-width: 0;
 }
 .aroom__cell:last-child {
@@ -294,11 +322,8 @@
 }
 .aroom__h {
   margin: 0;
-  font-family: var(--font-label);
-  font-size: 0.625rem;
-  letter-spacing: var(--label-track);
-  text-transform: var(--label-case);
-  font-weight: 650;
+  font-size: 0.75rem;
+  font-weight: 700;
   color: var(--ink-3);
 }
 .aroom__idle {
@@ -310,6 +335,7 @@
   margin: 0;
   display: grid;
   gap: var(--s-1);
+  justify-items: start;
 }
 .aroom__lat {
   margin: 0;
@@ -323,11 +349,12 @@
   margin: 0;
 }
 .aroom__codes {
-  border-top: var(--line) solid var(--rule-strong);
+  border-top: var(--line) solid var(--rule);
   padding: 0 var(--s-4);
+  background: var(--sheet-2);
 }
 .aroom__gloss {
-  border-top: var(--line) solid var(--rule-strong);
+  border-top: var(--line) solid var(--rule);
   padding: var(--s-4);
 }
 .aplate {
@@ -341,6 +368,8 @@
 .aplate__id {
   color: var(--ink-3);
 }
+
+/* QR codes (also on Home) */
 .codes {
   display: flex;
   flex-wrap: wrap;
@@ -356,20 +385,24 @@
   display: grid;
 }
 .codes__role {
-  font-weight: 700;
+  font-weight: 750;
 }
 .codes__url {
   font-size: 0.8125rem;
 }
-.qr {
-  display: block;
-  border: var(--line) solid var(--rule-strong);
-  image-rendering: pixelated;
-}
 
 @media (max-width: 760px) {
+  .admin {
+    padding-inline: var(--s-4);
+  }
   .admin__band {
     grid-template-columns: 1fr 1fr;
+  }
+  .admin__meter {
+    border-bottom: var(--line) solid var(--rule);
+  }
+  .admin__meter:first-child {
+    grid-column: 1 / -1;
   }
   .admin__split,
   .aroom__cells {
@@ -377,7 +410,7 @@
   }
   .aroom__cell {
     border-inline-end: 0;
-    border-bottom: var(--line) solid var(--rule-strong);
+    border-bottom: var(--line) solid var(--rule);
   }
   .aroom__cell:last-child {
     border-bottom: 0;
@@ -395,4 +428,9 @@
   .admin__table {
     font-size: 0.8125rem;
   }
+}
+
+.aroom__cell--lat {
+  overflow: clip;
+  min-width: 0;
 }

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800&family=Archivo+Narrow:wght@600;700&family=Noto+Sans+Arabic:wght@400&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:390px;height:844px;overflow:hidden}
+body{background:#eef0f3;color:#17305c;font-family:"Archivo",system-ui,sans-serif;position:relative}
+.head{background:#17305c;color:#fff;padding:16px 18px;display:flex;justify-content:space-between;align-items:center}
+.head h1{font-family:"Archivo Narrow";font-size:22px;letter-spacing:.06em;text-transform:uppercase}
+.head p{font-size:12px;opacity:.8}
+.head span{font-size:12px;font-weight:700;border:1.5px solid #fff;padding:4px 8px}
+.stub{margin:12px 14px 0;background:#fff;border-left:6px solid #17305c;padding:10px 12px;font-size:14px;color:#41557a;display:flex;justify-content:space-between}
+.stub b{color:#17305c}
+.coupon{margin:12px 14px 0;background:#fff;padding:16px;position:relative;border-top:2px dashed #b9c1cf}
+.coupon::before,.coupon::after{content:"";position:absolute;top:-12px;width:22px;height:22px;border-radius:50%;background:#eef0f3}
+.coupon::before{left:-11px}.coupon::after{right:-11px}
+.tab{font-family:"Archivo Narrow";font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#c8322b;font-weight:700}
+.hero{font-size:28px;font-weight:700;line-height:1.2;margin-top:8px}
+.src{font-family:"Noto Sans Arabic";font-size:15px;color:#41557a;margin-top:8px;text-align:right}
+.fields{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid #b9c1cf;margin-top:14px}
+.fields div{padding:8px;border-right:1px solid #b9c1cf}
+.fields div:last-child{border-right:0}
+.fields span{display:block;font-family:"Archivo Narrow";font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#41557a}
+.fields b{font-size:17px;color:#5b3f8c}
+.stamp{position:absolute;right:16px;top:12px;transform:rotate(-8deg);border:2.5px solid #1f7a43;color:#1f7a43;font-family:"Archivo Narrow";font-weight:700;letter-spacing:.12em;padding:4px 8px;font-size:13px}
+.dock{position:absolute;left:0;right:0;bottom:0;height:160px;background:#fff;border-top:2px solid #17305c;display:flex;justify-content:space-around;align-items:center;font-size:13px;font-weight:700}
+.dock div{display:flex;flex-direction:column;align-items:center;gap:8px}
+.sq{width:48px;height:48px;border:2px solid #17305c}
+.mic{width:92px;height:92px;border-radius:50%;background:#c8322b;display:grid;place-items:center}
+.mic::after{content:"";width:18px;height:30px;border-radius:9px;background:#fff}
+</style></head><body>
+<div class="head"><div><h1>Consultation room</h1><p>Sprechzimmer · SZ-7921 · German ⇄ Arabic</p></div><span>LIVE</span></div>
+<div class="stub"><span><b>You</b> · Good day. What brings you here today?</span><span>✓</span></div>
+<div class="coupon">
+  <span class="tab">Patient · Coupon 02</span><span class="stamp">CHECKED</span>
+  <p class="hero">I take 500 mg Metformin twice a day, and I am allergic to penicillin.</p>
+  <p class="src" dir="rtl" lang="ar">أتناول ٥٠٠ ملغ من الميتفورمين مرتين يوميًا، وعندي حساسية من البنسلين.</p>
+  <div class="fields"><div><span>Dose</span><b>500 mg</b></div><div><span>Frequency</span><b>2× a day</b></div><div><span>Allergy</span><b>Penicillin</b></div></div>
+</div>
+<div class="dock"><div><span class="sq"></span>Repeat</div><div><span class="mic"></span>Tap to speak</div><div><span class="sq"></span>End</div></div>
+</body></html>

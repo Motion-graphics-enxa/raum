@@ -9,6 +9,7 @@ import { RoomStore, checkState, percentile, useRoomModel, type Turn } from "../l
 import { shownTranslation } from "../lib/draft";
 import { DraftText } from "../components/DraftText";
 import { FactDims, Hatch, VerifyMark } from "../components/Drawing";
+import { Pair } from "../components/Icons";
 import { Timeline, firstWordsMs, pathLabel } from "../components/Sheet";
 import { OfferTimeline } from "../components/Offers";
 import { QR } from "../components/QR";
@@ -65,7 +66,7 @@ export default function Table() {
   const label = (r: string | null) => (mode && (r === "a" || r === "b") ? pick(mode.roles[r].label, UI) : "");
 
   return (
-    <div className="screen screen--table">
+    <div className={`screen screen--table room--${mode?.id ?? "x"}`}>
       <header className={`tblock tblock--${mode?.id ?? "x"} ttop`}>
         <div className="tblock__row">
           {mode ? <Hatch mode={mode.id} size={30} className="tblock__hatch" /> : null}
@@ -75,7 +76,7 @@ export default function Table() {
           </div>
           <span className="ttop__room mono">{room.toUpperCase()}</span>
           <span className="ttop__langs mono">
-            {langA.toUpperCase()} ⇄ {(langB ?? "··").toUpperCase()}
+            {langA.toUpperCase()}<Pair className="icon pair-icon" />{(langB ?? "··").toUpperCase()}
           </span>
           <span className={`tblock__status ${link === "connected" ? "is-live" : ""}`}>
             <span className="tblock__dot" aria-hidden="true" />

@@ -1,0 +1,27 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Sofia+Sans:wght@400;600;700;800&family=Sofia+Sans+Extra+Condensed:wght@800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}html,body{width:1440px;height:900px;overflow:hidden}
+body{background:#f4f4f1;color:#211b17;font-family:"Sofia Sans";position:relative}
+body::after{content:"";position:absolute;left:0;right:0;bottom:0;height:300px;background:#4f6475;border-top:4px solid #211b17;z-index:0}
+nav{position:relative;z-index:2;display:flex;align-items:center;gap:32px;padding:26px 64px}
+.w{font-family:"Sofia Sans Extra Condensed";font-weight:900;font-size:36px}.sp{flex:1}nav a{font-weight:700}
+.head{position:relative;z-index:2;padding:10px 64px 0;display:flex;align-items:flex-end;gap:40px}
+h1{font-family:"Sofia Sans Extra Condensed";font-weight:900;font-size:110px;line-height:.84;text-transform:uppercase}
+.head p{font-size:21px;max-width:420px;color:#4d443d;padding-bottom:10px}
+.doors{position:absolute;z-index:2;left:64px;right:64px;bottom:0;height:520px;display:grid;grid-template-columns:repeat(3,1fr);gap:40px;align-items:end}
+.door{height:470px;background:#fcfcfa;border:2px solid #211b17;border-bottom:0;border-radius:6px 6px 0 0;position:relative;padding:26px;box-shadow:0 -10px 40px -20px rgba(74,52,30,.3)}
+.door::after{content:"";position:absolute;left:0;right:0;bottom:0;height:44%;background:var(--p);border-top:4px solid #211b17}
+.plate{display:inline-block;border:2px solid #211b17;padding:10px 14px;background:#fff;font-family:"Sofia Sans Extra Condensed";font-weight:900;font-size:30px;text-transform:uppercase}
+.door p{margin-top:12px;font-weight:700;font-size:17px;color:#4d443d}
+.knob{position:absolute;right:26px;top:52%;width:14px;height:14px;border-radius:50%;background:#b08a3e;z-index:3}
+.open{position:absolute;z-index:3;left:26px;bottom:30px;color:#fff;font-weight:800;font-size:18px}
+</style></head><body>
+<nav><span class="w">RAUM</span><span class="sp"></span><a>How it checks</a><a>Privacy</a><a>Open a room</a></nav>
+<div class="head"><h1>What's said in the room<br>stays in the room.</h1><p>A private AI interpreter for the three rooms where a leak is a legal problem.</p></div>
+<div class="doors">
+ <div class="door" style="--p:#5d7350"><span class="plate">Sprechzimmer</span><p>Doctor and patient · doses and allergies checked</p><span class="knob"></span><span class="open">Enter →</span></div>
+ <div class="door" style="--p:#7a2f28"><span class="plate">Kanzlei</span><p>Lawyer and client · deadlines and dates checked</p><span class="knob"></span><span class="open">Enter →</span></div>
+ <div class="door" style="--p:#2d4f96"><span class="plate">Verhandlungsraum</span><p>CEO and partner · every offer on record</p><span class="knob"></span><span class="open">Enter →</span></div>
+</div>
+</body></html>

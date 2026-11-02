@@ -1,0 +1,380 @@
+/*
+ * Spectacle: the Altbau Daylight world at full volume. Everything here is motion and light layered over the
+ * working screens; nothing changes a control, and under prefers-reduced-motion it all stands still (base.css).
+ */
+
+/* ---------------------------------------------------------------- the sun moves across every wall */
+.screen--talk,
+.screen--join,
+.screen--summary,
+.screen--table,
+.screen--home,
+.screen--listen {
+  position: relative;
+  isolation: isolate;
+}
+.screen--talk::before,
+.screen--join::before,
+.screen--summary::before,
+.screen--table::before,
+.screen--home::before,
+.screen--listen::before {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  top: -20vh;
+  left: -30vw;
+  width: 80vw;
+  height: 140vh;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent 47%, rgb(120 92 52 / 0.05) 49%, rgb(120 92 52 / 0.05) 51%, transparent 53%),
+    radial-gradient(closest-side, rgb(var(--sun) / 0.55), rgb(var(--sun) / 0.18) 60%, transparent);
+  filter: blur(8px);
+  transform: skewX(-14deg);
+  animation: wall-sun 32s ease-in-out infinite alternate;
+}
+@keyframes wall-sun {
+  from {
+    transform: skewX(-14deg) translateX(0);
+  }
+  to {
+    transform: skewX(-19deg) translateX(70vw);
+  }
+}
+
+/* ---------------------------------------------------------------- the room assembles when you enter */
+.screen--talk .tblock__name,
+.screen--join .tblock__name,
+.screen--summary .tblock__name {
+  animation: plate-in 800ms var(--ease-out) 80ms both;
+}
+@keyframes plate-in {
+  from {
+    opacity: 0;
+    letter-spacing: 0.18em;
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 -10% 0 0);
+  }
+}
+.screen--talk .tblock__cells > * {
+  animation: turn-in 500ms var(--ease-out) both;
+}
+.screen--talk .tblock__cells > :nth-child(2) {
+  animation-delay: 80ms;
+}
+.screen--talk .tblock__cells > :nth-child(3) {
+  animation-delay: 160ms;
+}
+.screen--talk .tblock__cells > :nth-child(4) {
+  animation-delay: 240ms;
+}
+.join__word,
+.home__word {
+  animation: word-in 1000ms var(--ease-out) both;
+}
+@keyframes word-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.3em) scaleY(1.25);
+    clip-path: inset(100% 0 0 0);
+    filter: blur(6px);
+  }
+  to {
+    clip-path: inset(-10% 0 -10% 0);
+  }
+}
+
+/* ---------------------------------------------------------------- the orb breathes with the room */
+.talk__stage::before,
+.talk__stage::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  border: 1.5px solid rgb(255 255 255 / 0.5);
+  opacity: 0;
+  pointer-events: none;
+}
+.talk[data-state="live"] .talk__stage::before,
+.talk.is-on .talk__stage::before {
+  animation: orb-wave 2.2s var(--ease-out) infinite;
+}
+.talk[data-state="live"] .talk__stage::after,
+.talk.is-on .talk__stage::after {
+  animation: orb-wave 2.2s var(--ease-out) 1.1s infinite;
+}
+@keyframes orb-wave {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(2.1);
+    opacity: 0;
+  }
+}
+/* idle: a slow glint runs over the limewash orb, inviting the thumb */
+.talk__btn {
+  overflow: hidden;
+}
+.talk:not([data-state="live"]):not(.is-on):not(.is-disabled) .talk__btn::before {
+  content: "";
+  position: absolute;
+  inset: -30%;
+  background: linear-gradient(115deg, transparent 40%, rgb(255 255 255 / 0.9) 50%, transparent 60%);
+  transform: translateX(-120%);
+  animation: orb-glint 5.5s var(--ease-out) 1.2s infinite;
+  pointer-events: none;
+}
+@keyframes orb-glint {
+  0%,
+  70% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(120%);
+  }
+}
+.talk[data-purpose="answer"]:not([data-state="live"]) .talk__btn {
+  animation: answer-ring 1.6s ease-in-out infinite;
+}
+@keyframes answer-ring {
+  50% {
+    box-shadow: inset 0 -3px 0 rgb(33 27 23 / 0.08), 0 0 0 12px rgb(var(--sun) / 0.55), 0 16px 30px -12px rgb(0 0 0 / 0.5);
+  }
+}
+
+/* ---------------------------------------------------------------- Lichtfall, louder */
+.turn--r0.turn--theirs.is-final {
+  animation: hero-bloom 900ms var(--ease-out) both;
+}
+@keyframes hero-bloom {
+  40% {
+    box-shadow: 0 26px 50px -18px rgb(122 86 30 / 0.5);
+    transform: translateY(-2px);
+  }
+}
+.turn--r0.turn--theirs.is-final .turn__main {
+  animation: ink-set 700ms var(--ease-out) both;
+}
+@keyframes ink-set {
+  from {
+    filter: blur(1.5px);
+    letter-spacing: 0.01em;
+  }
+}
+.turn--r0.turn--theirs.is-draft {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0 14px,
+    rgb(33 27 23 / 0.025) 14px 15px
+  );
+  background-size: 200% 200%;
+  animation: shade-drift 6s linear infinite;
+}
+@keyframes shade-drift {
+  to {
+    background-position: 100% 100%;
+  }
+}
+
+/* facts pop onto the sheet one by one, and the mismatch slams in */
+.turn .dim {
+  animation: chip-pop 520ms cubic-bezier(0.2, 1.3, 0.4, 1) both;
+  animation-delay: var(--dim-delay, 0ms);
+}
+@keyframes chip-pop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.86);
+  }
+}
+.turn .cloud {
+  animation: cloud-slam 620ms var(--ease-out) both;
+}
+@keyframes cloud-slam {
+  0% {
+    opacity: 0;
+    transform: scale(1.35) rotate(-2deg);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(0.97) rotate(0deg);
+  }
+  60% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+  90% {
+    transform: translateX(-2px);
+  }
+}
+.vmark--green {
+  animation: mark-land 600ms var(--ease-out) both;
+}
+@keyframes mark-land {
+  0% {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+
+/* the read-back drops in like a note being handed across the desk */
+.rb:not(.is-done) {
+  animation: rb-hand 620ms cubic-bezier(0.2, 1.2, 0.4, 1) both;
+}
+@keyframes rb-hand {
+  from {
+    opacity: 0;
+    transform: translateY(26px) rotate(-1.5deg) scale(0.96);
+  }
+}
+
+/* ---------------------------------------------------------------- Join: the door opens onto the room */
+.screen--join .join__consent {
+  transform-origin: left center;
+  animation: consent-door 900ms var(--ease-out) 260ms both !important;
+}
+@keyframes consent-door {
+  from {
+    opacity: 0;
+    transform: perspective(900px) rotateY(-24deg) translateX(-12px);
+  }
+}
+.join__role-name {
+  animation: role-underline 900ms var(--ease-out) 500ms both;
+}
+@keyframes role-underline {
+  from {
+    background-size: 0% 0.16em;
+  }
+}
+.join__go .btn:not(:disabled) {
+  overflow: hidden;
+}
+.join__go .btn:not(:disabled)::after {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  background: linear-gradient(115deg, transparent 42%, rgb(var(--sun) / 0.9) 50%, transparent 58%);
+  transform: translateX(-120%);
+  animation: orb-glint 4.5s var(--ease-out) 1.4s infinite;
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------------- Summary: the sheet feeds out of the printer */
+.screen--summary .sheet:not(.sheet--burned) {
+  animation: sheet-feed 1100ms var(--ease-out) both;
+}
+@keyframes sheet-feed {
+  from {
+    clip-path: inset(0 0 100% 0);
+    transform: translateY(-18px);
+  }
+  to {
+    clip-path: inset(0 0 -20px 0);
+  }
+}
+.screen--summary .sheet__sec {
+  animation: turn-in 520ms var(--ease-out) both;
+}
+.screen--summary .sheet__sec:nth-child(2) {
+  animation-delay: 220ms;
+}
+.screen--summary .sheet__sec:nth-child(3) {
+  animation-delay: 320ms;
+}
+.screen--summary .sheet__sec:nth-child(4) {
+  animation-delay: 420ms;
+}
+.screen--summary .sheet__sec:nth-child(n + 5) {
+  animation-delay: 520ms;
+}
+.check__mark .icon path {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: tick-draw 420ms var(--ease-out) 700ms forwards;
+}
+
+/* the burn: the sheet shrinks and darkens as if pulled through a shredder; the stamp slams the page */
+.sum.is-burning .sheet {
+  animation: sheet-shred 900ms var(--ease-in, cubic-bezier(0.6, 0, 0.8, 0.4)) 300ms both;
+}
+@keyframes sheet-shred {
+  to {
+    transform: scaleY(0.96);
+    filter: saturate(0.4);
+  }
+}
+.screen--summary.is-burned .sum {
+  animation: page-thud 380ms var(--ease-out) 120ms both;
+}
+@keyframes page-thud {
+  30% {
+    transform: translateY(4px);
+  }
+  55% {
+    transform: translateY(-2px);
+  }
+}
+.sheet--burned .stamp {
+  animation: stamp-slam 520ms cubic-bezier(0.5, 0, 0.75, 0) both;
+}
+@keyframes stamp-slam {
+  0% {
+    opacity: 0;
+    transform: rotate(-12deg) scale(2.6);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(-4deg) scale(1);
+  }
+}
+.sheet__erased path {
+  stroke-dasharray: 600;
+  stroke-dashoffset: 600;
+  animation: erase-lines 1400ms var(--ease-out) forwards;
+}
+@keyframes erase-lines {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* ---------------------------------------------------------------- Home: doors swing a little when you reach for them */
+.home__rooms {
+  perspective: 1400px;
+}
+.home__room {
+  transform-origin: left center;
+}
+@media (hover: hover) {
+  .home__room:hover {
+    transform: rotateY(-7deg) translateY(-3px);
+  }
+}
+
+/* ---------------------------------------------------------------- Table screen: a stage */
+.screen--table .tblock__name {
+  animation: plate-in 900ms var(--ease-out) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen--talk::before,
+  .screen--join::before,
+  .screen--summary::before,
+  .screen--table::before,
+  .screen--home::before,
+  .screen--listen::before {
+    animation: none;
+  }
+}

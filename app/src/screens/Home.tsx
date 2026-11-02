@@ -47,7 +47,7 @@ export default function Home() {
                 <button type="button" className={`home__room home__room--${m.id}`} onClick={() => void open(m)}>
                   <Hatch mode={m.id} size={44} />
                   <span className="home__room-text">
-                    <span className="home__room-name">
+                    <span className="home__room-name" lang="de">
                       {Icon ? <Icon /> : null} {m.name.de}
                     </span>
                     <span className="home__room-sub">

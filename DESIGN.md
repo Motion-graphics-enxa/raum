@@ -1,84 +1,101 @@
 ---
 name: RAUM
-description: Milchglas. The conversation behind frosted glass, in Berliner Blau. Translates. Checks. Forgets.
+description: Altbau Daylight. The Berlin Altbau room the practice really sits in; the newest sentence stands in the window's light. Translates. Checks. Forgets.
 colors:
-  field: "#e9f0f6"
-  glass: "rgb(255 255 255 / 0.6)"
-  glass-strong: "rgb(255 255 255 / 0.8)"
-  glass-solid: "#f7fafc"
-  glass-rim: "rgb(255 255 255 / 0.9)"
-  glass-edge: "rgb(13 58 97 / 0.12)"
-  frost: "rgb(255 255 255 / 0.42)"
-  ink: "#0a1d30"
-  ink-2: "#2b4157"
-  ink-3: "#4b6177"
-  rule: "rgb(13 58 97 / 0.12)"
-  rule-strong: "rgb(13 58 97 / 0.3)"
-  brand: "#0d3a61"
-  brand-2: "#164f82"
-  brand-ink: "#f2f8fd"
-  link: "#145089"
-  focus: "#1b6fd1"
-  live: "#1f9d63"
-  them: "#0d3a61"
-  you: "rgb(13 58 97 / 0.08)"
-  ok: "#12683f"
-  unsure: "#8a4f00"
-  bad: "#b3192a"
-  pending: "#5a7085"
-  room-sprechzimmer: "#0a6675"
-  room-kanzlei: "#5945a4"
-  room-verhandlungsraum: "#9c336b"
-  field-dark: "#06182a"
-  glass-dark: "rgb(20 48 76 / 0.5)"
-  glass-strong-dark: "rgb(16 40 64 / 0.74)"
-  glass-solid-dark: "#102b46"
-  glass-rim-dark: "rgb(255 255 255 / 0.16)"
-  ink-dark: "#eef5fb"
-  ink-2-dark: "#c3d6e6"
-  ink-3-dark: "#98b2c8"
-  them-dark: "#2a6fae"
-  link-dark: "#9fd3ff"
-  ok-dark: "#6adba4"
-  unsure-dark: "#f3bb62"
-  bad-dark: "#ff8f8f"
+  wall: "#f4f4f1"
+  wall-2: "#ebebe6"
+  wall-3: "#e1e2dc"
+  shade: "#e4e7e6"
+  sheet: "#fcfcfa"
+  sheet-2: "#f7f7f3"
+  sun: "rgb(255 224 168)"
+  mullion: "rgb(120 92 52 / 0.07)"
+  ink: "#211b17"
+  ink-2: "#4d443d"
+  ink-3: "#6b6158"
+  rule: "rgb(33 27 23 / 0.12)"
+  rule-strong: "rgb(33 27 23 / 0.26)"
+  strich: "#211b17"
+  link: "#2d4f96"
+  focus: "#2d4f96"
+  brand: "#211b17"
+  brand-2: "#3a312a"
+  brand-ink: "#f8f7f3"
+  paint-sprechzimmer: "#5d7350"
+  paint-kanzlei: "#7a2f28"
+  paint-verhandlungsraum: "#2d4f96"
+  paint-gespraech: "#4f6475"
+  paint-off: "#6f675f"
+  paint-ink: "#ffffff"
+  paint-ink-2: "rgb(255 255 255 / 0.82)"
+  paint-well: "rgb(255 255 255 / 0.14)"
+  paint-rim: "rgb(255 255 255 / 0.42)"
+  ok: "#1d6b3a"
+  unsure: "#8f5300"
+  bad: "#b4231b"
+  pending: "#6b6158"
+  live: "#23934f"
+  scrim: "rgb(33 27 23 / 0.42)"
+  wall-dark: "#1c1916"
+  wall-2-dark: "#24201c"
+  shade-dark: "#171512"
+  sheet-dark: "#272220"
+  ink-dark: "#f3efe8"
+  ink-2-dark: "#d4cabe"
+  ink-3-dark: "#ab9f92"
+  strich-dark: "#0c0a09"
+  link-dark: "#a9c1f2"
+  ok-dark: "#7fd39b"
+  unsure-dark: "#f0b860"
+  bad-dark: "#ff8a7a"
 typography:
+  plate:
+    fontFamily: "Sofia Sans Extra Condensed Variable, Sofia Sans Variable, Noto Sans Arabic Variable, system-ui, sans-serif"
+    fontSize: "clamp(1.625rem, 1.2rem + 1.6vw, 2rem)"
+    fontWeight: 780
+    lineHeight: 0.9
+    letterSpacing: "0.012em"
+  wordmark:
+    fontFamily: "Sofia Sans Extra Condensed Variable, Sofia Sans Variable, system-ui, sans-serif"
+    fontWeight: 860
+    lineHeight: 0.82
+    letterSpacing: "0.02em"
   display:
-    fontFamily: "Atkinson Hyperlegible Next Variable, Noto Sans Arabic Variable, system-ui, sans-serif"
-    fontSize: "clamp(1.75rem, 1.1rem + 2.6vw, 2.125rem)"
-    fontWeight: 640
-    lineHeight: 1.2
-    letterSpacing: "-0.012em"
+    fontFamily: "Sofia Sans Variable, Noto Sans Arabic Variable, system-ui, sans-serif"
+    fontSize: "clamp(1.75rem, 1.15rem + 2.4vw, 2.125rem)"
+    fontWeight: 720
+    lineHeight: 1.18
+    letterSpacing: "-0.014em"
   title:
-    fontFamily: "Atkinson Hyperlegible Next Variable, Noto Sans Arabic Variable, system-ui, sans-serif"
+    fontFamily: "Sofia Sans Variable, Noto Sans Arabic Variable, system-ui, sans-serif"
     fontSize: "1.3125rem"
-    fontWeight: 560
+    fontWeight: 620
     lineHeight: 1.3
   body:
-    fontFamily: "Atkinson Hyperlegible Next Variable, Noto Sans Arabic Variable, system-ui, sans-serif"
+    fontFamily: "Sofia Sans Variable, Noto Sans Arabic Variable, system-ui, sans-serif"
     fontSize: "1rem"
-    fontWeight: 400
+    fontWeight: 450
     lineHeight: 1.5
-    fontFeature: "\"tnum\""
+    fontFeature: "\"tnum\", \"case\""
+  turn:
+    fontFamily: "Sofia Sans Variable, Noto Sans Arabic Variable, system-ui, sans-serif"
+    fontSize: "1.0625rem"
+    fontWeight: 560
+    lineHeight: 1.38
   label:
-    fontFamily: "Atkinson Hyperlegible Next Variable, system-ui, sans-serif"
+    fontFamily: "Sofia Sans Variable, system-ui, sans-serif"
     fontSize: "0.8125rem"
     fontWeight: 650
-    letterSpacing: "0.005em"
+    letterSpacing: "0.01em"
   figure:
-    fontFamily: "Atkinson Hyperlegible Mono Variable, ui-monospace, monospace"
-    fontSize: "0.8125rem"
-    fontWeight: 560
-  wordmark:
-    fontFamily: "Atkinson Hyperlegible Next Variable, system-ui, sans-serif"
-    fontSize: "clamp(2.75rem, 2rem + 4vw, 4.5rem)"
-    fontWeight: 800
-    letterSpacing: "0.08em"
+    fontFamily: "Sofia Sans Semi Condensed Variable, Sofia Sans Variable, system-ui, sans-serif"
+    fontSize: "1.125rem"
+    fontWeight: 760
+    fontFeature: "\"tnum\""
 rounded:
-  control: "12px"
-  chip: "14px"
-  pane: "22px"
-  dock: "28px"
+  sm: "4px"
+  md: "6px"
+  lg: "6px"
   pill: "999px"
   round: "50%"
 spacing:
@@ -89,139 +106,230 @@ spacing:
   s-5: "24px"
   s-6: "32px"
   s-7: "48px"
+  s-8: "64px"
+  strich: "4px"
 components:
-  pane:
-    backgroundColor: "{colors.glass}"
-    rounded: "{rounded.pane}"
-    border: "1px {colors.glass-rim}, outer 1px {colors.glass-edge}"
-    backdropFilter: "blur(22px) saturate(1.6)"
-  button-primary:
-    background: "linear-gradient(160deg, #1a5a92, #0d3a61 55%, #0a2e4f)"
-    textColor: "{colors.brand-ink}"
-    rounded: "{rounded.control}"
-    height: "52px"
-  button-ghost:
-    backgroundColor: "{colors.glass}"
+  sheet:
+    backgroundColor: "{colors.sheet}"
+    rounded: "{rounded.lg}"
+    padding: "16px"
+  hero-sheet-draft:
+    backgroundColor: "{colors.shade}"
+    textColor: "{colors.ink-2}"
+    rounded: "{rounded.lg}"
+  hero-sheet-final:
+    backgroundColor: "{colors.sheet}"
     textColor: "{colors.ink}"
-    rounded: "{rounded.control}"
+    rounded: "{rounded.lg}"
+  dado:
+    backgroundColor: "{colors.paint-gespraech}"
+    textColor: "{colors.paint-ink}"
+  button-primary:
+    backgroundColor: "{colors.brand}"
+    textColor: "{colors.brand-ink}"
+    rounded: "{rounded.md}"
+    height: "52px"
+    padding: "0 24px"
+  button-primary-hover:
+    backgroundColor: "{colors.brand-2}"
+  button-ghost:
+    backgroundColor: "{colors.sheet}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.md}"
+    height: "52px"
+  button-ghost-hover:
+    backgroundColor: "{colors.wall-2}"
+  button-wall:
+    backgroundColor: "{colors.wall}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.md}"
+    height: "52px"
   talk-orb:
-    size: "92px"
-    backgroundColor: "{colors.glass-strong}"
-    textColor: "{colors.brand}"
+    backgroundColor: "{colors.wall}"
+    textColor: "{colors.ink}"
     rounded: "{rounded.round}"
+    size: "84px"
   talk-orb-live:
-    background: "{components.button-primary.background}"
-    textColor: "#ffffff"
-  header:
-    backgroundColor: "{colors.glass-strong}"
-    rounded: "{rounded.pane}"
+    backgroundColor: "{colors.ink}"
+    textColor: "{colors.paint-ink}"
+    rounded: "{rounded.round}"
+    size: "84px"
   speaker-plate-them:
-    backgroundColor: "{colors.them}"
-    textColor: "#ffffff"
+    backgroundColor: "{colors.paint-gespraech}"
+    textColor: "{colors.paint-ink}"
     rounded: "{rounded.pill}"
+    height: "26px"
   speaker-plate-you:
-    backgroundColor: "{colors.you}"
+    backgroundColor: "{colors.wall-3}"
     textColor: "{colors.ink-2}"
     rounded: "{rounded.pill}"
+    height: "26px"
   fact-chip:
-    backgroundColor: "{colors.glass-strong}"
-    rounded: "{rounded.chip}"
-  verify-pill:
+    backgroundColor: "{colors.sheet}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.sm}"
+    padding: "7px 13px 8px"
+  verify-mark:
+    backgroundColor: "{colors.sheet}"
     rounded: "{rounded.pill}"
     height: "30px"
+  status-pill:
+    backgroundColor: "{colors.sheet}"
+    textColor: "{colors.ink-2}"
+    rounded: "{rounded.pill}"
+    height: "32px"
+  banner:
+    backgroundColor: "{colors.sheet}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.md}"
+    padding: "11px 16px 11px 14px"
+  segmented-option:
+    backgroundColor: "{colors.wall-2}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.md}"
+    height: "72px"
+  segmented-option-selected:
+    backgroundColor: "{colors.sheet}"
 ---
 
 # Design System: RAUM
 
 ## Overview
 
-**Creative North Star: "Milchglas"**
+**Creative North Star: "Altbau Daylight"**
 
-The frosted glass door of a Berlin practice or law office: from the corridor you can see that a conversation is happening, never what is said. RAUM's screens are panes of that glass over a soft field of Berliner Blau light. The interface is the door; the words are the room. The signature: **a draft sits behind the frost, and when the sentence is final the glass clears.**
+RAUM is the Berlin Altbau room a practice or law office really sits in, seen in morning daylight. A limewash wall above; below it, the room's oil-paint dado; between them one dark Begleitstrich, 4 px of walnut that is the system's one visible structural line. The interface is the room; the words are written on sheets pinned to its wall. The other person's newest sentence stands on a sheet in the window's light. Drafts wait in the cool shade, and when a sentence becomes final the daylight falls across it: **Lichtfall**, the signature.
 
-Calm, quiet, trustworthy. One brand colour (Berliner Blau), three semantic pens (green verified, ochre unsure, red mismatch), one room tint in the field. No chat bubbles, no avatars, no glowing AI badge.
+Calm, plain, trustworthy, and literal: every material is something actually in the room (limewash, oil paint, walnut, paper, daylight, the shadow of the window cross). Light theme is the room in the morning; dark theme is the same room in the evening, warm walnut, never a techy navy-black. No chat bubbles, no avatars, no glowing AI dashboard, no glass or blur.
 
-**All UI chrome is English** on every device (`UI_LANG = "en"` in `app/src/lib/i18n.ts`; `t()` and `pick()` read it whatever the phone's language). Content stays in each person's language: what they said, its translation, the read-back question. The language picker names each language in its own script with the English name beside it ("العربية · Arabic"). The chrome is always left to right; every sentence carries its own `lang` and `dir`, so Arabic content still runs right to left.
+**All UI chrome is English** on every device (`UI_LANG = "en"` in `app/src/lib/i18n.ts`; `t()` and `pick()` read it whatever the phone's language). Content stays in each person's language: what they said, its translation, the read-back question. The language picker names each language in its own script with the English name beside it ("العربية · Arabic"). The chrome runs left to right; every content element carries its own `lang` and `dir`, so Arabic content still runs right to left. Arabic, Persian and Urdu get zero letter-spacing, no uppercase, and a 1.6 line height.
 
-**Key characteristics**
-- Frosted panes (translucent fill, 22 px blur, 1 px light rim, inner top highlight, soft offset shadow) over a fixed light field (`body::before`).
-- Every pane has a solid fallback: without `backdrop-filter`, or with `prefers-reduced-transparency`, `--glass` becomes `--glass-solid`, so text contrast never depends on the blur. All text passes WCAG AA on the solid fallback and on the translucent pane over the field.
-- State is drawn twice: line type first (solid, dashed, dotted), colour second, and named in words.
-- One recency ramp carries hierarchy (34, 21, 18, 16 px). Only the newest sentence of the other person sits on its own pane; older turns lie on the field.
+**Key Characteristics:**
+- Wall above, paint below, one 4 px walnut Begleitstrich between them, on every screen that has an action surface (Talk dock, Join and menu sheets, Table floor, Home doors, the room mark).
+- Each room owns its paint: Sprechzimmer reseda, Kanzlei oxblood, Verhandlungsraum cobalt, Gespräch dove blue. The paint lives in the dado, the other person's speaker plate, the caret and the selected radio square; nowhere else.
+- Three depths only: the wall, a sheet on the wall, a sheet lifted for an interruption.
+- Hierarchy is one recency ramp (34, 21, 18, 17 px). Turns never move once placed; only their words change.
+- State is drawn twice: line type first (solid, dashed, dotted), colour second, and always named in words.
 
 ## Colors
 
-- **Field** (`--field`): the room behind the glass. Light: mist (#e9f0f6) with a Berliner Blau glow top-left and the room's tint bottom-right. Dark: Prussian night (#06182a) with stronger glows. The room tint is `--room-rgb`, set by `.room--<mode>` on the screen.
-- **Glass** (`--glass`, `--glass-strong`, `--glass-rim`, `--glass-edge`, `--glass-hi`): panes. `glass-strong` for what text sits on longest (header, dock, sheets, banners).
-- **Frost** (`--frost`): the extra frost a draft sits behind.
-- **Berliner Blau** (`--brand`, `--brand-2`, `--brand-grad`): primary buttons, the live mic orb, the selected language chip, the other person's speaker plate (`--them`).
-- **Ink** (`--ink`, `--ink-2`, `--ink-3`): three text strengths, AA on every pane in both themes (ink-3 ≥ 5.5:1, ink-2 ≥ 9:1 on the lightest pane).
-- **Semantic pens**: `--ok` verified, `--unsure` unsure / read-back, `--bad` mismatch / destroy, `--pending` checking, `--live` the live dot. Each has a `-wash` for its own chip or banner only.
+A warm-neutral limewash room with walnut ink, one oil paint per room, and three semantic pens kept strictly apart from the paints.
 
-**Rules.** The brand never means a check state; a pen never acts as the brand. Colour is never the only signal.
+### Primary
+- **Walnut Ink** (`brand` / `ink`): the RAUM wordmark, primary buttons, the live mic orb, body text. Primary actions are ink on limewash, never a coloured brand fill.
+- **Begleitstrich** (`strich`): the 4 px line where wall meets dado. In the dark theme it deepens to near-black so it still reads as a line.
+
+### Secondary: the room paints
+- **Resedagrün** (`paint-sprechzimmer`): the consultation room.
+- **Ochsenblut** (`paint-kanzlei`): the law office.
+- **Kobalt** (`paint-verhandlungsraum`): the hearing room, from the tiled stove.
+- **Taubenblau** (`paint-gespraech`): the general conversation room; also the default `--paint`.
+- **Off the record** (`paint-off`): the paint turns grey and the conversation fades to 45% greyscale.
+
+`--paint` is set per screen by `.room--<mode>`. White text (`paint-ink`) holds at least 5:1 on every paint. On the paint, wells and rims are white at 14% and 42% (`paint-well`, `paint-rim`), and a 1 px white sheen (14%) runs along the paint's top edge.
+
+### Tertiary: daylight
+- **Window Daylight** (`sun`, an rgb triplet used only with alpha): the resting light patch on the hero sheet (a 112° gradient from 62% to 0), the Lichtfall sweep, text selection, and the daylight ring on the orb when a read-back waits for this device.
+- **Mullion Shadow** (`mullion`): the faint shadow of the window cross inside the light patch.
+
+### Neutral
+- **Kalkweiß** (`wall`): the page. Everything that is not a sheet sits directly on it.
+- **Recessed Wall** (`wall-2`, `wall-3`): recessed fields, unselected options, notes on the wall, the "you" speaker plate, hover.
+- **Cool Shade** (`shade`): where a draft waits; also the live-draft tag.
+- **Sheet** (`sheet`, `sheet-2`): what text sits on longest; `sheet-2` for cells inside a sheet.
+- **Ink steps** (`ink`, `ink-2` 8.8:1, `ink-3` 5.4:1 on the wall): final text, drafts and secondary text, labels and source lines.
+- **Rules** (`rule`, `rule-strong`): hairlines between turns, header cells, sheet edges.
+- **Link / Focus** (`link`, `focus`): cobalt; on the dado the focus outline turns white.
+
+### Semantic pens
+`ok` checked, `unsure` unsure / read-back / reconnecting, `bad` mismatch / destroy, `pending` checking, `live` the live dot. Each pen has a `-wash` (7–12% alpha) for its own chip, banner or hover only.
+
+### Named Rules
+**The Paint Below The Line Rule.** A room's paint appears only below a Begleitstrich, on the other person's speaker plate, the draft caret, and the selected radio square. It never fills a sheet or a text block on the wall.
+
+**The Pens Are Not Paint Rule.** The semantic pens never act as room colour and a room paint never means a check state, even where hues sit close (reseda vs ok green, cobalt vs link).
+
+**The Two Signals Rule.** Colour is never the only signal: every state also changes line type, glyph, and words.
 
 ## Typography
 
-Atkinson Hyperlegible Next for all words and labels (self-hosted via @fontsource). Labels are sentence case, 13 px, 650 ("You speak", "Patient speaks", "Dose"); no uppercase tracked mono lettering. Atkinson Hyperlegible Mono only for ids and timings (room id, "780 ms"). Fact values use the word face with tabular figures, so Arabic values join correctly. Arabic, Persian and Urdu get zero letter-spacing and a 1.6 line height.
+**Text Font:** Sofia Sans Variable (with Noto Sans Arabic Variable, system-ui)
+**Plate Font:** Sofia Sans Extra Condensed Variable, uppercase
+**Figure Font:** Sofia Sans Semi Condensed Variable, tabular figures
+
+**Character:** one family in three widths. The normal width carries every sentence and label; the extra-condensed capitals are the enamel door plate (room names, the wordmark, sheet headings, the burn stamp); the semi-condensed width sets figures, ids and timings so numbers stay compact and tabular without a costume mono. All self-hosted via @fontsource.
+
+### Hierarchy
+- **Plate** (780, clamp(1.625rem → 2rem), line-height 0.9, uppercase, +0.012em): the room name in the header ("CONSULTATION ROOM"). Home doors 800 up to 2.25rem; sheet headings 1.375rem; Admin section heads 1.5rem.
+- **Wordmark** (860, line-height 0.82, uppercase, +0.02em): RAUM on Join and Home.
+- **Display / ramp-0** (720, clamp(1.75rem → 2.125rem), 1.18, −0.014em): the other person's newest sentence on the hero sheet.
+- **Title / ramp-1** (620, 1.3125rem, 1.3): the previous turn, the read-back question.
+- **ramp-2 / ramp-3** (1.125rem; 560, 1.0625rem, 1.38): older turns and your own turns (ink-2, 540).
+- **Body** (450, 1rem, 1.5, `tnum` + `case`): everything else. Source lines 1.0625rem in ink-3.
+- **Label** (650, 0.8125rem, +0.01em, sentence case): names the value next to it ("You speak", "Dose").
+- **Figure** (760, 1.125rem, Semi Condensed): fact chip values, room ids, timings ("780 ms"). Arabic values fall back to the text face so they join.
+
+### Named Rules
+**The Recency Ramp Rule.** Hierarchy in the conversation is carried only by the ramp (34 → 21 → 18 → 17 px). Nothing else (colour, boxes, icons) ranks a turn.
+
+**The Door Plate Rule.** Condensed uppercase is for names and figures that would be painted on a door: room names, the wordmark, sheet headings, the stamp. Labels stay sentence case in the text face.
 
 ## Layout
 
-Phone (360–430 px), one column:
-1. **Header pane** (floating, 12 px from the edges). Row 1: room icon, English room name ("Consultation room"), German name and room id beneath ("Sprechzimmer · SZ-7921"), the link pill, the menu. Row 2: **who speaks what, and how you hear it**: `You speak · German` → `Patient speaks · Arabic`, then `You hear on · Speaker` (or Headphones) with its icon.
-2. **Banners** as glass toasts under the header (role=status / alert unchanged).
-3. **Conversation**: hero pane for the other person's newest sentence; earlier turns on the field.
-4. **Dock**: one glass bar (28 px corners): side action, mic orb, side action. Side actions are 44 px round icon wells with a sentence-case label under them.
+A 4 px base on an 8 px module (`s-1`…`s-8`: 4, 8, 12, 16, 24, 32, 48, 64); the Begleitstrich sits on it everywhere.
 
-Join: the RAUM wordmark and room on a header pane; each decision (language, audio route, consent) is its own pane; the join button sits on a sticky glass bar. Summary: one large pane. Table screen: header pane plus two panes (conversation, glass box) with 12 px gutters. Admin: panes for the meter band, new room, each room.
+Phone (360–430 px), one column, three bands:
+1. **Header on the wall** (not floating): row 1 is the room mark, the plate name, the German name and room id beneath, the link pill and the 44 px menu button. Row 2 is one hairline strip of cells between two `rule-strong` lines: `You speak · German` | `Patient speaks · Arabic` | `You hear on · Speaker`.
+2. **Conversation on the wall**: turns separated by hairlines; only the other person's newest turn stands on the hero sheet (bleeding 8 px past the column). Banners are sheets pinned under the header, 16 px from the edges.
+3. **Dado**: the room's paint below the Begleitstrich, a three-column grid (side action, mic orb, side action). Side actions are 46 px round wells with a sentence-case label under them, 76 px tall.
+
+When a room opens, the Begleitstrich draws first (scaleX, 460–480 ms), then the paint rises below it (560 ms), then the dado's contents fade in.
+
+Join: wall header with the wordmark and room; each decision (language, audio route, consent) is its own block; the action sits on the dado. Home: each room is a door, limewash above with its plate name and paint below the line (dado at 46%, 38% on wide screens). Table screen (laptop, read from 3 m): header on the wall, the conversation as one sheet split by one centre line with the two languages mirrored across it, the glass box as a hairline module grid, the paint along the floor; type scales from 16 to 22 px with the viewport. Admin: hairline-dense modules on the wall.
 
 ## Elevation & Depth
 
-Depth comes from the glass: fill, rim, inner highlight and `--shadow-pane` (0 14px 36px -12px). `--shadow-float` for the dock, the mic orb and bottom sheets. Scrims are Prussian with a 6 px blur.
+Depth has one rule: **the wall, a sheet on the wall, a sheet lifted for an interruption.** No blur, no translucency, no glow. A sheet is a solid fill with a hairline edge and one soft, warm offset shadow; a lifted sheet throws a longer one. The scrim behind a lifted sheet is walnut at 42%.
+
+### Shadow Vocabulary
+- **Sheet** (`box-shadow: 0 1px 0 rgb(33 27 23 / 0.05), 0 12px 28px -16px rgb(74 52 30 / 0.34)`): the hero sheet, banners, the selected option, sent notes.
+- **Lift** (`box-shadow: 0 2px 4px rgb(33 27 23 / 0.06), 0 26px 48px -18px rgb(74 52 30 / 0.46)`): the read-back (it rises from sheet to lift in 420 ms) and the menu sheet.
+
+Dark theme uses the same two steps in black (sheet `0 1px 0 rgb(0 0 0 / 0.25), 0 14px 30px -16px rgb(0 0 0 / 0.6)`).
+
+### Named Rules
+**The One Depth Rule.** Wall, sheet, lifted sheet. Nothing else casts a shadow; a draft has none at all (it is in the shade, not on a sheet).
+
+**The No Sheet In A Sheet Rule.** A chip or a proof table may sit inside a sheet; a second shadowed sheet may not.
 
 ## Shapes
 
-Controls 12 px, chips 14 px, panes 22 px, dock and sheets 28 px, pills (status, plates, verify mark, fact notes, language chips) fully round. Only round things are circles: the mic orb, dots.
+Sheets and controls share gently squared corners (6 px); chips, notes and inner parts 4 px; status, speaker plates, verify marks and fact notes are pills. Only round things are circles: the mic orb, the dado's icon wells, dots. The radio mark is a 12 px square with 2 px corners that fills with the room's paint. Lines are the main form device: the 4 px Begleitstrich, 1 px hairlines, and state lines in three types (solid, dashed, dotted). The room mark (`Hatch` in `Drawing.tsx`) is a swatch of the room's wall: limewash above, the paint below at 5/8 height, the Begleitstrich between, in a 2.5 px-cornered frame.
 
 ## Components
 
-### Speaker plate (who is speaking)
-`.turn__who`: a pill at the start of every turn. The other person: a Berliner Blau plate with white text and a dot ("• Patient"). You: a quiet glass plate ("• You said"). While they are speaking (`.turn.is-live`) the dot breathes.
-
-### Link state pill (header)
-`.tblock__status`: **Live** = green pill with a pulsing dot (`.is-live`); **Reconnecting…** = ochre pill with a spinning ring (`.is-reconnecting`); **Offline** = red (`.is-lost`); off the record = grey header. The reconnecting banner (`.banner--reconnect`) repeats it in words under the header after 1.5 s.
-
-### Audio route (headphones vs phone speaker)
-Header cell 3, `.tblock__cell--end`: "You hear on" + headphones or speaker icon + the word. Chosen on Join in a two-option segmented control (`.seg`); the selected option is a raised glass tile with a Berliner Blau rim.
-
-### Draft and Final (the signature; spec for the live-draft feature)
-A sentence is **draft** while its words can still change: a partial caption (`turn.partial` with no final text) or a translation whose `final` is false. It becomes **final** when the translation is committed.
+### Hero sheet and Lichtfall (the signature)
+A sentence is **draft** while its words can still change (a partial caption, or a translation whose `final` is false) and **final** when the translation is committed. Turn.tsx: `const draft = live || (!!tr && !tr.final);` puts `is-draft` / `is-final` on `<article className="turn">` and `is-draft` on `.turn__main`.
 
 | | Draft | Final |
 |---|---|---|
 | Classes | `.turn.is-draft`, `.turn__main.is-draft` | `.turn.is-final` (no class on `.turn__main`) |
-| Text colour | `--ink-2` (9.6:1 light, ≥ 9:1 dark) | `--ink` |
-| Underline | dotted 2 px, offset 0.24em, `--ink-3` at 70% ("pencil, not ink") | none (transparent) |
-| Caret | 3 px Berliner Blau bar at the end, blinking | gone |
-| Hero pane | frosted a step more: `--frost` mixed in, inner 1.5 px frost ring | clear glass |
-| Tag (gutter) | verify mark in state `translating`, labelled **"Live draft"**: dotted pill, breathing dot | verify mark: Checking (dashed) → Checked / Unsure / Mismatch |
-| Motion | none while typing | colour and underline fade out in 280 ms ease-out (`--t-clear`); under reduced motion it is instant |
+| Hero sheet | cool shade fill, dashed edge (ink-3 at 30%), no shadow, no light | sheet fill, hairline edge, sheet shadow, resting daylight patch with the mullion shadow |
+| Text | ink-2, dotted 2 px underline at 0.26em in ink-3 at 70% ("pencil") | ink; the underline retracts to transparent |
+| Caret | 3 px bar in the room's paint, blinking | gone |
+| Tag | verify mark `translating`: "Live draft", dotted pill on shade, breathing dot | Checking (dashed, spinning ring) → Checked (tick draws, 380 ms) / Unsure (dotted) / Mismatch (red, 2 px) |
+| Motion | none while typing; turns never move | **Lichtfall**: fill, ink and underline change over 420 ms (`--t-clear`); one bright diagonal band (105°) sweeps across the sheet in 460 ms (`--t-sweep`, 60 ms delay); the light patch slides in and rests |
 
-How to use it (Turn.tsx already does): `const draft = live || (!!tr && !tr.final);` then put `is-draft` / `is-final` on the `<article className="turn">` and `is-draft` on `.turn__main`. A draft that gets corrected keeps the struck-through old text (`.turn__struck`) above the new final text. Never blur the draft text itself: legibility first; the frost is on the pane, not the words.
+Under reduced motion it is instant. A corrected draft keeps the struck old text (red 2 px strike) above the new final text. Never blur draft text; the shade is on the sheet, not the words. A mismatch on the hero keeps the light and adds a red rim.
 
-### Fact chips (doses, numbers, dates)
-`.dim` inside `.facts`: a glass chip, value on top (17 px, 700), its kind below ("Dose"), a 2.5 px state line along the chip's foot. **Solid green** = verified, **dashed slate** = checking, **dotted ochre** = unsure. The line draws from the start edge when the check lands (220 ms). **Mismatch** (`.cloud`): the one chip that interrupts: 2 px red rim, red wash, what was said ≠ what was translated, the wrong value struck through.
+### Speaker plate
+A pill at the start of every turn, 26 px, 760 weight label. The other person: painted in the room's colour, white text, a filled dot. You: a quiet `wall-3` plate, ink-2 text, a ring dot. While someone is speaking the dot breathes.
 
-### Noted and read-back states
-- **Fact notes** on the professional's phone (`.fnote`): pills. Noted / confirmed = solid green rim + check; unconfirmed = dashed ochre rim + dotted ring + the word "unconfirmed"; answered no = red rim + cross.
-- **Read-back** (`.rb`): a glass note in the conversation (never modal). Unsure = dashed ochre rim; mismatch = solid red rim; the question at 21 px; Yes (green outline) and No (red outline) buttons, 44 px; "Just say yes or no" hint when the box spoke it. Answered: settles to one quiet line ("Confirmed ✓ · spoken").
-
-### Talk Control: the mic orb, hands-free and push-to-talk
-`TalkControl` in `app/src/components/Sheet.tsx`. One 92 px orb in the dock, a label under it (`aria-live="polite"`), the level drawn as three soft halos (radius from `level`, 90 ms linear). Classes: `.talk[data-mode][data-state][data-purpose]`.
-
-**Props (all optional beyond the original five, so today's hands-free behaviour is unchanged):**
+### Talk Control: the mic orb on the dado
+`TalkControl` in `app/src/components/Sheet.tsx`. One 84 px orb on the dado, a label under it (`aria-live="polite"`), the voice level drawn as white rings (radius set inline, 90 ms linear). Classes: `.talk[data-mode][data-state][data-purpose]`.
 
 ```ts
-mode?: "handsfree" | "hold"        // default "handsfree": tap toggles (today). "hold": push-to-talk
+mode?: "handsfree" | "hold"        // default "handsfree": tap toggles. "hold": push-to-talk
 phase?: "idle" | "live" | "sending" | "blocked"   // derived from on/disabled/blocked when absent
 blocked?: "other_speaking" | "voice_playing" | null
 answering?: boolean                 // a read-back waits for this device's yes/no
@@ -230,39 +338,63 @@ onHoldEnd?: () => void              // pointer up / cancel, or Space/Enter up
 onModeChange?: (m: "handsfree" | "hold") => void   // renders the Hands-free switch under the orb
 ```
 
-| State | `data-state` | Orb | Label | Notes |
-|---|---|---|---|---|
-| Idle (hold) | `idle` | glass orb, Berliner Blau mic-off glyph, faint halo | **Hold to talk** | desktop shows "On a keyboard, hold [Space]" (`.talk__hint--keys`, hidden on touch) |
-| Held | `live` | Berliner Blau gradient fill, white mic, scaled to 0.95 under the thumb, halos grow with the level | **Release to send** with a green live dot | `aria-pressed="true"`; Android gets a 12 ms vibration on press (iOS has no web vibration) |
-| Released / processing | `sending` | glass orb, a ring runs round it | **Sending…** | until the transcript arrives |
-| Blocked | `blocked` | flat, dashed rim, no halo, `disabled` | **Wait: the other person is speaking** / **Wait: the translation is playing** | `blocked` = `other_speaking` / `voice_playing` |
-| Read-back answer | `idle` + `data-purpose="answer"` | ochre halo ring | **Hold to answer** | when a read-back for this device is open |
-| Hands-free | `data-mode="handsfree"` | today's tap toggle; live = gradient fill | **Listening** / **Tap to speak** | the switch (`role="switch"`, `aria-checked`) flips modes |
+| State | `data-state` | Orb | Label |
+|---|---|---|---|
+| Idle (hold) | `idle` | limewash orb, walnut mic, 6 px white halo | **Hold to talk**; desktop adds "On a keyboard, hold [Space]" (hidden on touch) |
+| Held | `live` | walnut fill, white mic, scaled to 0.95 under the thumb, rings grow with the level | **Release to send** with a green breathing dot; `aria-pressed="true"`; 12 ms vibration on Android |
+| Sending | `sending` | a white ring runs round the orb | **Sending…** |
+| Blocked | `blocked` | flat white-14% fill, 2 px dashed white outline, no rings, `disabled` | **Wait: the other person is speaking** / **Wait: the translation is playing** |
+| Read-back answer | `idle` + `data-purpose="answer"` | daylight ring (sun at 85%) | **Hold to answer** |
+| Hands-free | `data-mode="handsfree"` | tap toggle; live = walnut | **Listening** / **Tap to speak**; the switch (`role="switch"`, `aria-checked`) flips modes |
 
-Touch: `touch-action: none` and no callout or selection on the held orb, pointer capture so a sliding thumb still releases correctly. The orb plus its stage is a 108 px target, centred in the dock for either thumb. Errors keep the existing "The microphone is blocked…" label.
+Touch: `touch-action: none`, no callout or selection, pointer capture so a sliding thumb still releases. The orb plus its stage is a 100 px target. Errors keep "The microphone is blocked…".
+
+### Fact chips
+A small sheet pinned under the sentence (4 px corners): the value on top in the figure face (1.125rem, 760), its kind below (0.75rem label), a 3 px state line along its foot that draws from the start edge in 240 ms. **Solid green** = checked, **dashed** = checking, **dotted amber** = unsure. **Mismatch** (`.cloud`): the one chip that interrupts: 2 px red rim, red wash, said ≠ translated, the wrong value struck through, a small shake on entry (420 ms).
+
+### Fact notes and read-back
+- **Fact notes** (`.fnote`, the professional's phone): pills on the sheet. Confirmed = green rim and tick; unconfirmed = dashed amber rim, dotted ring and the word "unconfirmed"; answered no = red rim and cross.
+- **Read-back** (`.rb`): never a modal; a sheet in the conversation lifted one step (the interruption depth). Unsure = 2 px dashed amber rim; mismatch = solid red rim. The question at ramp-1, max 34ch; Yes (green outline) and No (red outline) at 44 px; "Just say yes or no" when the box spoke it. While it is open the hero's fact chips step aside. Answered: it settles to one quiet line ("Confirmed · spoken").
+
+### Header status pill
+Outlined pill, 32 px, on the sheet fill. **Live** = green text and rim with a pulsing dot; **Reconnecting…** = amber with a spinning ring; **Offline** = red; off the record dims the plate and cells to 55%.
 
 ### Banners
-Glass toasts with a leading dot in the tone: neutral, warn (ochre), bad (red), reconnect (spinning ring), off the record (grey).
+A sheet pinned under the header (6 px corners, sheet shadow) with a 9 px leading dot in its pen: neutral, warn (amber wash), bad (red wash), reconnect (spinning ring), off the record (recessed wall, no shadow).
 
 ### Buttons
-Primary: Berliner Blau gradient, 52 px, 12 px corners, inner highlight, soft blue shadow; hover brightens. Ghost: glass. Bad / ok-line: glass with a 1.5 px rim in the pen.
+- **Shape:** gently squared (6 px), 52 px tall (60 px large, 44 px small).
+- **Primary:** walnut fill, limewash text, 700 weight 1.0625rem; hover deepens to `brand-2`; press moves 1 px down.
+- **Ghost:** sheet fill, `rule-strong` edge; hover to recessed wall.
+- **On the dado:** limewash fill with walnut text (`.btn--wall`); hover to white.
+- **Bad / ok-line:** sheet fill with a 1.5 px rim and text in the pen; hover adds the pen's wash.
+- **Focus:** 2.5 px cobalt outline, 3 px offset; white on the dado.
+
+### Segmented choice (audio route, Join)
+Two 72 px tiles on the recessed wall with a square radio mark. Selected: the tile becomes a sheet with a 2 px ink inset ring and the sheet shadow; the square fills with the room's paint.
 
 ### Summary and the burn
-The summary is one glass pane. The burn erases section by section and stamps "Key destroyed" (unchanged behaviour and markup).
+The summary is one sheet. The burn erases section by section and stamps "Key destroyed" in plate capitals, rotated −4° with a red double rim (460 ms).
 
 ### Motion
-One easing, cubic-bezier(0.16, 1, 0.3, 1). Turns enter 6 px up in 240 ms; sheets rise in 280 ms; the frost clears in 280 ms; the live dot pulses; the state line draws in 220 ms. Under `prefers-reduced-motion` every animation and transition is cut to 1 ms.
+One easing, `cubic-bezier(0.22, 1, 0.36, 1)`. Quick state 160 ms; lines draw 240 ms; Lichtfall 420 ms with a 460 ms sweep: the light falls slower than anything else moves. Turns enter 8 px up in 300 ms and then never move. Sheets rise 28 px in 340 ms. Under `prefers-reduced-motion` every animation and transition is cut to 1 ms.
 
 ## Do's and Don'ts
 
-**Do**
-- Put text on `--glass-strong` when it is read for long; keep the solid fallback.
-- Name every state in words beside its line type and colour.
-- Keep the chrome English and the content in each person's language; give every content element its own `lang` and `dir`.
-- Use the speaker plate on every turn so the reader always knows who spoke.
+### Do:
+- **Do** put every action surface on the dado, below a 4 px walnut Begleitstrich, painted in the room's paint.
+- **Do** keep text people read for long on a sheet (6 px corners, sheet shadow), and drafts in the shade with no shadow.
+- **Do** mark draft → final with Lichtfall: 420 ms state change, one 460 ms daylight sweep, resting light.
+- **Do** name every state in words beside its line type and colour.
+- **Do** keep the chrome English and the content in each person's language, each content element with its own `lang` and `dir`.
+- **Do** put the speaker plate on every turn so the reader always knows who spoke.
+- **Do** set figures, ids and timings in Sofia Sans Semi Condensed with tabular figures.
 
-**Don't**
-- Blur text, or put body text directly on the field without a pane in dark mode.
-- Stack panes inside panes (one level: a chip inside a pane is fine, a pane inside a pane is not).
-- Use colour alone for verified / unsure / mismatch.
-- Load fonts or assets from a third party; the privacy meter must stay at zero.
+### Don't:
+- **Don't** use blur, translucency or glass; a sheet is solid.
+- **Don't** add a depth beyond wall, sheet and lifted sheet, or nest a shadowed sheet inside another.
+- **Don't** spread a room's paint above the line onto sheets or text blocks, or let a pen stand in for a paint.
+- **Don't** blur or fade draft text for effect; legibility first.
+- **Don't** move a turn once it is placed; only its words change.
+- **Don't** use colour alone for checked / unsure / mismatch.
+- **Don't** load fonts or assets from a third party; the privacy meter must stay at zero.

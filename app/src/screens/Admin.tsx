@@ -347,7 +347,7 @@ function RoomSheet({
   const roleLabel = (p: Device) =>
     mode && (p.role === "a" || p.role === "b") ? pick(mode.roles[p.role].label, UI) : p.role === "observer" ? "Observer" : p.role;
   return (
-    <article className={`aroom ${r.status === "burned" ? "is-burned" : ""}`}>
+    <article className={`aroom room--${r.mode} ${r.status === "burned" ? "is-burned" : ""}`}>
       <header className="aroom__head">
         <span className="aroom__mode">
           <Hatch mode={r.mode} size={20} />

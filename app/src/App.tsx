@@ -7,6 +7,7 @@ const Summary = lazy(() => import("./screens/Summary"));
 const Table = lazy(() => import("./screens/Table"));
 const Admin = lazy(() => import("./screens/Admin"));
 const Home = lazy(() => import("./screens/Home"));
+const Landing = lazy(() => import("./screens/Landing"));
 const Listen = lazy(() => import("./screens/Listen"));
 
 function JoinShort() {
@@ -19,7 +20,8 @@ export default function App() {
     <BrowserRouter>
       <Suspense fallback={null}>
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<Landing />} />
+          <Route path="/start" element={<Home />} />
           <Route path="/j/:room" element={<Join />} />
           <Route path="/r/:room" element={<Talk />} />
           <Route path="/r/:room/summary" element={<Summary />} />

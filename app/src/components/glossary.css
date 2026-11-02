@@ -1,4 +1,4 @@
-/* N-02 glossary upload: a technical panel on the sheet. Hairlines, mono lettering, no cards. */
+/* N-02 glossary upload: hairlines and tabular figures on a sheet, no cards inside cards. */
 .gloss {
   display: grid;
   gap: var(--s-3);
@@ -9,11 +9,8 @@
   gap: var(--s-1);
 }
 .gloss__h {
-  font-family: var(--font-label);
-  font-size: 0.8125rem;
-  font-weight: 700;
-  letter-spacing: var(--label-track);
-  text-transform: var(--label-case);
+  font-size: 0.875rem;
+  font-weight: 750;
   color: var(--ink);
   padding-bottom: var(--s-1);
   border-bottom: var(--line) solid var(--rule-strong);
@@ -38,24 +35,26 @@
   min-height: 56px;
   padding: 0 var(--s-2);
   border: 0;
+  border-radius: var(--radius);
   background: none;
   color: var(--ink);
   font-size: 1.125rem;
   font-weight: 600;
   text-align: start;
+  transition: background var(--t-quick) var(--ease-out);
 }
 .gloss__row .icon {
-  color: var(--link);
+  color: var(--ink-2);
 }
 .gloss__count {
   margin-inline-start: auto;
   font-size: var(--label);
-  font-weight: 560;
+  font-weight: 600;
   color: var(--ink-3);
 }
 @media (hover: hover) {
   .gloss__row:hover {
-    background: var(--paper-2);
+    background: var(--wall-2);
   }
 }
 .gloss--compact {
@@ -68,27 +67,21 @@
 
 .gloss__error {
   color: var(--bad);
-  font-weight: 600;
+  font-weight: 650;
   max-width: 60ch;
 }
 
 .gloss__result {
   display: grid;
   gap: var(--s-2);
-  animation: gloss-in 200ms var(--ease-out) both;
-}
-@keyframes gloss-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
+  animation: turn-in 220ms var(--ease-out) both;
 }
 .gloss__sum {
   display: flex;
   flex-wrap: wrap;
   gap: var(--s-1) var(--s-4);
   font-size: 0.875rem;
-  font-weight: 650;
+  font-weight: 700;
   color: var(--ink);
 }
 .gloss__state {
@@ -97,13 +90,13 @@
   max-width: 60ch;
 }
 
-/* the uploaded terms, lettered like a schedule on the drawing */
 .gloss__table {
   overflow-x: auto;
-  padding: var(--s-3) var(--s-4);
-  background: var(--paper-2);
+  padding: var(--s-2) var(--s-4);
+  background: var(--sheet);
   border: var(--line) solid var(--rule);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sheet);
 }
 .gloss__table table {
   border-collapse: collapse;
@@ -113,20 +106,18 @@
 .gloss__table th,
 .gloss__table td {
   text-align: start;
-  padding: 6px var(--s-3) 6px 0;
+  padding: 8px var(--s-3) 8px 0;
   border-bottom: var(--line) solid var(--rule);
   vertical-align: top;
 }
 .gloss__table thead th {
-  font-family: var(--font-label);
   font-size: var(--label);
-  font-weight: 600;
-  letter-spacing: var(--label-track);
+  font-weight: 650;
   color: var(--ink-3);
-  border-bottom-color: var(--ink-3);
+  border-bottom: var(--line-2) solid var(--strich);
 }
 .gloss__table tbody th {
-  font-weight: 650;
+  font-weight: 700;
   color: var(--ink);
 }
 .gloss__table td {
@@ -149,6 +140,8 @@
 .gloss__format summary {
   cursor: pointer;
   width: max-content;
+  font-weight: 650;
+  color: var(--link);
 }
 .gloss__format p {
   margin-top: var(--s-2);
@@ -157,10 +150,12 @@
 .gloss__format pre {
   margin: var(--s-2) 0 0;
   padding: var(--s-2) var(--s-3);
+  font-family: var(--font-figure);
   font-size: 0.8125rem;
   line-height: 1.5;
-  background: var(--paper-2);
-  border-inline-start: var(--line-2) solid var(--rule-strong);
+  background: var(--wall-2);
+  border: var(--line) solid var(--rule);
+  border-radius: var(--radius-sm);
   overflow-x: auto;
   white-space: pre;
 }

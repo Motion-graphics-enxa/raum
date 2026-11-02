@@ -1,0 +1,36 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Sofia+Sans:wght@400;600;700;800&family=Sofia+Sans+Extra+Condensed:wght@800;900&family=Noto+Sans+Arabic:wght@500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}html,body{width:1440px;height:900px;overflow:hidden}
+body{background:#f4f4f1;color:#211b17;font-family:"Sofia Sans";position:relative}
+nav{display:flex;align-items:center;gap:36px;padding:28px 64px}
+.w{font-family:"Sofia Sans Extra Condensed";font-weight:900;font-size:40px;letter-spacing:.02em}
+nav a{font-weight:700;font-size:16px;color:#211b17;text-decoration:none}
+nav .sp{flex:1}
+.btn{background:#211b17;color:#f4f4f1;font-weight:800;padding:14px 22px;border-radius:6px}
+.stage{position:absolute;left:64px;right:64px;top:118px;height:470px;border-radius:6px;overflow:hidden;background:#fcfcfa;box-shadow:0 20px 40px -24px rgba(74,52,30,.4);padding:40px 48px}
+.stage::before{content:"";position:absolute;inset:0;background:linear-gradient(112deg,rgba(255,224,168,.7),rgba(255,224,168,.3) 40%,transparent 75%)}
+.row{position:relative;display:flex;gap:10px;align-items:center}
+.plate{background:#5d7350;color:#fff;font-weight:800;font-size:15px;padding:6px 14px;border-radius:99px}
+.mis{border:2px solid #b4231b;color:#b4231b;font-weight:800;font-size:15px;padding:5px 14px;border-radius:99px}
+.de{position:relative;font-size:58px;font-weight:800;line-height:1.08;letter-spacing:-.02em;margin-top:22px;max-width:1100px}
+.de em{font-style:normal;background:linear-gradient(transparent 78%,rgba(180,35,27,.25) 78%)}
+.ar{position:relative;font-family:"Noto Sans Arabic";font-size:34px;font-weight:600;direction:rtl;text-align:right;margin-top:26px;color:#4d443d}
+.ar s{color:#b4231b}.ar b{color:#1d6b3a}
+.stages{position:relative;display:flex;gap:0;margin-top:34px;border-top:1px solid rgba(33,27,23,.2)}
+.stages span{flex:1;padding:12px 0 0;font-size:14px;font-weight:700;color:#6b6158}
+.stages span.on{color:#b4231b;border-top:3px solid #b4231b;margin-top:-2px}
+.dado{position:absolute;left:0;right:0;bottom:0;height:270px;background:#5d7350;border-top:4px solid #211b17;color:#fff;padding:70px 64px 0;display:flex;align-items:flex-start;gap:60px}
+.dado h1{font-family:"Sofia Sans Extra Condensed";font-weight:900;font-size:84px;line-height:.86;text-transform:uppercase}
+.dado p{font-size:20px;max-width:440px;margin-top:8px;color:rgba(255,255,255,.88)}
+.go{margin-left:auto;background:#f4f4f1;color:#211b17;font-weight:800;font-size:19px;padding:20px 30px;border-radius:6px}
+</style></head><body>
+<nav><span class="w">RAUM</span><span class="sp"></span><a>How it checks</a><a>The rooms</a><a>Privacy</a><span class="btn">Open a room</span></nav>
+<div class="stage">
+ <div class="row"><span class="plate">● Doctor · German</span><span class="mis">⚠ Mismatch caught · 12 ≠ 13</span></div>
+ <p class="de">„Kommen Sie am Donnerstag, dem <em>12. November</em>, um 9 Uhr wieder.“</p>
+ <p class="ar" lang="ar">عودي يوم الخميس، <s>13</s> <b>12</b> نوفمبر، الساعة 9.</p>
+ <div class="stages"><span>Heard</span><span>Cleaned</span><span>Transcribed</span><span>Translated</span><span class="on">Checked</span><span>Spoken</span><span>Summarised</span><span>Burned</span></div>
+</div>
+<div class="dado"><h1>Any AI can translate.<br>RAUM checks.</h1><p>A private interpreter that lives in the room. Every number, date and dose is checked twice. Nothing leaves the box.</p><span class="go">Open a room →</span></div>
+</body></html>

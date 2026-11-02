@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Sofia+Sans:wght@400;500;600;700;800&family=Sofia+Sans+Extra+Condensed:wght@600;700;800&family=Noto+Sans+Arabic:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:390px;height:844px;overflow:hidden}
+body{background:#f4f4f1;color:#211b17;font-family:"Sofia Sans",system-ui,sans-serif;position:relative}
+.top{padding:18px 18px 14px;display:flex;align-items:flex-start;gap:12px}
+.plate{flex:1}
+.plate h1{font-family:"Sofia Sans Extra Condensed";font-weight:800;font-size:34px;line-height:.9;letter-spacing:.01em;text-transform:uppercase}
+.plate p{font-size:13px;font-weight:600;color:#5d544c;margin-top:5px}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;padding:6px 10px;border:1.5px solid #1e7a43;color:#1e6b3c;border-radius:999px}
+.live i{width:8px;height:8px;border-radius:50%;background:#1e8a47}
+.menu{width:40px;height:40px;border-radius:12px;border:1.5px solid #cfd3d2;display:grid;place-items:center}
+.menu b{display:block;width:16px;height:2px;background:#211b17;box-shadow:0 5px 0 #211b17,0 -5px 0 #211b17}
+.lang{margin:0 18px;display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #d8dad8;border-bottom:1px solid #d8dad8}
+.lang div{padding:10px 0;font-size:13px;color:#5d544c;font-weight:600}
+.lang div+div{padding-left:14px;border-left:1px solid #d8dad8}
+.lang strong{display:block;color:#211b17;font-size:15px;font-weight:700}
+.old{padding:16px 18px 0}
+.who{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#5d544c}
+.who.you::before{content:"";width:8px;height:8px;border-radius:50%;border:1.5px solid #5d544c}
+.old p{font-size:17px;line-height:1.4;margin-top:6px;color:#3b342e}
+.old small{display:block;margin-top:4px;font-size:13px;color:#6d645c}
+.sun{margin:16px 12px 0;padding:18px 18px 16px;border-radius:6px;position:relative;overflow:hidden;
+ background:linear-gradient(118deg,rgba(255,236,196,.95) 0%,rgba(255,243,219,.9) 46%,rgba(250,247,240,.7) 64%,#f4f4f1 100%);
+ box-shadow:0 1px 0 rgba(33,27,23,.06),0 18px 40px -24px rgba(122,86,30,.45)}
+.sun::before,.sun::after{content:"";position:absolute;background:rgba(150,118,70,.10)}
+.sun::before{left:47%;top:0;bottom:0;width:7px;transform:skewX(-14deg)}
+.sun::after{left:0;right:0;top:44%;height:7px}
+.row{display:flex;justify-content:space-between;align-items:center;position:relative;z-index:1}
+.them{display:inline-flex;align-items:center;gap:7px;background:#7b8f63;color:#fff;font-size:13px;font-weight:700;padding:5px 11px;border-radius:999px}
+.them::before{content:"";width:7px;height:7px;border-radius:50%;background:#fff}
+.ok{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#17663a}
+.ok svg{width:16px;height:16px}
+.hero{position:relative;z-index:1;font-size:31px;line-height:1.2;font-weight:700;letter-spacing:-.01em;margin-top:14px}
+.src{position:relative;z-index:1;font-family:"Noto Sans Arabic";font-size:16px;color:#5d544c;margin-top:10px;text-align:right}
+.facts{position:relative;z-index:1;display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.chip{background:#fff;border-radius:10px;padding:7px 11px 6px;border-bottom:3px solid #1e8a47;box-shadow:0 1px 2px rgba(33,27,23,.08)}
+.chip b{display:block;font-size:17px;font-weight:800}
+.chip span{font-size:12px;font-weight:600;color:#6d645c}
+.dado{position:absolute;left:0;right:0;bottom:0;height:196px;background:#7b8f63;border-top:4px solid #211b17}
+.dado::before{content:"";position:absolute;left:0;right:0;top:4px;height:1px;background:rgba(255,255,255,.25)}
+.dock{position:absolute;left:0;right:0;bottom:30px;display:flex;justify-content:space-around;align-items:center}
+.side{display:flex;flex-direction:column;align-items:center;gap:6px;color:#fff;font-size:13px;font-weight:700}
+.side i{width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.16);border:1.5px solid rgba(255,255,255,.45)}
+.orb{display:flex;flex-direction:column;align-items:center;gap:8px;color:#fff;font-size:14px;font-weight:700}
+.orb i{width:92px;height:92px;border-radius:50%;background:#f4f4f1;box-shadow:0 0 0 10px rgba(255,255,255,.14),0 0 0 22px rgba(255,255,255,.07),0 10px 24px rgba(0,0,0,.25);display:grid;place-items:center}
+.orb i::after{content:"";width:18px;height:30px;border-radius:9px;background:#211b17}
+</style></head><body>
+<div class="top">
+  <div class="plate"><h1>Consultation room</h1><p>Sprechzimmer · SZ-7921</p></div>
+  <span class="live"><i></i>Live</span><span class="menu"><b></b></span>
+</div>
+<div class="lang"><div>You speak<strong>German</strong></div><div>Patient speaks<strong>Arabic</strong></div></div>
+<div class="old"><span class="who you">You said · 14:58</span><p>Good day. What brings you here today?</p><small>✓ Checked · arrived</small></div>
+<div class="sun">
+  <div class="row"><span class="them">Patient</span><span class="ok"><svg viewBox="0 0 16 16"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="#17663a" stroke-width="2.2" stroke-linecap="round"/></svg>Checked</span></div>
+  <p class="hero">I take 500 mg Metformin twice a day, and I am allergic to penicillin.</p>
+  <p class="src" dir="rtl" lang="ar">أتناول ٥٠٠ ملغ من الميتفورمين مرتين يوميًا، وعندي حساسية من البنسلين.</p>
+  <div class="facts"><span class="chip"><b>500 mg</b><span>Dose</span></span><span class="chip"><b>2× a day</b><span>Frequency</span></span><span class="chip"><b>Penicillin</b><span>Allergy</span></span></div>
+</div>
+<div class="dado"></div>
+<div class="dock">
+  <span class="side"><i></i>Repeat</span>
+  <span class="orb"><i></i>Tap to speak</span>
+  <span class="side"><i></i>End</span>
+</div>
+</body></html>

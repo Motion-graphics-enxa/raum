@@ -4,7 +4,7 @@
   "description": "A private AI interpreter that lives in the room. Translates. Checks. Forgets.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f6f9fb",
-  "theme_color": "#0d3a61",
+  "background_color": "#f4f4f1",
+  "theme_color": "#f4f4f1",
   "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
 }

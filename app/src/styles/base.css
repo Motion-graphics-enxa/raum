@@ -1,4 +1,5 @@
 @import "./tokens.css";
+@import "./spectacle.css";
 
 *,
 *::before,
@@ -9,75 +10,80 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  background: var(--paper);
+  background: var(--wall);
 }
 
 body {
   margin: 0;
   min-height: 100dvh;
-  background: var(--paper);
+  background: var(--wall);
   isolation: isolate;
   color: var(--ink);
   font-family: var(--font-text);
   font-size: 1rem;
   line-height: 1.5;
+  font-weight: 450;
   font-optical-sizing: auto;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   font-variant-numeric: tabular-nums;
-  caret-color: var(--link);
+  font-feature-settings: "tnum", "case";
+  caret-color: var(--paint);
 }
 
 #root {
   min-height: 100dvh;
 }
 
-/* the room behind the glass: a fixed light field (a pseudo-element, so iOS does not repaint it on scroll) */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  background: var(--field);
-  pointer-events: none;
+/* ---------------------------------------------------------------- sheets on the wall */
+/* .pane: a sheet. Solid fill, a hairline edge, one soft offset shadow. No blur anywhere. */
+.pane {
+  background: var(--sheet);
+  border: var(--line) solid var(--rule);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sheet);
 }
 
-/* ---------------------------------------------------------------- glass panes */
-/* .pane: frosted glass. Fill + 1px light rim + inner top highlight + soft offset shadow.
-   Without backdrop-filter the fill turns solid, so text contrast never depends on the blur. */
-.pane {
-  background: var(--glass);
-  border: var(--line) solid var(--glass-rim);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--glass-hi), 0 0 0 1px var(--glass-edge), var(--shadow-pane);
-  -webkit-backdrop-filter: var(--blur);
-  backdrop-filter: var(--blur);
-}
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  :root {
-    --glass: var(--glass-solid);
-    --glass-strong: var(--glass-solid-strong);
-  }
-}
-@media (prefers-reduced-transparency: reduce) {
-  :root {
-    --glass: var(--glass-solid);
-    --glass-strong: var(--glass-solid-strong);
-  }
+/* the dado: the room's oil paint under the Begleitstrich, with a faint sheen along its top */
+.dado {
+  position: relative;
+  background: var(--paint);
+  color: var(--paint-ink);
+  border-top: var(--strich-w) solid var(--strich);
+  box-shadow: inset 0 1px 0 var(--paint-sheen);
 }
 
 ::selection {
-  background: color-mix(in oklab, var(--link) 28%, transparent);
-  color: var(--ink);
+  background: rgb(var(--sun) / 0.75);
+  color: #211b17;
 }
 
 :focus-visible {
   outline: 2.5px solid var(--focus);
   outline-offset: 3px;
+  border-radius: 4px;
+}
+.dado :focus-visible,
+.dock :focus-visible {
+  outline-color: #fff;
 }
 
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--rule-strong) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--rule-strong);
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 button,
@@ -99,8 +105,11 @@ button:disabled {
 
 a {
   color: var(--link);
-  text-underline-offset: 0.18em;
+  text-underline-offset: 0.2em;
   text-decoration-thickness: 1px;
+}
+a:hover {
+  text-decoration-thickness: 2px;
 }
 
 h1,
@@ -115,11 +124,17 @@ p {
   text-wrap: pretty;
 }
 
-.mono {
-  font-family: var(--font-mono);
+kbd {
+  font-family: var(--font-figure);
 }
 
-/* Labels: sentence-case words that name the value next to them. Figures stay in .mono. */
+.mono {
+  font-family: var(--font-figure);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+/* Labels: sentence-case words that name the value next to them. */
 .label {
   font-family: var(--font-label);
   font-size: var(--label);
@@ -129,10 +144,20 @@ p {
   color: var(--ink-2);
 }
 
+/* the enamel door plate: condensed capitals for room names, the wordmark and big figures */
+.plate-type {
+  font-family: var(--font-display);
+  font-weight: 760;
+  text-transform: uppercase;
+  letter-spacing: 0.015em;
+  line-height: 0.92;
+}
+
 :lang(ar),
 :lang(fa),
 :lang(ur) {
   letter-spacing: 0 !important;
+  text-transform: none !important;
 }
 
 .visually-hidden {
@@ -147,58 +172,66 @@ p {
 /* ---------------------------------------------------------------- controls */
 
 .btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--s-2);
   min-height: 52px;
   padding: 0 var(--s-5);
-  border: var(--line) solid rgb(255 255 255 / 0.18);
+  border: var(--line) solid var(--brand);
   border-radius: var(--radius);
-  background: var(--brand-grad);
+  background: var(--brand);
   color: var(--brand-ink);
-  font-weight: 650;
+  font-weight: 700;
   font-size: 1.0625rem;
   letter-spacing: 0.005em;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.22), 0 8px 20px -8px rgb(13 58 97 / 0.6);
-  transition: filter 140ms var(--ease-out), background 140ms var(--ease-out), border-color 140ms var(--ease-out),
-    transform 120ms var(--ease-out);
+  box-shadow: 0 1px 0 rgb(0 0 0 / 0.04), 0 10px 22px -14px rgb(33 27 23 / 0.7);
+  transition: background var(--t-quick) var(--ease-out), border-color var(--t-quick) var(--ease-out),
+    color var(--t-quick) var(--ease-out), transform 120ms var(--ease-out), box-shadow var(--t-quick) var(--ease-out);
 }
 @media (hover: hover) {
-  .btn:hover {
-    filter: brightness(1.08);
+  .btn:hover:not(:disabled) {
+    background: var(--brand-2);
+    border-color: var(--brand-2);
+    box-shadow: 0 1px 0 rgb(0 0 0 / 0.04), 0 14px 26px -14px rgb(33 27 23 / 0.8);
   }
-  .btn--ghost:hover {
-    background: var(--glass-strong);
+  .btn--ghost:hover:not(:disabled) {
+    background: var(--wall-2);
     border-color: var(--rule-strong);
+    box-shadow: none;
   }
-  .btn--bad:hover {
+  .btn--bad:hover:not(:disabled) {
     background: var(--bad-wash);
     border-color: var(--bad);
+    box-shadow: none;
+  }
+  .btn--ok-line:hover:not(:disabled) {
+    background: var(--ok-wash);
+    border-color: var(--ok);
+    box-shadow: none;
   }
 }
-.btn:active {
+.btn:active:not(:disabled) {
   transform: translateY(1px);
 }
 .btn:disabled {
-  opacity: 0.55;
+  opacity: 0.5;
+  box-shadow: none;
 }
 .btn--ghost {
-  background: var(--glass);
+  background: var(--sheet);
   color: var(--ink);
-  border-color: var(--rule);
-  box-shadow: var(--glass-hi);
-  -webkit-backdrop-filter: var(--blur);
-  backdrop-filter: var(--blur);
+  border-color: var(--rule-strong);
+  box-shadow: none;
 }
 .btn--ok {
   background: var(--ok);
   border-color: var(--ok);
   color: #fff;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.2);
 }
 .btn--bad {
-  background: var(--glass);
+  background: var(--sheet);
   color: var(--bad);
   border: 1.5px solid currentColor;
   box-shadow: none;
@@ -209,34 +242,49 @@ p {
 /* the read-back's answers: a quiet second way beside the spoken yes/no, still a full touch target */
 .btn--sm {
   min-height: 44px;
-  min-width: 76px;
+  min-width: 80px;
   padding: 0 var(--s-4);
   font-size: 1rem;
 }
 .btn--ok-line {
-  background: var(--glass);
+  background: var(--sheet);
   color: var(--ok);
   border: 1.5px solid currentColor;
   box-shadow: none;
-}
-@media (hover: hover) {
-  .btn--ok-line:hover {
-    background: var(--ok-wash);
-    border-color: var(--ok);
-  }
 }
 .btn--lg {
   min-height: 60px;
   font-size: 1.1875rem;
 }
+/* on the dado the primary action is limewash with walnut ink */
+.btn--wall {
+  background: var(--wall);
+  border-color: var(--wall);
+  color: #211b17;
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.5) inset, 0 12px 24px -14px rgb(0 0 0 / 0.55);
+}
+@media (hover: hover) {
+  .btn--wall:hover:not(:disabled) {
+    background: #ffffff;
+    border-color: #ffffff;
+  }
+}
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .btn--ok {
-    color: #06281a;
+    color: #0d2716;
+  }
+  :root:not([data-theme="light"]) .btn--wall {
+    background: #f3efe8;
+    border-color: #f3efe8;
   }
 }
 :root[data-theme="dark"] .btn--ok {
-  color: #06281a;
+  color: #0d2716;
+}
+:root[data-theme="dark"] .btn--wall {
+  background: #f3efe8;
+  border-color: #f3efe8;
 }
 
 .icon {
@@ -250,12 +298,53 @@ p {
   stroke-linejoin: round;
 }
 
+/* ---------------------------------------------------------------- shared motion */
+@keyframes turn-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes sheet-up {
+  from {
+    transform: translateY(28px);
+    opacity: 0;
+  }
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes breathe {
+  50% {
+    opacity: 0.25;
+  }
+}
+/* the Begleitstrich is drawn once when a room opens, then the paint fills below it */
+@keyframes strich-draw {
+  from {
+    transform: scaleX(0);
+  }
+}
+@keyframes paint-rise {
+  from {
+    clip-path: inset(100% 0 0 0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 1ms !important;
     animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
     transition-duration: 1ms !important;
   }
 }
@@ -263,8 +352,9 @@ p {
 /* ---------------------------------------------------------------- print (summary) */
 @media print {
   :root {
-    --paper: #fff;
-    --paper-2: #fff;
+    --wall: #fff;
+    --wall-2: #fff;
+    --sheet: #fff;
     --ink: #000;
     --ink-2: #222;
     --ink-3: #444;
@@ -272,15 +362,16 @@ p {
   .no-print {
     display: none !important;
   }
-  body::before {
-    display: none;
+  .pane,
+  .sheet {
+    box-shadow: none !important;
   }
 }
 
 .qr {
   display: block;
-  border: 8px solid #fff;
-  border-radius: var(--radius);
-  box-shadow: 0 0 0 1px var(--glass-edge);
+  border: 10px solid #fff;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 1px var(--rule), var(--shadow-sheet);
   image-rendering: pixelated;
 }
