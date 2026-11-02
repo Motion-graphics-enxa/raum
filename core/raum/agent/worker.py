@@ -278,7 +278,7 @@ class RoomAgent:
                     x = int16_to_float(frame.data)
                     t = time.perf_counter()
                     y = denoise.process(x, 48000)
-                    ms = (time.perf_counter() - t) * 1000.0 * (len(x) / 4800.0)  # per 100 ms of audio
+                    ms = (time.perf_counter() - t) * 1000.0 * (4800.0 / len(x))  # per 100 ms of audio
                     avg = ms if avg is None else 0.9 * avg + 0.1 * ms
                     self.pipeline.denoise_ms[identity] = avg
                     z = resampler.resample_chunk(y)  # type: ignore[union-attr]

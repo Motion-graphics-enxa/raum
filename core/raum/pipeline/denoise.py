@@ -51,6 +51,9 @@ class DeepFilterNetDenoiser:
 
     def __init__(self, options: dict[str, Any] | None = None) -> None:
         _shim_torchaudio_backend()
+        import torch  # type: ignore[import-not-found]
+
+        torch.set_num_threads(int((options or {}).get("threads", 1)))  # many threads stall the agent loop
         from df.enhance import enhance, init_df  # type: ignore[import-not-found]
 
         self.options = options or {}

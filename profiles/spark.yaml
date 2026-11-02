@@ -2,7 +2,7 @@
 profile: spark
 models:
   vad:       { engine: silero, options: { min_silence_duration: 0.3, activation_threshold: 0.5 } }
-  denoise:   { engine: deepfilternet, options: { onnx: true } }
+  denoise:   { engine: passthrough }   # DeepFilterNet blocks the agent loop per frame: redesign pending (threaded 200 ms blocks)
   asr:       { engine: whisper.cpp, url: http://127.0.0.1:8081, model: large-v3-turbo, options: { partial_every_ms: 500 } }
   translate: { engine: ollama, url: http://127.0.0.1:11434, model: gemma4:26b, options: { think: false, temperature: 0.1, num_predict: 256, num_ctx: 8192 } }
   verify:    { engine: ollama, url: http://127.0.0.1:11434, model: gpt-oss:120b, options: { reasoning: low, num_predict: 256 } }
