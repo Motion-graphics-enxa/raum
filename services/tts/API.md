@@ -6,7 +6,8 @@ The service runs on the GX10, box-local only: `http://127.0.0.1:8090`. It is not
 - **Languages:** 23 — ar, da, de, el, en, es, fi, fr, he, hi, it, ja, ko, ms, nl, no, pl, pt, ru, sv, sw, tr, zh. RAUM uses de, en, ru, tr, ar.
 - **Output:** raw PCM, s16le, mono, **24000 Hz**, sent as a chunked HTTP body.
 - **Privacy:** voices are held in process memory only. Nothing is written to disk, and logs record lengths and timings but no text.
-- **Process:** container `raum-tts-svc` (NGC pytorch 26.07 image, host network, bound to 127.0.0.1 only). Code is in `runtime/raum-tts/src/` (`server.py`, `admission.py`, `cb_engine.py`, `textnorm.py`), and weights are in `runtime/raum-tts/hf-cache/`. The service runs offline.
+- **Process:** container `raum-tts-svc` (NGC pytorch 26.07 image, host network, bound to 127.0.0.1 only). Code is in `runtime/raum-tts/src/` (`server.py`, `admission.py`, `edges.py`, `cb_engine.py`, `textnorm.py`), and weights are in `runtime/raum-tts/hf-cache/`. The service runs offline; the zh segmenter's model (spacy-pkuseg, 34 MB) is mounted from `runtime/raum-tts/pkuseg/` (v1.4), so a fresh container no longer downloads it from github.com.
+  - A second instance (v1.4) runs on `:8091` in container `raum-tts-svc-8091`: `PORT=8091 start.sh` (and `PORT=8091` for `stop.sh`, `status.sh`, `watchdog.sh`). It has its own GPU queue, voices and counters; RAUM spreads clauses over both (`options.urls`, see [Several instances](#several-instances-v14)).
   - Start: `~/Desktop/HackathonRaum/runtime/raum-tts/start.sh`. It refuses to start unless 14 GB is available, and it also starts the memory guard.
   - Stop: `~/Desktop/HackathonRaum/runtime/raum-tts/stop.sh`. This stops the guard too and frees the memory.
   - Status and logs: `~/Desktop/HackathonRaum/runtime/raum-tts/status.sh [lines]`, or `docker logs -f raum-tts-svc`.
@@ -19,18 +20,19 @@ The service runs on the GX10, box-local only: `http://127.0.0.1:8090`. It is not
   - Headers are sent together with the first audio chunk. Every failure before audio is therefore an HTTP error, never an empty `200`, and RAUM speaks that clause with Piper.
   - A client that hangs up cancels its job within one token step (about 20 ms).
   - **Priorities (v1.3):** a request is `live` (the default) or `background` (a speculative clause). Background requests are never queued and never delay a live one. See [Priorities](#priorities-v13) below.
+- **Edges (v1.4):** the silence Chatterbox puts at both ends of every request is trimmed while streaming. See [Edges](#edges-v14) below.
 - **Caps per request:**
   - **Audio:** at most `min(2.5 s + 0.12 s × chars × script factor, 20 s)` for `/tts`. The script factor is ar 1.4 and ru/tr 1.15; `/v1/speak` is capped at 60 s.
   - **Wall clock:** at most 2 s + 1.5 × the audio produced so far, and at most 2 s + 1.5 × the audio cap.
   - **No audio within 3 s:** `503`.
   - On a cap the stream ends cleanly and the log says `cap hit`.
-- **`/health`** is async and answers even while the GPU is busy. It reports `busy`, `busy_for_s`, `busy_limit_s` (the current job's wall cap), `busy_priority` (`live`, `background` or null), `waiting` (live requests waiting; background requests never wait), `bg_max_chars` and `counters` (done, cap_hit, client_gone, rejected_*, preempted, bg_rejected_*).
+- **`/health`** is async and answers even while the GPU is busy. It reports `busy`, `busy_for_s`, `busy_limit_s` (the current job's wall cap), `busy_priority` (`live`, `background` or null), `waiting` (live requests waiting; background requests never wait), `bg_max_chars`, `trim_edges` (v1.4: `{lead_s, tail_s, tail_sentence_s}`, or null when off) and `counters` (done, cap_hit, client_gone, rejected_*, preempted, bg_rejected_*, edge_trimmed_ms). RAUM's client reads `busy`, `busy_priority` and `waiting` to pick an idle instance when it has several.
 - **Watchdog** (`runtime/raum-tts/watchdog.sh`, every 15 s) restarts the service in two cases:
   - `/health` fails 3 times in a row;
   - `busy_for_s` is over 30 s and over `busy_limit_s` + 5, **and** a probe `POST /tts` ("Guten Tag.") brings no audio within 10 s.
 - **RAUM client note:** `HttpTTS` puts the service aside for `retry_s` after any failure of a live clause, including a 503. With admission control a 503 is transient, so `retry_s: 2` is better than the default 15. A background clause never puts the service aside and never falls back to Piper.
 - **Latency:**
-  - First audio for a 12-word sentence is about 180 ms when the GPU is quiet, and 280–530 ms while another job keeps the GPU about 95% busy.
+  - First audio for a 12-word sentence is about 150 ms when the GPU is quiet, and about 260 ms under load (v1.4: the first vocode after 10 tokens instead of 14; it was 190 ms and 395 ms). `RAUM_TTS_FIRST_TOKENS` sets it (14 = v1.3).
   - Synthesis runs at 0.4–0.65× real time.
   - No mid-sentence stalls were measured.
 - **No watermark:** the Perth watermark that stock Chatterbox applies is not applied on this streaming path.
@@ -82,7 +84,7 @@ Request body (JSON):
 ```
 | field | type | default | notes |
 |---|---|---|---|
-| `text` | string, 1–4000 chars | — | The text is split into sentences and streamed back to back, with 120 ms of silence between them. |
+| `text` | string, 1–4000 chars | — | The text is split into sentences and streamed back to back, with 120 ms of silence between them (plus each sentence's kept tail, see [Edges](#edges-v14)). |
 | `lang` | string | — | ISO 639-1 (`de`, `en`, `ru`, `tr`, `ar`, …). `de-DE` is accepted. |
 | `voice_id` | string or null | null | If null, the default voice is used: the built-in Chatterbox voice (female, MIT), unless an operator file `runtime/raum-tts/voices/<lang>.wav` exists. |
 | `speed` | 0.5–2.0 | 1.0 | Pitch-preserving time stretch. |
@@ -125,6 +127,37 @@ RAUM synthesises the voice of an utterance speculatively, before the speaker's t
 **RAUM client (`core/raum/pipeline/tts_http.py`):** `HttpTTS.synthesize(text, lang, ..., background=True)` sends `"priority": "background"`. A `409`, `429` or `503`, or a cut stream, raises `raum.pipeline.tts_http.VoiceBusy`, possibly after some chunks were yielded, which the caller discards. A background call never puts the service aside (`retry_s`) and never falls back to Piper. While live clauses are on Piper (the service put aside, or not warm yet), background calls raise `VoiceBusy` without asking the service, so voices are not mixed. Other errors (connection refused, HTTP 500) are raised unchanged, and they too leave the service state and the fallback alone. Once a response (the warm-up, or any clause) arrives without `X-Priority`, which means a service older than v1.3 that would serve a background request as live, background calls raise `VoiceBusy` without being sent.
 
 Check on the box: `src/regress.py prio` (RAUM's real client against the running service).
+
+## Edges (v1.4)
+
+T3 starts every request with 20–130 ms of silence and ends it with 360–640 ms before its end-of-speech token. RAUM sends one request per clause and plays the clauses back to back, so every join was a 0.5–0.6 s pause mid-sentence (22 % of the received audio was silence). The service now keeps only:
+
+| edge | kept | env |
+|---|---|---|
+| before the first sound | 30 ms, then a 5 ms fade-in from zero | `RAUM_TTS_LEAD_S` (0.03) |
+| after the last sound, when the text ends with a comma, `;`, `:` or no punctuation (a clause cut mid-sentence) | 80 ms, the last 10 ms faded to zero | `RAUM_TTS_TAIL_S` (0.08) |
+| after the last sound, when the text ends with `.` `!` `?` `…` (or `。！？؟`, closing quotes and brackets ignored) | 200 ms, the last 10 ms faded to zero | `RAUM_TTS_TAIL_SENTENCE_S` (0.20) |
+
+`RAUM_TTS_TRIM_EDGES=0` turns trimming off: both edges as the engine made them (v1.3). So two clauses joined at a comma are about 110 ms apart (80 ms tail + 30 ms lead), at a full stop about 230 ms. The decision uses the request's own text: RAUM sends each clause with its punctuation (`core/raum/pipeline/room.py`, `take_clause` / `take_phrase`); Chatterbox itself adds a full stop to a bare cut, which is why every clause ended with a sentence-length pause.
+
+- **Silence** is a sample quieter than −46 dBFS (0.005). Measured tails on the box are −60 to −75 dBFS; a soft onset (e.g. ru at −43 dBFS) counts as sound and is kept. Sound is never cut.
+- **Streaming:** the lead is trimmed in the first chunk(s): the chunk with the first sound goes out at once, so first audio is never later than before. For the tail, only silence is held back: a chunk that ends in silence goes out up to the kept tail; the rest of that silence waits. If more sound follows, the held silence goes out first, unchanged (a pause inside the clause stays as it was); at the end of the clause it is dropped. A preempted or cancelled stream drops what it held.
+- **Caps** count the engine's audio, edges included, as in v1.3. A request whose audio is silent throughout now gets no audio, so the `503` "no audio" (RAUM speaks it with Piper).
+- `/health` shows `trim_edges` and the counter `edge_trimmed_ms`; the log line per job adds "edge silence cut". The logic is `src/edges.py`, tested without the model in `services/tts/tests/test_tts_edges.py`.
+
+## Several instances (v1.4)
+
+One instance makes one clause at a time for all rooms. With several rooms live, a clause was refused (`503`, "busy: predicted wait 1.4 s") behind another room's clause and RAUM spoke it with Piper, so voices mixed mid-utterance. A second instance on `:8091` (`PORT=8091 start.sh`, about 6 GB more unified memory) doubles the clauses made at once. RAUM's `tts` options take both:
+
+```yaml
+tts: { engine: http, url: http://127.0.0.1:8090, options: { urls: [http://127.0.0.1:8090, http://127.0.0.1:8091], ... } }
+```
+
+What the client (`core/raum/pipeline/tts_http.py`) does with `urls` (unset: `url` alone, exactly as before):
+- **Picking:** before a live clause it asks each instance's `/health` (concurrently, at most `options.probe_s`, default 0.1 s; `0` turns the probe off) and takes one that is idle, then one running only a background job (a live request preempts it), then the one with fewest of this room's requests open, then the order of `urls`. (Each room runs in its own process, so only the service knows the other rooms' load.)
+- **Failover:** a busy refusal (`503`/`429`) or any failure before audio (connection refused, HTTP 500, timeout) tries the next instance at once. A busy instance only goes after the others for 1 s; a failed one is put aside for `retry_s`, **that instance only**. Only when every instance failed for a clause does it go to Piper, and the service as a whole is put aside for `retry_s`, as with one instance. A clause that fails mid-stream is not repeated on another instance.
+- **Background clauses** try the instances the same way (idle first; an instance without priorities is skipped) and raise `VoiceBusy` only when all refuse. They never put an instance aside.
+- **Voices:** every request carries the speaker's `voice_ref` and `voice_id`, so either instance registers the voice on first use (about 70 ms, once). `DELETE /tts/voices/{id}` goes to every instance; `warmup` warms every instance (ready once one is; one that fails is put aside).
 
 ## RAUM compatibility API (what `core/raum/pipeline/tts_http.py` speaks)
 
