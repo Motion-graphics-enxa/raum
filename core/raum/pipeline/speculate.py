@@ -139,6 +139,7 @@ class Speculator:
         self._voices: dict[tuple[str, str], _Voice] = {}  # (lang, clause normalised) -> audio, made or being made
         self.hits = 0  # replayed speculations (glass box / tests)
         self.voice_hits = 0  # clauses played from speculative audio (glass box / tests)
+        self._playing: dict[str, _Voice] = {}  # lang -> the clause playing now (prepare_next starts after it)
         self._live = 0  # live syntheses running in this room: speculative ones wait / stop for them
         self._live_idle = asyncio.Event()
         self._live_idle.set()
@@ -194,13 +195,14 @@ class Speculator:
         (``voice_spec`` / ``voice_ahead`` / ``voice_live``)."""
         key = _vkey(lang, text)
         v = self._voices.pop(key, None)
-        if v is not None and (not _same_voice(v.kw, kw) or (v.done.is_set() and v.failed)):
-            self._stop(v)
+        if v is not None and (not _same_voice(v.kw, kw) or (v.done.is_set() and v.failed and v.kind != "live")):
+            self._stop(v)  # made ahead and failed: made live now (a live one that failed reports its error below)
             v = None
         if v is None:
             v = self._start(tts, text, lang, kw, kind="live")
         v.claimed = True
         v.go.set()
+        self._playing[lang] = v
         first = marks is not None and not any(k.startswith("voice_") for k in marks)
         if marks is not None:
             marks[f"voice_{v.kind}"] = marks.get(f"voice_{v.kind}", 0) + 1
@@ -240,6 +242,7 @@ class Speculator:
         if cur is None:
             cur = self._start(tts, text, lang, kw, kind="live", utt=utt)
             self._voices[_vkey(lang, text)] = cur
+        self._playing[lang] = cur  # prepare_next: a clause queued while this one plays is made after it
         if nxt and nxt.strip():
             ahead = self._cached(lang, nxt, kw)
             if ahead is None:
@@ -247,6 +250,20 @@ class Speculator:
             elif not ahead.claimed:  # made ahead (or waiting to be): it plays next, so it is made now, at live
                 ahead.claimed = True  # priority, never stopped for another live clause (before: it waited for the
                 ahead.go.set()  # current clause's synthesis, then for its own turn: a gap between the clauses)
+        self._evict()
+
+    def prepare_next(self, tts: Any, lang: str, nxt: str, kw: dict[str, Any], *, utt: str | None = None) -> None:
+        """A clause queued while the one before it plays: made now (after that one's synthesis, one request at a
+        time on the lane), so it follows without a gap; made ahead already: wanted now (live priority)."""
+        if tts is None or not nxt or not nxt.strip():
+            return
+        v = self._cached(lang, nxt, kw)
+        if v is None:
+            self._voices[_vkey(lang, nxt)] = self._start(tts, nxt, lang, kw, kind="ahead", utt=utt,
+                                                         after=self._playing.get(lang))
+        elif not v.claimed:
+            v.claimed = True
+            v.go.set()
         self._evict()
 
     def drop(self, utt: str) -> None:
@@ -263,6 +280,7 @@ class Speculator:
         for v in self._voices.values():
             self._stop(v)
         self._voices.clear()
+        self._playing.clear()
 
     # ------------------------------------------------------------ internals
 

@@ -413,3 +413,29 @@ async def test_a_wanted_clause_refused_before_any_audio_is_made_live_at_once():
     assert marks == {"voice_spec": 1}  # the same voice, made again as live, not a second request later
     assert [kw for e, _, _, kw in tts.log if e == "start"] == [{"background": False}]
     await h.p.drain()
+
+
+async def test_a_clause_that_arrives_while_one_plays_is_made_before_its_turn():
+    # ops: the lane looked for the next clause only when a clause started; one queued mid-playback was made
+    # only when its turn came (a gap of one first-audio time)
+    tts = Slow(n=3, chunk_s=0.01)
+    h, u = await spec_room(tts, {})
+    played: list[float] = []
+
+    async def sink(lang, chunk, rate):
+        await asyncio.sleep(0.03)  # plays slower than it is made
+        played.append(time.monotonic())
+
+    h.p.tts_sink = sink
+    q: asyncio.Queue = asyncio.Queue()
+    q.put_nowait("Erster Satz.")
+    marks: dict = {}
+    lane = asyncio.create_task(h.p._speak_stream("ar", q, time.monotonic(), None, marks, utt=u.id))
+    await until(lambda: played)  # the first clause is playing
+    q.put_nowait("Zweiter Satz.")
+    q.put_nowait(None)
+    await lane
+    assert tts.at("start", "Zweiter Satz.") < played[2]  # made while the first still played
+    assert tts.at("start", "Zweiter Satz.") >= tts.at("end", "Erster Satz.")  # one request at a time
+    assert marks.get("voice_ahead") == 1 and len(played) == 6
+    await h.p.drain()

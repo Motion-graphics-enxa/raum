@@ -1003,9 +1003,39 @@ class RoomPipeline:
                 if tts is not None:
                     nxt = ahead[0] if ahead else None
                     self.spec.prepare(tts, tgt, clause, nxt, self._voice_kwargs(tts, voice), utt=utt)
-                f = await self._speak(tgt, clause, t0, voice, marks, utt=utt)
+                f = await self._speak_watching(tgt, clause, t0, voice, marks, utt, q, ahead)
                 if first is None:
                     first = f
+
+    async def _speak_watching(self, tgt: str, clause: str, t0: float, voice: VoiceArgs | None,
+                              marks: dict[str, float] | None, utt: str | None, q: asyncio.Queue[str | None],
+                              ahead: list[str | None]) -> float | None:
+        """``_speak`` one clause; a clause that arrives meanwhile is queued in ``ahead`` and, if it is the next one,
+        made now (speculate.py ``prepare_next``), not when its turn comes (before: a gap of one first-audio time)."""
+        speak = asyncio.ensure_future(self._speak(tgt, clause, t0, voice, marks, utt=utt))
+        getter: asyncio.Future[str | None] | None = None
+        try:
+            while not speak.done():
+                getter = asyncio.ensure_future(q.get())
+                await asyncio.wait({speak, getter}, return_when=asyncio.FIRST_COMPLETED)
+                if not getter.done():
+                    getter.cancel()
+                    await asyncio.wait({getter})  # it may have taken an item just before the cancel
+                if getter.cancelled():
+                    getter = None
+                    continue
+                item = getter.result()
+                getter = None
+                ahead.append(item)
+                tts = self.engines.tts
+                if item is not None and len(ahead) == 1 and tts is not None:
+                    self.spec.prepare_next(tts, tgt, item, self._voice_kwargs(tts, voice), utt=utt)
+            return speak.result()
+        finally:
+            if not speak.done():
+                speak.cancel()
+            if getter is not None and not getter.done():
+                getter.cancel()
 
     async def _speak(self, tgt: str, text: str, t0: float, voice: VoiceArgs | None = None,
                      marks: dict[str, float] | None = None, utt: str | None = None) -> float | None:
