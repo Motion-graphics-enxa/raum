@@ -16,7 +16,7 @@
   text-transform: var(--label-case);
   color: var(--ink);
   padding-bottom: var(--s-1);
-  border-bottom: var(--line) solid var(--ink);
+  border-bottom: var(--line) solid var(--rule-strong);
 }
 .gloss__meta {
   display: flex;

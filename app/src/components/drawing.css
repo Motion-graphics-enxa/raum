@@ -33,6 +33,11 @@
   --c: var(--bad);
 }
 
+/* figures in the word face: Atkinson Next digits are as unambiguous, and Arabic values join correctly */
+.dim__value.mono,
+.cloud__pair.mono {
+  font-family: var(--font-text);
+}
 .dim__value {
   unicode-bidi: isolate;
   font-size: 1.0625rem;

@@ -65,10 +65,15 @@ export function TitleBlock({
           <span className="tblock__name">{pick(mode.name, UI_LANG)}</span>
           <span className="tblock__gloss">
             {mode.name.de && mode.name.de !== pick(mode.name, UI_LANG) ? `${mode.name.de} · ` : ""}
-            {t(lang, "join.room")} <span className="mono">{room.toUpperCase()}</span>
+            <span className="visually-hidden">{t(lang, "join.room")} </span>
+            <span className="mono">{room.toUpperCase()}</span>
           </span>
         </div>
-        <span className={`tblock__status ${statusClass}`} role="status">
+        <span
+          className={`tblock__status ${statusClass}`}
+          role="status"
+          title={`${pathLabel(path, lang)}${rtt != null ? ` · ${rtt} ms` : ""}`}
+        >
           <span className="tblock__dot" aria-hidden="true" />
           <span className="tblock__status-text">{t(lang, statusKey)}</span>
         </span>
@@ -88,13 +93,12 @@ export function TitleBlock({
           <dt>{them}</dt>
           <dd>{pair[1] ? langName(pair[1], UI_LANG) : t(lang, "talk.not_joined")}</dd>
         </div>
-        <div className="tblock__cell tblock__cell--end" title={`${pathLabel(path, lang)}${rtt != null ? ` ${rtt} ms` : ""}`}>
-          <dt className="visually-hidden">{t(lang, "join.audio_out")}</dt>
+        <div className="tblock__cell tblock__cell--end">
+          <dt>{t(lang, "talk.you_hear_via")}</dt>
           <dd>
             {audioOut === "speaker" ? <Speaker /> : <Headphones />}
-            <span className="visually-hidden">{t(lang, audioOut === "speaker" ? "join.speaker" : "join.headphones")}</span>
+            <span>{t(lang, audioOut === "speaker" ? "join.speaker_only" : "join.headphones")}</span>
           </dd>
-          <dd className="mono">{rtt != null ? `${rtt} ms` : pathLabel(path, lang)}</dd>
         </div>
       </dl>
     </header>

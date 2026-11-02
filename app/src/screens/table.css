@@ -282,9 +282,9 @@
   gap: var(--s-3);
   align-items: baseline;
   padding: var(--s-2) var(--s-3);
-  border: 1.5px solid var(--ink-2);
+  border: 1.5px solid var(--rule-strong);
   border-radius: var(--radius);
-  background: var(--paper);
+  background: var(--glass-strong);
 }
 .plate--tunnel {
   border-style: dashed;

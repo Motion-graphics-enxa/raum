@@ -169,6 +169,7 @@ const en: Dict = {
   "talk.draft": "Live draft",
   "talk.final": "Final",
   "join.speaker_only": "Speaker",
+  "talk.you_hear_via": "You hear on",
 };
 
 const de: Dict = {

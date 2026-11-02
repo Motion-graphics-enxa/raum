@@ -525,7 +525,7 @@
   font-weight: 700;
   color: var(--ink);
   padding-bottom: var(--s-1);
-  border-bottom: var(--line) solid var(--ink);
+  border-bottom: var(--line) solid var(--rule-strong);
 }
 .sheet__h2 {
   color: var(--ink-3);
