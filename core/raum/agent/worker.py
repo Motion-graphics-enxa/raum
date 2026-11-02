@@ -10,10 +10,12 @@ Per room: subscribe to every remote participant's mic (agents skipped). Particip
 JSON ``{"role", "lang", "device", "path", "audio_out"}`` (attributes carry the same keys). Core changes a
 device's language / voice output live (``POST /api/rooms/{room}/participant`` updates both): the
 change events re-read it, the pipeline uses it from the next utterance, and ``participant.joined`` is
-sent again with the new info. Per track: ``rtc.AudioStream`` (16 kHz mono; or 48 kHz
--> denoise -> soxr to 16 kHz when a denoiser is active) -> Silero VAD stream; START_OF_SPEECH /
-INFERENCE_DONE / END_OF_SPEECH drive ``RoomPipeline.speech_start / speech_audio / speech_end``
-(the end-of-speech frames are the final audio; ``vad_ms`` is the endpoint delay). Every event is
+sent again with the new info. Per track: ``rtc.AudioStream`` (16 kHz mono; or 48 kHz -> soxr to
+16 kHz when DeepFilterNet is on) -> Silero VAD stream; START_OF_SPEECH / INFERENCE_DONE /
+END_OF_SPEECH drive ``RoomPipeline.speech_start / speech_audio / speech_end`` (the end-of-speech frames
+are the final audio; ``vad_ms`` is the endpoint delay). With DeepFilterNet the 48 kHz audio is also
+cleaned beside the VAD path (``raum.pipeline.clean``: worker thread, 200 ms blocks, realtime gate) and
+the final audio's samples are swapped for their clean versions; VAD and partials never wait for it. Every event is
 published on the data channel (topic ``raum.events``, reliable) and forwarded to core over the link.
 Voice output is published as one track per language, ``tts-<lang>``. Echo control is per device
 (C-14, ``raum.pipeline.echo``): while a voice plays (+300 ms) only the mics that hear it are fed silence
@@ -37,6 +39,8 @@ from raum.config import RaumConfig, get_config
 from raum.events import EVENTS_TOPIC, Envelope, ParticipantInfo, make_event
 from raum.modes import ModeError, mode_for_room
 from raum.pipeline._util import float_to_int16, int16_to_float, lang_code
+from raum.pipeline.clean import cleaner_for
+from raum.pipeline.denoise import make_denoiser
 from raum.pipeline.engines import build_engines
 from raum.pipeline.room import RoomPipeline
 
@@ -68,7 +72,26 @@ def prewarm(proc: Any) -> None:
 
     import raum.agent.link_client  # noqa: F401
 
-    proc.userdata["vad"] = load_vad(get_config())
+    cfg = get_config()
+    proc.userdata["vad"] = load_vad(cfg)
+    warm_denoiser(cfg)
+
+
+def warm_denoiser(cfg: RaumConfig) -> None:
+    """Load DeepFilterNet once per process and run two silent blocks, before any room joins."""
+    m = cfg.models.denoise
+    if not m.enabled:
+        return
+    cleaner = cleaner_for(make_denoiser(m.engine, m.options), m.options)
+    if cleaner is None:
+        return
+    t = time.perf_counter()
+    try:
+        cleaner.warm()
+    except Exception as e:  # noqa: BLE001
+        cleaner.gate.trip(f"warm-up failed ({e.__class__.__name__})")
+        return
+    log.info("noise cleaning ready (%.0f ms warm-up)", (time.perf_counter() - t) * 1000.0)
 
 
 def livekit_credentials(cfg: RaumConfig) -> tuple[str, str, str]:
@@ -304,35 +327,41 @@ class RoomAgent:
         from livekit import rtc
         from livekit.agents.vad import VADEventType
 
-        denoise = self.engines.denoise
-        clean = bool(getattr(denoise, "active", False))
-        rate = 48000 if clean else 16000
+        # Noise cleaning (raum.pipeline.clean) runs beside the raw path, never in front of the VAD:
+        # VAD and partials hear the raw audio; the final ASR pass gets the cleaned samples.
+        cleaner = cleaner_for(self.engines.denoise, self.cfg.models.denoise.options)
+        cleaner = cleaner if cleaner is not None and cleaner.usable else None
+        rate = 48000 if cleaner else 16000
         stream = rtc.AudioStream(track, sample_rate=rate, num_channels=1)
         vad_stream = self.vad.stream()
+        cs = None
         resampler = None
-        if clean:
+        if cleaner is not None:
             import soxr
 
-            resampler = soxr.ResampleStream(48000, 16000, 1, dtype="float32")
+            def metric(ms: float) -> None:
+                avg = self.pipeline.denoise_ms.get(identity)
+                self.pipeline.denoise_ms[identity] = ms if avg is None else 0.9 * avg + 0.1 * ms
+
+            cs = cleaner.stream(on_metric=metric)
+            resampler = soxr.ResampleStream(48000, 16000, 1, dtype="float32")  # same as the clean path's
 
         async def pump() -> None:
-            avg = None
             async for ev in stream:
                 frame = ev.frame
-                if clean:
+                if cs is not None:
                     x = int16_to_float(frame.data)
-                    t = time.perf_counter()
-                    y = denoise.process(x, 48000)
-                    ms = (time.perf_counter() - t) * 1000.0 * (4800.0 / len(x))  # per 100 ms of audio
-                    avg = ms if avg is None else 0.9 * avg + 0.1 * ms
-                    self.pipeline.denoise_ms[identity] = avg
-                    z = resampler.resample_chunk(y)  # type: ignore[union-attr]
+                    if not self.pipeline.mic_open(identity):  # echo pause (C-14) on both paths
+                        x = np.zeros_like(x)
+                    cs.push(x)
+                    z = resampler.resample_chunk(x)  # type: ignore[union-attr]
                     if z.size == 0:
                         continue
                     pcm = float_to_int16(z)
-                    frame = rtc.AudioFrame(data=pcm.tobytes(), sample_rate=16000, num_channels=1,
-                                           samples_per_channel=len(pcm))
-                vad_stream.push_frame(self._mic_frame(identity, frame))
+                    vad_stream.push_frame(rtc.AudioFrame(data=pcm.tobytes(), sample_rate=16000, num_channels=1,
+                                                         samples_per_channel=len(pcm)))
+                else:
+                    vad_stream.push_frame(self._mic_frame(identity, frame))
             vad_stream.end_input()
 
         async def events() -> None:
@@ -351,6 +380,8 @@ class RoomAgent:
                 elif ev.type == VADEventType.END_OF_SPEECH and speaking:
                     speaking = False
                     audio = np.concatenate([int16_to_float(f.data) for f in ev.frames]) if ev.frames else None
+                    if audio is not None and cs is not None:
+                        audio = cs.cleaned(audio, int(ev.samples_index))
                     vad_ms = float(ev.silence_duration) * 1000.0
                     self._spawn_turn(self.pipeline.speech_end(identity, audio, vad_ms))
                     await asyncio.sleep(0)  # let speech_end detach the utterance before the next start
@@ -364,6 +395,8 @@ class RoomAgent:
         except Exception:
             log.exception("audio loop for %s failed", identity)
         finally:
+            if cs is not None:
+                cs.close()
             await stream.aclose()
             await vad_stream.aclose()
 

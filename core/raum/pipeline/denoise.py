@@ -2,10 +2,13 @@
 
 ``passthrough`` returns the audio unchanged. ``deepfilternet`` tries the optional ``df`` package
 (DeepFilterNet3); if it is missing or fails to load, it logs one line and passes audio through.
+The model loads once per agent process; ``raum.pipeline.clean`` runs it off the event loop on the
+final ASR audio only.
 """
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any
 
@@ -73,13 +76,23 @@ class DeepFilterNetDenoiser:
         return y.squeeze(0).cpu().numpy().astype(np.float32)
 
 
+# One model per agent process (rooms share it; loaded in prewarm). A failed load is remembered too,
+# so a missing package logs once instead of once per room.
+_loaded: dict[str, PassthroughDenoiser | DeepFilterNetDenoiser] = {}
+
+
 def make_denoiser(engine: str, options: dict[str, Any] | None = None) -> PassthroughDenoiser | DeepFilterNetDenoiser:
     if engine in ("passthrough", "off", "none", "mock"):
         return PassthroughDenoiser()
     if engine == "deepfilternet":
+        key = json.dumps(options or {}, sort_keys=True, default=str)
+        if key in _loaded:
+            return _loaded[key]
         try:
-            return DeepFilterNetDenoiser(options)
+            d: PassthroughDenoiser | DeepFilterNetDenoiser = DeepFilterNetDenoiser(options)
         except Exception as e:  # noqa: BLE001  ImportError, model download, torch missing
             log.warning("deepfilternet unavailable (%s): passing audio through", e.__class__.__name__)
-            return PassthroughDenoiser()
+            d = PassthroughDenoiser()
+        _loaded[key] = d
+        return d
     raise ValueError(f"unknown denoise engine: {engine!r}")

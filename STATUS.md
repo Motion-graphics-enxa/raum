@@ -25,7 +25,7 @@ _Read by the ops session. Updated at every milestone. Last update: Mon 2 Nov, ~1
 ## Integrator TODO
 - `GlossaryUpload` panel in Admin (after agent 2 above merges; it reworks Admin).
 - App store: concatenate `seg` segments per language; merged-utterance re-final (after simultaneous mode merges).
-- DeepFilterNet redesign: worker thread, 200 ms blocks with context, ASR audio only, load in prewarm, realtime-factor gate 0.3x.
+- DeepFilterNet redesign landed (raum.pipeline.clean); ops to re-enable on spark with `denoise: {engine: deepfilternet}` + `RAUM_UV_EXTRAS="--extra denoise"` and check the "noise cleaning ready" log line.
 - STUN: empty ICE servers in the agent (ops forwards the diff).
 - Consent copy for AI voice cloning ("AI voice" disclosure) when the cloning service lands.
 - Known: two people speaking at once into the same language interleave on that language's track.
