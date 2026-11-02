@@ -10,7 +10,7 @@
 | Theme | Reimagine the Future: AI, technology and creativity for tomorrow's world |
 | Prizes | €500 / €100 / €50; top 5 considered for funding grants and LEXIE |
 | Judging | Problem & Purpose · Creativity & Originality · Execution · Human Value & Impact · Cohesion & Experience |
-| Hardware | NVIDIA DGX Spark (128 GB unified memory, ARM64, Blackwell GPU) |
+| Hardware | **ASUS Ascent GX10** (NVIDIA GB10 Grace Blackwell, 128 GB unified memory, ARM64; same platform as the DGX Spark, which this plan calls "the Spark"). LAN MAC `A0:AD:9F:DD:04:54`, Wi-Fi MAC `50:BB:B5:A3:ED:7A`, 48 V / 5 A (240 W) adapter. On slides, say "NVIDIA GB10 box" or "ASUS Ascent GX10", not "DGX Spark" |
 | Product brief | https://claude.ai/artifact/LHsWfyX7bsQ9QT11LLfd3t |
 | Repository | https://github.com/TheWingTheWong/raum (private until submission) |
 | Design skill | `impeccable` only (see §4) |
