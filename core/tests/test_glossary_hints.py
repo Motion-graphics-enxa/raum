@@ -50,7 +50,8 @@ async def test_whisper_sends_the_turn_prompt_after_the_configured_one():
     asr = WhisperCppASR("http://w:1", client=client(handler), options={"prompt": "Arztgespräch."})
     await asr.transcribe(audio, lang_hint="de", partial=True, turn=turn)
     await asr.transcribe(audio, lang_hint="de", partial=False, turn=turn)
-    assert [s["prompt"] for s in seen] == ["Arztgespräch. Metformin, Insulin."] * 2  # partials and finals
+    seed = "Herr Doktor, I think it is not working."  # asr.py CODE_SWITCH_SEEDS: before the terms
+    assert [s["prompt"] for s in seen] == [f"Arztgespräch. {seed} Metformin, Insulin."] * 2  # partials and finals
     plain = TurnContext(room="sz-1", mode="sprechzimmer", speaker="a-1", role="a", utt="u-0002")
     await asr.transcribe(audio, lang_hint="de", partial=False, turn=plain)
     assert seen[-1]["prompt"] == "Arztgespräch."  # no glossary hints: the configured prompt alone
@@ -59,7 +60,7 @@ async def test_whisper_sends_the_turn_prompt_after_the_configured_one():
     assert "prompt" not in seen[-1]
     await WhisperCppASR("http://w:1", client=client(handler)).transcribe(audio, lang_hint="de", partial=False,
                                                                         turn=turn)
-    assert seen[-1]["prompt"] == "Metformin, Insulin."
+    assert seen[-1]["prompt"] == f"{seed} Metformin, Insulin."
 
 
 def order(prompt: str) -> list[str]:
