@@ -18,8 +18,9 @@ Arabic harakat/tatweel removed, alef/ya/ta-marbuta unified; ё -> е; Turkish ı
 NBSP/narrow NBSP/thin space unified) with an index map back to the original, then regex passes
 run in a fixed order, each consuming its span so a number is counted once:
 
-    dates (numeric, day + month name, day-only ordinals, weekdays, month-only) -> times ->
-    frequencies -> percent -> amounts -> doses -> durations -> bare numbers -> standalone
+    dates (numeric, day + month name, spelled ordinal days, day-only ordinals, weekdays, month-only) ->
+    times (incl. "half past two", "halb drei", "at nine") -> frequencies -> percent -> temperatures ->
+    amounts (incl. "€1.2m", "950k") -> doses -> durations -> bare numbers -> standalone
     currency / unit words; then glossary medications and names, allergy, negation, and the
     deadline promotion of dates.
 
@@ -29,12 +30,21 @@ Normalised values (``Fact.value``, the convention of ``eval/sets/README.md``): d
 "wd:thu" (a stated year is kept for the comparison: 12.11.2026 != 12.11.2025, but == "12 November"),
 time "09:00", duration "P7D" | "PT8H", amount "1200000 EUR" (or "1050000" without a currency) plus a
 currency fact "EUR", percent "20%", number "3" | "2.5" (a count "10.000 Stück" / "10 000 штук" is the number
-"10000": it matches a bare number, not an amount), medication/name/allergen = the glossary's German key,
-allergy "present" when no allergen is named, negation "not".
+"10000": it matches a bare number, not an amount; a temperature is its number, and "102 °F" also matches
+its °C conversion ±0.5, "38,9 °C (102 °F)" either value), medication/name/allergen = the glossary's German
+key, allergy "present" when no allergen is named, negation "not".
+
+Clock: a 12-hour time without am/pm or a day part — English "at 2" / "9 o'clock" / "2:30" (not "09:00"),
+and clock words or a spelled hour in any language ("half past two", "halb drei", "um neun") — matches h or
+h + 12 ("at 2" == "14 Uhr" != "15 Uhr"). German "9 Uhr" in digits is a 24-hour time. A spelled hour also
+matches the bare number, and a spelled day ("the third of November") the month alone, when the other
+language reads no more than that.
 
 Thousands: "1.200" / "1,200" by locale (``parse_number``); "3 200" / "950 000" in groups of three after a
 1-3 digit head is one number with NBSP / narrow NBSP in any language and with a plain space in
-space-thousands languages (ru, uk, fr, pl, ...), elsewhere only before a currency or count word.
+space-thousands languages (ru, uk, fr, pl, ...), elsewhere before a currency or count word or as a bare
+number, never into a dose ("take 2 500 mg tablets" = 2 x 500 mg). Glued scales: k = 10^3 anywhere, m / mn /
+b / bn only next to a currency ("1.8m" is a height).
 
 Matching (``check``): exact multiset match per value, then lenient pairs that are the same fact
 said differently — a date with a year vs the same day without one, a deadline vs a plain date, an
@@ -60,8 +70,11 @@ Known limits (deliberate, to keep false alarms down)
   tokens are reported only when they appear verbatim in both texts (German capitalises every
   noun, and transliteration into Cyrillic/Arabic is legitimate), so names cannot raise a false
   alarm — and a wrongly transliterated name is not caught.
-- Number words cover 0–20 (+ tens) in all five languages; compounds ("fünfundzwanzig") and
-  ordinal words ("zwölften") are not parsed. 1 is weak (see above).
+- Number words cover 0–20 (+ tens) in all five languages; English and German compounds up to
+  999 999 ("a hundred and fifty", "fünfundzwanzig", "dreitausendzweihundert") and their ordinal days
+  ("third", "dritten") are parsed, other languages' compounds and ordinals are not. 1 is weak (see above).
+- English "N degrees" is Fahrenheit for 90-113 (a temperature that high in °C is not said) and then also
+  matches "N Grad" (an angle: "bend your knee 90 degrees"); an explicit "102 °F" against "102 Grad" is red.
 - Slash dates are read day-first (12/11 = 12 November) in every language.
 - Allergens are glossary medications/terms next to an allergy keyword in the same clause; other
   allergens ("Nüsse") give the value "present".
@@ -70,6 +83,7 @@ Known limits (deliberate, to keep false alarms down)
 from __future__ import annotations
 
 import itertools
+import math
 import re
 import time
 from collections.abc import Callable, Iterable
@@ -180,16 +194,16 @@ def _digits(sep: str) -> str:
     number. Groups only follow a 1-3 digit head that does not continue a time, date or fraction ("9:00 500 mg",
     "1/2 500", "am 12. 500 mg", a year "2026 500" stay apart). After normalisation NBSP, narrow NBSP, thin
     and figure space are all U+00A0."""
-    lb = r"(?<![\w.,٫٬])"
-    grouped = rf"(?<![:/])\d{{1,3}}(?:{sep}\d{{3}}(?!\d))+(?:[.,٫٬]\d+)?"
-    return rf"{lb}(?:{grouped}|\d+(?:[.,٫٬]\d+)*)"
+    lb = r"(?<![\w.,\u066b\u066c])"
+    grouped = rf"(?<![:/])\d{{1,3}}(?:{sep}\d{{3}}(?!\d))+(?:[.,\u066b\u066c]\d+)?(?![-\w])"
+    return rf"{lb}(?:{grouped}|\d+(?:[.,\u066b\u066c]\d+)*)"
 
 
 # U+00A0-family spaces group thousands in every language (typographic, never "2 x 500"); a plain space does in
-# space-thousands languages, and elsewhere only right before a currency or a count word ("3 200 Euro" yes,
-# "take 2 500 mg tablets" no).
-_DIG_NBSP = _digits(" ")
-_DIG_SPACE = _digits("[  ]")
+# space-thousands languages, and elsewhere before a currency or count word or as a bare number ("3 200 Euro",
+# "950 000"), never into a dose ("take 2 500 mg tablets" = 2 x 500 mg) or a glued word ("2 500-mg-Tabletten").
+_DIG_NBSP = _digits("\u00a0")
+_DIG_SPACE = _digits("[\u00a0 ]")
 
 
 def _dec(s: str) -> Decimal | None:
@@ -242,6 +256,13 @@ def _fmt(d: Decimal) -> str:
     return s or "0"
 
 
+def _c_window(f: Decimal) -> tuple[tuple[str, str], ...]:
+    """°C values (0.1 steps and whole degrees) within ±0.5 of the conversion of ``f`` °F, as tc / num keys."""
+    c = (f - 32) * 5 / 9
+    lo, hi = math.ceil((c - Decimal("0.5")) * 10), math.floor((c + Decimal("0.5")) * 10)
+    return tuple((k, _fmt(Decimal(i) / 10)) for i in range(lo, hi + 1) for k in ("tc", "num"))
+
+
 # ================================================================ language tables
 # Strings are written naturally and normalised with the text's own normalisation at compile time.
 
@@ -286,6 +307,116 @@ _NUMWORDS["tr"].update({f"yirmi {w}": 20 + v for w, v in _TR_UNITS.items()})
 _AR_UNITS = {"ثلاث": 3, "ثلاثة": 3, "أربع": 4, "أربعة": 4, "خمس": 5, "خمسة": 5, "ست": 6, "ستة": 6, "سبع": 7,
              "سبعة": 7, "ثمان": 8, "ثماني": 8, "ثمانية": 8, "تسع": 9, "تسعة": 9}
 _NUMWORDS["ar"].update({f"{w} {t}": 10 + v for w, v in _AR_UNITS.items() for t in ("عشر", "عشرة")})
+
+# compound number words above twenty (en, de): "twenty-five", "a hundred and fifty", "two thousand five hundred",
+# "fünfundzwanzig", "hundertfünfzig", "dreitausendzweihundert"
+_CMP: dict[str, dict[str, dict[str, int]]] = {
+    "en": {"u": {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9},
+           "teen": {"ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14, "fifteen": 15,
+                    "sixteen": 16, "seventeen": 17, "eighteen": 18, "nineteen": 19},
+           "t": {"twenty": 20, "thirty": 30, "forty": 40, "fifty": 50, "sixty": 60, "seventy": 70, "eighty": 80,
+                 "ninety": 90}},
+    "de": {"u": {"ein": 1, "eins": 1, "zwei": 2, "drei": 3, "vier": 4, "fünf": 5, "sechs": 6, "sieben": 7, "acht": 8,
+                 "neun": 9},
+           "teen": {"zehn": 10, "elf": 11, "zwölf": 12, "dreizehn": 13, "vierzehn": 14, "fünfzehn": 15,
+                    "sechzehn": 16, "siebzehn": 17, "achtzehn": 18, "neunzehn": 19},
+           "t": {"zwanzig": 20, "dreißig": 30, "vierzig": 40, "fünfzig": 50, "sechzig": 60, "siebzig": 70,
+                 "achtzig": 80, "neunzig": 90}},
+}
+_CMP_MULT = {"hundred": 100, "hundert": 100, "thousand": 1000, "tausend": 1000}
+
+
+def _compound_rx(lang: str) -> str | None:
+    """Regex for multi-part number words (never a single word: those are in ``_NUMWORDS``)."""
+    c = _CMP.get(lang)
+    if c is None:
+        return None
+    t, teen = _alt(c["t"]), _alt(c["teen"])
+    if lang == "en":
+        u = _alt(c["u"])
+        tt = rf"(?:(?:{t})(?:[- ](?:{u}))?|{teen})"  # 10-99 except a bare unit
+        # after hundred / thousand a bare unit needs "and": "five hundred three times a day" is 500, then 3/day
+        tail = rf"(?:\s+(?:and\s+(?:{tt}|{u})|{tt}))"
+        h = rf"(?:(?:a|{u})\s+hundred{tail}?)"
+        return rf"(?:(?:{h}|{tt}|{u}|a)\s+thousand(?:\s+(?:and\s+)?{h}|{tail})?|{h}|(?:{t})[- ](?:{u}))"
+    up, ut = _alt(w for w in c["u"] if w != "eins"), _alt(w for w in c["u"] if w != "ein")
+    tu = rf"(?:(?:(?:{up})und)?(?:{t})|{teen}|{ut})"
+    h = rf"(?:(?:{up})?hundert(?:und)?(?:{tu})?)"
+    lt = rf"(?:{h}|{tu})"
+    return rf"(?:(?:{lt})?tausend(?:und)?(?:{lt})?|{h}|(?:{up})und(?:{t}))"
+
+
+_CMP_TOKENS: dict[str, tuple[re.Pattern[str], dict[str, int]]] = {}
+
+
+def _compound_value(w: str, lang: str) -> int | None:
+    if lang not in _CMP:
+        return None
+    if lang not in _CMP_TOKENS:
+        vals = {k: v for part in _CMP[lang].values() for k, v in part.items()}
+        words = [*vals, *_CMP_MULT, "und", "and", "a"]
+        _CMP_TOKENS[lang] = (re.compile(_alt(words)), vals)
+    rx, vals = _CMP_TOKENS[lang]
+    total = cur = 0
+    for tok in rx.findall(w):
+        if tok in ("und", "and"):
+            continue
+        if tok in _CMP_MULT:
+            if _CMP_MULT[tok] == 100:
+                cur = (cur or 1) * 100
+            else:
+                total, cur = total + (cur or 1) * 1000, 0
+        else:
+            cur += 1 if tok == "a" else vals[tok]
+    return total + cur or None
+
+
+# ordinal day words in dates ("the third of November", "am dritten November")
+_EN_ORD_U = {"first": 1, "second": 2, "third": 3, "fourth": 4, "fifth": 5, "sixth": 6, "seventh": 7, "eighth": 8,
+             "ninth": 9}
+_ORD_DAYS: dict[str, dict[str, int]] = {
+    "en": {**_EN_ORD_U, "tenth": 10, "eleventh": 11, "twelfth": 12, "thirteenth": 13, "fourteenth": 14,
+           "fifteenth": 15, "sixteenth": 16, "seventeenth": 17, "eighteenth": 18, "nineteenth": 19, "twentieth": 20,
+           "thirtieth": 30, "thirty-first": 31, "thirty first": 31,
+           **{f"twenty{s}{w}": 20 + v for w, v in _EN_ORD_U.items() for s in ("-", " ")}},
+    "de": {stem + end: v for stem, v in {
+        "erst": 1, "zweit": 2, "dritt": 3, "viert": 4, "fünft": 5, "sechst": 6, "siebt": 7, "siebent": 7, "acht": 8,
+        "neunt": 9, "zehnt": 10, "elft": 11, "zwölft": 12, "dreizehnt": 13, "vierzehnt": 14, "fünfzehnt": 15,
+        "sechzehnt": 16, "siebzehnt": 17, "achtzehnt": 18, "neunzehnt": 19, "zwanzigst": 20, "dreißigst": 30,
+        "einunddreißigst": 31,
+        **{f"{u}undzwanzigst": 20 + v for u, v in {"ein": 1, "zwei": 2, "drei": 3, "vier": 4, "fünf": 5, "sechs": 6,
+                                                    "sieben": 7, "acht": 8, "neun": 9}.items()},
+    }.items() for end in ("e", "en", "er", "es", "em")},
+}
+# hours said as words ("at nine", "um neun") and the Russian genitive ordinal of a clock ("половина третьего")
+_HOUR_WORDS: dict[str, dict[str, int]] = {
+    "en": {**_CMP["en"]["u"], "ten": 10, "eleven": 11, "twelve": 12},
+    "de": {**_CMP["de"]["u"], "zwo": 2, "zehn": 10, "elf": 11, "zwölf": 12},
+    "ru": {"первого": 1, "второго": 2, "третьего": 3, "четвертого": 4, "пятого": 5, "шестого": 6, "седьмого": 7,
+           "восьмого": 8, "девятого": 9, "десятого": 10, "одиннадцатого": 11, "двенадцатого": 12,
+           "час": 1, "один": 1, "два": 2, "три": 3, "четыре": 4, "пять": 5, "шесть": 6, "семь": 7, "восемь": 8,
+           "девять": 9, "десять": 10, "одиннадцать": 11, "двенадцать": 12},
+}
+# clock words -> minutes; negative = the named hour is the next one (-30: halb drei = 2:30, -45: Viertel vor drei
+# = 2:45, -75: четверть третьего = 2:15); en "quarter to/of" is handled with its "to"
+_CLOCK_WORDS = {"half": 30, "quarter": 15, "a quarter": 15, "halb": -30, "viertel nach": 15, "viertel vor": -45,
+                "dreiviertel": -45, "drei viertel": -45, "половина": -30, "половине": -30, "половину": -30,
+                "половины": -30, "пол": -30, "четверть": -75, "без четверти": -45}
+# short scale suffixes glued to a number: "€1.2m", "950k", "$3bn" (m/mn/b only next to a currency: "1.8m" is a height)
+_SHORT_SCALE = {"k": 10**3, "m": 10**6, "mn": 10**6, "b": 10**9, "bn": 10**9}
+
+# temperatures: °C is the number; °F also matches its °C conversion (±0.5) or the same °F on the other side
+_TEMP_F: dict[str, str] = {
+    "": r"°\s*f|℉|fahrenheit", "en": r"degrees?\s+fahrenheit", "de": r"grad\s+fahrenheit",
+    "ru": r"(?:градус\w*\s+)?(?:по\s+)?фаренгейт\w*|°\s*ф", "tr": r"derece\s+fahrenheit|fahrenhayt",
+    "ar": r"(?:درج\w*\s+)?(?:فهرنهايت|فهرنهيت)",
+}
+_TEMP_C: dict[str, str] = {
+    "": r"°\s*c|℃|celsius", "en": r"degrees?\s+(?:celsius|centigrade)", "de": r"grad(?:\s+celsius)?|°",
+    "ru": r"градус\w*(?:\s+(?:по\s+)?цельси\w*)?|°\s*с|°", "uk": r"градус\w*|°", "tr": r"derece|santigrat|°",
+    "ar": r"درج\w*(?:\s+مئوي\w*)?|°",
+}
+_TEMP_EN_AMBIG = r"degrees?|°"  # en "102 degrees": °F in the body/weather range 90-113, else °C
 
 _WEAK1: dict[str, list[str]] = {
     "de": ["ein", "eine", "einen", "einem", "einer", "eines"],
@@ -521,6 +652,8 @@ class _Pack:
     weekdays: _Lex
     rx: dict[str, re.Pattern[str]]
     lists: dict[str, list[tuple[re.Pattern[str], str]]]
+    ords: dict[str, int]  # ordinal day words ("third", "dritten")
+    hours: dict[str, int]  # hour words ("nine", "neun", "третьего")
 
 
 _PACKS: dict[str, _Pack] = {}
@@ -546,10 +679,17 @@ def _build_pack(lang: str) -> _Pack:
         weak.update({n(k): 2 for k in _AR_DUAL_NOUNS})
     numw = _alt(words) or r"(?!x)x"
     numw_any = _alt({**words, **weak}) if (words or weak) else r"(?!x)x"
+    comp = _compound_rx(L)
+    if comp:  # "twenty-five", "hundertfünfzig": tried before the single words
+        comp = n(comp)
+        numw, numw_any = f"{comp}|{numw}", f"{comp}|{numw_any}"
     dig = _DIG_SPACE if lang in _SPACE_THOUSANDS else _DIG_NBSP
     NUM = rf"(?:{dig}|(?<!\w)(?:{numw})(?!\w))"
     NUM_ANY = rf"(?:{dig}|(?<!\w)(?:{numw_any})(?!\w))"
     NUM_M = rf"(?:{_DIG_SPACE}|(?<!\w)(?:{numw})(?!\w))"  # before a currency or a count word
+    ords = {n(k): v for k, v in _ORD_DAYS.get(L, {}).items()}
+    hours = {n(k): v for k, v in _HOUR_WORDS.get(L, {}).items()}
+    hourw = _alt(hours) if hours else r"(?!x)x"
 
     scales = _Lex(_SCALES.get(L, []), lang)
     cur = _Lex([*_CURRENCIES.get(L, []), *_CUR_SYMBOLS], lang)
@@ -573,12 +713,17 @@ def _build_pack(lang: str) -> _Pack:
     if L in ("de", "tr", "ru", "uk") or (not L and lang in _COMMA_DECIMAL):
         dates.append((rf"(?<![\d.,]){d}\.(?P<mo>[01]?\d)\.(?!\d)", "dmy"))
     dates.append((rf"(?<![\d.,/]){d}/(?P<mo>[01]?\d)(?![\d/])", "dm_slash"))
+    dw = rf"(?P<dw>{_alt(ords)})" if ords else None  # "third", "dritten"
     if L == "de":
         dates.append((rf"(?<![\d.,]){d}\.?\s*(?P<mon>{mon}){B}(?:\.?\s*{y})?", "dmy"))
+        dates.append((rf"(?<!\w){dw}\s+(?P<mon>{mon}){B}(?:\.?\s*{y})?", "dmy"))
     elif L in ("en", ""):
         dates.append((rf"(?<!\w)(?P<mon>{mon})\s+(?:the\s+)?{d}(?:st|nd|rd|th)?{B}(?:,?\s+{y})?", "dmy"))
         dates.append((rf"(?<![\d.,])(?:the\s+)?{d}(?:st|nd|rd|th)?\s+(?:of\s+)?(?P<mon>{mon}){B}(?:,?\s+{y})?",
                       "dmy"))
+        if dw:
+            dates.append((rf"(?<!\w)(?:the\s+)?{dw}\s+(?:of\s+)?(?P<mon>{mon}){B}(?:,?\s+{y})?", "dmy"))
+            dates.append((rf"(?<!\w)(?P<mon>{mon})\s+(?:the\s+)?{dw}{B}(?:,?\s+{y})?", "dmy"))
     elif L == "tr":
         dates.append((rf"(?<![\d.,]){d}\.?\s+(?P<mon>{mon})(?:'\w+|\w*)(?:\s+{y})?", "dmy"))
     elif L in ("ru", "uk"):
@@ -606,23 +751,36 @@ def _build_pack(lang: str) -> _Pack:
     M = r"(?::(?P<m>[0-5]\d))"
     MD = r"(?:[:.](?P<m>[0-5]\d)(?!\d))"  # not "10.000" (a number, not 10:00)
     times: list[tuple[str, str]] = []
+    H12 = rf"(?P<h>1[0-2]|[1-9]|{hourw})"  # the hour of a clock phrase
     if L == "de":
         mer = r"(?P<mer>morgens|früh|vormittags|mittags|nachmittags|abends|nachts)"
+        mer0 = r"(?:(?P<mer0>morgens|früh|vormittags|nachmittags|abends|nachts)\s+)?"
+        after_um = r"(?=\s*(?:[,.](?!\d)|[;!?)]|$|morgens|abends|früh|vormittags|nachmittags|wieder|zurück|in\s|bei\s|am\s|im\s))"
         times += [
-            ((rf"(?<!\w)(?:(?P<mer0>morgens|früh|vormittags|nachmittags|abends|nachts)\s+)?(?:um\s+)?"
-             rf"(?P<h>[01]?\d|2[0-3]|{numw}){MD}?\s*uhr{B}(?:\s+{mer})?"), "t"),
+            # "halb drei" = 2:30, "Viertel nach zwei", "Viertel vor drei" / "dreiviertel drei" = 2:45
+            ((rf"(?<!\w){mer0}(?:um\s+)?(?P<qa>halb|viertel\s+nach|viertel\s+vor|dreiviertel|drei\s+viertel)\s+"
+              rf"{H12}(?:\s+uhr)?{B}(?:\s+{mer})?"), "tc"),
+            ((rf"(?<!\w){mer0}(?:um\s+)?"
+             rf"(?P<h>[01]?\d|2[0-3]|{hourw}|{numw}){MD}?\s*uhr{B}(?:\s+{mer})?"), "t"),
             ((rf"(?<!\w)(?:(?P<mer0>morgens|früh|vormittags|nachmittags|abends)\s+)?um\s+{H}{MD}?"
-             rf"(?=\s*(?:[,.](?!\d)|[;!?)]|$|morgens|abends|früh|vormittags|nachmittags|wieder|zurück|in\s|bei\s|am\s|im\s))"
-             rf"(?:\s*{mer})?"), "t"),
+             rf"{after_um}(?:\s*{mer})?"), "t"),
+            (rf"(?<!\w){mer0}um\s+(?P<h>{hourw}){after_um}(?:\s*{mer})?", "tw"),  # "um neun"
         ]
     elif L in ("en", ""):
+        mer_en = r"(?P<mer>in the morning|in the afternoon|in the evening|at night|a\.\s?m\.|p\.\s?m\.|am|pm|a\.m|p\.m)"
         times += [
-            ((r"(?<![\d.])(?P<h>1[0-2]|0?[1-9])(?::(?P<m>[0-5]\d))?\s*(?P<mer>a\.\s?m\.|p\.\s?m\.|am|pm|a\.m|p\.m)"
-             r"(?!\w)"), "t"),
-            ((rf"(?<!\w)(?P<h>1[0-2]|0?[1-9]|{numw})\s+o'?clock{B}"
+            # "half past two", "a quarter to three" (= 2:45, also "quarter of")
+            ((rf"(?<!\w)(?P<qa>half|(?:a\s+)?quarter)\s+(?P<rel>past|after|to|of|before)\s+{H12}"
+              rf"(?:\s+o'?clock)?{B}(?:\s*{mer_en}{B})?"), "tc"),
+            ((r"(?<![\d.])(?P<h>1[0-2]|0?[1-9])(?:[:.](?P<m>[0-5]\d))?\s*(?P<mer>a\.\s?m\.|p\.\s?m\.|am|pm|a\.m|p\.m)"
+             r"(?!\w)"), "t"),  # "10.30 am" as well as "10:30 am"
+            ((rf"(?<!\w)(?P<h>1[0-2]|0?[1-9]|{hourw})\s+o'?clock{B}"
              r"(?:\s+(?P<mer>in the morning|in the afternoon|in the evening|at night))?"), "t"),
             ((rf"(?<!\w)at\s+{H}{MD}?(?=\s*(?:[,.](?!\d)|[;!?)]|$|in the|tomorrow|today|tonight|sharp|on\s))"
              r"(?:\s+(?P<mer>in the morning|in the afternoon|in the evening|at night))?"), "t"),
+            ((rf"(?<!\w)at\s+(?P<h>{hourw})"
+              r"(?=\s*(?:[,.;!?)]|$|in the|at night|tomorrow|today|tonight|sharp|on\s|[ap]\.?\s?m(?!\w)))"
+              rf"(?:\s*{mer_en}{B})?"), "tw"),  # "at nine"
         ]
     elif L == "tr":
         times += [
@@ -631,7 +789,13 @@ def _build_pack(lang: str) -> _Pack:
             (rf"(?<!\w)(?:(?P<mer0>sabah|akşam|öğleden sonra|öğlen|gece)\s+)?{H}{MD}?'(?:d[ae]|t[ae]){B}", "t"),
         ]
     elif L == "ru":
+        ru_gen = _alt(w for w in hours if w.endswith("го"))  # "третьего"
+        ru_card = _alt(w for w in hours if not w.endswith("го"))
+        ru_mer = r"(?:\s+(?P<mer>утра|дня|вечера|ночи))?"
         times += [
+            # "половина третьего" / "полтретьего" = 2:30, "четверть третьего" = 2:15, "без четверти три" = 2:45
+            (rf"(?<!\w)(?:в\s+)?(?:(?P<qa>половин[аеуы]|четверть)\s+|(?P<qp>пол))(?P<h>{ru_gen}){B}{ru_mer}", "tc"),
+            (rf"(?<!\w)(?:в\s+)?(?P<qa>без\s+четверти)\s+(?P<h>1[0-2]|[1-9]|{ru_card}){B}{ru_mer}", "tc"),
             ((rf"(?<!\w)в\s+(?P<h>[01]?\d|2[0-3]|{numw}){MD}?(?:\s*(?P<hw>час(?:а|ов)?|ч\.?){B})?"
              rf"(?:\s+(?P<mer>утра|дня|вечера|ночи))?"), "t_ru"),
             (rf"(?<![\d.,]){H}{MD}?\s+(?P<mer>утра|дня|вечера|ночи){B}", "t"),
@@ -639,10 +803,10 @@ def _build_pack(lang: str) -> _Pack:
     elif L == "uk":
         times += [(rf"(?<!\w)о\s+{H}{MD}?\s*(?:годині|год\.?){B}", "t")]
     elif L == "ar":
-        ords = {"الواحدة": 1, "الثانية": 2, "الثالثة": 3, "الرابعة": 4, "الخامسة": 5, "السادسة": 6,
+        ar_hours = {"الواحدة": 1, "الثانية": 2, "الثالثة": 3, "الرابعة": 4, "الخامسة": 5, "السادسة": 6,
                 "السابعة": 7, "الثامنة": 8, "التاسعة": 9, "العاشرة": 10, "الحادية عشرة": 11, "الثانية عشرة": 12}
-        words.update({n(k): v for k, v in ords.items()})
-        ordalt = _alt(n(k) for k in ords)
+        words.update({n(k): v for k, v in ar_hours.items()})
+        ordalt = _alt(n(k) for k in ar_hours)
         mer = r"(?P<mer>صباحا|صباحًا|مساء|مساءً|مساءا|ص|م|ظهرا|عصرا|ليلا|فجرا|بعد الظهر|في الصباح|في المساء)"
         times += [
             ((rf"(?<!\w)(?:في\s+)?الساعة\s+(?P<h>[01]?\d|2[0-3]|{ordalt}|{numw}){MD}?"
@@ -724,13 +888,24 @@ def _build_pack(lang: str) -> _Pack:
     if L == "tr":
         pct.append((rf"(?<!\w)yüzde\s+(?P<n>{NUM}){apo}{B}", "pct"))
     lists["pct"] = pct
+    tf = "|".join(n(x) for x in (_TEMP_F[""], _TEMP_F.get(L, "")) if x)
+    tc = "|".join(n(x) for x in (_TEMP_C.get(L, ""), _TEMP_C[""]) if x)
+    ta = n(_TEMP_EN_AMBIG) if L == "en" else r"(?!x)x"
+
+    def temp(i: int) -> str:
+        return rf"(?P<n{i}>{NUM})\s*(?:(?P<f{i}>{tf})|(?P<c{i}>{tc})|(?P<a{i}>{ta}))(?!\w)"
+
+    rx["temp"] = rf"{temp(1)}(?:\s*(?:\(|/)\s*{temp(2)}\s*\)?)?"  # "38,9 °C (102 °F)"
     SC = scales.alt
     CUR = cur.alt
     CURP = _ralt(n(p) for p, _ in _CUR_SYMBOLS)
+    SS = r"(?P<ss>k|mn|m|bn|b)"  # glued: "€1.2m", "950k euros"
+    more = rf"(?!,?\s+(?:and\s+)?(?:{numw}){B})" if L == "en" else ""  # "two thousand | five hundred"
     amt = [
-        (rf"(?<!\w)(?P<cur>{CURP})\s*(?P<n>{NUM_M})(?:\s*(?P<sc>{SC}){B})?", "amt"),
-        (rf"(?P<n>{NUM_M})(?:\s*(?P<sc>{SC}))?\s*(?P<cur>{CUR}){apo}(?!\w)", "amt"),
-        (rf"(?P<n>{NUM})\s*(?P<sc>{SC}){apo}{B}", "amt"),
+        (rf"(?<!\w)(?P<cur>{CURP})\s*(?P<n>{NUM_M})(?:{SS}(?!\w)|\s*(?P<sc>{SC}){B})?", "amt"),
+        (rf"(?P<n>{NUM_M})(?:{SS}|\s*(?P<sc>{SC}))?\s*(?P<cur>{CUR}){apo}(?!\w)", "amt"),
+        (rf"(?P<n>{NUM})\s*(?P<sc>{SC}){apo}{B}{more}", "amt"),
+        (rf"(?P<n>{dig})(?P<ss>k|bn)(?!\w)", "amt"),  # "950k" without a currency (not "1.8m": a height)
     ]
     if L in _SCALE1:
         w1 = _alt(_WEAK1.get(L, []) and [n(w) for w in _WEAK1[L]])
@@ -744,6 +919,7 @@ def _build_pack(lang: str) -> _Pack:
     if L == "ar":
         rx["dur2"] = rf"(?<!\w)(?P<u>{_ralt(n(p) for p, _ in _AR_DUAL_DUR)}){B}"
     rx["dig"] = dig
+    rx["dig_bare"] = _DIG_SPACE
     rx["numw"] = rf"(?<!\w)(?:{numw}){B}"
     rx["weak"] = rf"(?<!\w)(?:{_alt(weak)}){B}" if weak else r"(?!x)x"
     rx["cur_solo"] = rf"(?<!\w)(?:{CUR}){B}"
@@ -763,7 +939,7 @@ def _build_pack(lang: str) -> _Pack:
 
     return _Pack(lang=lang, words=words, weak=weak, scales=scales, cur=cur, units=units, dur=dur, months=months,
                  weekdays=weekdays, rx={k: re.compile(v) for k, v in rx.items()},
-                 lists={k: [(re.compile(a), b) for a, b in v] for k, v in lists.items()})
+                 lists={k: [(re.compile(a), b) for a, b in v] for k, v in lists.items()}, ords=ords, hours=hours)
 
 
 # ================================================================ internal facts
@@ -804,6 +980,8 @@ def _numval(s: str, p: _Pack) -> Decimal | None:
     v = p.words.get(w)
     if v is None:
         v = p.weak.get(w)
+    if v is None and p.lang in _CMP:
+        v = _compound_value(w, p.lang)
     if v is None and p.lang == "tr":  # suffixed word ("dokuzda")
         for k, kv in p.words.items():
             if w.startswith(k) and len(w) - len(k) <= 3:
@@ -939,6 +1117,11 @@ def _scan(text: str, lang: str, glossary: Glossary | None) -> tuple[_Text, list[
                 mo = p.months.get(m.group("mon"))
             else:
                 mo = int(g["mo"]) if g.get("mo") else None
+            if g.get("dw"):  # a spelled day: the other language may only read the month
+                f = _date("date", yv, mo, p.ords.get(g["dw"]), *m.span())
+                if f is not None and mo:
+                    f.alts = (*f.alts, ("date", f"--{mo:02d}"))
+                return f
             dv = int(g["d"]) if g.get("d") else None
             return _date("date", yv, mo, dv, *m.span())
         return fn
@@ -985,18 +1168,40 @@ def _scan(text: str, lang: str, glossary: Glossary | None) -> tuple[_Text, list[
             g = m.groupdict()
             if kind == "t_ru" and not (g.get("hw") or g.get("m") or g.get("mer")):
                 return None
-            hv = _numval(g["h"], p)
+            hs, mer = g["h"], g.get("mer") or g.get("mer0")
+            hv = p.hours.get(hs) if kind in ("tc", "tw") else None
+            if hv is None:
+                hv = _numval(hs, p)
             if hv is None:
                 return None
+            h = int(hv)
             mins = int(g["m"]) if g.get("m") else 0
+            if kind == "tc":  # clock words: the minutes, and whether the named hour is the next one
+                mins = _CLOCK_WORDS.get(re.sub(r"\s+", " ", g.get("qa") or g.get("qp") or ""))
+                if mins is None or not 1 <= h <= 12:
+                    return None
+                if mins in (30, 15) and g.get("rel") in ("to", "of", "before"):
+                    if mins == 30:
+                        return None  # "half to": not a time
+                    mins = -15
+                if mins in (-30, -45, -75):  # halb drei = 2:30, Viertel vor drei = 2:45, четверть третьего = 2:15
+                    h, mins = h - 1, {-30: 30, -45: 45, -75: 15}[mins]
             frac = (g.get("frac") or "").replace(" ", "")
             if frac:
                 mins = 30 if "نصف" in frac else (15 if frac.startswith("و") else -15)
-            h = int(hv)
             if mins < 0:
                 h, mins = h - 1, 45
-            v = _clock(h, mins, g.get("mer") or g.get("mer0"))
-            return _mk("time", v, *m.span()) if v else None
+            v = _clock(h, mins, mer)
+            if not v:
+                return None
+            alts: tuple[tuple[str, str], ...] = ()
+            if not mer and (lang == "en" or kind in ("tc", "tw")) and not hs.startswith("0") and h <= 12:
+                # a 12-hour clock without am/pm ("at 2", "half past two", "halb drei"): h or h + 12
+                hh = int(v[:2]) % 12
+                alts = tuple(("time", f"{x:02d}{v[2:]}") for x in (hh, hh + 12) if f"{x:02d}{v[2:]}" != v)
+            if kind == "tw":  # "at nine" / "um neun": also the bare number when the other side reads no time
+                alts += (("num", str(int(hv))),)
+            return _mk("time", v, *m.span(), alts=alts)
         return fn
 
     for rx, kind in p.lists["times"]:
@@ -1047,6 +1252,34 @@ def _scan(text: str, lang: str, glossary: Glossary | None) -> tuple[_Text, list[
     for rx, _k in p.lists["pct"]:
         _run(t, rx, pct_fn, out)
 
+    # -------------------------------------------------- temperatures (a number; °F also matches its °C)
+    def temp_part(m: re.Match[str], i: int) -> tuple[str, Decimal] | None:
+        nv = _numval(m.group(f"n{i}"), p)
+        if nv is None:
+            return None
+        if m.group(f"f{i}"):
+            return "F", nv
+        if m.group(f"c{i}"):
+            return "C", nv
+        return ("FA" if 90 <= nv <= 113 else "C"), nv  # en "102 degrees" is Fahrenheit, "39 degrees" Celsius
+
+    def temp_fn(m: re.Match[str]) -> _F | None:
+        a = temp_part(m, 1)
+        b = temp_part(m, 2) if m.group("n2") else None
+        if a is None:
+            return None
+        if b is not None and {a[0][0], b[0][0]} == {"F", "C"}:  # "38,9 °C (102 °F)": either one may be matched
+            (_, cv), (_, fv) = (a, b) if a[0] == "C" else (b, a)
+            alts = (("num", _fmt(cv)), ("tf", _fmt(fv)), ("num", _fmt(fv)), *_c_window(fv))
+            return _mk("number", _fmt(cv), *m.span(), key="tc", alts=alts, num=cv)
+        sc, v = a
+        if sc == "C":
+            return _mk("number", _fmt(v), *m.span(), key="tc", alts=(("num", _fmt(v)),), num=v)
+        alts = (("num", _fmt(v)), *_c_window(v), *((("tc", _fmt(v)),) if sc == "FA" else ()))
+        return _mk("number", _fmt(v), *m.span(), key="tf", alts=alts, num=v)
+
+    _run(t, p.rx["temp"], temp_fn, out)
+
     # -------------------------------------------------- amounts
     def amt_fn(kind: str) -> Callable[[re.Match[str]], _F | None]:
         def fn(m: re.Match[str]) -> _F | None:
@@ -1061,6 +1294,8 @@ def _scan(text: str, lang: str, glossary: Glossary | None) -> tuple[_Text, list[
                     return None
                 if g.get("sc"):
                     nv *= Decimal(p.scales.get(g["sc"]) or 1)
+                elif g.get("ss"):
+                    nv *= _SHORT_SCALE[g["ss"]]
             if not nv:
                 return None
             num = _fmt(nv)
@@ -1127,7 +1362,8 @@ def _scan(text: str, lang: str, glossary: Glossary | None) -> tuple[_Text, list[
         nv = _numval(m.group(0), p)
         return _mk("number", _fmt(nv), *m.span(), key="num", num=nv) if nv is not None else None
 
-    _run(t, p.rx["dig"], num_fn, out)
+    _run(t, p.rx["dig_bare"], num_fn, out)  # "950 000" ...
+    _run(t, p.rx["dig"], num_fn, out)  # ... and "2" of "2 500 mg" once the dose took "500 mg"
     _run(t, p.rx["numw"], num_fn, out)
 
     def weak_fn(m: re.Match[str]) -> _F | None:

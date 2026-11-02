@@ -221,7 +221,8 @@ def test_more_perturbations():
 
     assert red("Kommen Sie am 12. November wieder.", "de", "Come back on 12 December.", "en")
     assert red("Um 9 Uhr.", "de", "At 9 p.m.", "en")
-    assert red("Um 21 Uhr.", "de", "At 9 o'clock.", "en")
+    assert red("Um 21 Uhr.", "de", "At 9 o'clock in the morning.", "en")  # "at 9 o'clock" alone is 9 or 21
+    assert red("Um 21 Uhr.", "de", "At 10 o'clock.", "en")
     assert red("Nehmen Sie dreimal täglich 2 Tabletten.", "de", "Take 2 tablets twice a day.", "en")
     assert red("Nehmen Sie 500 mg Ibuprofen.", "de", "Take 500 mg of paracetamol.", "en")  # drug swapped
     assert red("Ich bin allergisch gegen Penicillin.", "de", "Penisiline alerjim yok.", "tr")  # negation added
@@ -234,6 +235,133 @@ def test_more_perturbations():
     assert red("Sie haben 7 Tage Zeit.", "de", "You have seven weeks.", "en")
     assert red("Wir geben 20 % Rabatt.", "de", "Мы даём скидку 25 процентов.", "ru")
     assert red("Nehmen Sie alle 8 Stunden 400 mg.", "de", "Take 400 mg every 6 hours.", "en")
+
+
+# ---------------------------------------------------------------- English demo direction (en <-> de)
+
+EN_DE_GREEN = [
+    # 1. dot time with am/pm
+    ("Come at 10.30 am.", "Kommen Sie um 10:30 Uhr."), ("Come at 10.30 pm.", "Kommen Sie um 22:30 Uhr."),
+    # 2. currency + decimal + m/bn
+    ("Our offer is €1.2m.", "Unser Angebot liegt bei 1,2 Millionen Euro."),
+    ("Our offer is €1.2m.", "Unser Angebot liegt bei 1,2 Mio. €."), ("We pay 1.2m euros.", "Wir zahlen 1,2 Mio. Euro."),
+    ("Our offer is €1.2bn.", "Unser Angebot liegt bei 1,2 Milliarden Euro."),
+    # 3. k
+    ("We pay 950k.", "Wir zahlen 950.000."), ("We pay 950k.", "Wir zahlen 950 000."),
+    ("We pay €950k.", "Wir zahlen 950.000 Euro."), ("We pay 950k euros.", "Wir zahlen 950 000 Euro."),
+    # 4. spelled hour
+    ("Come back at nine.", "Kommen Sie um neun wieder."), ("Come back at nine.", "Kommen Sie um 9 Uhr wieder."),
+    ("Come at one.", "Kommen Sie um ein Uhr."),
+    # 5. clock words
+    ("Come at half past two.", "Kommen Sie um halb drei."), ("Come at half past two.", "Kommen Sie um 14:30 Uhr."),
+    ("Come at quarter past two.", "Kommen Sie um Viertel nach zwei."),
+    ("Come at a quarter to three.", "Kommen Sie um Viertel vor drei."),
+    ("Come at quarter to three.", "Kommen Sie um 2:45 Uhr."), ("Come at quarter to three.", "Kommen Sie um dreiviertel drei."),
+    ("Come at half past two in the afternoon.", "Kommen Sie um 14:30 Uhr."),
+    # 6. ordinal day words
+    ("Come on the third of November.", "Kommen Sie am 3. November."),
+    ("Come on the third of November.", "Kommen Sie am dritten November."),
+    ("Come on November the twenty-first.", "Kommen Sie am 21. November."),
+    ("The first delivery is on the second of March.", "Die erste Lieferung ist am 2. März."),
+    # 7. number words above twenty
+    ("Take twenty-five drops.", "Nehmen Sie fünfundzwanzig Tropfen."), ("Take twenty five drops.", "Nehmen Sie 25 Tropfen."),
+    ("Take a hundred and fifty milligrams.", "Nehmen Sie 150 mg."),
+    ("Take a hundred and fifty milligrams.", "Nehmen Sie hundertfünfzig Milligramm."),
+    ("Take one hundred and twenty-five milligrams.", "Nehmen Sie 125 mg."), ("For twenty-one days.", "21 Tage lang."),
+    ("We pay two thousand five hundred euros.", "Wir zahlen 2.500 Euro."),
+    ("We pay three hundred thousand euros.", "Wir zahlen 300.000 Euro."),
+    ("We pay 3,200 euros.", "Wir zahlen dreitausendzweihundert Euro."),
+    # 8. 12-hour clock without am/pm
+    ("Come at 2.", "Kommen Sie um 14 Uhr."), ("Come at 2.", "Kommen Sie um 2 Uhr."), ("Come at 2:30.", "Kommen Sie um 14:30 Uhr."),
+    ("Come at nine.", "Kommen Sie um 21 Uhr."), ("Come at 9 o'clock.", "Kommen Sie um 21 Uhr."),
+    # Fahrenheit: the °C conversion (±0.5) or the original °F
+    ("I have a fever of 102 °F.", "Ich habe 38,9 °C Fieber."), ("I have a fever of 102°F.", "Ich habe 39 Grad Fieber."),
+    ("I have a fever of 102 degrees.", "Ich habe 39 Grad Fieber."),
+    ("I have a fever of 102 degrees.", "Ich habe 38,9 °C (102 °F) Fieber."),
+    ("I have a fever of 102 °F.", "Ich habe 38,9 °C (102 °F) Fieber."), ("I have 38.5 degrees.", "Ich habe 38,5 Grad."),
+    ("Bend your knee 90 degrees.", "Beugen Sie das Knie um 90 Grad."),
+    # no new alarms on look-alikes
+    ("I'm 1.8m tall.", "Ich bin 1,8 m groß."), ("Walk 500 m.", "Gehen Sie 500 m."),
+    ("Take half of the tablets.", "Nehmen Sie die Hälfte der Tabletten."),
+    ("I was the first in line.", "Ich war der Erste in der Schlange."),
+]
+
+EN_DE_RED = [  # the same forms with a wrong value: no new false negatives
+    ("Come at 10.30 am.", "Kommen Sie um 22:30 Uhr."), ("Come at 10.30 am.", "Kommen Sie um 10:45 Uhr."),
+    ("Our offer is €1.2m.", "Unser Angebot liegt bei 12 Mio. €."),
+    ("Our offer is €1.2m.", "Unser Angebot liegt bei 1,2 Milliarden Euro."),
+    ("Our offer is €1.2m.", "Unser Angebot liegt bei 1,2 Millionen Dollar."),
+    ("We pay 950k.", "Wir zahlen 95.000."), ("We pay 950k.", "Wir zahlen 950 Euro."),
+    ("Come back at nine.", "Kommen Sie um 10 Uhr wieder."), ("Come at nine.", "Kommen Sie um 20 Uhr."),
+    ("Come at half past two.", "Kommen Sie um halb zwei."), ("Come at half past two.", "Kommen Sie um 15:30 Uhr."),
+    ("Come at quarter to three.", "Kommen Sie um Viertel nach drei."),
+    ("Come at half past two in the afternoon.", "Kommen Sie um 2:30 Uhr."),
+    ("Come on the third of November.", "Kommen Sie am 4. November."),
+    ("Come on the third of November.", "Kommen Sie am 3. Dezember."),
+    ("Take twenty-five drops.", "Nehmen Sie 52 Tropfen."), ("Take twenty-five drops.", "Nehmen Sie 20 Tropfen."),
+    ("Take a hundred and fifty milligrams.", "Nehmen Sie 115 mg."),
+    ("We pay two thousand five hundred euros.", "Wir zahlen 2.000 Euro."),
+    ("Come at 2.", "Kommen Sie um 15 Uhr."), ("Come at 2.", "Kommen Sie 2."), ("Come at 2:30.", "Kommen Sie um 15:30 Uhr."),
+    ("Come at 09:00.", "Kommen Sie um 21 Uhr."),  # a leading zero is a 24-hour time
+    ("I have a fever of 102 °F.", "Ich habe 40 °C Fieber."),
+    ("I have a fever of 102 °F.", "Ich habe 102 Grad Fieber."),  # unconverted: a German reads 102 °C
+    ("I have a fever of 104 °F.", "Ich habe 38,9 °C (102 °F) Fieber."), ("I have 39 degrees.", "Ich habe 40 Grad."),
+]
+
+
+@pytest.mark.parametrize(("en", "de"), EN_DE_GREEN)
+def test_en_de_correct_renderings_are_green(en, de):
+    for a, al, b, bl in ((en, "en", de, "de"), (de, "de", en, "en")):
+        r = check(a, al, b, bl, glossary=MED)
+        assert not r.red, (a, b, bad_rows(r))
+
+
+@pytest.mark.parametrize(("en", "de"), EN_DE_RED)
+def test_en_de_wrong_values_stay_red(en, de):
+    for a, al, b, bl in ((en, "en", de, "de"), (de, "de", en, "en")):
+        assert check(a, al, b, bl, glossary=MED).red, (a, b)
+
+
+def test_en_de_values():
+    assert values("Come at 10.30 am.", "en") == ["10:30"]
+    assert values("€1.2m", "en") == ["1200000 EUR"] == values("1.2m euros", "en")
+    assert values("$1.2m", "en") == ["1200000 USD"]
+    assert values("950k", "en") == ["950000"] and values("$3bn", "en") == ["3000000000 USD"]
+    assert values("I'm 1.8m tall.", "en") == ["1.8"]  # without a currency "m" is a metre, not a million
+    assert values("at nine", "en", "time") == ["09:00"] == values("um neun", "de", "time")
+    assert values("half past two", "en", "time") == ["02:30"] == values("halb drei", "de", "time")
+    assert values("quarter to three", "en", "time") == ["02:45"] == values("Viertel vor drei", "de", "time")
+    assert values("Viertel nach zwei", "de", "time") == ["02:15"] == values("quarter past two", "en", "time")
+    assert values("halb eins", "de", "time") == ["00:30"]
+    assert values("the third of November", "en") == ["--11-03"] == values("am dritten November", "de")
+    for text, lang, v in [("twenty-five", "en", "25"), ("a hundred and fifty", "en", "150"),
+                          ("two thousand five hundred", "en", "2500"), ("ninety-nine", "en", "99"),
+                          ("fünfundzwanzig", "de", "25"), ("hundertfünfzig", "de", "150"),
+                          ("zweihundertdreiundvierzig", "de", "243"), ("dreitausendzweihundert", "de", "3200"),
+                          ("einhundertundeins", "de", "101")]:
+        assert values(f"{text} .", lang, "number") == [v], (text, lang)
+    assert values("Take 2 tablets twice a day.", "en") == ["2", "2/day"]  # single words unchanged
+    # after "hundred" a bare unit needs "and": not 503/day
+    assert values("Take five hundred three times a day.", "en") == ["500", "3/day"]
+    assert values("five hundred and three .", "en") == ["503"] and values("two thousand twenty-six .", "en") == ["2026"]
+
+
+def test_russian_clock_words():
+    assert values("в половине третьего", "ru", "time") == ["02:30"] == values("полтретьего", "ru", "time")
+    assert values("четверть третьего", "ru", "time") == ["02:15"]
+    assert values("без четверти три", "ru", "time") == ["02:45"]
+    assert values("в половине третьего дня", "ru", "time") == ["14:30"]
+    assert not check("Приходите в половине третьего.", "ru", "Kommen Sie um halb drei.", "de").red
+    assert check("Приходите в половине третьего.", "ru", "Kommen Sie um halb vier.", "de").red
+    assert not check("Kommen Sie um Viertel nach zwei.", "de", "Приходите в четверть третьего.", "ru").red
+
+
+def test_spelled_dates_and_fahrenheit_with_other_languages():
+    # a spelled day the other language reads only as a month is not an alarm; a different digit day is
+    assert not check("Kommen Sie am dritten November.", "de", "Приходите третьего ноября.", "ru").red
+    assert check("Kommen Sie am dritten November.", "de", "Приходите 4 ноября.", "ru").red
+    assert not check("У меня температура 102 градуса по Фаренгейту.", "ru", "Ich habe 38,9 °C Fieber.", "de").red
+    assert check("У меня температура 102 градуса по Фаренгейту.", "ru", "Ich habe 102 Grad Fieber.", "de").red
 
 
 # ---------------------------------------------------------------- numbers and locale formats
@@ -261,7 +389,7 @@ def test_locale_amounts_are_equal():
         assert not check(a, al, b, bl).red
 
 
-SPACES = [" ", " ", " "]  # plain space, NBSP, narrow NBSP
+SPACES = [" ", "\u00a0", "\u202f"]  # plain space, NBSP, narrow NBSP
 
 
 @pytest.mark.parametrize("sp", SPACES)
