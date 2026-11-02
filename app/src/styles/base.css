@@ -128,9 +128,19 @@ p {
   letter-spacing: 0.005em;
   transition: background 140ms var(--ease-out), border-color 140ms var(--ease-out), transform 120ms var(--ease-out);
 }
-.btn:hover {
-  background: var(--brand-2);
-  border-color: var(--brand-2);
+@media (hover: hover) {
+  .btn:hover {
+    background: var(--brand-2);
+    border-color: var(--brand-2);
+  }
+  .btn--ghost:hover {
+    background: var(--paper-2);
+    border-color: var(--ink-3);
+  }
+  .btn--bad:hover {
+    background: var(--bad-wash);
+    border-color: var(--bad);
+  }
 }
 .btn:active {
   transform: translateY(1px);
@@ -143,10 +153,6 @@ p {
   color: var(--ink);
   border-color: var(--rule-strong);
 }
-.btn--ghost:hover {
-  background: var(--paper-2);
-  border-color: var(--ink-3);
-}
 .btn--ok {
   background: var(--ok);
   border-color: var(--ok);
@@ -155,10 +161,6 @@ p {
 .btn--bad {
   background: transparent;
   color: var(--bad);
-  border-color: var(--bad);
-}
-.btn--bad:hover {
-  background: var(--bad-wash);
   border-color: var(--bad);
 }
 .btn--block {

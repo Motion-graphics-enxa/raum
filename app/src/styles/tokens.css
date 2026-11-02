@@ -42,6 +42,10 @@
   --room-sprechzimmer: #0a6f80;
   --room-kanzlei: #5945a4;
   --room-verhandlungsraum: #a03670;
+  /* room layers drawn on the Prussian title band (same in both themes) */
+  --band-sprechzimmer: #5fd0de;
+  --band-kanzlei: #b6a6ff;
+  --band-verhandlungsraum: #ff9fd0;
 
   /* type */
   --font-text: "Atkinson Hyperlegible Next Variable", "Noto Sans Arabic Variable", system-ui, -apple-system,

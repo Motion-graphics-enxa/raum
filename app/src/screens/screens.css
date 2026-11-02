@@ -65,24 +65,19 @@
   margin: 0 auto;
   padding: var(--s-6) var(--s-5) calc(env(safe-area-inset-bottom, 0px) + var(--s-5));
 }
-.join__who {
-  display: grid;
-  gap: var(--s-2);
-}
 .join__role {
-  display: flex;
-  align-items: center;
-  gap: var(--s-3);
   font-size: 2.25rem;
-  line-height: 1.1;
+  line-height: 1.15;
   font-weight: 720;
   letter-spacing: -0.015em;
 }
-.join__role .icon {
-  width: 34px;
-  height: 34px;
-  stroke-width: 1.5;
-  color: var(--link);
+.join__role-pre {
+  display: block;
+  font-size: 1.375rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--ink-2);
+  margin-bottom: var(--s-1);
 }
 .join__lang {
   display: grid;
@@ -199,6 +194,8 @@
 .talk-scroll {
   flex: 1;
   overflow-y: auto;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 36px);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 36px);
   overscroll-behavior: contain;
   padding: 0 var(--s-5);
   scroll-padding-bottom: var(--s-6);
@@ -324,8 +321,10 @@
   height: 26px;
   stroke-width: 1.6;
 }
-.dock__side:hover {
-  background: var(--paper-2);
+@media (hover: hover) {
+  .dock__side:hover {
+    background: var(--paper-2);
+  }
 }
 .dock__side.is-active {
   color: var(--ink);
@@ -585,9 +584,6 @@
 .sum.is-burning .sheet__tb {
   animation-delay: 560ms;
 }
-.screen--summary.is-burned .sheet {
-  display: none;
-}
 @keyframes erase {
   to {
     clip-path: inset(0 100% 0 0);
@@ -604,69 +600,72 @@
   }
 }
 
+/* the stamp: an impression, pressed onto the sheet's title block */
 .stamp {
-  position: relative;
-  display: grid;
-  gap: var(--s-3);
+  display: inline-grid;
   justify-items: center;
-  padding: var(--s-6) var(--s-4);
-  text-align: center;
-  animation: stamp-in 420ms var(--ease-out) both;
-}
-.stamp__frame {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  pointer-events: none;
-}
-.stamp__frame rect,
-.stamp__frame path {
-  fill: none;
-  stroke: var(--bad);
-  stroke-width: 2.5;
-  vector-effect: non-scaling-stroke;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  animation: cloud-draw 600ms var(--ease-out) 120ms forwards;
-}
-.stamp__frame path {
-  stroke-width: 1.25;
-  opacity: 0.32;
-  animation-delay: 520ms;
-}
-.stamp__body {
-  position: relative;
-  display: grid;
-  gap: var(--s-1);
-  padding: var(--s-5) var(--s-6);
-  max-width: 100%;
+  gap: 2px;
+  padding: var(--s-2) var(--s-4) var(--s-3);
+  border: 3px solid var(--bad);
+  border-radius: 3px;
+  color: var(--bad);
+  background: color-mix(in oklab, var(--paper) 88%, transparent);
+  transform: rotate(-3deg);
+  box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--bad) 35%, transparent);
+  animation: stamp-in 380ms cubic-bezier(0.2, 1.4, 0.3, 1) both;
 }
 .stamp__title {
   font-family: var(--font-mono);
-  font-size: clamp(1.375rem, 0.9rem + 2.4vw, 2.25rem);
-  letter-spacing: 0.08em;
+  font-size: clamp(1.25rem, 0.9rem + 1.8vw, 1.75rem);
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   font-weight: 800;
-  color: var(--bad);
-  transform: rotate(-2deg);
+  line-height: 1.1;
+  text-align: center;
 }
 .stamp__time,
 .stamp__hash {
-  color: var(--ink-2);
-  font-size: 0.875rem;
-}
-.stamp__note {
-  position: relative;
-  max-width: 44ch;
-  color: var(--ink-2);
+  font-size: 0.8125rem;
+  color: var(--bad);
+  letter-spacing: 0.02em;
 }
 @keyframes stamp-in {
   from {
     opacity: 0;
-    transform: scale(1.04);
+    transform: rotate(-3deg) scale(1.18);
   }
+}
+.sheet--burned {
+  padding-top: 0;
+  min-height: 0;
+}
+.sheet__erased {
+  display: block;
+  width: 100%;
+  height: clamp(180px, 34vh, 320px);
+  margin-top: var(--s-5);
+}
+.sheet__erased path {
+  stroke: var(--rule);
+  stroke-width: 1;
+}
+.sheet--burned .sheet__tb {
+  position: relative;
+}
+.sheet--burned .stamp {
+  position: absolute;
+  inset-inline-end: var(--s-4);
+  bottom: calc(100% - var(--s-4));
+}
+.sum__burned-note {
+  max-width: 44ch;
+  color: var(--ink-2);
+  justify-self: center;
+  text-align: center;
+}
+.glass .stamp {
+  justify-self: start;
+  margin: var(--s-2) 0;
 }
 
 /* ---------------------------------------------------------------- listen */

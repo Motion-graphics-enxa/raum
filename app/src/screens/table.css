@@ -72,7 +72,6 @@
 }
 .trow__who {
   font-family: var(--font-mono);
-  font-size: 0.8em;
   letter-spacing: var(--label-track);
   text-transform: uppercase;
   font-weight: 700;
@@ -104,9 +103,58 @@
 .trow__facts {
   padding-top: var(--s-2);
 }
-.trow.is-hero .trow__facts .dim__value,
-.trow.is-hero .trow__facts .cloud__pair {
-  font-size: 1.25em;
+/* trust signals readable from 3 m: the newest turn at full size, older turns one step down */
+.trow .vmark {
+  font-size: max(14px, 0.72em);
+  min-height: 34px;
+  padding-inline: 8px 12px;
+}
+.trow .vmark__glyph,
+.trow .vmark__glyph .icon {
+  width: 1.15em;
+  height: 1.15em;
+}
+.trow .dim__value,
+.trow .cloud__pair {
+  font-size: max(18px, 1em);
+}
+.trow .dim__kind {
+  font-size: max(12px, 0.62em);
+}
+.trow .dim {
+  grid-template-rows: auto 16px auto;
+}
+.trow .dim__line,
+.trow .dim__end,
+.trow .dim__end::before {
+  height: 16px;
+}
+.trow .dim__end::after {
+  height: 14px;
+}
+.trow__who {
+  font-size: max(13px, 0.72em);
+}
+.trow.is-hero .vmark {
+  font-size: max(20px, 1em);
+  min-height: 46px;
+  border-width: 2.5px;
+}
+.trow.is-hero .dim__value,
+.trow.is-hero .cloud__pair {
+  font-size: max(24px, 1.35em);
+}
+.trow.is-hero .dim__kind {
+  font-size: max(14px, 0.8em);
+}
+.trow.is-hero .dim__line::before {
+  border-top-width: 2.5px;
+}
+.trow.is-hero .dim__end::after {
+  border-left-width: 2.5px;
+}
+.trow.is-hero .trow__who {
+  font-size: max(16px, 0.85em);
 }
 
 .tjoin {
@@ -166,34 +214,8 @@
   font-weight: 700;
   color: var(--ink-3);
 }
-.glass__total {
-  display: flex;
-  align-items: baseline;
-  gap: var(--s-3);
-  flex-wrap: wrap;
-}
-.glass__big {
-  font-size: clamp(2.25rem, 1rem + 3vw, 4.5rem);
-  font-weight: 750;
-  line-height: 1;
-  letter-spacing: -0.02em;
-}
 .glass__idle {
   color: var(--ink-3);
-}
-.glass__row {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-.stat {
-  display: grid;
-  gap: 2px;
-}
-.stat__v {
-  font-size: clamp(1.25rem, 0.7rem + 1.2vw, 2rem);
-  font-weight: 700;
-}
-.stat.is-warn .stat__v {
-  color: var(--unsure);
 }
 .glass__privacy {
   background: var(--paper);

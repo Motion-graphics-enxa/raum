@@ -1,10 +1,10 @@
 /** Title block, talk control, confirm sheet, latency chain. */
 import { useEffect, useRef } from "react";
 import type { ModeConfig } from "../lib/api";
-import type { EventData, Path } from "../lib/events";
-import { pick, t } from "../lib/i18n";
+import type { EventData, FactCheck, Path } from "../lib/events";
+import { isRtl, pick, t } from "../lib/i18n";
 import type { LinkState } from "../lib/live";
-import { Dimension, Hatch, fmtMs } from "./Drawing";
+import { Dimension, FactDims, Hatch, fmtMs } from "./Drawing";
 import { Menu, Mic, MicOff } from "./Icons";
 import "./sheet.css";
 
@@ -143,12 +143,12 @@ export function ConfirmSheet({
   flag,
   lang,
   onAnswer,
-  kindHint,
+  mismatches = [],
 }: {
   flag: EventData["flag"];
   lang: string;
   onAnswer: (accepted: boolean) => void;
-  kindHint?: string | null;
+  mismatches?: FactCheck[];
 }) {
   const yes = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -163,18 +163,19 @@ export function ConfirmSheet({
   }, [flag.id, flag.kind]);
   const text = flag.texts?.[lang] ?? flag.text;
   const red = flag.kind === "mismatch";
+  const rtl = isRtl(lang);
   return (
     <div className="confirm" role="alertdialog" aria-modal="true" aria-labelledby="confirm-q">
-      <div className={`confirm__sheet ${red ? "is-red" : ""}`}>
+      <div className={`confirm__sheet ${red ? "is-red" : ""}`} dir={rtl ? "rtl" : "ltr"}>
         <div className="confirm__kind">
-          <Dimension
-            value={t(lang, `kind.${flag.kind === "mismatch" ? kindHint ?? "number" : flag.kind}`)}
-            state={red ? "bad" : "pending"}
-            lang={lang}
-          />
+          {red && mismatches.length ? (
+            <FactDims facts={mismatches} lang={lang} state="red" />
+          ) : (
+            <Dimension value={t(lang, `kind.${flag.kind}`)} state="pending" lang={lang} />
+          )}
         </div>
-        <p id="confirm-q" className="confirm__q" dir="auto">
-          {text}
+        <p id="confirm-q" className="confirm__q">
+          {rtl ? isolateLtr(text) : text}
         </p>
         <div className="confirm__actions">
           <button ref={yes} type="button" className="btn btn--lg btn--ok" onClick={() => onAnswer(true)}>
@@ -189,6 +190,26 @@ export function ConfirmSheet({
   );
 }
 
+/** Wrap Latin/digit runs ("12. November", "500 mg") in <bdi> so RTL text keeps them intact. */
+export function isolateLtr(text: string): React.ReactNode[] {
+  const re = /[0-9A-Za-z\u00C0-\u024F][0-9A-Za-z\u00C0-\u024F.,:×/%€$+\- ]*[0-9A-Za-z\u00C0-\u024F%€$]\.?|[0-9A-Za-z]/g;
+  const out: React.ReactNode[] = [];
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let i = 0;
+  while ((m = re.exec(text))) {
+    if (m.index > last) out.push(text.slice(last, m.index));
+    out.push(
+      <bdi key={i++} dir="ltr">
+        {m[0]}
+      </bdi>,
+    );
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return out;
+}
+
 /* ---------------------------------------------------------------- Maßkette (latency dimension chain) */
 
 export interface Stage {
@@ -198,12 +219,12 @@ export interface Stage {
 }
 
 const STAGE_LABEL: Record<string, Record<string, string>> = {
-  endpoint: { de: "Ende erkannt", en: "End detected" },
-  asr: { de: "Transkribiert", en: "Transcribed" },
+  endpoint: { de: "Ende", en: "End" },
+  asr: { de: "Text", en: "Text" },
   mt_first: { de: "Erste Wörter", en: "First words" },
-  mt_full: { de: "Satz fertig", en: "Sentence done" },
-  check: { de: "Geprüft", en: "Checked" },
-  tts: { de: "Gesprochen", en: "Spoken" },
+  mt_full: { de: "Satz", en: "Sentence" },
+  check: { de: "Prüfung", en: "Check" },
+  tts: { de: "Stimme", en: "Voice" },
 };
 
 /**
@@ -236,20 +257,72 @@ export function firstWordsMs(tm: EventData["pipeline.timing"] | undefined): numb
 }
 
 export function Masskette({ stages, lang, big = false }: { stages: Stage[]; lang: string; big?: boolean }) {
-  const total = stages.reduce((a, s) => a + (s.ms ?? 0), 0) || 1;
+  const last = stages.length - 1;
   return (
     <ol className={`chain ${big ? "chain--big" : ""}`} aria-label="Pipeline">
       {stages.map((s, i) => (
         <li
           key={s.key}
-          className={`chain__seg chain__seg--${s.key}`}
-          style={{ flexGrow: Math.max(0.6, (s.ms ?? 0) / total) * 10, animationDelay: `${i * 70}ms` }}
+          className={`chain__seg chain__seg--${s.key} ${ASYNC.has(s.key) ? "is-async" : ""}`}
+          style={{ flexGrow: Math.max(1, s.ms ?? 0), animationDelay: `${i * 70}ms` }}
         >
           <span className="chain__ms mono">{fmtMs(s.ms ?? 0)}</span>
-          <span className="chain__line" aria-hidden="true" />
+          <span className="chain__line" aria-hidden="true">
+            <span className="chain__tick chain__tick--s" />
+            {i === last ? <span className="chain__tick chain__tick--e" /> : null}
+          </span>
           <span className="chain__name">{pick(s.label, lang)}</span>
         </li>
       ))}
     </ol>
   );
 }
+
+/** Async stages (the second check, the voice) never block the display: drawn dashed. */
+const ASYNC = new Set(["check", "tts"]);
+
+/**
+ * The 1.0 s budget for the first translated words (§3), as a dash-dot dimension (DIN 1356 axis
+ * line), with this sentence's first words marked against it and the session's percentiles beside.
+ */
+export function Budget({
+  firstMs,
+  p50,
+  p95,
+  full50,
+  lang,
+}: {
+  firstMs: number | null;
+  p50: number | null;
+  p95: number | null;
+  full50: number | null;
+  lang: string;
+}) {
+  const scale = Math.max(1500, (firstMs ?? 0) * 1.15, (p95 ?? 0) * 1.1);
+  const pct = (ms: number) => `${Math.min(100, (ms / scale) * 100)}%`;
+  const over = firstMs != null && firstMs > 1000;
+  return (
+    <div className="budget">
+      <div className="budget__axis">
+        <span className="budget__target" style={{ width: pct(1000) }}>
+          <span className="budget__tlabel mono">{pick(BUDGET_LABEL, lang)} 1,0 s</span>
+        </span>
+        {firstMs != null ? (
+          <span className={`budget__mark ${over ? "is-over" : ""}`} style={{ insetInlineStart: pct(firstMs) }}>
+            <span className="budget__mlabel mono">{fmtMs(firstMs)}</span>
+          </span>
+        ) : null}
+      </div>
+      <p className="budget__stats mono">
+        <span>p50 {p50 != null ? fmtMs(p50) : "—"}</span>
+        <span>p95 {p95 != null ? fmtMs(p95) : "—"}</span>
+        <span>
+          {pick(FULL_LABEL, lang)} p50 {full50 != null ? fmtMs(full50) : "—"}
+        </span>
+      </p>
+    </div>
+  );
+}
+
+const BUDGET_LABEL = { de: "Ziel erste Wörter", en: "Target first words" };
+const FULL_LABEL = { de: "Satz", en: "Sentence" };

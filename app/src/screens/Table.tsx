@@ -6,8 +6,8 @@ import type { ParticipantInfo } from "../lib/events";
 import { isRtl, langName, pick, t } from "../lib/i18n";
 import { useEventSocket } from "../lib/live";
 import { RoomStore, checkState, percentile, useRoomModel, type Turn } from "../lib/store";
-import { FactDims, Hatch, VerifyMark, fmtMs } from "../components/Drawing";
-import { Masskette, firstWordsMs, pathLabel, stagesOf } from "../components/Sheet";
+import { FactDims, Hatch, VerifyMark } from "../components/Drawing";
+import { Budget, Masskette, firstWordsMs, pathLabel, stagesOf } from "../components/Sheet";
 import { OfferTimeline } from "../components/Offers";
 import { QR } from "../components/QR";
 import { BurnStamp } from "./Summary";
@@ -114,20 +114,11 @@ export default function Table() {
             {last && lastLang ? (
               <>
                 <Masskette stages={stagesOf(last.timing[lastLang])} lang={UI} big />
-                <p className="glass__total">
-                  <span className="glass__big mono">{fmtMs(firstWordsMs(last.timing[lastLang]) ?? 0)}</span>
-                  <span className="label">bis zu den ersten Wörtern</span>
-                </p>
+                <Budget firstMs={firstWordsMs(last.timing[lastLang])} p50={p50} p95={p95} full50={full50} lang={UI} />
               </>
             ) : (
               <p className="glass__idle">Wartet auf den ersten Satz.</p>
             )}
-          </section>
-
-          <section className="glass__block glass__row">
-            <Stat label="p50 erste Wörter" value={p50 != null ? fmtMs(p50) : "—"} warn={p50 != null && p50 > 1000} />
-            <Stat label="p95 erste Wörter" value={p95 != null ? fmtMs(p95) : "—"} warn={p95 != null && p95 > 1500} />
-            <Stat label="p50 ganzer Satz" value={full50 != null ? fmtMs(full50) : "—"} warn={full50 != null && full50 > 1500} />
           </section>
 
           <section className="glass__block glass__privacy">
@@ -233,15 +224,6 @@ function TableRow({
         </div>
       ) : null}
     </article>
-  );
-}
-
-function Stat({ label, value, warn }: { label: string; value: string; warn?: boolean }) {
-  return (
-    <div className={`stat ${warn ? "is-warn" : ""}`}>
-      <span className="stat__v mono">{value}</span>
-      <span className="label">{label}</span>
-    </div>
   );
 }
 

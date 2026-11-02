@@ -52,8 +52,12 @@ export default function SummaryScreen() {
     };
   }, [room]);
 
-  const summary = m.summary ?? fetched;
   const burned = m.burn;
+  // After the burn nothing of the conversation stays in memory: only the sheet's title block remains.
+  useEffect(() => {
+    if (burned) setFetched((s) => (s ? { ...s, sections: [], file_note: null } : s));
+  }, [burned]);
+  const summary = burned ? (fetched ?? m.summary) : (m.summary ?? fetched);
   const other = summary ? (lang === summary.lang_a ? summary.lang_b : summary.lang_a) : null;
   const dir = isRtl(lang) ? "rtl" : "ltr";
   const approvedBy = summary?.approved_by ?? [];
@@ -95,14 +99,14 @@ export default function SummaryScreen() {
         </div>
       </header>
 
-      <main className={`sum ${burning || burned ? "is-burning" : ""}`}>
+      <main className={`sum ${burning && !burned ? "is-burning" : ""}`}>
         {!summary && !burned ? (
           <p className="sum__waiting" role="status">
             {t(lang, "summary.waiting")}
           </p>
         ) : null}
 
-        {summary ? (
+        {summary && !burned ? (
           <article className="sheet" aria-label={t(lang, "summary.title")}>
             {summary.sections.map((sec) => (
               <section key={sec.key} className="sheet__sec">
@@ -223,7 +227,42 @@ export default function SummaryScreen() {
           </div>
         ) : null}
 
-        {burned ? <BurnStamp burn={burned} lang={lang} /> : null}
+        {burned ? (
+          <>
+            <article className={`sheet sheet--burned sheet--${mode?.id ?? "x"}`} aria-label={t(lang, "summary.burned")}>
+              <svg className="sheet__erased" aria-hidden="true">
+                <defs>
+                  <pattern id="erased-hatch" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                    <path d="M0 0v14" />
+                  </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#erased-hatch)" />
+              </svg>
+              <footer className="sheet__tb">
+                <dl>
+                  <div>
+                    <dt>{t(lang, "join.room")}</dt>
+                    <dd className="mono">{room.toUpperCase()}</dd>
+                  </div>
+                  <div>
+                    <dt>{t(lang, "join.language")}</dt>
+                    <dd className="mono">{summary ? `${summary.lang_a.toUpperCase()} ⇄ ${summary.lang_b.toUpperCase()}` : "—"}</dd>
+                  </div>
+                  <div>
+                    <dt>gez.</dt>
+                    <dd className="mono">RAUM</dd>
+                  </div>
+                  <div>
+                    <dt>gepr.</dt>
+                    <dd className="mono">{approvedBy.length ? approvedBy.map((r) => r.toUpperCase()).join(" · ") : "—"}</dd>
+                  </div>
+                </dl>
+                <BurnStamp burn={burned} lang={lang} />
+              </footer>
+            </article>
+            <p className="sum__burned-note">{t(lang, "summary.burned_body")}</p>
+          </>
+        ) : null}
       </main>
     </div>
   );
@@ -232,18 +271,13 @@ export default function SummaryScreen() {
 export function BurnStamp({ burn, lang }: { burn: EventData["burn.done"]; lang: string }) {
   return (
     <section className="stamp" role="status" aria-live="assertive">
-      <div className="stamp__body">
-        <svg className="stamp__frame" viewBox="0 0 300 120" preserveAspectRatio="none" aria-hidden="true">
-          <rect x="2" y="2" width="296" height="116" pathLength={1} />
-          <path d="M14 108L286 12" pathLength={1} />
-        </svg>
-        <p className="stamp__title">{t(lang, "summary.burned")}</p>
-        <p className="stamp__time mono">{fmtTime(burn.key_destroyed_at, lang)} · {new Date(burn.key_destroyed_at).toISOString().slice(11, 19)} UTC</p>
-        <p className="stamp__hash mono" title={burn.audit_head_hash}>
-          audit {burn.audit_head_hash.slice(0, 16)}…
-        </p>
-      </div>
-      <p className="stamp__note">{t(lang, "summary.burned_body")}</p>
+      <p className="stamp__title">{t(lang, "summary.burned")}</p>
+      <p className="stamp__time mono">
+        {fmtTime(burn.key_destroyed_at, lang)} · {new Date(burn.key_destroyed_at).toISOString().slice(11, 19)} UTC
+      </p>
+      <p className="stamp__hash mono" title={burn.audit_head_hash}>
+        audit {burn.audit_head_hash.slice(0, 16)}…
+      </p>
     </section>
   );
 }

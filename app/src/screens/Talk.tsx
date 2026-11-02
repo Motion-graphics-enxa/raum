@@ -225,13 +225,25 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
             void live.setMic(!live.micOn);
           }}
         />
-        {myRole === "a" ? (
-          <button type="button" className="dock__side" onClick={() => void end()} disabled={ending}>
-            <Stop />
-            <span>{t(myLang, "talk.end")}</span>
+        {myRole === "a" && mode.buttons.includes("repeat_back") ? (
+          <button
+            type="button"
+            className={`dock__side ${repeatBackArmed ? "is-active" : ""}`}
+            aria-pressed={repeatBackArmed}
+            onClick={() => {
+              setRepeatBackArmed(true);
+              void control("repeat_back");
+            }}
+          >
+            <Repeat />
+            <span>{t(myLang, "talk.repeat_back")}</span>
           </button>
         ) : mode.buttons.includes("human_interpreter") ? (
-          <button type="button" className="dock__side" onClick={() => void control("human_interpreter")}>
+          <button
+            type="button"
+            className={`dock__side ${m.session?.human_interpreter_requested ? "is-active" : ""}`}
+            onClick={() => void control("human_interpreter")}
+          >
             <Person />
             <span>{t(myLang, "talk.human_interpreter")}</span>
           </button>
@@ -296,11 +308,7 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
           flag={pending.flag}
           lang={myLang}
           onAnswer={answer}
-          kindHint={
-            Object.values(pending.turn.facts)
-              .flat()
-              .find((f) => !f.match)?.kind ?? null
-          }
+          mismatches={(pending.turn.facts[myLang] ?? Object.values(pending.turn.facts).flat()).filter((f) => !f.match)}
         />
       ) : null}
     </div>

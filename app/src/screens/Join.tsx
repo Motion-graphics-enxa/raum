@@ -7,7 +7,7 @@ import { LANGS, isRtl, langName, pick, t } from "../lib/i18n";
 import { deviceKind, deviceLang, rememberLang, saveJoin } from "../lib/session";
 import { unlockSound } from "../lib/sound";
 import { Hatch } from "../components/Drawing";
-import { Globe, ROOM_ICONS } from "../components/Icons";
+import { Globe } from "../components/Icons";
 import "./screens.css";
 
 export async function resolveMode(room: string): Promise<ModeConfig | null> {
@@ -51,7 +51,6 @@ export default function Join() {
 
   const options = useMemo(() => (LANGS.includes(lang) ? LANGS : [lang, ...LANGS]), [lang]);
   const dir = isRtl(lang) ? "rtl" : "ltr";
-  const Icon = mode ? ROOM_ICONS[mode.icon] : null;
 
   const join = async () => {
     setBusy(true);
@@ -92,13 +91,12 @@ export default function Join() {
           </p>
         ) : null}
 
-        <section className="join__who" aria-live="polite">
-          <span className="label">{t(lang, "join.you_are")}</span>
-          <h1 className="join__role">
-            {Icon ? <Icon /> : null}
+        <h1 className="join__role" aria-live="polite">
+          <span className="join__role-pre">{t(lang, "join.you_are")} </span>
+          <span className="join__role-name">
             {mode ? mode.roles[role].label[lang] ?? pick(mode.roles[role].label, lang) : t(lang, `role.${role}`)}
-          </h1>
-        </section>
+          </span>
+        </h1>
 
         <section className="join__lang">
           <label className="label" htmlFor="lang">

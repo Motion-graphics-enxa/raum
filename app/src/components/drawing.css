@@ -236,8 +236,10 @@
   line-height: 1;
   white-space: nowrap;
 }
-button.vmark:hover {
-  background: var(--paper-2);
+@media (hover: hover) {
+  button.vmark:hover {
+    background: var(--paper-2);
+  }
 }
 .vmark--translating {
   border-color: transparent;
