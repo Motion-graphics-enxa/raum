@@ -42,3 +42,11 @@ def test_box_overrides_win(tmp_path, monkeypatch):
     cfg = load_config(p)
     assert cfg.models.translate.engine == "ollama"  # from profile
     assert cfg.models.translate.model == "gemma4:e4b"  # override
+
+
+def test_onnxruntime_telemetry_off():
+    import os
+
+    import raum  # noqa: F401  sets it on import, before any onnxruntime import
+
+    assert os.environ["ORT_DISABLE_TELEMETRY"] == "1"
