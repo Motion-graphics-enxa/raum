@@ -1,0 +1,12 @@
+{
+  "name": "raum-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Browser end-to-end checks: two Chrome phones with fake microphones fed from WAV files.",
+  "scripts": {
+    "audio": "bash make-audio.sh",
+    "two-phones": "node two-phones.mjs",
+    "replay": "node replay-shots.mjs"
+  },
+  "dependencies": { "puppeteer-core": "^24.0.0" }
+}
