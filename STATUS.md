@@ -15,6 +15,7 @@ _Read by the ops session. Updated at every milestone. Last update: Mon 2 Nov, ~1
 - **Fact guard + security:** guard ~0.2 ms, eval 100% caught / 0% false alarms (ar, ru, tr, 90 records); AES-256-GCM store, burn by key deletion, hash-chained audit, `raum audit verify|show`.
 - **App (port 5180):** Join (one-tap language chips, the whole field taps, headphones/speaker), Talk (language + voice output in the menu, same-language warning, voice-playing cue), Summary, Table (to-scale timeline + 1.0 s budget), Admin, Listen, setup `/`.
 - **Design:** impeccable only. PRODUCT.md, direction contract `.impeccable/surfaces/`, finish review (fix -> verdict -> final batch), **DESIGN.md** + `.impeccable/design.json`.
+- **No third-party bytes:** LiveKit gets LAN-only STUN/TURN (box's own :3478; compose, livekit.yaml, dev.sh), onnxruntime telemetry off (ops 739e8a1); privacy meter reads 0 B on the GX10.
 - **Deploy:** `deploy/push.sh` -> `gx10:~/Desktop/HackathonRaum/raum`; `deploy/box.sh` (sources `runtime/raum.env`; process groups); `RAUM_UV_EXTRAS="--extra denoise"` for DeepFilterNet.
 - **Tests:** `cd core && uv run pytest -q` -> 651 passed.
 
@@ -26,7 +27,6 @@ _Read by the ops session. Updated at every milestone. Last update: Mon 2 Nov, ~1
 - `GlossaryUpload` panel in Admin (after agent 2 above merges; it reworks Admin).
 - App store: concatenate `seg` segments per language; merged-utterance re-final (after simultaneous mode merges).
 - DeepFilterNet redesign landed (raum.pipeline.clean); ops to re-enable on spark with `denoise: {engine: deepfilternet}` + `RAUM_UV_EXTRAS="--extra denoise"` and check the "noise cleaning ready" log line.
-- STUN: empty ICE servers in the agent (ops forwards the diff).
 - Consent copy for AI voice cloning ("AI voice" disclosure) when the cloning service lands.
 - Known: two people speaking at once into the same language interleave on that language's track.
 - Then P2: F-11 three people / three languages, F-08 Tauri, F-09 Android TWA, F-10 voice lock.
