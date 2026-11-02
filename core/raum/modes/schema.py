@@ -32,7 +32,7 @@ class GuardConfig(_Strict):
     confirm_on: list[GuardKind] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def _confirm_subset(self) -> "GuardConfig":
+    def _confirm_subset(self) -> GuardConfig:
         extra = set(self.confirm_on) - set(self.kinds)
         if extra:
             raise ValueError(f"guard.confirm_on has kinds not in guard.kinds: {sorted(extra)}")
@@ -108,7 +108,7 @@ class ModeConfig(_Strict):
         return "on" if v is True else ("off" if v is False else v)
 
     @model_validator(mode="after")
-    def _roles(self) -> "ModeConfig":
+    def _roles(self) -> ModeConfig:
         if set(self.roles) != {"a", "b"}:
             raise ValueError("roles must define exactly 'a' and 'b'")
         if "end" not in self.buttons:
