@@ -66,6 +66,7 @@ class ModelsConfig(_Open):
     embed: EngineConfig = EngineConfig(engine="mock")
     vision: EngineConfig = EngineConfig(engine="off")
     tts: EngineConfig = EngineConfig(engine="mock")
+    turn: EngineConfig = EngineConfig(engine="off")  # semantic end of turn (raum.pipeline.turn), agent only
     summary: EngineConfig | None = None  # defaults to the verify engine/model
 
 

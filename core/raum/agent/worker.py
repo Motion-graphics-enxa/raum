@@ -15,7 +15,10 @@ sent again with the new info. Per track: ``rtc.AudioStream`` (16 kHz mono; or 48
 END_OF_SPEECH drive ``RoomPipeline.speech_start / speech_audio / speech_end`` (the end-of-speech frames
 are the final audio; ``vad_ms`` is the endpoint delay). With DeepFilterNet the 48 kHz audio is also
 cleaned beside the VAD path (``raum.pipeline.clean``: worker thread, 200 ms blocks, realtime gate) and
-the final audio's samples are swapped for their clean versions; VAD and partials never wait for it. Every event is
+the final audio's samples are swapped for their clean versions; VAD and partials never wait for it. With
+``models.turn`` on (``raum.pipeline.turn``), END_OF_SPEECH is a pause: ``RoomPipeline.speech_pause`` decides
+whether the turn ended (text + audio end-of-turn models in the server's shared inference process, registered
+in ``run`` before the server starts); speech again before that continues the utterance. Every event is
 published on the data channel (topic ``raum.events``, reliable) and forwarded to core over the link.
 Voice output is published as one track per language, ``tts-<lang>``. Echo control is per device
 (C-14, ``raum.pipeline.echo``): while a voice plays (+300 ms) only the mics that hear it are fed silence
@@ -62,6 +65,12 @@ def load_vad(cfg: RaumConfig) -> Any:
         from livekit.plugins import silero
 
         opts = {k: v for k, v in (cfg.models.vad.options or {}).items() if k in VAD_OPTIONS}
+        turn = cfg.models.turn
+        if turn.enabled and "fallback_silence" in turn.options:
+            from raum.pipeline.turn import files_present
+
+            if not files_present():  # no end-of-turn models: the pause must end the turn by itself
+                opts["min_silence_duration"] = float(turn.options["fallback_silence"])
         _vad_cache = silero.VAD.load(sample_rate=16000, **opts)
         log.info("silero vad loaded (%s)", opts)
     return _vad_cache
@@ -92,6 +101,13 @@ def warm_denoiser(cfg: RaumConfig) -> None:
         cleaner.gate.trip(f"warm-up failed ({e.__class__.__name__})")
         return
     log.info("noise cleaning ready (%.0f ms warm-up)", (time.perf_counter() - t) * 1000.0)
+
+
+def _register_turn_models() -> bool:
+    """Main thread, before the server starts its inference process (which then hosts the models)."""
+    from raum.pipeline.turn import register_runners
+
+    return register_runners()
 
 
 def livekit_credentials(cfg: RaumConfig) -> tuple[str, str, str]:
@@ -152,6 +168,10 @@ class RoomAgent:
         self.engines = build_engines(cfg)
         self.pipeline = RoomPipeline(self.room_name, mode, self.engines, self.emit, cfg)
         self.pipeline.tts_sink = self._tts_sink
+        if cfg.models.turn.enabled:  # semantic end of turn (raum.pipeline.turn); None: VAD pauses end turns
+            from raum.pipeline.turn import build_turn_detector
+
+            self.pipeline.eot = build_turn_detector(cfg, getattr(ctx, "inference_executor", None))
         self.link = LinkClient(self.room_name, core_url=cfg.network.core_url, key=cfg.network.internal_key,
                                agent_id=f"{ctx.worker_id}/{ctx.job.id}", on_state=self.pipeline.set_state,
                                on_control=self.pipeline.handle_control)
@@ -233,6 +253,8 @@ class RoomAgent:
             t.cancel()
         await asyncio.gather(*self.track_tasks.values(), return_exceptions=True)
         await self.pipeline.aclose()
+        if self.pipeline.eot is not None:
+            await self.pipeline.eot.aclose()
         await self.link.aclose()
         await self.engines.aclose()
         log.info("left %s", self.room_name)
@@ -384,9 +406,12 @@ class RoomAgent:
                     if audio is not None and cs is not None:
                         audio = cs.cleaned(audio, int(ev.samples_index))
                     vad_ms = float(ev.silence_duration) * 1000.0
-                    self._spawn_turn(self.pipeline.speech_end(identity, audio, vad_ms))
-                    await asyncio.sleep(0)  # let speech_end detach the utterance before the next start
-            if speaking:
+                    if self.pipeline.eot is not None:  # only a pause: speech_pause decides if the turn ended
+                        self._spawn_turn(self.pipeline.speech_pause(identity, audio, vad_ms))
+                    else:
+                        self._spawn_turn(self.pipeline.speech_end(identity, audio, vad_ms))
+                    await asyncio.sleep(0)  # let it detach / hold the utterance before the next start
+            if speaking or self.pipeline.eot is not None:  # also ends an utterance held after a pause
                 self._spawn_turn(self.pipeline.speech_end(identity, None, 0.0))
 
         try:
@@ -516,6 +541,9 @@ def run(argv: list[str] | None = None) -> int:
 
     cfg = get_config()
     url, key, secret = livekit_credentials(cfg)
+    if cfg.models.turn.enabled and not _register_turn_models():
+        log.warning("models.turn is on but its extra or model files are missing: VAD pauses end turns "
+                    "(uv sync --extra turn; python -m raum.pipeline.turn download)")
     if args.executor == "thread":
         # plugins must register on the main thread; all room threads then share one Silero session
         load_vad(cfg)

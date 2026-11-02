@@ -27,6 +27,12 @@ Additions beyond the contract (all optional):
 - ``p.denoise_ms[speaker] = ms`` lets the worker report its cleaning time in ``pipeline.timing``.
 - ``speech_end`` detaches the utterance before its first ``await``, so the worker may run it as a
   task and keep reading VAD events; one ``await asyncio.sleep(0)`` after ``create_task`` suffices.
+- Semantic end of turn (``raum.pipeline.turn``): with ``p.eot`` set (the worker does, from
+  ``models.turn``) the worker calls ``await p.speech_pause(speaker, audio_16k, vad_ms)`` on VAD
+  END_OF_SPEECH instead of ``speech_end``. The final ASR runs at once; ``p.eot.verdict`` decides how
+  much silence to allow (0 / unsure / max); the turn then ends with that transcript (no second ASR).
+  ``speech_start`` for the same speaker before that continues the same utterance (the next pause
+  starts a new decision on all of it). ``pipeline.timing`` gains ``eot`` and ``asr_early``.
 - Echo control per device (C-14, ``raum.pipeline.echo``): ``p.mic_open(identity)`` says whether the
   worker passes that device's mic audio on (else it feeds silence to the VAD). While the voice for a
   language plays (+300 ms) the devices that would hear it are paused, ``speech_start`` refuses them
@@ -72,7 +78,7 @@ from raum.glossary import Glossary, GlossaryError, parse_terms
 from raum.modes.schema import ModeConfig
 from raum.pipeline import texts as T
 from raum.pipeline._util import int16_to_float, lang_code, lang_name, load_prompt, render_prompt
-from raum.pipeline.base import Engines, TranslateRequest, TurnContext
+from raum.pipeline.base import AsrResult, Engines, TranslateRequest, TurnContext
 from raum.pipeline.echo import EchoControl
 from raum.pipeline.voice import SpeakingRate, VoiceArgs, VoiceRef, speech_seconds
 from raum.scheduler import Scheduler
@@ -140,6 +146,11 @@ def _takes_voice_args(fn: Any) -> bool:
     return any(p.kind is p.VAR_KEYWORD for p in params.values()) or {"voice_ref", "rate"} <= set(params)
 
 
+def _as_float(audio: np.ndarray) -> np.ndarray:
+    a = np.asarray(audio)
+    return int16_to_float(a) if a.dtype == np.int16 else a.astype(np.float32, copy=False).reshape(-1)
+
+
 def _role_from_identity(identity: str) -> str:
     head = identity.split("-", 1)[0]
     return head if head in ("a", "b") else "b"
@@ -160,9 +171,14 @@ class _Utt:
     partial_task: asyncio.Task[None] | None = None
     closed: bool = False
     echoed: bool = False  # a voice this device hears played during it: not a clean voice sample
+    parts: list[np.ndarray] = field(default_factory=list)  # END_OF_SPEECH audio of each pause (held turns)
+    hold: asyncio.Task[None] | None = None  # end-of-turn wait after a pause (speech_pause)
 
     def audio(self) -> np.ndarray:
         return np.concatenate(self.frames) if self.frames else np.zeros(0, dtype=np.float32)
+
+    def final_audio(self) -> np.ndarray:
+        return np.concatenate(self.parts) if self.parts else self.audio()
 
 
 @dataclass
@@ -222,6 +238,7 @@ class RoomPipeline:
         self.off_record = False
         self.partial_every_ms = float(config.models.asr.options.get("partial_every_ms", 1000))
         self.tts_sink: TtsSink | None = None
+        self.eot: Any = None  # raum.pipeline.turn.TurnDetector (set by the worker); None: a VAD pause ends the turn
         self.denoise_ms: dict[str, float] = {}
         self.echo = EchoControl()  # C-14: whose mic pauses while which voice plays
         tts_opts = config.models.tts.options or {}
@@ -326,8 +343,16 @@ class RoomPipeline:
     def _drop(self, u: _Utt) -> None:
         u.closed = True
         u.frames.clear()
+        u.parts.clear()
         if u.partial_task and not u.partial_task.done():
             u.partial_task.cancel()
+        self._cancel_hold(u)
+
+    @staticmethod
+    def _cancel_hold(u: _Utt) -> None:
+        h, u.hold = u.hold, None
+        if h is not None and not h.done() and h is not asyncio.current_task():
+            h.cancel()
 
     def _participant_lang(self, p: ParticipantInfo | None) -> str | None:
         code = lang_code(p.lang) if p else None
@@ -355,6 +380,7 @@ class RoomPipeline:
             return None
         u = self._active.get(speaker)
         if u is not None:
+            self._cancel_hold(u)  # speech again within the end-of-turn wait: the same utterance goes on
             return u.id
         if self.echo.is_paused(speaker):  # C-14: the box's own voice from this device's speaker, not speech
             return None
@@ -410,10 +436,13 @@ class RoomPipeline:
         await self.emit("transcript.partial", {"speaker": u.speaker, "lang": lang_code(res.lang) or u.lang,
                                                "text": res.text.strip(), "seq": u.seq}, utt=u.id)
 
-    async def speech_end(self, speaker: str, audio: np.ndarray | None, vad_ms: float) -> None:
+    async def speech_end(self, speaker: str, audio: np.ndarray | None, vad_ms: float, *,
+                         asr: AsrResult | None = None, eot: Any = None) -> None:
         # detach synchronously (before any await): a new speech_start for this speaker starts a new utterance
         t_detect = time.monotonic()
         u = self._active.pop(speaker, None)
+        if u is not None:
+            self._cancel_hold(u)
         if self.off_record or self._closed:
             if u:
                 self._drop(u)
@@ -430,35 +459,85 @@ class RoomPipeline:
         if u.partial_task and not u.partial_task.done():
             u.partial_task.cancel()
         if audio is not None and len(audio):
-            a = np.asarray(audio)
-            final_audio = int16_to_float(a) if a.dtype == np.int16 else a.astype(np.float32, copy=False).reshape(-1)
-        else:
-            final_audio = u.audio()
+            u.parts.append(_as_float(audio))
+        final_audio = u.final_audio()
         u.frames.clear()
+        u.parts.clear()
         t0 = t_detect - max(0.0, float(vad_ms)) / 1000.0  # the moment the speaker stopped
-        await self._turn(u, final_audio, float(vad_ms), t0)
+        await self._turn(u, final_audio, float(vad_ms), t0, asr=asr, eot=eot)
+
+    async def speech_pause(self, speaker: str, audio: np.ndarray | None, vad_ms: float) -> None:
+        """VAD END_OF_SPEECH with semantic end of turn: start the decision and return (see module doc)."""
+        u = self._active.get(speaker)
+        if self.eot is None or u is None or u.closed or self.off_record or self._closed:
+            await self.speech_end(speaker, audio, vad_ms)
+            return
+        if audio is not None and len(audio):
+            u.parts.append(_as_float(audio))
+        self._cancel_hold(u)
+        t_stop = time.monotonic() - max(0.0, float(vad_ms)) / 1000.0  # the moment the speaker stopped
+        u.hold = self._spawn(self._hold(u, t_stop))
+
+    async def _hold(self, u: _Utt, t_stop: float) -> None:
+        """Speculative final ASR + verdict, then wait out the remaining silence; cancelled by speech_start."""
+        audio = u.final_audio()
+        n = len(audio)
+        audio_p = self._spawn(self.eot.audio_p(audio))  # CPU, in parallel with the ASR
+        res: AsrResult | None = None
+        t_asr = time.monotonic()
+        try:
+            async with self.sched.slot("live"):
+                res = await asyncio.wait_for(self.engines.asr.transcribe(
+                    audio, lang_hint=u.hint, partial=False, turn=replace(u.turn, speech_ms=n * 1000.0 / SAMPLE_RATE)),
+                    ASR_TIMEOUT_S)
+            res.ms = (time.monotonic() - t_asr) * 1000.0
+            verdict = await self.eot.verdict(res.text, lang_code(res.lang) or u.hint, audio_p)
+        except asyncio.CancelledError:
+            audio_p.cancel()
+            raise
+        except Exception as e:  # noqa: BLE001  the final ASR in _turn tries again
+            log.warning("early asr / end of turn failed for %s: %s: %s", u.id, e.__class__.__name__, e)
+            res, verdict = None, None
+        wait_s = verdict.wait_s if verdict is not None else float(getattr(self.eot, "unsure_s", 1.0))
+        rest = t_stop + wait_s - time.monotonic()
+        if rest > 0:
+            await asyncio.sleep(rest)
+        if self._active.get(u.speaker) is not u or u.closed or u.hold is not asyncio.current_task():
+            return
+        if len(u.final_audio()) != n:
+            res = None  # more audio arrived meanwhile: transcribe again
+        await self.speech_end(u.speaker, None, (time.monotonic() - t_stop) * 1000.0, asr=res,
+                              eot=verdict.timing() if verdict is not None else {"why": "failed"})
 
     # ---------------------------------------------------------------- the live path
 
-    async def _turn(self, u: _Utt, audio: np.ndarray, vad_ms: float, t0: float) -> None:
+    async def _turn(self, u: _Utt, audio: np.ndarray, vad_ms: float, t0: float, *,
+                    asr: AsrResult | None = None, eot: dict[str, Any] | None = None) -> None:
         await self.emit("utterance.end", {"speaker": u.speaker, "lang": u.lang}, utt=u.id)
         turn = replace(u.turn, speech_ms=len(audio) * 1000.0 / SAMPLE_RATE)
         timing: dict[str, Any] = {"vad_ms": round(vad_ms, 1), "models": dict(self.engines.names)}
         if u.speaker in self.denoise_ms:
             timing["denoise_ms"] = round(self.denoise_ms[u.speaker], 2)
+        if eot is not None:
+            timing["eot"] = eot
 
-        t_asr = time.monotonic()
-        try:
-            async with self.sched.slot("live"):
-                res = await asyncio.wait_for(
-                    self.engines.asr.transcribe(audio, lang_hint=u.hint, partial=False, turn=turn), ASR_TIMEOUT_S)
-        except asyncio.CancelledError:
-            raise
-        except Exception as e:  # noqa: BLE001
-            log.warning("final asr failed for %s: %s: %s", u.id, e.__class__.__name__, e)
-            await self._say_again(u, u.lang if u.lang != "und" else None)
-            return
-        timing["asr_ms"] = round((time.monotonic() - t_asr) * 1000.0, 1)
+        if asr is not None:  # ran during the end-of-turn wait (speech_pause)
+            res = asr
+            timing["asr_ms"] = round(asr.ms, 1)
+            timing["asr_early"] = True
+        else:
+            t_asr = time.monotonic()
+            try:
+                async with self.sched.slot("live"):
+                    res = await asyncio.wait_for(
+                        self.engines.asr.transcribe(audio, lang_hint=u.hint, partial=False, turn=turn), ASR_TIMEOUT_S)
+            except asyncio.CancelledError:
+                raise
+            except Exception as e:  # noqa: BLE001
+                log.warning("final asr failed for %s: %s: %s", u.id, e.__class__.__name__, e)
+                await self._say_again(u, u.lang if u.lang != "und" else None)
+                return
+            timing["asr_ms"] = round((time.monotonic() - t_asr) * 1000.0, 1)
         src_lang = lang_code(res.lang) or u.hint or self._default_lang(u.role)
         text = res.text.strip()
         await self.emit("transcript.final", {"speaker": u.speaker, "lang": src_lang, "text": text,
