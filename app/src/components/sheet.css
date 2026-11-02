@@ -221,6 +221,7 @@
   animation: fade-in 180ms var(--ease-out) both;
 }
 .confirm__sheet {
+  grid-template-columns: minmax(0, 1fr);
   background: var(--paper);
   border-top: 3px solid var(--unsure);
   padding: var(--s-5) var(--s-5) calc(env(safe-area-inset-bottom, 0px) + var(--s-5));
@@ -238,8 +239,13 @@
 .confirm__kind {
   justify-self: start;
 }
+.confirm__kind {
+  max-width: 100%;
+}
 .confirm__kind .facts .cloud__pair {
-  font-size: 1.25rem;
+  font-size: 1.125rem;
+  white-space: normal;
+  flex-wrap: wrap;
 }
 .confirm__q bdi {
   unicode-bidi: isolate;
@@ -268,160 +274,177 @@
   }
 }
 
-/* ---------------------------------------------------------------- Maßkette: one unbroken dimension chain */
-.chain {
-  display: flex;
-  flex-wrap: nowrap;
-  list-style: none;
+/* ---------------------------------------------------------------- timeline: the turn drawn to scale */
+.tl {
   margin: 0;
-  padding: 0 1px;
-  min-width: 0;
-}
-.chain__seg {
-  position: relative;
   display: grid;
-  grid-template-rows: auto 14px auto;
-  justify-items: center;
-  flex-basis: 0;
-  flex-shrink: 1;
-  min-width: 3.4em;
+  gap: var(--s-2);
+  min-width: 0;
+  --tl-line: 1.5px;
+  --tl-tick: 12px;
+}
+.tl--big {
+  --tl-line: 2.5px;
+  --tl-tick: 20px;
+  gap: var(--s-3);
+}
+/* dimension chain: segments placed on the time axis */
+.tl__chain {
+  position: relative;
+  height: calc(1.4em + var(--tl-tick));
+}
+.tl__seg {
+  position: absolute;
+  bottom: 0;
+  height: var(--tl-tick);
   animation: dim-settle 260ms var(--ease-out) both;
 }
-.chain__ms {
-  font-size: 0.8125rem;
-  font-weight: 650;
-  color: var(--ink);
-  white-space: nowrap;
-  padding: 0 2px;
-}
-.chain__line {
-  position: relative;
-  width: 100%;
-  height: 14px;
-}
-.chain__line::before {
+.tl__seg::before {
   content: "";
   position: absolute;
   inset-inline: 0;
   top: 50%;
-  border-top: 1.5px solid var(--ink-2);
+  border-top: var(--tl-line) solid var(--ink-2);
 }
-.chain__seg.is-async .chain__line::before {
+.tl__seg.is-async::before {
   border-top-style: dashed;
 }
-.chain__tick {
-  position: absolute;
-  top: 1px;
-  height: 12px;
-  border-left: 1.75px solid var(--ink-2);
-  transform: rotate(45deg);
-}
-.chain__tick--s {
-  inset-inline-start: -1px;
-}
-.chain__tick--e {
-  inset-inline-end: -1px;
-}
-.chain__name {
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-  padding: 0 2px;
-}
-.chain--big .chain__seg {
-  grid-template-rows: auto 22px auto;
-  min-width: 4.8em;
-}
-.chain--big .chain__ms {
-  font-size: clamp(0.95rem, 0.7rem + 0.4vw, 1.2rem);
-}
-.chain--big .chain__line {
-  height: 22px;
-}
-.chain--big .chain__line::before {
-  border-top-width: 2.5px;
-}
-.chain--big .chain__tick {
-  height: 20px;
-  border-left-width: 2.5px;
-}
-.chain--big .chain__name {
-  font-size: clamp(0.75rem, 0.5rem + 0.45vw, 0.9375rem);
-}
-
-/* ---------------------------------------------------------------- budget: dash-dot dimension of the 1.0 s target */
-.budget {
-  display: grid;
-  gap: var(--s-2);
-}
-.budget__axis {
-  position: relative;
-  height: 70px;
-}
-.budget__target {
-  position: absolute;
-  inset-inline-start: 0;
-  top: 36px;
-  height: 0;
-  /* DIN 1356 dash-dot (axis) line */
-  border-top: 2px solid transparent;
-  border-image: repeating-linear-gradient(to right, var(--ink-2) 0 14px, transparent 14px 18px, var(--ink-2) 18px 21px, transparent 21px 25px) 2;
-}
-.budget__target::before,
-.budget__target::after {
+.tl__seg::after,
+.tl__tick {
   content: "";
   position: absolute;
-  top: -8px;
-  height: 14px;
-  border-left: 2px solid var(--ink-2);
+  bottom: 0;
+  height: var(--tl-tick);
+  border-left: var(--tl-line) solid var(--ink-2);
   transform: rotate(45deg);
 }
-.budget__target::before {
+.tl__seg::after {
   inset-inline-start: 0;
 }
-.budget__target::after {
-  inset-inline-end: 0;
+.tl__ms {
+  position: absolute;
+  bottom: calc(var(--tl-tick) + 2px);
+  inset-inline: 0;
+  text-align: center;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  white-space: nowrap;
+  color: var(--ink);
 }
-.budget__tlabel {
+.tl--big .tl__ms {
+  font-size: clamp(0.95rem, 0.7rem + 0.4vw, 1.2rem);
+}
+/* the 1.0 s target on the same axis: DIN 1356 dash-dot */
+.tl__budget {
+  position: relative;
+  margin-top: 1.1em;
+  height: calc(var(--tl-tick) + 2.6em);
+}
+.tl__target {
+  position: absolute;
+  inset-inline-start: 0;
+  top: calc(var(--tl-tick) / 2);
+  height: 0;
+  border-top: 2px solid transparent;
+  border-image: repeating-linear-gradient(to right, var(--ink-3) 0 14px, transparent 14px 18px, var(--ink-3) 18px 21px, transparent 21px 25px) 2;
+}
+.tl__target::after {
+  content: "";
   position: absolute;
   inset-inline-end: 0;
-  top: 10px;
-  font-size: 0.75em;
-  letter-spacing: 0.04em;
-  color: var(--ink-2);
+  top: calc(var(--tl-tick) / -2);
+  height: var(--tl-tick);
+  border-left: 2px solid var(--ink-3);
+  transform: rotate(45deg);
+}
+.tl__tlabel {
+  position: absolute;
+  top: -2px;
+  transform: translate(-50%, -100%);
+  font-size: 0.75rem;
+  color: var(--ink-3);
   white-space: nowrap;
 }
-.budget__mark {
+[dir="rtl"] .tl__tlabel {
+  transform: translate(50%, -100%);
+}
+.tl__mark {
   position: absolute;
-  top: 24px;
+  top: 0;
   width: 3px;
-  height: 24px;
+  height: var(--tl-tick);
   background: var(--ok);
   transform: translateX(-1.5px);
 }
-.budget__mark.is-over {
+.tl__mark.is-over {
   background: var(--unsure);
 }
-.budget__mlabel {
+.tl__mark--voice {
+  background: var(--ink-2);
+  width: 2px;
+}
+.tl__mlabel {
   position: absolute;
-  bottom: 26px;
-  inset-inline-start: -0.5em;
-  font-size: 1.25em;
+  top: calc(var(--tl-tick) + 4px);
+  inset-inline-start: 6px;
+  font-size: 0.875rem;
   font-weight: 700;
   color: var(--ink);
   white-space: nowrap;
 }
-.budget__stats {
+.tl--big .tl__mlabel {
+  font-size: 1.1em;
+}
+.tl__mlabel--below {
+  top: calc(var(--tl-tick) + 1.6em);
+  font-weight: 500;
+  color: var(--ink-2);
+  font-size: 0.8125rem;
+}
+.tl--big .tl__mlabel--below {
+  font-size: 0.85em;
+}
+.tl__legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--s-4);
+}
+.tl__legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.tl__swatch {
+  width: 18px;
+  border-top: var(--tl-line) solid var(--ink-2);
+}
+.tl__legend li.is-async .tl__swatch {
+  border-top-style: dashed;
+}
+.tl__name {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.tl--big .tl__name {
+  font-size: max(12px, 0.7em);
+}
+.tl__lms {
+  font-size: 0.75rem;
+  color: var(--ink-2);
+}
+.tl--big .tl__lms {
+  font-size: max(13px, 0.75em);
+}
+.tl__stats {
   display: flex;
   flex-wrap: wrap;
   gap: var(--s-1) var(--s-4);
   font-size: 0.8125em;
   color: var(--ink-2);
-  letter-spacing: 0.02em;
 }

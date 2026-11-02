@@ -4,7 +4,7 @@ import type { Role } from "../lib/events";
 import { fmtTime, isRtl, t } from "../lib/i18n";
 import { checkState, factsFor, type Turn as TurnT } from "../lib/store";
 import { FactDims, VerifyMark, fmtMs } from "./Drawing";
-import { Masskette, firstWordsMs, stagesOf } from "./Sheet";
+import { Timeline, firstWordsMs } from "./Sheet";
 import "./turn.css";
 
 export function TurnView({
@@ -176,7 +176,7 @@ export function TurnView({
           ) : null}
           {timing ? (
             <div className="proof__chain">
-              <Masskette stages={stagesOf(timing)} lang={myLang} />
+              <Timeline timing={timing} lang={myLang} />
               {firstMs != null ? (
                 <p className="proof__total mono">
                   {t(myLang, "talk.time")}: {fmtMs(firstMs)}

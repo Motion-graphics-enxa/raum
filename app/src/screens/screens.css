@@ -655,7 +655,7 @@
 .sheet--burned .stamp {
   position: absolute;
   inset-inline-end: var(--s-4);
-  bottom: calc(100% - 6px); /* pressed onto the title block's top rule; its cells stay legible */
+  bottom: calc(100% + 2px); /* pressed onto the title block's top rule; its cells stay legible */
 }
 .sum__burned-note {
   max-width: 44ch;

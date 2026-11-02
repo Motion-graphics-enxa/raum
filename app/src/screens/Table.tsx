@@ -7,7 +7,7 @@ import { isRtl, langName, pick, t } from "../lib/i18n";
 import { useEventSocket } from "../lib/live";
 import { RoomStore, checkState, percentile, useRoomModel, type Turn } from "../lib/store";
 import { FactDims, Hatch, VerifyMark } from "../components/Drawing";
-import { Budget, Masskette, firstWordsMs, pathLabel, stagesOf } from "../components/Sheet";
+import { Timeline, firstWordsMs, pathLabel } from "../components/Sheet";
 import { OfferTimeline } from "../components/Offers";
 import { QR } from "../components/QR";
 import { BurnStamp } from "./Summary";
@@ -113,8 +113,7 @@ export default function Table() {
             <h2 className="glass__h">Letzter Satz</h2>
             {last && lastLang ? (
               <>
-                <Masskette stages={stagesOf(last.timing[lastLang])} lang={UI} big />
-                <Budget firstMs={firstWordsMs(last.timing[lastLang])} p50={p50} p95={p95} full50={full50} lang={UI} />
+                <Timeline timing={last.timing[lastLang]} lang={UI} big p50={p50} p95={p95} full50={full50} />
               </>
             ) : (
               <p className="glass__idle">Wartet auf den ersten Satz.</p>

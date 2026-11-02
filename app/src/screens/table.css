@@ -56,6 +56,8 @@
 .tconv__scroll {
   flex: 1;
   overflow-y: auto;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 48px);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 48px);
   padding: 0 clamp(16px, 2vw, 40px) var(--s-6);
 }
 .trow {

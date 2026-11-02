@@ -256,71 +256,106 @@ export function firstWordsMs(tm: EventData["pipeline.timing"] | undefined): numb
   return tm?.mt_first_ms ?? null;
 }
 
-export function Masskette({ stages, lang, big = false }: { stages: Stage[]; lang: string; big?: boolean }) {
-  const last = stages.length - 1;
-  return (
-    <ol className={`chain ${big ? "chain--big" : ""}`} aria-label="Pipeline">
-      {stages.map((s, i) => (
-        <li
-          key={s.key}
-          className={`chain__seg chain__seg--${s.key} ${ASYNC.has(s.key) ? "is-async" : ""}`}
-          style={{ flexGrow: Math.max(1, s.ms ?? 0), animationDelay: `${i * 70}ms` }}
-        >
-          <span className="chain__ms mono">{fmtMs(s.ms ?? 0)}</span>
-          <span className="chain__line" aria-hidden="true">
-            <span className="chain__tick chain__tick--s" />
-            {i === last ? <span className="chain__tick chain__tick--e" /> : null}
-          </span>
-          <span className="chain__name">{pick(s.label, lang)}</span>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-/** Async stages (the second check, the voice) never block the display: drawn dashed. */
-const ASYNC = new Set(["check", "tts"]);
-
 /**
- * The 1.0 s budget for the first translated words (§3), as a dash-dot dimension (DIN 1356 axis
- * line), with this sentence's first words marked against it and the session's percentiles beside.
+ * The turn drawn to scale: one time axis from the moment the speaker stopped. The live path
+ * (endpoint, transcript, first words, sentence) is a dimension chain; the async check is dashed;
+ * the 1.0 s target sits on the same axis as a DIN dash-dot line with first words and voice marked.
  */
-export function Budget({
-  firstMs,
-  p50,
-  p95,
-  full50,
+export function Timeline({
+  timing,
   lang,
+  big = false,
+  p50 = null,
+  p95 = null,
+  full50 = null,
 }: {
-  firstMs: number | null;
-  p50: number | null;
-  p95: number | null;
-  full50: number | null;
+  timing: EventData["pipeline.timing"] | undefined;
   lang: string;
+  big?: boolean;
+  p50?: number | null;
+  p95?: number | null;
+  full50?: number | null;
 }) {
-  const scale = Math.max(1500, (firstMs ?? 0) * 1.15, (p95 ?? 0) * 1.1);
-  const pct = (ms: number) => `${Math.min(100, (ms / scale) * 100)}%`;
-  const over = firstMs != null && firstMs > 1000;
+  if (!timing) return null;
+  const vad = timing.vad_ms ?? 0;
+  const asr = timing.asr_ms ?? 0;
+  const first = timing.mt_first_ms ?? null;
+  const full = timing.mt_full_ms ?? null;
+  const check = timing.check_ms ?? null;
+  const tts = timing.tts_first_ms ?? null;
+  const segs: { key: string; a: number; b: number; async?: boolean }[] = [];
+  let t = 0;
+  const push = (key: string, end: number | null, async = false) => {
+    if (end == null || end <= t) return;
+    segs.push({ key, a: t, b: end, async });
+    t = end;
+  };
+  push("endpoint", vad);
+  push("asr", vad + asr);
+  push("mt_first", first);
+  push("mt_full", full);
+  if (check != null && full != null) push("check", full + check, true);
+  const end = Math.max(t, tts ?? 0, 1000);
+  const scale = Math.max(1500, end * 1.04);
+  const pct = (ms: number) => `${(ms / scale) * 100}%`;
+  const over = first != null && first > 1000;
   return (
-    <div className="budget">
-      <div className="budget__axis">
-        <span className="budget__target" style={{ width: pct(1000) }}>
-          <span className="budget__tlabel mono">{pick(BUDGET_LABEL, lang)} 1,0 s</span>
+    <figure className={`tl ${big ? "tl--big" : ""}`} aria-label="Pipeline">
+      <div className="tl__chain">
+        {segs.map((sg, i) => {
+          const wide = (sg.b - sg.a) / scale > (big ? 0.11 : 0.16);
+          return (
+            <span
+              key={sg.key}
+              className={`tl__seg ${sg.async ? "is-async" : ""}`}
+              style={{ insetInlineStart: pct(sg.a), width: pct(sg.b - sg.a), animationDelay: `${i * 70}ms` }}
+            >
+              <span className="tl__ms mono">{wide ? fmtMs(sg.b - sg.a) : ""}</span>
+            </span>
+          );
+        })}
+        {segs.length ? <span className="tl__tick" style={{ insetInlineStart: pct(segs[segs.length - 1].b) }} /> : null}
+      </div>
+      <div className="tl__budget">
+        <span className="tl__target" style={{ width: pct(1000) }} />
+        <span className="tl__tlabel mono" style={{ insetInlineStart: pct(1000) }}>
+          1,0 s
         </span>
-        {firstMs != null ? (
-          <span className={`budget__mark ${over ? "is-over" : ""}`} style={{ insetInlineStart: pct(firstMs) }}>
-            <span className="budget__mlabel mono">{fmtMs(firstMs)}</span>
+        {first != null ? (
+          <span className={`tl__mark ${over ? "is-over" : ""}`} style={{ insetInlineStart: pct(first) }}>
+            <span className="tl__mlabel mono">{fmtMs(first)}</span>
+          </span>
+        ) : null}
+        {tts != null ? (
+          <span className="tl__mark tl__mark--voice" style={{ insetInlineStart: pct(tts) }}>
+            <span className="tl__mlabel tl__mlabel--below mono">
+              {pick(STAGE_LABEL.tts, lang)} {fmtMs(tts)}
+            </span>
           </span>
         ) : null}
       </div>
-      <p className="budget__stats mono">
-        <span>p50 {p50 != null ? fmtMs(p50) : "—"}</span>
-        <span>p95 {p95 != null ? fmtMs(p95) : "—"}</span>
-        <span>
-          {pick(FULL_LABEL, lang)} p50 {full50 != null ? fmtMs(full50) : "—"}
-        </span>
-      </p>
-    </div>
+      <ol className="tl__legend">
+        {segs.map((sg) => (
+          <li key={sg.key} className={sg.async ? "is-async" : ""}>
+            <span className="tl__swatch" aria-hidden="true" />
+            <span className="tl__name">{pick(STAGE_LABEL[sg.key], lang)}</span>
+            <span className="tl__lms mono">{fmtMs(sg.b - sg.a)}</span>
+          </li>
+        ))}
+      </ol>
+      {big ? (
+        <figcaption className="tl__stats mono">
+          <span>
+            {pick(BUDGET_LABEL, lang)} 1,0 s
+          </span>
+          <span>p50 {p50 != null ? fmtMs(p50) : "—"}</span>
+          <span>p95 {p95 != null ? fmtMs(p95) : "—"}</span>
+          <span>
+            {pick(FULL_LABEL, lang)} p50 {full50 != null ? fmtMs(full50) : "—"}
+          </span>
+        </figcaption>
+      ) : null}
+    </figure>
   );
 }
 
