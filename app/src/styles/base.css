@@ -166,19 +166,37 @@ p {
 .btn--block {
   width: 100%;
 }
+/* the read-back's answers: a quiet second way beside the spoken yes/no, still a full touch target */
+.btn--sm {
+  min-height: 44px;
+  min-width: 76px;
+  padding: 0 var(--s-4);
+  font-size: 1rem;
+}
+.btn--ok-line {
+  background: transparent;
+  color: var(--ok);
+  border-color: var(--ok);
+}
+@media (hover: hover) {
+  .btn--ok-line:hover {
+    background: var(--ok-wash);
+    border-color: var(--ok);
+  }
+}
 .btn--lg {
   min-height: 60px;
   font-size: 1.1875rem;
 }
 
-:root[data-theme="dark"] .btn:not(.btn--ghost):not(.btn--bad):not(.btn--ok),
-.theme-dark .btn:not(.btn--ghost):not(.btn--bad):not(.btn--ok) {
+:root[data-theme="dark"] .btn:not(.btn--ghost):not(.btn--bad):not(.btn--ok):not(.btn--ok-line),
+.theme-dark .btn:not(.btn--ghost):not(.btn--bad):not(.btn--ok):not(.btn--ok-line) {
   background: var(--ink);
   border-color: var(--ink);
   color: var(--paper);
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .btn:not(.btn--ghost):not(.btn--bad):not(.btn--ok) {
+  :root:not([data-theme="light"]) .btn:not(.btn--ghost):not(.btn--bad):not(.btn--ok):not(.btn--ok-line) {
     background: var(--ink);
     border-color: var(--ink);
     color: var(--paper);

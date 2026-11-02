@@ -16,8 +16,17 @@ import {
 } from "../lib/session";
 import { AudioOutPicker, LanguagePicker, VoicePicker, type AudioOut, type Voice } from "../components/Pickers";
 import { tick, unlockSound } from "../lib/sound";
-import { RoomStore, checkState, openFlag, useRoomModel, type Turn } from "../lib/store";
-import { ConfirmSheet, TalkControl, TitleBlock } from "../components/Sheet";
+import {
+  RoomStore,
+  checkState,
+  factChips,
+  flagStatus,
+  readBackFor,
+  spokeSince,
+  useRoomModel,
+  type Turn,
+} from "../lib/store";
+import { FactNotes, ReadBack, TalkControl, TitleBlock } from "../components/Sheet";
 import { DocumentCamera, DocumentCard } from "../components/DocumentCamera";
 import { GlossaryUpload } from "../components/GlossaryUpload";
 import { TurnView } from "../components/Turn";
@@ -52,7 +61,7 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
   const myRole = join.role;
   const dir = isRtl(myLang) ? "rtl" : "ltr";
   const [menu, setMenu] = useState(false);
-  const [answered, setAnswered] = useState<Set<string>>(() => new Set());
+  const [answered, setAnswered] = useState<Map<string, boolean>>(() => new Map()); // read-backs I tapped
   const [ending, setEnding] = useState(false);
   const [repeatBackArmed, setRepeatBackArmed] = useState(false);
   const scroller = useRef<HTMLDivElement>(null);
@@ -137,21 +146,65 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
     if (near) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [m.turns]);
 
-  // The one interruption: an open confirm flag for my role.
-  let pending: { turn: Turn; flag: NonNullable<ReturnType<typeof openFlag>> } | null = null;
-  for (let i = turns.length - 1; i >= 0 && !pending; i--) {
-    const f = openFlag(turns[i], myRole);
-    if (f && !answered.has(f.id ?? "")) pending = { turn: turns[i], flag: f };
-  }
+  // A new read-back for me comes into view once (it is not a modal, so it must not land under the dock).
+  const shownAsk = useRef<string | null>(null);
+  const newestAsk = (() => {
+    for (let i = turns.length - 1; i >= 0; i--) {
+      const f = readBackFor(turns[i], myRole, myLang);
+      if (f) return turns[i].confirms[f.id ?? ""] ? null : f.id ?? null;
+    }
+    return null;
+  })();
+  useEffect(() => {
+    const el = scroller.current;
+    if (!newestAsk || shownAsk.current === newestAsk || !el) return;
+    shownAsk.current = newestAsk;
+    if (el.scrollHeight - el.scrollTop - el.clientHeight > 900) return; // reading far back: leave them there
+    const id = setTimeout(() => {
+      document.getElementById(`rb-${newestAsk}`)?.closest(".rb")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }, 120);
+    return () => clearTimeout(id);
+  }, [newestAsk]);
 
   const control = (action: Parameters<typeof api.control>[1]["action"], extra: Record<string, unknown> = {}) =>
     api.control(room, { action, by: myRole, ...extra }).catch((e) => console.warn("[raum] control", e));
 
-  const answer = (accepted: boolean) => {
-    if (!pending) return;
-    const id = pending.flag.id ?? "";
-    setAnswered((s) => new Set(s).add(id));
-    void control("confirm", { flag_id: id, accepted, utt: pending.turn.utt });
+  // A read-back is answered aloud or with its small buttons; a tap shows as answered at once.
+  const answer = (tu: Turn, flagId: string, accepted: boolean) => {
+    setAnswered((s) => new Map(s).set(flagId, accepted));
+    void control("confirm", { flag_id: flagId, accepted, utt: tu.utt });
+  };
+
+  /** What this device adds to a turn: the read-back asked of me, and (the professional only) the fact notes. */
+  const notesFor = (tu: Turn) => {
+    const ask = readBackFor(tu, myRole, myLang);
+    const chips = myRole === "a" ? factChips(tu, myLang, ask) : [];
+    if (!ask && !chips.length) return null;
+    const id = ask?.id ?? "";
+    const tapped = answered.get(id);
+    const confirm = ask ? tu.confirms[id] : undefined;
+    const status = ask
+      ? confirm || tapped === undefined
+        ? flagStatus(tu, ask)
+        : tapped
+          ? "confirmed"
+          : "rejected"
+      : null;
+    return (
+      <>
+        {ask ? (
+          <ReadBack
+            flag={ask}
+            lang={myLang}
+            status={status}
+            answer={confirm}
+            canSpeak={!spokeSince(turns, join.identity, tu)}
+            onAnswer={(accepted) => answer(tu, id, accepted)}
+          />
+        ) : null}
+        <FactNotes chips={chips} lang={myLang} />
+      </>
+    );
   };
 
   const end = async () => {
@@ -250,6 +303,7 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
                   onApproveExplain={(utt, text) => void control("explain_approve", { utt, text })}
                   checkerOff={mode.checker === "off"}
                   onRelearn={mine ? () => void api.control(room, { action: "voice_lock_reset", by: join.identity }).catch((e) => console.warn("[raum] control", e)) : undefined}
+                  extra={notesFor(tu)}
                 />
                 {docsBefore(m.documents, turns, i).map((d) => (
                   <DocumentCard key={`doc-${d.ts}`} doc={d} lang={myLang} />
@@ -382,15 +436,6 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
             </button>
           </div>
         </div>
-      ) : null}
-
-      {pending ? (
-        <ConfirmSheet
-          flag={pending.flag}
-          lang={myLang}
-          onAnswer={answer}
-          mismatches={(pending.turn.facts[myLang] ?? Object.values(pending.turn.facts).flat()).filter((f) => !f.match)}
-        />
       ) : null}
     </div>
   );

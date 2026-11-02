@@ -64,12 +64,12 @@ SIMILARITY = {"green": 0.93, "amber": 0.84, "red": 0.71}
 
 
 def pipeline(room: str, mode_id: str, emit, who: dict[str, str], langs: dict[str, str | None]) -> RoomPipeline:
-    """The room pipeline's flag logic on mock engines (nothing is transcribed or spoken here)."""
+    """The room pipeline's flag logic on mock engines (nothing is transcribed; the mock voice has no sink, so a
+    read-back is "spoken" into nothing and the phones show it as spoken)."""
     cfg = get_config().model_copy(deep=True)
     for stage in ("asr", "translate", "verify", "embed", "tts"):
         getattr(cfg.models, stage).engine = "mock"
-    p = RoomPipeline(room, get_mode(mode_id), build_engines(cfg, seed=0), emit, cfg)
-    p.engines.tts = None  # the phones have no audio here: the read-back is shown, not spoken
+    p = RoomPipeline(room, get_mode(mode_id), build_engines(cfg, seed=0), emit, cfg)  # mock voice: no sink
     p.set_participants([ParticipantInfo(id=who[r], role=r, lang=langs[r] or ("de" if r == "a" else "ar"))
                         for r in ("a", "b")])
     return p

@@ -82,6 +82,14 @@ export const Cross = (p: P) => (
   </I>
 );
 
+/** The box's voice said it: a read-back that was spoken aloud. */
+export const Speaker = (p: P) => (
+  <I {...p}>
+    <path d="M3.5 9.5h3.5l4.5-4v13l-4.5-4H3.5z" />
+    <path d="M15 9.2a4 4 0 0 1 0 5.6M17.8 6.6a7.6 7.6 0 0 1 0 10.8" />
+  </I>
+);
+
 export const RevisionMark = (p: P) => (
   <I {...p}>
     <path d="M12 3.5l9.5 16.5h-19z" />

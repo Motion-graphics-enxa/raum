@@ -3,7 +3,7 @@
  * Pure reducer + tiny external store for useSyncExternalStore.
  */
 import { useSyncExternalStore } from "react";
-import type { AnyEnvelope, Badge, EventData, FactCheck, ParticipantInfo, Role } from "./events";
+import type { AnyEnvelope, Badge, EventData, FactCheck, FactStatus, ParticipantInfo, Role } from "./events";
 
 export type CheckState = "translating" | "pending" | Badge | "uncertain";
 
@@ -435,6 +435,64 @@ export function openFlag(t: Turn, myRole: Role | null): EventData["flag"] | null
     return f;
   }
   return null;
+}
+
+/* -------------------------------------------------------------- checked facts (core/raum/pipeline/readback.py) */
+
+type Flag = EventData["flag"];
+
+/** What became of a flag's facts: noted (nobody asked), or asked and then confirmed / rejected / unconfirmed. */
+export function flagStatus(t: Turn, f: Flag): FactStatus | null {
+  if (f.status === "noted") return "noted";
+  if (f.status !== "unconfirmed" && !f.needs_confirm) return null;
+  const c = t.confirms[f.id ?? "_"];
+  return c ? (c.accepted ? "confirmed" : "rejected") : "unconfirmed";
+}
+
+/** The read-back this device answers on this turn: asked of my role (or my language), newest first. A flag
+ * from an older core without ``status`` that still asks a yes/no counts too. */
+export function readBackFor(t: Turn, myRole: Role | null, myLang: string): Flag | null {
+  for (let i = t.flags.length - 1; i >= 0; i--) {
+    const f = t.flags[i];
+    if (!f.needs_confirm) continue;
+    if (f.confirm_by ? f.confirm_by !== myRole : f.target_lang && f.target_lang !== myLang) continue;
+    return f;
+  }
+  return null;
+}
+
+export interface FactChip {
+  key: string;
+  kind: string;
+  text: string;
+  status: FactStatus;
+}
+
+const RANK: Record<FactStatus, number> = { noted: 0, confirmed: 1, unconfirmed: 2, rejected: 3 };
+
+/** The professional's fact list for one turn: every checked fact, in my language, once (the least sure status of
+ * the same chip wins, as in the summary). ``skip``: a flag shown as a read-back instead. */
+export function factChips(t: Turn, lang: string, skip?: Flag | null): FactChip[] {
+  const out = new Map<string, FactChip>();
+  for (const f of t.flags) {
+    if (!f.facts?.length || f === skip || (skip?.id && f.id === skip.id)) continue;
+    const status = flagStatus(t, f);
+    if (!status) continue;
+    for (const x of f.facts) {
+      const text = x.texts[lang] ?? x.texts.en ?? Object.values(x.texts)[0];
+      if (!text) continue;
+      const key = `${x.kind}|${text.toLocaleLowerCase()}`;
+      const old = out.get(key);
+      if (!old || RANK[status] > RANK[old.status]) out.set(key, { key, kind: x.kind, text, status });
+    }
+  }
+  return [...out.values()];
+}
+
+/** Has this device spoken since the read-back? Then only the buttons answer it (the box listens to one reply). */
+export function spokeSince(turns: Turn[], identity: string, flagTurn: Turn): boolean {
+  const i = turns.indexOf(flagTurn);
+  return i >= 0 && turns.slice(i + 1).some((u) => u.speaker === identity && !!u.text);
 }
 
 export function percentile(xs: number[], p: number): number | null {
