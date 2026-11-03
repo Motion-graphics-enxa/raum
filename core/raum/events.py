@@ -116,6 +116,9 @@ class TranslationFinal(_Data):
     text: str  # with `seg`: this segment's text only; the utterance's translation = segments in order
     seg: int | None = None
     segs: int | None = None  # extension: total segments, sent on the last segment's final
+    # extension: the utterance was already in target_lang (the speaker switched language): its own text, voiced
+    # as said, no MT (room.py _pass_through)
+    passthrough: bool | None = None
 
 
 class TranslationDraft(_Data):  # extension (raum.pipeline.draft): live draft while the speaker talks, never voiced

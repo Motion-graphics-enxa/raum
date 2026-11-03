@@ -64,6 +64,8 @@ export function TurnView({
     main = shown.text;
     mainLang = myLang;
     sub = finalSrc ?? turn.partial ?? null;
+    // passed through (core room.py _pass_through): said in my language already, the source line would repeat it
+    if (sub && sub.trim() === main.trim()) sub = null;
   } else {
     // nothing translated yet: show what is being said, in the speaker's script, quietly
     main = finalSrc ?? turn.partial ?? "";

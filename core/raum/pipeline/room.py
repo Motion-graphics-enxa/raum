@@ -75,13 +75,14 @@ first frame the worker's AudioSource accepted; the sink returns that moment); wi
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import inspect
 import logging
 import os
 import re
 import time
 from collections import Counter, deque
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass, field, replace
 from typing import Any, get_args
 
@@ -818,7 +819,9 @@ class RoomPipeline:
         targets = self._targets(rec)
         simul, targets = self.simul.finish_turn(u, rec, targets, t0, timing)  # simul.py: segmented langs: tail
         await asyncio.gather(*simul, *(self._translate(u, rec, tgt, t0, dict(timing), context, voice)
-                                       for tgt in targets))
+                                       for tgt in targets),
+                             *(self._translate(u, rec, tgt, t0, dict(timing), context, voice, passthrough=True)
+                               for tgt in self._pass_through(rec)))
         if "offer_tracker" in self.mode.buttons:
             await self._offers(rec)
 
@@ -837,6 +840,29 @@ class RoomPipeline:
             if code != rec.lang:
                 langs.append(code)
         return langs
+
+    def _own_lang(self, rec: _Turn) -> str | None:
+        """The language this speaker speaks in this room: their device's, else the one of their last turn."""
+        code = self._participant_lang(self.participants.get(rec.speaker))
+        if code:
+            return code
+        for t in reversed(self._turns):
+            if t is not rec and t.speaker == rec.speaker and t.lang:
+                return t.lang
+        return None
+
+    def _pass_through(self, rec: _Turn) -> list[str]:
+        """The speaker switched language: a whole utterance already in a listener's language (a Russian speaker
+        says an English sentence to the English listener). ``_targets`` leaves that listener out (nothing to
+        translate), so they would hear nothing; it is voiced as it is instead, no MT. Not in a room where both
+        speak that language (the speaker's own language is the utterance's): nothing to voice there, as before."""
+        own = self._own_lang(rec)
+        if not own or own == rec.lang:
+            return []
+        for p in self.participants.values():
+            if p.id != rec.speaker and p.role != "observer" and self._participant_lang(p) == rec.lang:
+                return [rec.lang]
+        return []
 
     def _listener_role(self, tgt: str, speaker_role: str) -> str:
         roles = [p.role for p in self.participants.values()
@@ -857,7 +883,9 @@ class RoomPipeline:
         )
 
     async def _translate(self, u: _Utt, rec: _Turn, tgt: str, t0: float, timing: dict[str, Any],
-                         context: str, voice: VoiceArgs | None = None) -> None:
+                         context: str, voice: VoiceArgs | None = None, *, passthrough: bool = False) -> None:
+        """One target's translation, streamed and voiced clause by clause. ``passthrough`` (``_pass_through``):
+        the utterance is already in ``tgt``: its own text goes out and is voiced the same way, no MT, no slot."""
         req = self._request(rec, tgt, context)
         parts: list[str] = []
         first_ms: float | None = None
@@ -873,9 +901,13 @@ class RoomPipeline:
         expect = _words(rec.text) if min_words else None  # the translation's length, roughly the source's
         spoke = False
 
+        async def same() -> AsyncIterator[str]:
+            yield rec.text
+
         async def run() -> None:
             nonlocal first_ms, pending, spoke
-            async for delta in self.spec.stream(u.id, tgt, req):  # speculate.py: replayed if it matched
+            # speculate.py: replayed if it matched
+            async for delta in (same() if passthrough else self.spec.stream(u.id, tgt, req)):
                 if not delta:
                     continue
                 if first_ms is None:
@@ -892,7 +924,7 @@ class RoomPipeline:
                         voice_q.put_nowait(clause)
 
         try:
-            async with self.sched.slot("live"):
+            async with contextlib.nullcontext() if passthrough else self.sched.slot("live"):
                 await asyncio.wait_for(run(), MT_TIMEOUT_S)
         except asyncio.CancelledError:
             if voice_q is not None:
@@ -912,7 +944,8 @@ class RoomPipeline:
         text = "".join(parts).strip()
         timing["mt_first_ms"] = round(first_ms, 1) if first_ms is not None else None
         timing["mt_full_ms"] = round((time.monotonic() - t0) * 1000.0, 1)
-        await self.emit("translation.final", {"target_lang": tgt, "text": text}, utt=u.id)
+        await self.emit("translation.final", {"target_lang": tgt, "text": text, **({"passthrough": True} if passthrough
+                                                                                  else {})}, utt=u.id)
         rec.translations[tgt] = text
         t_final = time.monotonic()
 
@@ -982,8 +1015,12 @@ class RoomPipeline:
     async def _check(self, rec: _Turn, tgt: str, text: str, gres: guard.GuardResult | None, guard_ok: bool,
                      flagged: bool, t_final: float) -> float:
         verifier, why = self.checker_for(rec.role, rec.lang, tgt)
+        same = tgt == rec.lang and text == rec.text  # _pass_through: the speaker's own words, nothing to judge
 
         async def run() -> CheckResult:
+            if same:
+                return CheckResult(similarity=1.0, badge="red" if gres is not None and gres.red else "green",
+                                   reasons=["already in this language: voiced as said, no translation"])
             res = await second_check(rec.text, rec.lang, text, tgt, verifier=verifier, embedder=self.engines.embed,
                                      thresholds=self.cfg.thresholds, guard=gres, guard_available=guard_ok,
                                      turn=rec.turn, timeout_s=CHECK_TIMEOUT_S)
@@ -991,7 +1028,7 @@ class RoomPipeline:
                 res.reasons = [why if r.startswith("second check off") else r for r in res.reasons]
             return res
 
-        if verifier is None:  # guard only: no model, no slot
+        if verifier is None or same:  # guard only: no model, no slot
             result = await run()
         else:
             with stats.timed("voice.defer.check"):

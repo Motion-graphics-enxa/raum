@@ -1,6 +1,6 @@
 # RAUM build status
 
-_Read by the ops session. Updated at every milestone. Last update: Mon 2 Nov, ~23:30 (main: live mode for everyone, phase 2, draft text, glass UI, push-to-talk; box off until the morning)._
+_Read by the ops session. Updated at every milestone. Last update: Tue 3 Nov, late morning (main: pass-through voice, Piper temp dirs cleaned; Altbau Daylight UI follow-ups next)._
 
 ## What works (on `main`)
 - **Live on the GX10 (ops):** real engines (whisper.cpp large-v3-turbo, gemma4:26b, gpt-oss:120b, bge-m3, Piper binary), fact guard, encrypted sessions + audit chain. Measured warm: vad 320 / asr 249 / first words 677 / sentence 888 / voice 1399 / check 1425 ms.
@@ -27,7 +27,10 @@ _Read by the ops session. Updated at every milestone. Last update: Mon 2 Nov, ~2
 - **Push-to-talk (3cab3eb):** hold-to-talk is the app default (Space on desktop), "Hands-free" switch persisted per device (`raum:hands_free`); release -> 150 ms tail, mute, `ptt.release` on LiveKit topic `raum.control` -> `RoomPipeline.end_turn` ends the turn at once (no VAD/eot wait, `eot.why` "ptt"); the VAD's later end for that speech ignored; speakerphone always hands-free. e2e phones run hands-free.
 - **Phone live link (02abc25):** events-WS backoff, 5 s ping/pong, dead-but-OPEN after 18 s, wake on visibility/online/pageshow/focus, `?since=` resync; "Reconnecting…"; "Tap to hear" for blocked audio; header pair from real languages; cut sockets logged with their path.
 - **Voice service:** v1.4 edge trim + first_tokens 10 + pkuseg mount (15990e5), two instances `tts.options.urls` 8090/8091, sync-free engine `cb_patches.py` (ops, `RAUM_TTS_SYNCFREE=0` rollback). Box: de1 voice 652 ms after the stop, one 120 ms silence (was 630/140/610 ms).
-- **Glass UI (ops, `ui-glass-english`, impeccable):** premium glass style, all chrome in English.
+- **Altbau Daylight UI (5aed352, user's choice; glass is retired):** redesign, website front page, spectacle motion; demo in Russian (80750af).
+- **Box, Tue morning (main 80750af):** long-de1 -> en on speaker: first voice 6.8 s after speech start, draft text at 1.5 s, 7 silences / 1.58 s (longest 520 ms); draft text costs no voice time (stays on).
+- **Pass-through voice:** a speaker who switched language (device language, else their last turn's) says a whole utterance in a listener's language: that listener gets it as said, voiced, no MT, no slot (`translation.final` `passthrough: true`, verify green 1.0, no gpt-oss); a same-language room unchanged (nothing to voice).
+- **Piper temp dirs:** each room job (LiveKit forkserver child, ends with `os._exit`, no atexit) left a `raum-piper-*` dir in /dev/shm. Now `raum-piper-<pid>-*`, closed by a multiprocessing exit finalizer, and a new resident sweeps dirs of dead pids (and pid-less ones untouched 10 min).
 - **Live speed, real phones (user's gs rooms, after aa06db2, GPU free), p50:** end of turn 0.69-0.81 s, first words 0.70-0.88 s, **voice 0.82-1.03 s**.
 - **Confirm UX (5aa0985, b7a1061):** green = quiet "noted" chips on the professional's card (`flag kind:"noted"`), nobody asked; uncertain (guard mismatch, checker amber/red from the meaning check, asr_conf < `asr_confirm_conf` 0.6, box data; mode `pipeline.asr_confirm_conf` per room) = one spoken read-back in the standard voice ("Nur zur Sicherheit: ...?") + small Ja/Nein on the card, a spoken yes/no in the next short utterance answers (`confirm via:"voice"`); unanswered stays "unconfirmed", never asked twice; summary lists noted/unconfirmed/confirmed/rejected. A checker that is only warming up/failed/off asks nothing.
 - **Voice echo check (9206651):** `tts.options.echo_check: facts` (spark): clauses with dose/number/date/time heard back by whisper in the background slot; a wrong figure -> `voice.echo` note on the listener's card + the clause once more in the standard voice ("Повторяю: ..."), audit `voice.echo_mismatch` (kinds only); `echo_ms` / `echo_check` in timing.
@@ -49,13 +52,12 @@ _Read by the ops session. Updated at every milestone. Last update: Mon 2 Nov, ~2
 - **Design:** impeccable only. PRODUCT.md, direction contract `.impeccable/surfaces/`, finish review (fix -> verdict -> final batch), **DESIGN.md** + `.impeccable/design.json`.
 - **No third-party bytes:** LiveKit gets LAN-only STUN/TURN (box's own :3478; compose, livekit.yaml, dev.sh), onnxruntime telemetry off (ops 739e8a1); privacy meter reads 0 B on the GX10.
 - **Deploy:** `deploy/push.sh` -> `gx10:~/Desktop/HackathonRaum/raum`; `deploy/box.sh` (sources `runtime/raum.env`; process groups); `RAUM_UV_EXTRAS="--extra denoise"` for DeepFilterNet.
-- **Tests:** `cd core && uv run pytest -q` -> 1279 passed (incl. services/tts tests); `cd app && npm test` -> 18 passed; `uv run ruff check .` clean; two-phone e2e sz + gs pass on the mock stack.
+- **Tests:** `cd core && uv run pytest -q` -> 1286 passed (incl. services/tts tests); `cd app && npm test` -> 18 passed; `uv run ruff check .` clean; two-phone e2e sz + gs pass on the mock stack.
 
 ## In flight (parallel agents, worktree branches; the integrator merges)
-- Nothing running. Box off until the morning: ops deploys main and measures first voice, gaps, draft text (`pipeline.draft_text: false` to roll back) and push-to-talk on phones.
+- Altbau Daylight follow-ups (integrator): summary headings in the reader's language, room name vs "Reconnecting…", mic label position, impeccable finish review.
 
 ## Integrator TODO
-- Pass-through voice: a whole utterance already in the listener's language (the speaker switched language) is voiced as is, no MT.
 - Own voice later: register the clone during speech at `voice_ref_min_s`, so the pre-render uses it from the first utterance.
 - Box: the read-back path end to end (uncertain fact -> spoken read-back -> spoken yes); echo check's effect on live `asr_ms` (first run: none).
 - impeccable context drift reported by its tooling (not repaired as a side effect): PRODUCT.md says "web" though there is an Android build; `.impeccable/design.json` older than DESIGN.md; no `buildPath` in `.impeccable/config.json`.

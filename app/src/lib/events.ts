@@ -88,7 +88,14 @@ export interface EventData {
   "transcript.partial": { speaker: string; lang: string; text: string; seq: number };
   "transcript.final": { speaker: string; lang: string; text: string; asr_conf: number };
   "translation.delta": { target_lang: string; delta: string; seq?: number | null; seg?: number | null };
-  "translation.final": { target_lang: string; text: string; seg?: number | null; segs?: number | null };
+  // passthrough: already in target_lang (the speaker switched language), its own text voiced as said, no MT
+  "translation.final": {
+    target_lang: string;
+    text: string;
+    seg?: number | null;
+    segs?: number | null;
+    passthrough?: boolean | null;
+  };
   /** Live draft while the speaker talks (never voiced): replaces the previous draft of this utterance and
    * language in place; newest `seq` wins. `seg`: simultaneous mode, the uncommitted tail after segments
    * 0 .. seg-1 (a segment >= seg covers it). The final translation (or that segment) takes its place. */

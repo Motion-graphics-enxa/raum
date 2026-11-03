@@ -28,8 +28,10 @@ import concurrent.futures
 import contextlib
 import json
 import logging
+import multiprocessing.util
 import os
 import queue
+import re
 import shutil
 import subprocess
 import tempfile
@@ -99,6 +101,58 @@ def _discard_wav(fut: concurrent.futures.Future[Path]) -> None:
         fut.result().unlink()
 
 
+DIR_PREFIX = "raum-piper-"  # + the owner's pid + "-" + mkdtemp's random suffix
+_PID_DIR = re.compile(rf"{DIR_PREFIX}(\d+)-")
+OLD_DIR_S = 600.0  # a dir without a pid (made before pids were in the name) is gone after 10 min untouched
+
+
+def _alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True  # someone else's process: alive
+    except OSError:
+        return True
+    return True
+
+
+def sweep_dirs(output_dir: str | None, *, now: float | None = None) -> list[str]:
+    """Remove the ``raum-piper-*`` dirs whose process is gone. Each room's job is its own process, and on Linux
+    LiveKit forks it from a forkserver that ends it with ``os._exit``: ``atexit`` never runs there, and a killed
+    process cleans nothing. So each new resident sweeps first: a dir whose owner pid is dead goes, one from before
+    pids were in the name goes once untouched for ``OLD_DIR_S``. Only this prefix, only dirs. Returns the removed."""
+    base = Path(output_dir or tempfile.gettempdir())
+    now = time.time() if now is None else now
+    removed: list[str] = []
+    try:
+        entries = list(base.iterdir())
+    except OSError:
+        return removed
+    for d in entries:
+        if not d.name.startswith(DIR_PREFIX):
+            continue
+        try:
+            if d.is_symlink() or not d.is_dir():
+                continue
+            m = _PID_DIR.match(d.name)
+            if m:
+                pid = int(m.group(1))
+                if pid == os.getpid() or _alive(pid):
+                    continue
+            elif now - d.stat().st_mtime < OLD_DIR_S:
+                continue
+        except OSError:
+            continue
+        shutil.rmtree(d, ignore_errors=True)
+        if not d.exists():
+            removed.append(d.name)
+    if removed:
+        log.info("piper: removed %d temp dir(s) left by ended processes", len(removed))
+    return removed
+
+
 def _default_output_dir() -> str | None:
     shm = "/dev/shm"
     return shm if os.path.isdir(shm) and os.access(shm, os.W_OK) else None
@@ -120,7 +174,8 @@ class ResidentPiper:
         self.load_timeout_s = load_timeout_s
         self.warmup = warmup
         self.args = list(args or [])
-        self.dir = Path(tempfile.mkdtemp(prefix="raum-piper-", dir=output_dir))
+        sweep_dirs(output_dir)  # what killed processes left behind (they never ran their cleanup)
+        self.dir = Path(tempfile.mkdtemp(prefix=f"{DIR_PREFIX}{os.getpid()}-", dir=output_dir))
         self.ready = False
         self.closed = False
         self.starts = 0  # processes started
@@ -302,6 +357,7 @@ def resident_piper(binary: str, model: Path, **kwargs: Any) -> ResidentPiper:
         r = _RESIDENTS.get(key)
         if r is None or r.closed:
             r = _RESIDENTS[key] = ResidentPiper(binary, model, **kwargs)
+            _hook_exit()
         return r
 
 
@@ -316,6 +372,17 @@ def close_residents(timeout: float = 3.0) -> None:
 
 
 atexit.register(close_residents)
+_EXIT_HOOK_PID: int | None = None
+
+
+def _hook_exit() -> None:
+    """A job process forked by LiveKit's forkserver (Linux) ends with ``os._exit``: atexit never runs there, but
+    multiprocessing runs its exit finalizers first (``Process._bootstrap`` -> ``util._exit_function``). Registered
+    in the process that makes the resident: a fork clears the finalizers it inherits."""
+    global _EXIT_HOOK_PID
+    if _EXIT_HOOK_PID != os.getpid():
+        _EXIT_HOOK_PID = os.getpid()
+        multiprocessing.util.Finalize(None, close_residents, exitpriority=10)
 
 
 # ---------------------------------------------------------------- piper engine

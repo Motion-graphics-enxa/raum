@@ -234,3 +234,106 @@ async def test_resident_resamples_to_the_output_rate(fake_piper):
 def test_no_binary_disables_voice(tmp_path, monkeypatch):
     monkeypatch.setenv("PATH", str(tmp_path))
     assert make_tts("piper", {"voices_dir": str(tmp_path)}) is None
+
+
+# ---------------------------------------------------------------- temp dirs (box: one leaked per room job)
+
+
+def _dead_pid() -> int:
+    import subprocess
+
+    p = subprocess.Popen([sys.executable, "-c", "pass"])
+    p.wait()
+    return p.pid
+
+
+def test_resident_dir_names_its_process_and_goes_on_close(fake_piper):
+    import os
+
+    from raum.pipeline.tts import DIR_PREFIX, resident_piper
+
+    opts, _, out = fake_piper
+    tts = make_tts("piper", opts)
+    r = tts.resident_for("de")
+    assert r.dir.parent == out and r.dir.name.startswith(f"{DIR_PREFIX}{os.getpid()}-")
+    close_residents()
+    assert not r.dir.exists()
+    assert resident_piper(str(opts["binary"]), r.model, output_dir=str(out)).dir != r.dir  # a fresh one
+
+
+def test_sweep_removes_only_dirs_of_ended_processes(tmp_path):
+    import os
+    import time
+
+    from raum.pipeline.tts import OLD_DIR_S, sweep_dirs
+
+    dead = tmp_path / f"raum-piper-{_dead_pid()}-abc123"
+    mine = tmp_path / f"raum-piper-{os.getpid()}-def456"
+    parent = tmp_path / f"raum-piper-{os.getppid()}-ghi789"  # alive
+    old = tmp_path / "raum-piper-q1w2e3r4"  # before pids were in the name
+    young = tmp_path / "raum-piper-z9x8c7v6"
+    other = tmp_path / "someone-else-1"
+    for d in (dead, mine, parent, old, young, other):
+        d.mkdir()
+        (d / "1.wav").write_bytes(b"x")
+    stray = tmp_path / "raum-piper-file"  # a file, not a dir: not ours to judge
+    stray.write_bytes(b"x")
+    then = time.time() - OLD_DIR_S - 5
+    os.utime(old, (then, then))
+
+    removed = sweep_dirs(str(tmp_path))
+    assert sorted(removed) == sorted([dead.name, old.name])
+    assert not dead.exists() and not old.exists()
+    assert mine.exists() and parent.exists() and young.exists() and other.exists() and stray.exists()
+    assert sweep_dirs(str(tmp_path / "missing")) == []
+
+
+def test_a_new_resident_sweeps_what_a_killed_process_left(fake_piper):
+    opts, _, out = fake_piper
+    left = out / f"raum-piper-{_dead_pid()}-zzz"
+    left.mkdir()
+    (left / "9.wav").write_bytes(b"x")
+    tts = make_tts("piper", opts)
+    r = tts.resident_for("de")
+    assert not left.exists() and r.dir.exists()
+
+
+FORKSERVER_JOB = r'''
+import multiprocessing as mp, sys, time
+from pathlib import Path
+
+def job(binary, model, out):
+    from raum.pipeline.tts import resident_piper
+    r = resident_piper(binary, Path(model), output_dir=out)
+    r.start()
+    for _ in range(500):
+        if r.ready:
+            break
+        time.sleep(0.01)
+    print("dir", r.dir, r.ready, flush=True)
+
+if __name__ == "__main__":
+    ctx = mp.get_context("forkserver")
+    p = ctx.Process(target=job, args=sys.argv[1:4])
+    p.start()
+    p.join(30)
+    print("exit", p.exitcode, flush=True)
+'''
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="forkserver: POSIX only")
+def test_a_forkserver_job_process_leaves_no_dir(fake_piper, tmp_path):
+    """LiveKit on Linux forks each room's job from a forkserver; the child ends with os._exit (no atexit)."""
+    import subprocess
+
+    opts, _, out = fake_piper
+    script = tmp_path / "job.py"
+    script.write_text(FORKSERVER_JOB, encoding="utf-8")
+    model = Path(opts["voices_dir"]) / "de_DE-test-medium.onnx"
+    res = subprocess.run([sys.executable, str(script), str(opts["binary"]), str(model), str(out)],
+                         capture_output=True, text=True, timeout=60, check=False)
+    assert "exit 0" in res.stdout, res.stdout + res.stderr
+    made = [ln.split()[1] for ln in res.stdout.splitlines() if ln.startswith("dir ")]
+    assert made and made[0].startswith(str(out)) and " True" in res.stdout  # it ran, warm
+    assert not Path(made[0]).exists()
+    assert list(out.glob("raum-piper-*")) == []
