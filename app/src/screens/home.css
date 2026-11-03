@@ -1,8 +1,9 @@
 /*
- * Start page `/start`: the doors, then the room's pass.
- * A door is limewash above (its German plate, what it is for) and the room's paint below the Begleitstrich, which
- * carries "Open room". Opening a room issues its pass: one sheet with a coupon per person (their code, and whether
- * their phone is in yet), the table screen's code, and the table action on the room's paint.
+ * Start page `/start`: the room you point at, then the room's pass.
+ * The picker is the whole screen as the room: the rooms' German plates written large on the limewash, the window's
+ * light standing on the one you point at, the dado below the Begleitstrich repainted in that room's oil paint.
+ * Opening a room floods the screen with its paint; the paint drains back down as the pass is issued: one sheet with
+ * a coupon per person (their code, and whether their phone is in yet), the table screen's code, the table action.
  */
 .screen--home {
   background: var(--wall);
@@ -92,203 +93,449 @@
   min-width: 0;
 }
 
-/* ---------------------------------------------------------------- doors */
-.doors {
-  list-style: none;
-  margin: var(--s-2) 0 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--s-4);
+/* ---------------------------------------------------------------- the picker */
+.screen--pick {
+  overflow-x: clip;
 }
-.doors li {
-  display: grid;
-  animation: turn-in 480ms var(--ease-out) both;
-  animation-delay: calc(var(--i, 0) * 70ms + 80ms);
+.screen--pick .home__bar {
+  max-width: 1320px;
 }
-.door {
-  --paint: var(--paint-gespraech);
-  --dado-h: 72px;
-  container-type: inline-size;
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  display: grid;
-  grid-template-rows: 1fr auto;
-  width: 100%;
-  min-height: clamp(316px, 40vh, 372px);
-  padding: 0;
-  border: var(--line) solid var(--rule);
-  border-radius: var(--radius-lg);
-  background: var(--sheet);
-  box-shadow: var(--shadow-sheet);
-  color: var(--ink);
-  text-align: start;
-  transition: box-shadow 320ms var(--ease-out), transform 320ms var(--ease-out), opacity 200ms var(--ease-out);
-}
-.door--sprechzimmer {
-  --paint: var(--paint-sprechzimmer);
-}
-.door--kanzlei {
-  --paint: var(--paint-kanzlei);
-}
-.door--verhandlungsraum {
-  --paint: var(--paint-verhandlungsraum);
-}
-/* the window's light on the wall part, with the shadow of its cross */
-.door::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    linear-gradient(90deg, transparent 58%, var(--mullion) 61%, var(--mullion) 62%, transparent 65%),
-    var(--sunlight);
-  opacity: 0.5;
-  transition: opacity 420ms var(--ease-out);
-}
-.door__wall {
+.pick {
+  --stage: var(--paint-gespraech);
+  --dado-h: clamp(100px, 16vh, 168px);
+  flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: var(--s-2);
+  width: 100%;
+}
+.pick__wall {
+  flex: 1;
+  width: 100%;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: clamp(var(--s-5), 4.5vh, var(--s-7)) var(--s-5) clamp(var(--s-5), 5vh, var(--s-7));
+  display: grid;
+  align-content: start;
+  gap: clamp(var(--s-4), 3.2vh, var(--s-6));
+}
+.pick__intro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s-2) var(--s-4);
+  animation: turn-in 420ms var(--ease-out) both;
+}
+.pick__h {
+  font-size: clamp(1.75rem, 1.3rem + 1.4vw, 2.375rem);
+  font-weight: 760;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+.pick__lead {
+  font-size: 1.125rem;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+.pick__note {
+  margin: 0;
+}
+.pick__note > span {
+  flex: 1 1 14rem;
   min-width: 0;
-  padding: var(--s-5) 20px var(--s-4);
 }
-.door__plate {
-  max-width: 100%;
+
+/* the rows: one plate per room, as large as the longest name allows */
+.pick__rows {
+  --meta-w: 16.5rem;
+  --go-w: 148px;
+  --gap: clamp(24px, 3vw, 48px);
+  position: relative;
+  isolation: isolate;
+  container-type: inline-size;
+}
+.pick__list {
+  /* VERHANDLUNGSRAUM, the longest plate, is about 7.3 em wide: it fills the plate column and no more */
+  --plate: min(calc((100cqi - var(--meta-w) - var(--go-w) - 2 * var(--gap)) / 7.45), 12vh, 9.5rem);
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-auto-rows: 1fr;
+}
+.pick__list::before,
+.pick__item::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: var(--line);
+  background: var(--rule-strong);
+  transform-origin: left center;
+  animation: strich-draw 900ms var(--ease-out) calc(var(--i, 0) * 90ms + 160ms) both;
+}
+.pick__list::before {
+  inset: 0 0 auto;
+  animation-delay: 80ms;
+}
+.pick__item {
+  position: relative;
+  display: grid;
+}
+
+.pick__row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--meta-w) var(--go-w);
+  align-items: center;
+  gap: var(--s-3) var(--gap);
+  width: 100%;
+  padding: clamp(10px, 1.6vh, 18px) 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--ink);
+  text-align: start;
+  cursor: pointer;
+}
+.pick__row:focus-visible {
+  outline-offset: 2px;
+}
+.pick__row:disabled {
+  cursor: default;
+}
+.pick__row:disabled:not(.is-busy) .pick__plate {
+  opacity: 0.4;
+}
+.pick__plate {
+  justify-self: start;
   font-family: var(--font-display);
-  /* the longest name, VERHANDLUNGSRAUM, stays on one line: about 7.2 em wide */
-  font-size: min(1.875rem, calc((100cqi - 40px) / 7.4));
-  font-weight: 800;
-  line-height: 0.9;
-  letter-spacing: 0.012em;
+  font-size: var(--plate);
+  font-weight: 820;
+  line-height: 0.86;
+  letter-spacing: 0.006em;
   text-transform: uppercase;
-  hyphens: auto;
-  -webkit-hyphens: auto;
+  white-space: nowrap;
+  padding-top: 0.05em;
+  color: var(--ink);
+  transition: color 360ms var(--ease-out), translate 620ms var(--ease-out), opacity 200ms var(--ease-out);
+  animation: plate-rise 1000ms var(--ease-out) calc(var(--i, 0) * 90ms + 140ms) both;
 }
-.door__name {
-  margin-top: var(--s-1);
-  font-size: 1.0625rem;
-  font-weight: 680;
-  line-height: 1.3;
+@keyframes plate-rise {
+  from {
+    clip-path: inset(0 0 100% 0);
+    transform: translateY(0.42em);
+  }
+  to {
+    clip-path: inset(-0.1em -0.2em -0.1em -0.1em);
+  }
 }
-.door__roles {
+
+.pick__meta {
+  display: grid;
+  justify-items: start;
+  align-content: center;
+  gap: 5px;
+  min-width: 0;
+}
+.pick__name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.3125rem;
+  font-weight: 720;
+  line-height: 1.2;
+}
+.pick__swatch {
+  display: none;
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--paint);
+}
+.pick__icon {
+  flex: none;
+  width: 1.15em;
+  height: 1.15em;
+  color: var(--ink-2);
+}
+.pick__roles {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 2px 6px;
-  font-size: 0.9375rem;
+  font-size: 1rem;
   font-weight: 620;
   color: var(--ink-2);
 }
-.door__pair {
+.pick__pair {
   width: 1.05em;
   height: 1.05em;
   color: var(--ink-3);
   stroke-width: 2;
 }
-.door__checks {
+.pick__checks {
   font-size: 0.9375rem;
   line-height: 1.4;
   color: var(--ink-2);
 }
-.door__burn {
-  margin-top: auto;
-  padding-top: var(--s-3);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.8125rem;
-  font-weight: 650;
-  color: var(--ink-3);
-}
-.door__burn .icon {
-  width: 1.1em;
-  height: 1.1em;
-}
-/* the dado: the room's paint below the Begleitstrich carries the action */
-.door__dado {
-  display: flex;
-  align-items: center;
-  min-height: var(--dado-h);
-  padding: 0 20px;
-  background: var(--paint);
-  color: var(--paint-ink);
-  border-top: var(--strich-w) solid var(--strich);
-  box-shadow: inset 0 1px 0 var(--paint-sheen);
-  transition: min-height 420ms var(--ease-out);
-}
-.door__go {
+/* the action is a small piece of the room's dado */
+.pick__go {
+  justify-self: end;
   display: inline-flex;
   align-items: center;
   gap: var(--s-2);
-  font-size: 1.0625rem;
+  min-height: 42px;
+  padding: 0 14px 0 16px;
+  border-radius: var(--radius);
+  background: var(--paint);
+  background-image: linear-gradient(180deg, var(--paint-sheen), transparent 40%);
+  color: var(--paint-ink);
+  font-size: 1rem;
   font-weight: 720;
+  box-shadow: inset 0 -2px 0 rgb(0 0 0 / 0.16), var(--shadow-sheet);
 }
-.door__arrow {
+.pick__arrow {
   transition: transform 320ms var(--ease-out);
 }
-.door__ring {
-  width: 15px;
-  height: 15px;
+.pick__tap {
+  display: none;
+}
+.pick__ring {
+  flex: none;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   border: 2px solid currentColor;
   border-right-color: transparent;
   animation: spin 0.9s linear infinite;
 }
-@media (hover: hover) {
-  .door:hover:not(:disabled) {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-lift);
+
+/* the window's light stands on the room you point at */
+.pick__sun {
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  left: -8vw;
+  right: -4vw;
+  height: calc(100% / var(--n, 4));
+  pointer-events: none;
+  background: var(--sunlight);
+  -webkit-mask-image:
+    linear-gradient(90deg, transparent, #000 10%, #000 64%, transparent 94%),
+    linear-gradient(180deg, transparent, #000 22%, #000 78%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(90deg, transparent, #000 10%, #000 64%, transparent 94%),
+    linear-gradient(180deg, transparent, #000 22%, #000 78%, transparent);
+  mask-composite: intersect;
+  transform: translateY(calc(var(--at, 0) * 100%));
+  transition: transform 860ms var(--ease-out);
+  animation: sun-in 1200ms var(--ease-out) 520ms both;
+}
+@keyframes sun-in {
+  from {
+    opacity: 0;
+    clip-path: inset(0 100% 0 0);
   }
-  .door:hover:not(:disabled)::before {
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* with a pointer: the rooms rest in the shade, the one you point at steps into the light and says what it is */
+@media (hover: hover) and (min-width: 641px) {
+  .pick__plate {
+    color: color-mix(in oklab, var(--ink) 58%, var(--wall));
+  }
+  .pick__row.is-on .pick__plate {
+    color: var(--ink);
+    translate: 0.045em 0;
+  }
+  .pick__meta,
+  .pick__go {
+    opacity: 0;
+    translate: -10px 0;
+    clip-path: inset(-6px 100% -6px -6px);
+    transition: opacity 220ms var(--ease-out), translate 560ms var(--ease-out), clip-path 560ms var(--ease-out);
+  }
+  .pick__row.is-on .pick__meta,
+  .pick__row.is-on .pick__go {
     opacity: 1;
+    translate: 0 0;
+    clip-path: inset(-6px -6px -8px -6px);
+    transition-delay: 70ms;
   }
-  .door:hover:not(:disabled) .door__dado {
-    min-height: calc(var(--dado-h) + 12px);
+  .pick__row.is-on .pick__go {
+    transition-delay: 150ms;
   }
-  .door:hover:not(:disabled) .door__arrow {
+  .pick__row:hover .pick__arrow,
+  .pick__row:focus-visible .pick__arrow {
     transform: translateX(4px);
   }
 }
-.door:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: var(--shadow-sheet);
-}
-.door:focus-visible {
-  outline-offset: 4px;
-  border-radius: var(--radius-lg);
-}
-.door:disabled {
-  cursor: default;
-}
-.door:disabled:not(.is-busy) {
-  opacity: 0.48;
-}
-.door.is-busy .door__dado {
-  min-height: calc(var(--dado-h) + 12px);
-}
-/* while the rooms load: doors in the shade, no light, no paint yet */
-.door--ghost {
+
+/* while the rooms load: plates in the shade, no light, no paint yet */
+.pick__ghost {
   display: block;
-  background: var(--shade);
-  border-style: dashed;
-  border-color: color-mix(in oklab, var(--ink-3) 30%, transparent);
-  box-shadow: none;
-  animation: door-wait 1.6s ease-in-out infinite;
-}
-.door--ghost::before {
-  inset: auto 0 0;
-  height: var(--dado-h);
-  opacity: 1;
+  width: var(--w);
+  height: calc(var(--plate) * 0.74);
+  margin-block: calc(clamp(10px, 1.5vh, 16px) + var(--plate) * 0.08);
+  border-radius: var(--radius-sm);
   background: var(--wall-3);
-  border-top: var(--strich-w) solid color-mix(in oklab, var(--ink-3) 22%, transparent);
+  animation: ghost-wait 1.6s ease-in-out calc(var(--i, 0) * 140ms) infinite;
 }
-@keyframes door-wait {
+@keyframes ghost-wait {
   50% {
-    opacity: 0.62;
+    opacity: 0.5;
+  }
+}
+
+/* the dado: the Begleitstrich drawn first, then the room's paint rises below it and changes with the room */
+.pick__dado {
+  position: relative;
+  isolation: isolate;
+  flex: none;
+  min-height: var(--dado-h);
+  color: var(--paint-ink);
+}
+.pick__dado::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 1;
+  height: var(--strich-w);
+  background: var(--strich);
+  transform-origin: left center;
+  animation: strich-draw 700ms var(--ease-out) 260ms both;
+}
+.pick__dado::after {
+  content: "";
+  position: absolute;
+  inset: var(--strich-w) 0 0;
+  z-index: -1;
+  background-color: var(--stage);
+  background-image: linear-gradient(180deg, var(--paint-sheen), transparent 22px);
+  transition: background-color 760ms var(--ease-out);
+  animation: paint-rise 760ms var(--ease-out) 620ms both;
+}
+.pick__dado-in {
+  width: 100%;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: calc(var(--strich-w) + var(--s-5)) var(--s-5) calc(env(safe-area-inset-bottom, 0px) + var(--s-5));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3) var(--s-6);
+  animation: fade-in 500ms var(--ease-out) 1000ms both;
+}
+.pick__say {
+  max-width: 44ch;
+  font-size: 1.125rem;
+  font-weight: 650;
+  line-height: 1.4;
+}
+.pick__burn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.pick__burn .icon {
+  flex: none;
+}
+
+/* opening: the room's paint rises from the dado until it is the whole room */
+.pick__flood {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--s-5);
+  overflow: hidden;
+  padding: var(--s-5);
+  background-color: var(--paint);
+  background-image: linear-gradient(180deg, var(--paint-sheen), transparent 30%);
+  color: var(--paint-ink);
+  animation: flood-rise 600ms cubic-bezier(0.7, 0, 0.18, 1) both;
+}
+.pick__flood::after {
+  content: "";
+  position: absolute;
+  inset: -20% -40%;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 40%, rgb(255 255 255 / 0.14) 50%, transparent 60%);
+  animation: pass-light 900ms var(--ease-out) 260ms both;
+}
+@keyframes flood-rise {
+  from {
+    clip-path: inset(calc(100% - var(--dado-h)) 0 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+.pick__flood-plate,
+.pass-curtain__plate {
+  font-family: var(--font-display);
+  font-size: min(calc(88vw / 7.4), 11rem);
+  font-weight: 820;
+  line-height: 0.86;
+  letter-spacing: 0.012em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.pick__flood-plate {
+  animation: plate-rise 760ms var(--ease-out) 180ms both;
+}
+.pick__flood-say {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  animation: fade-in 300ms var(--ease-out) 360ms both;
+}
+
+/* arriving on the pass: the same paint drains back down into the dado */
+.pass-curtain {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-content: center;
+  pointer-events: none;
+  background-color: var(--paint);
+  background-image: linear-gradient(180deg, var(--paint-sheen), transparent 30%);
+  color: var(--paint-ink);
+  animation: curtain-drain 680ms cubic-bezier(0.6, 0, 0.2, 1) 40ms both;
+}
+.pass-curtain__plate {
+  animation: curtain-plate 560ms cubic-bezier(0.5, 0, 0.75, 0) both;
+}
+@keyframes curtain-drain {
+  from {
+    clip-path: inset(0 0 0 0);
+  }
+  to {
+    clip-path: inset(100% 0 0 0);
+  }
+}
+@keyframes curtain-plate {
+  to {
+    opacity: 0;
+    transform: translateY(24vh);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pick__flood,
+  .pass-curtain {
+    display: none;
   }
 }
 
@@ -684,13 +931,33 @@
   flex: none;
 }
 
+@media (hover: none) {
+  .pick__go {
+    display: none;
+  }
+  .pick__row {
+    grid-template-columns: minmax(0, 1fr) var(--meta-w) auto;
+  }
+  .pick__list {
+    --plate: min(calc((100cqi - var(--meta-w) - 24px - 2 * var(--gap)) / 7.45), 12vh, 9.5rem);
+  }
+  .pick__tap {
+    display: block;
+    width: 24px;
+    height: 24px;
+    color: var(--ink-3);
+    transition: color 300ms var(--ease-out), transform 300ms var(--ease-out);
+  }
+  .pick__row.is-on .pick__tap {
+    color: var(--ink);
+    transform: translateX(3px);
+  }
+}
+
 /* ---------------------------------------------------------------- tablet: the two people side by side, the table below */
 @media (max-width: 1040px) {
-  .doors {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .door {
-    min-height: 272px;
+  .pick__rows {
+    --meta-w: 14rem;
   }
   .pass__codes {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -740,33 +1007,70 @@
   .home__lead {
     font-size: 1.0625rem;
   }
-  .doors {
-    grid-template-columns: 1fr;
-    gap: var(--s-3);
-    margin-top: 0;
+
+  /* the phone: every plate says what it is; a tap opens the room, the light and the paint follow the finger */
+  .pick__wall {
+    padding: var(--s-5) var(--s-4) var(--s-5);
+    gap: var(--s-4);
   }
-  .door {
-    --dado-h: 54px;
-    min-height: 0;
+  .pick__intro {
+    display: grid;
+    gap: var(--s-1);
   }
-  .door__wall {
-    gap: 6px;
-    padding: var(--s-4) var(--s-4) var(--s-3);
+  .pick__h {
+    font-size: 2rem;
   }
-  .door__plate {
-    font-size: min(1.75rem, calc((100cqi - 32px) / 7.4));
+  .pick__lead {
+    font-size: 1.0625rem;
   }
-  .door__name {
-    margin-top: 2px;
+  .pick__list {
+    --plate: min(calc((100cqi - 40px) / 7.35), 3.75rem);
   }
-  .door__burn {
-    padding-top: var(--s-1);
+  .pick__row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "plate tap"
+      "meta tap";
+    gap: 8px var(--s-3);
+    padding: 14px 0 15px;
   }
-  .door__dado {
-    padding: 0 var(--s-4);
+  .pick__plate {
+    grid-area: plate;
   }
-  .door--ghost {
-    min-height: 196px;
+  .pick__meta {
+    grid-area: meta;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px var(--s-2);
+  }
+  .pick__name {
+    font-size: 1rem;
+    gap: 7px;
+  }
+  .pick__name::after {
+    content: "·";
+    color: var(--ink-3);
+  }
+  .pick__swatch {
+    display: block;
+  }
+  .pick__icon,
+  .pick__checks,
+  .pick__go {
+    display: none;
+  }
+  .pick__roles {
+    font-size: 0.9375rem;
+  }
+  .pick__dado-in {
+    padding-inline: var(--s-4);
+  }
+  .pick__say {
+    font-size: 1rem;
+  }
+  .pick__burn {
+    font-size: 0.875rem;
   }
 
   .home--pass {

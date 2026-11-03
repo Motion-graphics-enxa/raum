@@ -1,22 +1,29 @@
 /**
  * `/start`: open a room on this box, then hand each person their code.
- * Picking a door opens the room and issues its pass (`/start?room=<id>`): one coupon per person with their join
- * code and whether their phone is in yet, the table screen's code, and the table action on the room's paint.
+ * The picker is the room itself: the rooms' plates written large on the wall, the window's light standing on the
+ * one you point at, the dado below the Begleitstrich repainted in that room's colour. Opening a room floods the
+ * screen with its paint, which drains back down as the pass (`/start?room=<id>`) is issued: one coupon per person
+ * with their join code and whether their phone is in yet, the table screen's code, and the table action.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type SVGProps } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { ApiError, api, eventsSocketUrl, listOf, type ModeConfig } from "../lib/api";
 import type { ParticipantInfo } from "../lib/events";
 import { langName, pick } from "../lib/i18n";
 import { useEventSocket } from "../lib/live";
 import { RoomStore, useRoomModel } from "../lib/store";
 import { QR } from "../components/QR";
-import { ArrowRight, Check, Key, Pair } from "../components/Icons";
+import { ArrowRight, Check, Key, Pair, ROOM_ICONS } from "../components/Icons";
 import "./screens.css";
 import "./home.css";
 
 type Role = "a" | "b";
 type Show = Role | "t";
+
+const still = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+const wait = (ms: number) => new Promise((done) => window.setTimeout(done, ms));
+/** a room's paint token; a room added as a plugin file without its own paint wears the conversation's */
+const paintOf = (id: string) => `var(--paint-${id}, var(--paint-gespraech))`;
 
 export default function Home() {
   const [qs] = useSearchParams();
@@ -26,6 +33,7 @@ export default function Home() {
   const [down, setDown] = useState(false);
   const [opening, setOpening] = useState<string | null>(null);
   const [openErr, setOpenErr] = useState<string | null>(null);
+  const [flood, setFlood] = useState<ModeConfig | null>(null);
 
   const load = useCallback(() => {
     api
@@ -39,23 +47,28 @@ export default function Home() {
   useEffect(load, [load]);
 
   const open = async (m: ModeConfig) => {
+    if (opening) return;
+    const calm = still();
     setOpening(m.id);
     setOpenErr(null);
+    // the room's paint rises from the dado while the box opens it; it never holds the room back more than a beat
+    if (!calm) setFlood(m);
     try {
-      const r = await api.createRoom(m.id);
-      navigate(`/start?room=${encodeURIComponent(r.room)}`);
+      const [r] = await Promise.all([api.createRoom(m.id), wait(calm ? 0 : 620)]);
+      navigate(`/start?room=${encodeURIComponent(r.room)}`, { state: { arrive: m.id } });
     } catch (e) {
       const why = e instanceof ApiError ? ` (error ${e.status})` : "";
       setOpenErr(`The box did not open ${m.name.de}${why}. Try again.`);
     } finally {
       setOpening(null);
+      setFlood(null);
     }
   };
 
   const mode = room && modes ? modes.find((m) => room.startsWith(`${m.prefix}-`)) : undefined;
 
   return (
-    <div className={`screen screen--home ${mode ? `room--${mode.id}` : ""}`} lang="en">
+    <div className={`screen screen--home ${mode ? `room--${mode.id}` : room ? "" : "screen--pick"}`} lang="en">
       <header className="home__bar">
         <Link to="/" className="home__mark" aria-label="RAUM home">
           <span className="home__word">RAUM</span>
@@ -94,97 +107,183 @@ export default function Home() {
           </main>
         )
       ) : (
-        <main className="home">
-          <div className="home__intro">
-            <h1 className="home__h">Open a room</h1>
-            <p className="home__lead">
-              Choose the room for this conversation. Each person then scans their own code; RAUM takes the language
-              from their phone.
-            </p>
-          </div>
-          {down ? (
-            <div className="banner banner--bad home__note" role="alert">
-              <span>The box is not answering, so no room can open. Check that RAUM is running on this box.</span>
-              <button type="button" className="banner__btn" onClick={load}>
-                Try again
-              </button>
-            </div>
-          ) : null}
-          {openErr ? (
-            <p className="banner banner--bad home__note" role="alert">
-              <span>{openErr}</span>
-            </p>
-          ) : null}
-          <ul className="doors" aria-busy={!modes && !down}>
-            {modes
-              ? modes.map((m, i) => (
-                  <li key={m.id} style={{ "--i": i } as React.CSSProperties}>
-                    <Door mode={m} busy={opening === m.id} locked={!!opening} onOpen={() => void open(m)} />
-                  </li>
-                ))
-              : down
-                ? null
-                : [0, 1, 2, 3].map((i) => (
-                    <li key={i} aria-hidden="true">
-                      <span className="door door--ghost" />
-                    </li>
-                  ))}
-          </ul>
-          {!modes && !down ? <p className="visually-hidden">Loading the rooms on this box…</p> : null}
-          {modes && modes.length === 0 ? (
-            <p className="home__lead">
-              No rooms are set up on this box yet. Each room is one file in <span className="mono">modes/</span>.
-            </p>
-          ) : null}
-        </main>
+        <Picker modes={modes} down={down} reload={load} opening={opening} openErr={openErr} onOpen={open} flood={flood} />
       )}
     </div>
   );
 }
 
-/* ------------------------------------------------------------------ the picker: one door per room */
+/* ------------------------------------------------------------------ the picker: the rooms written on the wall */
 
-function Door({ mode, busy, locked, onOpen }: { mode: ModeConfig; busy: boolean; locked: boolean; onOpen: () => void }) {
-  const burn = mode.retention?.auto_burn_minutes;
+function Picker({
+  modes,
+  down,
+  reload,
+  opening,
+  openErr,
+  onOpen,
+  flood,
+}: {
+  modes: ModeConfig[] | null;
+  down: boolean;
+  reload: () => void;
+  opening: string | null;
+  openErr: string | null;
+  onOpen: (m: ModeConfig) => void;
+  flood: ModeConfig | null;
+}) {
+  const [at, setAt] = useState(0);
+  const intent = useRef<number | undefined>(undefined);
+  const list = useRef<HTMLUListElement>(null);
+  useEffect(() => () => window.clearTimeout(intent.current), []);
+  const rooms = modes ?? [];
+  const here = rooms[Math.min(at, rooms.length - 1)];
+  const burn = here?.retention?.auto_burn_minutes;
+
+  // a pointer passing over the rows on its way somewhere does not repaint the room; one that rests does
+  const rest = (i: number) => {
+    window.clearTimeout(intent.current);
+    intent.current = window.setTimeout(() => setAt(i), 90);
+  };
+  const leave = () => window.clearTimeout(intent.current);
+  const step = (e: React.KeyboardEvent) => {
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp" && e.key !== "Home" && e.key !== "End") return;
+    const rows = Array.from(list.current?.querySelectorAll<HTMLButtonElement>(".pick__row") ?? []);
+    if (!rows.length) return;
+    e.preventDefault();
+    const now = rows.indexOf(document.activeElement as HTMLButtonElement);
+    const next =
+      e.key === "Home"
+        ? 0
+        : e.key === "End"
+          ? rows.length - 1
+          : (now + (e.key === "ArrowDown" ? 1 : -1) + rows.length) % rows.length;
+    rows[next]?.focus();
+  };
+
   return (
-    <button
-      type="button"
-      className={`door door--${mode.id} ${busy ? "is-busy" : ""}`}
-      onClick={onOpen}
-      disabled={locked}
-      aria-busy={busy}
+    <main
+      className={`pick ${flood ? "is-flooding" : ""}`}
+      style={{ "--stage": paintOf(here?.id ?? "gespraech") } as React.CSSProperties}
     >
-      <span className="door__wall">
-        <span className="door__plate" lang="de">
-          {mode.name.de}
-        </span>
-        <span className="door__name">{pick(mode.name)}</span>
-        <span className="door__roles">
-          {pick(mode.roles.a.label)}
-          <Pair className="icon door__pair" />
-          {pick(mode.roles.b.label)}
-        </span>
-        {mode.tagline ? <span className="door__checks">{pick(mode.tagline)}</span> : null}
-        {burn ? (
-          <span className="door__burn">
-            <Key className="icon" /> Burns after {burn} idle minutes
-          </span>
+      <div className="pick__wall">
+        <div className="pick__intro">
+          <h1 className="pick__h">Open a room</h1>
+          <p className="pick__lead">Choose the room for this conversation.</p>
+        </div>
+        {down ? (
+          <div className="banner banner--bad pick__note" role="alert">
+            <span>The box is not answering, so no room can open. Check that RAUM is running on this box.</span>
+            <button type="button" className="banner__btn" onClick={reload}>
+              Try again
+            </button>
+          </div>
         ) : null}
-      </span>
-      <span className="door__dado">
-        {busy ? (
-          <span className="door__go">
-            <span className="door__ring" aria-hidden="true" />
-            Opening the room…
+        {openErr ? (
+          <p className="banner banner--bad pick__note" role="alert">
+            <span>{openErr}</span>
+          </p>
+        ) : null}
+        {modes && modes.length === 0 ? (
+          <p className="pick__lead">
+            No rooms are set up on this box yet. Each room is one file in <span className="mono">modes/</span>.
+          </p>
+        ) : null}
+
+        <div
+          className="pick__rows"
+          style={{ "--n": Math.max(rooms.length, 1), "--at": Math.min(at, Math.max(rooms.length - 1, 0)) } as React.CSSProperties}
+        >
+          {modes && modes.length ? <span className="pick__sun" aria-hidden="true" /> : null}
+          <ul ref={list} className="pick__list" aria-busy={!modes && !down} aria-label="Rooms on this box" onKeyDown={step}>
+            {modes
+              ? modes.map((m, i) => {
+                  const Icon = ROOM_ICONS[m.icon] ?? ROOM_ICONS.chat;
+                  const busy = opening === m.id;
+                  return (
+                    <li key={m.id} className="pick__item" style={{ "--i": i, "--paint": paintOf(m.id) } as React.CSSProperties}>
+                      <button
+                        type="button"
+                        className={`pick__row ${i === at ? "is-on" : ""} ${busy ? "is-busy" : ""}`}
+                        onClick={() => onOpen(m)}
+                        onFocus={() => setAt(i)}
+                        onPointerEnter={() => rest(i)}
+                        onPointerLeave={leave}
+                        onPointerDown={() => setAt(i)}
+                        disabled={!!opening && !busy}
+                        aria-busy={busy}
+                      >
+                        <span className="pick__plate" lang="de">
+                          {m.name.de}
+                        </span>
+                        <span className="pick__meta">
+                          <span className="pick__name">
+                            <span className="pick__swatch" aria-hidden="true" />
+                            <Icon className="icon pick__icon" />
+                            {pick(m.name)}
+                          </span>
+                          <span className="pick__roles">
+                            {pick(m.roles.a.label)}
+                            <Pair className="icon pick__pair" />
+                            {pick(m.roles.b.label)}
+                          </span>
+                          {m.tagline ? <span className="pick__checks">{pick(m.tagline)}</span> : null}
+                        </span>
+                        <span className="pick__go">
+                            {busy ? (
+                              <>
+                                <span className="pick__ring" aria-hidden="true" />
+                                Opening…
+                              </>
+                            ) : (
+                              <>
+                                Open room
+                                <ArrowRight className="icon pick__arrow" />
+                              </>
+                            )}
+                        </span>
+                        <ArrowRight className="icon pick__tap" />
+                      </button>
+                    </li>
+                  );
+                })
+              : down
+                ? null
+                : [62, 44, 88, 48].map((w, i) => (
+                    <li key={i} className="pick__item" aria-hidden="true" style={{ "--i": i } as React.CSSProperties}>
+                      <span className="pick__ghost" style={{ "--w": `${w}%` } as React.CSSProperties} />
+                    </li>
+                  ))}
+          </ul>
+          {!modes && !down ? <p className="visually-hidden">Loading the rooms on this box…</p> : null}
+        </div>
+      </div>
+
+      <footer className="pick__dado">
+        <div className="pick__dado-in">
+          <p className="pick__say">Each person then scans their own code. RAUM takes the language from their phone.</p>
+          <p className="pick__burn">
+            <Key className="icon" />
+            {here && burn ? `${here.name.de} burns itself after ${burn} idle minutes. ` : ""}Nothing leaves this box.
+          </p>
+        </div>
+      </footer>
+
+      {flood ? (
+        <div className="pick__flood" style={{ "--paint": paintOf(flood.id) } as React.CSSProperties} aria-hidden="true">
+          <span className="pick__flood-plate" lang="de">
+            {flood.name.de}
           </span>
-        ) : (
-          <span className="door__go">
-            Open room
-            <ArrowRight className="icon door__arrow" />
+          <span className="pick__flood-say">
+            <span className="pick__ring" />
+            Opening the room
           </span>
-        )}
-      </span>
-    </button>
+        </div>
+      ) : null}
+      <p className="visually-hidden" role="status">
+        {opening ? "Opening the room…" : ""}
+      </p>
+    </main>
   );
 }
 
@@ -214,6 +313,8 @@ function Pass({ room, mode }: { room: string; mode: ModeConfig }) {
   }, [show, aIn, bIn]);
 
   const burn = mode.retention?.auto_burn_minutes;
+  // coming from the picker, the room's paint still fills the screen and drains down into the pass's dado
+  const arrive = (useLocation().state as { arrive?: string } | null)?.arrive === mode.id;
   const status =
     link !== "connected" && count === 0
       ? "Connecting to the room…"
@@ -225,6 +326,13 @@ function Pass({ room, mode }: { room: string; mode: ModeConfig }) {
 
   return (
     <main className="home home--pass">
+      {arrive ? (
+        <div className="pass-curtain" aria-hidden="true">
+          <span className="pass-curtain__plate" lang="de">
+            {mode.name.de}
+          </span>
+        </div>
+      ) : null}
       <article className="pass" aria-labelledby="pass-title">
         <header className="pass__head">
           <div className="pass__title">
