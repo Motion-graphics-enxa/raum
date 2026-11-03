@@ -1,8 +1,9 @@
 /*
- * Start page `/start`: the doors, then the room's pass.
- * A door is limewash above (its German plate, what it is for) and the room's paint below the Begleitstrich, which
- * carries "Open room". Opening a room issues its pass: one sheet with a coupon per person (their code, and whether
- * their phone is in yet), the table screen's code, and the table action on the room's paint.
+ * Start page `/start`: the index of rooms, then the room's pass.
+ * Each room is one line of the index: its German plate large on the wall, what it is for beside it. Pointing at a
+ * line draws the Begleitstrich along its foot and raises the room's paint behind it. Opening a room issues its
+ * pass: one sheet with a coupon per person (their code, and whether their phone is in yet), the table screen's
+ * code, and the table action on the room's paint.
  */
 .screen--home {
   background: var(--wall);
@@ -92,145 +93,168 @@
   min-width: 0;
 }
 
-/* ---------------------------------------------------------------- doors */
-.doors {
-  list-style: none;
-  margin: var(--s-2) 0 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--s-4);
+/* ---------------------------------------------------------------- the index of rooms */
+/*
+ * Set like the contents of a printed issue: the German plates large and ragged right on the wall, the room's
+ * English name, its two people and what it checks in a column beside them, the action at the edge. One column
+ * grid serves the intro and every line, so the lead, the meta column and the arrows hang on the same verticals.
+ */
+.home__intro--index,
+.line__layer {
+  --meta-w: 15.5rem;
+  --go-w: 7.25rem;
+  --col-gap: var(--s-6);
+  --pad-x: var(--s-5);
 }
-.doors li {
+.home__intro--index {
+  max-width: none;
   display: grid;
-  animation: turn-in 480ms var(--ease-out) both;
-  animation-delay: calc(var(--i, 0) * 70ms + 80ms);
+  grid-template-columns: minmax(0, 1fr) var(--meta-w) var(--go-w);
+  column-gap: var(--col-gap);
+  align-items: end;
+  padding-inline: var(--pad-x);
 }
-.door {
-  --paint: var(--paint-gespraech);
-  --dado-h: 72px;
+.home__intro--index .home__lead {
+  grid-column: 2 / -1;
+  max-width: 34ch;
+  padding-bottom: 0.3em;
+  font-size: 1.0625rem;
+}
+.home__intro--index .home__h {
+  text-wrap: balance;
+}
+
+.rooms {
   container-type: inline-size;
+  list-style: none;
+  margin: var(--s-3) 0 0;
+  padding: 0;
+  border-top: var(--line) solid var(--rule-strong);
+}
+.rooms li {
+  display: grid;
+  border-bottom: var(--line) solid var(--rule);
+  animation: turn-in 520ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 70ms + 60ms);
+}
+
+.line {
+  --paint: var(--paint-gespraech);
+  --rise: 560ms;
   position: relative;
   isolation: isolate;
-  overflow: hidden;
   display: grid;
-  grid-template-rows: 1fr auto;
   width: 100%;
-  min-height: clamp(316px, 40vh, 372px);
   padding: 0;
-  border: var(--line) solid var(--rule);
-  border-radius: var(--radius-lg);
-  background: var(--sheet);
-  box-shadow: var(--shadow-sheet);
+  border: 0;
+  border-radius: 0;
+  background: none;
   color: var(--ink);
   text-align: start;
-  transition: box-shadow 320ms var(--ease-out), transform 320ms var(--ease-out), opacity 200ms var(--ease-out);
+  cursor: pointer;
 }
-.door--sprechzimmer {
+.line--sprechzimmer {
   --paint: var(--paint-sprechzimmer);
 }
-.door--kanzlei {
+.line--kanzlei {
   --paint: var(--paint-kanzlei);
 }
-.door--verhandlungsraum {
+.line--verhandlungsraum {
   --paint: var(--paint-verhandlungsraum);
 }
-/* the window's light on the wall part, with the shadow of its cross */
-.door::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    linear-gradient(90deg, transparent 58%, var(--mullion) 61%, var(--mullion) 62%, transparent 65%),
-    var(--sunlight);
-  opacity: 0.5;
-  transition: opacity 420ms var(--ease-out);
-}
-.door__wall {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--s-2);
+.line__layer {
+  grid-area: 1 / 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--meta-w) var(--go-w);
+  grid-template-areas: "plate meta go";
+  column-gap: var(--col-gap);
+  align-items: center;
   min-width: 0;
-  padding: var(--s-5) 20px var(--s-4);
+  padding: var(--s-5) var(--pad-x);
 }
-.door__plate {
-  max-width: 100%;
+/* the plate: one size for all four, sized so the longest (VERHANDLUNGSRAUM, about 7.1 em) fills its column */
+.line__plate {
+  grid-area: plate;
+  min-width: 0;
   font-family: var(--font-display);
-  /* the longest name, VERHANDLUNGSRAUM, stays on one line: about 7.2 em wide */
-  font-size: min(1.875rem, calc((100cqi - 40px) / 7.4));
+  font-size: min(6rem, calc((100cqi - var(--meta-w) - var(--go-w) - 2 * var(--col-gap) - 2 * var(--pad-x)) / 7.15));
   font-weight: 800;
-  line-height: 0.9;
-  letter-spacing: 0.012em;
+  line-height: 0.84;
+  letter-spacing: 0.006em;
   text-transform: uppercase;
-  hyphens: auto;
-  -webkit-hyphens: auto;
+  white-space: nowrap;
+  padding-top: 0.06em;
 }
-.door__name {
-  margin-top: var(--s-1);
-  font-size: 1.0625rem;
-  font-weight: 680;
-  line-height: 1.3;
+.line__meta {
+  grid-area: meta;
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  min-width: 0;
 }
-.door__roles {
+.line__name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-bottom: 3px;
+  font-size: 1.3125rem;
+  font-weight: 640;
+  line-height: 1.2;
+}
+.line__mark {
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+.line__roles {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 2px 6px;
-  font-size: 0.9375rem;
-  font-weight: 620;
+  font-size: 1rem;
+  font-weight: 640;
   color: var(--ink-2);
 }
-.door__pair {
+.line__pair {
   width: 1.05em;
   height: 1.05em;
-  color: var(--ink-3);
   stroke-width: 2;
+  color: var(--ink-3);
 }
-.door__checks {
+.line__checks {
   font-size: 0.9375rem;
   line-height: 1.4;
   color: var(--ink-2);
 }
-.door__burn {
-  margin-top: auto;
-  padding-top: var(--s-3);
+.line__burn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.8125rem;
+  margin-top: 2px;
+  font-size: var(--label);
   font-weight: 650;
   color: var(--ink-3);
 }
-.door__burn .icon {
+.line__burn .icon {
   width: 1.1em;
   height: 1.1em;
 }
-/* the dado: the room's paint below the Begleitstrich carries the action */
-.door__dado {
-  display: flex;
-  align-items: center;
-  min-height: var(--dado-h);
-  padding: 0 20px;
-  background: var(--paint);
-  color: var(--paint-ink);
-  border-top: var(--strich-w) solid var(--strich);
-  box-shadow: inset 0 1px 0 var(--paint-sheen);
-  transition: min-height 420ms var(--ease-out);
-}
-.door__go {
+.line__go {
+  grid-area: go;
+  justify-self: end;
   display: inline-flex;
   align-items: center;
   gap: var(--s-2);
   font-size: 1.0625rem;
   font-weight: 720;
+  white-space: nowrap;
 }
-.door__arrow {
-  transition: transform 320ms var(--ease-out);
+.line__arrow {
+  width: 1.25em;
+  height: 1.25em;
+  transition: transform 360ms var(--ease-out);
 }
-.door__ring {
+.line__ring {
   width: 15px;
   height: 15px;
   border-radius: 50%;
@@ -238,57 +262,124 @@
   border-right-color: transparent;
   animation: spin 0.9s linear infinite;
 }
+
+/* the painted copy: identical type, white on the room's paint, revealed from the floor up */
+.line__paint {
+  z-index: 1;
+  background: var(--paint);
+  color: var(--paint-ink);
+  box-shadow: inset 0 1px 0 var(--paint-sheen);
+  clip-path: inset(100% 0 0 0);
+  transition: clip-path 380ms var(--ease-out);
+  pointer-events: none;
+}
+.line__paint .line__roles,
+.line__paint .line__pair,
+.line__paint .line__checks,
+.line__paint .line__burn {
+  color: var(--paint-ink);
+}
+.line__paint .line__checks,
+.line__paint .line__burn {
+  font-weight: 560;
+}
+/* the Begleitstrich rides on top of the paint: it draws along the foot first, then rises with it */
+.line__strich {
+  position: absolute;
+  z-index: 2;
+  inset-inline: 0;
+  top: calc(100% - var(--strich-w));
+  height: var(--strich-w);
+  background: var(--strich);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition:
+    top 380ms var(--ease-out),
+    transform 220ms var(--ease-out) 320ms;
+  pointer-events: none;
+}
+.line.is-busy .line__paint,
+.line:focus-visible .line__paint {
+  clip-path: inset(0 0 0 0);
+  transition: clip-path var(--rise) var(--ease-out) 150ms;
+}
+.line.is-busy .line__strich,
+.line:focus-visible .line__strich {
+  top: 0;
+  transform: scaleX(1);
+  transition:
+    transform 240ms var(--ease-out),
+    top var(--rise) var(--ease-out) 150ms;
+}
 @media (hover: hover) {
-  .door:hover:not(:disabled) {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-lift);
+  .line:hover:not(:disabled) .line__paint {
+    clip-path: inset(0 0 0 0);
+    transition: clip-path var(--rise) var(--ease-out) 150ms;
   }
-  .door:hover:not(:disabled)::before {
-    opacity: 1;
+  .line:hover:not(:disabled) .line__strich {
+    top: 0;
+    transform: scaleX(1);
+    transition:
+      transform 240ms var(--ease-out),
+      top var(--rise) var(--ease-out) 150ms;
   }
-  .door:hover:not(:disabled) .door__dado {
-    min-height: calc(var(--dado-h) + 12px);
-  }
-  .door:hover:not(:disabled) .door__arrow {
-    transform: translateX(4px);
+  .line:hover:not(:disabled) .line__arrow {
+    transform: translateX(6px);
   }
 }
-.door:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: var(--shadow-sheet);
+/* focus floods the line too; the ring is drawn on the paint, in white, inside the line */
+.line:focus-visible {
+  outline: none;
 }
-.door:focus-visible {
-  outline-offset: 4px;
-  border-radius: var(--radius-lg);
+.line:focus-visible .line__paint {
+  outline: 2.5px solid var(--paint-ink);
+  outline-offset: -8px;
 }
-.door:disabled {
+.line:disabled {
   cursor: default;
 }
-.door:disabled:not(.is-busy) {
-  opacity: 0.48;
+.line:disabled:not(.is-busy) {
+  opacity: 0.4;
+  transition: opacity 240ms var(--ease-out);
 }
-.door.is-busy .door__dado {
-  min-height: calc(var(--dado-h) + 12px);
+/* the colophon under the index */
+.rooms__foot {
+  margin: 0;
+  padding: var(--s-1) var(--s-5) 0;
+  font-size: var(--label);
+  font-weight: 600;
+  color: var(--ink-3);
+  animation: fade-in 400ms var(--ease-out) 420ms both;
 }
-/* while the rooms load: doors in the shade, no light, no paint yet */
-.door--ghost {
+.rooms__foot .mono {
+  color: var(--ink-2);
+}
+/* while the rooms load: the index in the shade, bars where the plates will stand, no paint yet */
+.line--ghost {
+  cursor: default;
+}
+.line--ghost .line__plate {
   display: block;
+  width: var(--w, 50%);
+  height: min(5rem, calc((100cqi - var(--meta-w) - var(--go-w) - 2 * var(--col-gap) - 2 * var(--pad-x)) / 7.15 * 0.84));
+  border-radius: var(--radius-sm);
   background: var(--shade);
-  border-style: dashed;
-  border-color: color-mix(in oklab, var(--ink-3) 30%, transparent);
-  box-shadow: none;
-  animation: door-wait 1.6s ease-in-out infinite;
+  animation: line-wait 1.6s ease-in-out infinite;
 }
-.door--ghost::before {
-  inset: auto 0 0;
-  height: var(--dado-h);
-  opacity: 1;
-  background: var(--wall-3);
-  border-top: var(--strich-w) solid color-mix(in oklab, var(--ink-3) 22%, transparent);
+.line--ghost .line__meta > span {
+  display: block;
+  height: 14px;
+  width: 70%;
+  border-radius: var(--radius-sm);
+  background: var(--shade);
+  animation: line-wait 1.6s ease-in-out infinite;
 }
-@keyframes door-wait {
+.line--ghost .line__meta > span + span {
+  width: 46%;
+}
+@keyframes line-wait {
   50% {
-    opacity: 0.62;
+    opacity: 0.55;
   }
 }
 
@@ -686,11 +777,22 @@
 
 /* ---------------------------------------------------------------- tablet: the two people side by side, the table below */
 @media (max-width: 1040px) {
-  .doors {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .home__intro--index,
+  .line__layer {
+    --meta-w: 15.5rem;
+    --go-w: 1.5rem;
+    --col-gap: var(--s-5);
   }
-  .door {
-    min-height: 272px;
+  .line__go-l {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .line__burn {
+    display: none;
   }
   .pass__codes {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -740,33 +842,57 @@
   .home__lead {
     font-size: 1.0625rem;
   }
-  .doors {
-    grid-template-columns: 1fr;
-    gap: var(--s-3);
-    margin-top: 0;
+  /* the index on a phone: the plate across the width with the arrow at its end, the meta under it */
+  .home__intro--index {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: var(--s-3);
+    padding-inline: 0;
   }
-  .door {
-    --dado-h: 54px;
-    min-height: 0;
+  .home__intro--index .home__lead {
+    grid-column: 1;
+    max-width: 40ch;
+    padding-bottom: 0;
   }
-  .door__wall {
-    gap: 6px;
-    padding: var(--s-4) var(--s-4) var(--s-3);
+  .rooms {
+    margin-top: var(--s-2);
+    margin-inline: calc(var(--s-4) * -1);
   }
-  .door__plate {
-    font-size: min(1.75rem, calc((100cqi - 32px) / 7.4));
+  .line__layer {
+    --pad-x: var(--s-4);
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "plate go"
+      "meta meta";
+    row-gap: var(--s-3);
+    column-gap: var(--s-3);
+    align-items: end;
+    padding: var(--s-5) var(--pad-x) 20px;
   }
-  .door__name {
-    margin-top: 2px;
+  .line__plate {
+    font-size: min(3.75rem, calc((100cqi - 2 * var(--pad-x) - 24px - var(--s-3)) / 7.15));
   }
-  .door__burn {
-    padding-top: var(--s-1);
+  .line__go {
+    padding-bottom: 0.1em;
   }
-  .door__dado {
-    padding: 0 var(--s-4);
+  .line__meta {
+    gap: 2px;
   }
-  .door--ghost {
-    min-height: 196px;
+  .line__name {
+    font-size: 1.125rem;
+    margin-bottom: 1px;
+  }
+  .line__roles {
+    font-size: 0.9375rem;
+  }
+  .line__checks {
+    font-size: 0.875rem;
+  }
+  .rooms__foot {
+    padding-inline: 0;
+  }
+  .line--ghost .line__plate {
+    height: calc((100cqi - 2 * var(--pad-x) - 24px - var(--s-3)) / 7.15 * 0.84);
   }
 
   .home--pass {

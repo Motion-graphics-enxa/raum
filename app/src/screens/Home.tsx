@@ -1,7 +1,9 @@
 /**
  * `/start`: open a room on this box, then hand each person their code.
- * Picking a door opens the room and issues its pass (`/start?room=<id>`): one coupon per person with their join
- * code and whether their phone is in yet, the table screen's code, and the table action on the room's paint.
+ * The rooms are set as an index: each German plate large on the wall, what it is for beside it; pointing at a
+ * line raises the room's paint behind it. Picking a line opens the room and issues its pass (`/start?room=<id>`):
+ * one coupon per person with their join code and whether their phone is in yet, the table screen's code, and the
+ * table action on the room's paint.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type SVGProps } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -12,6 +14,7 @@ import { useEventSocket } from "../lib/live";
 import { RoomStore, useRoomModel } from "../lib/store";
 import { QR } from "../components/QR";
 import { ArrowRight, Check, Key, Pair } from "../components/Icons";
+import { Hatch } from "../components/Drawing";
 import "./screens.css";
 import "./home.css";
 
@@ -95,7 +98,7 @@ export default function Home() {
         )
       ) : (
         <main className="home">
-          <div className="home__intro">
+          <div className="home__intro home__intro--index">
             <h1 className="home__h">Open a room</h1>
             <p className="home__lead">
               Choose the room for this conversation. Each person then scans their own code; RAUM takes the language
@@ -115,21 +118,34 @@ export default function Home() {
               <span>{openErr}</span>
             </p>
           ) : null}
-          <ul className="doors" aria-busy={!modes && !down}>
+          <ul className="rooms" aria-busy={!modes && !down} aria-label="Rooms on this box">
             {modes
               ? modes.map((m, i) => (
                   <li key={m.id} style={{ "--i": i } as React.CSSProperties}>
-                    <Door mode={m} busy={opening === m.id} locked={!!opening} onOpen={() => void open(m)} />
+                    <RoomLine mode={m} busy={opening === m.id} locked={!!opening} onOpen={() => void open(m)} />
                   </li>
                 ))
               : down
                 ? null
-                : [0, 1, 2, 3].map((i) => (
-                    <li key={i} aria-hidden="true">
-                      <span className="door door--ghost" />
+                : [62, 38, 88, 46].map((w, i) => (
+                    <li key={i} aria-hidden="true" style={{ "--i": i } as React.CSSProperties}>
+                      <span className="line line--ghost">
+                        <span className="line__layer">
+                          <span className="line__plate" style={{ "--w": `${w}%` } as React.CSSProperties} />
+                          <span className="line__meta">
+                            <span />
+                            <span />
+                          </span>
+                        </span>
+                      </span>
                     </li>
                   ))}
           </ul>
+          {modes && modes.length > 0 ? (
+            <p className="rooms__foot">
+              Nothing leaves this box. Each room is one file in <span className="mono">modes/</span>.
+            </p>
+          ) : null}
           {!modes && !down ? <p className="visually-hidden">Loading the rooms on this box…</p> : null}
           {modes && modes.length === 0 ? (
             <p className="home__lead">
@@ -142,48 +158,74 @@ export default function Home() {
   );
 }
 
-/* ------------------------------------------------------------------ the picker: one door per room */
+/* ------------------------------------------------------------------ the picker: the index of rooms */
 
-function Door({ mode, busy, locked, onOpen }: { mode: ModeConfig; busy: boolean; locked: boolean; onOpen: () => void }) {
+/**
+ * One line of the index. The German plate is set large on the wall; what the room is for stands in the column
+ * beside it. Pointing at a line (or focusing it, or opening it) draws the Begleitstrich along its foot, then the
+ * room's paint rises behind the line with the strich riding on top, and the capitals turn white as it passes.
+ * The painted copy is a second, identical layer clipped from below, so the type never moves.
+ */
+function RoomLine({
+  mode,
+  busy,
+  locked,
+  onOpen,
+}: {
+  mode: ModeConfig;
+  busy: boolean;
+  locked: boolean;
+  onOpen: () => void;
+}) {
   const burn = mode.retention?.auto_burn_minutes;
-  return (
-    <button
-      type="button"
-      className={`door door--${mode.id} ${busy ? "is-busy" : ""}`}
-      onClick={onOpen}
-      disabled={locked}
-      aria-busy={busy}
-    >
-      <span className="door__wall">
-        <span className="door__plate" lang="de">
-          {mode.name.de}
+  const layer = (painted: boolean) => (
+    <span className={`line__layer ${painted ? "line__paint" : "line__face"}`} aria-hidden={painted || undefined}>
+      <span className="line__plate" lang="de">
+        {mode.name.de}
+      </span>
+      <span className="line__meta">
+        <span className="line__name">
+          <Hatch mode={mode.id} size={18} className="line__mark" />
+          {pick(mode.name)}
         </span>
-        <span className="door__name">{pick(mode.name)}</span>
-        <span className="door__roles">
+        <span className="line__roles">
           {pick(mode.roles.a.label)}
-          <Pair className="icon door__pair" />
+          <Pair className="icon line__pair" />
           {pick(mode.roles.b.label)}
         </span>
-        {mode.tagline ? <span className="door__checks">{pick(mode.tagline)}</span> : null}
+        {mode.tagline ? <span className="line__checks">{pick(mode.tagline)}</span> : null}
         {burn ? (
-          <span className="door__burn">
+          <span className="line__burn">
             <Key className="icon" /> Burns after {burn} idle minutes
           </span>
         ) : null}
       </span>
-      <span className="door__dado">
+      <span className="line__go">
         {busy ? (
-          <span className="door__go">
-            <span className="door__ring" aria-hidden="true" />
-            Opening the room…
-          </span>
+          <>
+            <span className="line__ring" aria-hidden="true" />
+            <span className="line__go-l">Opening…</span>
+          </>
         ) : (
-          <span className="door__go">
-            Open room
-            <ArrowRight className="icon door__arrow" />
-          </span>
+          <>
+            <span className="line__go-l">Open room</span>
+            <ArrowRight className="icon line__arrow" />
+          </>
         )}
       </span>
+    </span>
+  );
+  return (
+    <button
+      type="button"
+      className={`line line--${mode.id} ${busy ? "is-busy" : ""}`}
+      onClick={onOpen}
+      disabled={locked}
+      aria-busy={busy}
+    >
+      {layer(false)}
+      {layer(true)}
+      <span className="line__strich" aria-hidden="true" />
     </button>
   );
 }
