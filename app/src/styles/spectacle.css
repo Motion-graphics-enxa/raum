@@ -286,19 +286,6 @@
   }
 }
 
-/* ---------------------------------------------------------------- Home: doors swing a little when you reach for them */
-.home__rooms {
-  perspective: 1400px;
-}
-.home__room {
-  transform-origin: left center;
-}
-@media (hover: hover) {
-  .home__room:hover {
-    transform: rotateY(-7deg) translateY(-3px);
-  }
-}
-
 /* ---------------------------------------------------------------- Table screen: a stage */
 .screen--table .tblock__name {
   animation: plate-in 900ms var(--ease-out) both;

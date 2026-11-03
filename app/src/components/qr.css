@@ -1,0 +1,20 @@
+/* A join code is a printed card: paper and walnut in both themes, a hairline edge, the sheet's shadow. */
+.qrcode {
+  display: block;
+  flex: none;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-lg);
+  background: #fcfcfa;
+  box-shadow: 0 0 0 1px var(--rule), var(--shadow-sheet);
+}
+.qrcode--empty {
+  display: inline-block;
+  background: var(--shade);
+  box-shadow: none;
+}
+@media print {
+  .qrcode {
+    box-shadow: 0 0 0 1px #0002;
+  }
+}

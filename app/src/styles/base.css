@@ -368,10 +368,3 @@ kbd {
   }
 }
 
-.qr {
-  display: block;
-  border: 10px solid #fff;
-  border-radius: var(--radius-sm);
-  box-shadow: 0 0 0 1px var(--rule), var(--shadow-sheet);
-  image-rendering: pixelated;
-}
