@@ -1,0 +1,881 @@
+/*
+ * Start page `/start`: the doors, then the room's pass.
+ * A door is limewash above (its German plate, what it is for) and the room's paint below the Begleitstrich, which
+ * carries "Open room". Opening a room issues its pass: one sheet with a coupon per person (their code, and whether
+ * their phone is in yet), the table screen's code, and the table action on the room's paint.
+ */
+.screen--home {
+  background: var(--wall);
+}
+
+/* ---------------------------------------------------------------- the bar on the wall */
+.home__bar {
+  width: 100%;
+  max-width: 1168px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  padding: calc(env(safe-area-inset-top, 0px) + var(--s-5)) var(--s-5) 0;
+}
+.home__mark {
+  color: var(--ink);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+}
+.home__word {
+  display: block;
+  font-size: clamp(2.25rem, 1.85rem + 1.2vw, 2.875rem);
+  padding-top: 0.06em;
+}
+.home__slogan {
+  padding-top: 0.35em;
+  font-size: 1rem;
+  font-weight: 650;
+  color: var(--ink-2);
+}
+.home__end {
+  margin-inline-start: auto;
+  gap: var(--s-2);
+  border: 0;
+  background: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--s-3);
+  border-radius: var(--radius);
+  color: var(--ink-2);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background var(--t-quick) var(--ease-out), color var(--t-quick) var(--ease-out);
+}
+@media (hover: hover) {
+  .home__end:hover {
+    background: var(--wall-2);
+    color: var(--ink);
+  }
+}
+
+.home {
+  width: 100%;
+  max-width: 1168px;
+  margin: 0 auto;
+  padding: var(--s-7) var(--s-5) var(--s-8);
+  display: grid;
+  align-content: start;
+  gap: var(--s-5);
+}
+.home__intro {
+  display: grid;
+  gap: var(--s-3);
+  max-width: 46rem;
+  animation: turn-in 420ms var(--ease-out) both;
+}
+.home__h {
+  font-size: clamp(2.125rem, 1.5rem + 2vw, 3rem);
+  font-weight: 760;
+  line-height: 1.04;
+  letter-spacing: -0.022em;
+}
+.home__lead {
+  max-width: 54ch;
+  font-size: 1.125rem;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.home__note {
+  margin: 0;
+}
+.home__note > span {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+/* ---------------------------------------------------------------- doors */
+.doors {
+  list-style: none;
+  margin: var(--s-2) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--s-4);
+}
+.doors li {
+  display: grid;
+  animation: turn-in 480ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 70ms + 80ms);
+}
+.door {
+  --paint: var(--paint-gespraech);
+  --dado-h: 72px;
+  container-type: inline-size;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  width: 100%;
+  min-height: clamp(316px, 40vh, 372px);
+  padding: 0;
+  border: var(--line) solid var(--rule);
+  border-radius: var(--radius-lg);
+  background: var(--sheet);
+  box-shadow: var(--shadow-sheet);
+  color: var(--ink);
+  text-align: start;
+  transition: box-shadow 320ms var(--ease-out), transform 320ms var(--ease-out), opacity 200ms var(--ease-out);
+}
+.door--sprechzimmer {
+  --paint: var(--paint-sprechzimmer);
+}
+.door--kanzlei {
+  --paint: var(--paint-kanzlei);
+}
+.door--verhandlungsraum {
+  --paint: var(--paint-verhandlungsraum);
+}
+/* the window's light on the wall part, with the shadow of its cross */
+.door::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent 58%, var(--mullion) 61%, var(--mullion) 62%, transparent 65%),
+    var(--sunlight);
+  opacity: 0.5;
+  transition: opacity 420ms var(--ease-out);
+}
+.door__wall {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-2);
+  min-width: 0;
+  padding: var(--s-5) 20px var(--s-4);
+}
+.door__plate {
+  max-width: 100%;
+  font-family: var(--font-display);
+  /* the longest name, VERHANDLUNGSRAUM, stays on one line: about 7.2 em wide */
+  font-size: min(1.875rem, calc((100cqi - 40px) / 7.4));
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: 0.012em;
+  text-transform: uppercase;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+}
+.door__name {
+  margin-top: var(--s-1);
+  font-size: 1.0625rem;
+  font-weight: 680;
+  line-height: 1.3;
+}
+.door__roles {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 6px;
+  font-size: 0.9375rem;
+  font-weight: 620;
+  color: var(--ink-2);
+}
+.door__pair {
+  width: 1.05em;
+  height: 1.05em;
+  color: var(--ink-3);
+  stroke-width: 2;
+}
+.door__checks {
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  color: var(--ink-2);
+}
+.door__burn {
+  margin-top: auto;
+  padding-top: var(--s-3);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  color: var(--ink-3);
+}
+.door__burn .icon {
+  width: 1.1em;
+  height: 1.1em;
+}
+/* the dado: the room's paint below the Begleitstrich carries the action */
+.door__dado {
+  display: flex;
+  align-items: center;
+  min-height: var(--dado-h);
+  padding: 0 20px;
+  background: var(--paint);
+  color: var(--paint-ink);
+  border-top: var(--strich-w) solid var(--strich);
+  box-shadow: inset 0 1px 0 var(--paint-sheen);
+  transition: min-height 420ms var(--ease-out);
+}
+.door__go {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: 1.0625rem;
+  font-weight: 720;
+}
+.door__arrow {
+  transition: transform 320ms var(--ease-out);
+}
+.door__ring {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  animation: spin 0.9s linear infinite;
+}
+@media (hover: hover) {
+  .door:hover:not(:disabled) {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lift);
+  }
+  .door:hover:not(:disabled)::before {
+    opacity: 1;
+  }
+  .door:hover:not(:disabled) .door__dado {
+    min-height: calc(var(--dado-h) + 12px);
+  }
+  .door:hover:not(:disabled) .door__arrow {
+    transform: translateX(4px);
+  }
+}
+.door:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sheet);
+}
+.door:focus-visible {
+  outline-offset: 4px;
+  border-radius: var(--radius-lg);
+}
+.door:disabled {
+  cursor: default;
+}
+.door:disabled:not(.is-busy) {
+  opacity: 0.48;
+}
+.door.is-busy .door__dado {
+  min-height: calc(var(--dado-h) + 12px);
+}
+/* while the rooms load: doors in the shade, no light, no paint yet */
+.door--ghost {
+  display: block;
+  background: var(--shade);
+  border-style: dashed;
+  border-color: color-mix(in oklab, var(--ink-3) 30%, transparent);
+  box-shadow: none;
+  animation: door-wait 1.6s ease-in-out infinite;
+}
+.door--ghost::before {
+  inset: auto 0 0;
+  height: var(--dado-h);
+  opacity: 1;
+  background: var(--wall-3);
+  border-top: var(--strich-w) solid color-mix(in oklab, var(--ink-3) 22%, transparent);
+}
+@keyframes door-wait {
+  50% {
+    opacity: 0.62;
+  }
+}
+
+/* ---------------------------------------------------------------- the pass */
+.home--pass {
+  padding-top: var(--s-4);
+  gap: var(--s-3);
+}
+.home__back-icon {
+  transform: scaleX(-1);
+}
+
+.pass {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  background: var(--sheet);
+  border: var(--line) solid var(--rule);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sheet);
+  animation: sheet-up 420ms var(--ease-out) both;
+}
+/* the resting light on the sheet, and the one band of daylight that crosses it as the room opens */
+.pass::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 25% 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--sunlight);
+  -webkit-mask-image: linear-gradient(180deg, #000 20%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 20%, transparent 100%);
+  opacity: 0.8;
+  animation: fade-in 700ms var(--ease-out) 260ms both;
+}
+.pass::after {
+  content: "";
+  position: absolute;
+  inset: -20% -40%;
+  z-index: 3;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgb(var(--sun) / 0.42) 47%,
+    rgb(255 255 255 / 0.38) 50%,
+    rgb(var(--sun) / 0.3) 53%,
+    transparent 60%
+  );
+  opacity: 0;
+  animation: pass-light var(--t-sweep) var(--ease-out) 300ms both;
+}
+@keyframes pass-light {
+  0% {
+    transform: translateX(-70%);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(70%);
+    opacity: 0;
+  }
+}
+
+.pass__head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--s-3) var(--s-5);
+  padding: var(--s-6) var(--s-6) var(--s-4);
+  border-bottom: var(--line) solid var(--rule);
+}
+.pass__plate {
+  font-family: var(--font-display);
+  font-size: clamp(2.25rem, 1.4rem + 2.4vw, 3.25rem);
+  font-weight: 820;
+  line-height: 0.86;
+  letter-spacing: 0.012em;
+  text-transform: uppercase;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  animation: pass-plate 700ms var(--ease-out) 120ms both;
+}
+@keyframes pass-plate {
+  from {
+    opacity: 0;
+    letter-spacing: 0.12em;
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 -10% 0 0);
+  }
+}
+.pass__gloss {
+  margin-top: var(--s-3);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.pass__no {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  text-align: end;
+}
+.pass__no-l {
+  font-size: var(--label);
+  font-weight: 650;
+  color: var(--ink-3);
+}
+.pass__id {
+  font-size: clamp(1.75rem, 1.25rem + 1.5vw, 2.625rem);
+  font-weight: 760;
+  line-height: 1;
+  letter-spacing: 0.035em;
+  color: var(--ink);
+}
+.pass__status {
+  grid-column: 1 / -1;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 32px;
+  padding: 0 var(--s-3);
+  border: 1.5px dashed color-mix(in oklab, var(--ink-3) 55%, transparent);
+  border-radius: var(--radius-pill);
+  background: var(--sheet);
+  color: var(--ink-2);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+.pass__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pending);
+  animation: breathe 1.4s ease-in-out infinite;
+}
+.pass__status.is-in {
+  border-style: solid;
+  border-color: color-mix(in oklab, var(--ok) 72%, transparent);
+  background: color-mix(in oklab, var(--ok) 7%, var(--sheet));
+  color: var(--ok);
+}
+.pass__status .icon,
+.coupon__state .icon {
+  width: 1.05em;
+  height: 1.05em;
+  stroke-width: 2.4;
+}
+.pass__status .icon path,
+.coupon__state .icon path {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: tick-draw 380ms var(--ease-out) 120ms forwards;
+}
+
+/* the phone shows one code at a time: Doctor | Patient | Table */
+.pass__switch {
+  display: none;
+}
+
+.pass__codes {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(232px, 0.74fr);
+}
+/* the Begleitstrich at the foot of the wall: drawn first, then the paint rises below it */
+.pass__codes::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 2;
+  height: var(--strich-w);
+  background: var(--strich);
+  transform-origin: left center;
+  animation: strich-draw 480ms var(--ease-out) 220ms both;
+}
+.coupon {
+  position: relative;
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  gap: var(--s-3);
+  min-width: 0;
+  padding: var(--s-5) var(--s-6) calc(var(--s-5) + var(--strich-w));
+}
+.coupon + .coupon {
+  border-inline-start: var(--line) solid var(--rule);
+}
+.coupon--t {
+  background: var(--sheet-2);
+}
+.coupon__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2) var(--s-3);
+  width: 100%;
+  min-height: 32px;
+}
+/* speaker plates, as on Talk: the professional's quiet, the other person's in the room's paint */
+.coupon__who {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 28px;
+  padding: 0 12px 0 10px;
+  border-radius: var(--radius-pill);
+  background: var(--you);
+  color: var(--you-ink);
+  font-size: 0.875rem;
+  font-weight: 760;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  white-space: nowrap;
+}
+.coupon__who::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px currentColor;
+}
+.coupon--b .coupon__who {
+  background: var(--them);
+  color: var(--them-ink);
+}
+.coupon--b .coupon__who::before {
+  background: currentColor;
+  box-shadow: none;
+}
+.coupon__table {
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+/* the state in words beside the plate; the coupon's foot line draws it (dashed waiting, solid green joined) */
+.coupon__state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  color: var(--ink-2);
+  font-size: 0.875rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.coupon__ring {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--pending);
+  animation: breathe 1.4s ease-in-out infinite;
+}
+.coupon.is-in .coupon__state {
+  color: var(--ok);
+}
+.coupon--a::after,
+.coupon--b::after {
+  content: "";
+  position: absolute;
+  inset: auto var(--s-6) calc(var(--s-3) + var(--strich-w));
+  height: 3px;
+  background: repeating-linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--ink-3) 70%, transparent) 0 8px,
+    transparent 8px 14px
+  );
+  transform-origin: left center;
+}
+.coupon.is-in::after {
+  background: var(--ok);
+  animation: strich-draw 480ms var(--ease-out) both;
+}
+.coupon .qrcode {
+  width: min(100%, 236px);
+  margin-block: var(--s-1);
+}
+.coupon--t .qrcode {
+  width: min(100%, 168px);
+}
+/* the code prints in as the room opens */
+.pass .qrcode {
+  animation: qr-print 640ms var(--ease-out) 200ms backwards;
+}
+.coupon--b .qrcode {
+  animation-delay: 300ms;
+}
+.coupon--t .qrcode {
+  animation-delay: 400ms;
+}
+@keyframes qr-print {
+  from {
+    clip-path: inset(0 0 100% 0 round 6px);
+  }
+  to {
+    clip-path: inset(0 0 0 0 round 6px);
+  }
+}
+.coupon__say {
+  max-width: 30ch;
+  font-size: 1.0625rem;
+  font-weight: 640;
+  line-height: 1.35;
+}
+.coupon--t .coupon__say {
+  max-width: 34ch;
+  font-size: 0.9375rem;
+  font-weight: 520;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+.coupon__acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px var(--s-1);
+  margin-inline-start: calc(var(--s-3) * -1);
+}
+.coupon__act {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 var(--s-3);
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--link);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background var(--t-quick) var(--ease-out);
+}
+.coupon__act .icon {
+  width: 1.1em;
+  height: 1.1em;
+}
+.coupon__act.is-done {
+  color: var(--ok);
+}
+@media (hover: hover) {
+  .coupon__act:hover {
+    background: var(--wall-2);
+  }
+}
+.coupon__url {
+  max-width: 100%;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+/* the dado of the pass: the room's paint, the table action on it */
+.pass__dado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3) var(--s-5);
+  padding: var(--s-5) var(--s-6);
+  background: var(--paint);
+  color: var(--paint-ink);
+  box-shadow: inset 0 1px 0 var(--paint-sheen);
+  animation: paint-rise 560ms var(--ease-out) 560ms both;
+}
+.pass__dado > * {
+  animation: fade-in 360ms var(--ease-out) 980ms both;
+}
+.pass__dado :focus-visible {
+  outline-color: #fff;
+}
+.pass__table {
+  text-decoration: none;
+}
+.pass__burn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.pass__burn .icon {
+  flex: none;
+}
+
+/* ---------------------------------------------------------------- tablet: the two people side by side, the table below */
+@media (max-width: 1040px) {
+  .doors {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .door {
+    min-height: 272px;
+  }
+  .pass__codes {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .coupon--t {
+    grid-column: 1 / -1;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "qr head"
+      "qr say"
+      "qr acts"
+      "qr url";
+    column-gap: var(--s-5);
+    border-inline-start: 0;
+    border-top: var(--line) solid var(--rule);
+  }
+  .coupon--t .coupon__head {
+    grid-area: head;
+  }
+  .coupon--t .qrcode {
+    grid-area: qr;
+    width: 152px;
+  }
+  .coupon--t .coupon__say {
+    grid-area: say;
+  }
+  .coupon--t .coupon__acts {
+    grid-area: acts;
+  }
+  .coupon--t .coupon__url {
+    grid-area: url;
+  }
+}
+
+/* ---------------------------------------------------------------- phone */
+@media (max-width: 640px) {
+  .home__bar {
+    padding: calc(env(safe-area-inset-top, 0px) + var(--s-4)) var(--s-4) 0;
+  }
+  .home__slogan {
+    display: none;
+  }
+  .home {
+    padding: var(--s-5) var(--s-4) var(--s-7);
+    gap: var(--s-4);
+  }
+  .home__lead {
+    font-size: 1.0625rem;
+  }
+  .doors {
+    grid-template-columns: 1fr;
+    gap: var(--s-3);
+    margin-top: 0;
+  }
+  .door {
+    --dado-h: 54px;
+    min-height: 0;
+  }
+  .door__wall {
+    gap: 6px;
+    padding: var(--s-4) var(--s-4) var(--s-3);
+  }
+  .door__plate {
+    font-size: min(1.75rem, calc((100cqi - 32px) / 7.4));
+  }
+  .door__name {
+    margin-top: 2px;
+  }
+  .door__burn {
+    padding-top: var(--s-1);
+  }
+  .door__dado {
+    padding: 0 var(--s-4);
+  }
+  .door--ghost {
+    min-height: 196px;
+  }
+
+  .home--pass {
+    padding-top: var(--s-2);
+    gap: var(--s-2);
+  }
+  .pass__head {
+    padding: var(--s-5) var(--s-4) var(--s-4);
+    gap: var(--s-3) var(--s-4);
+  }
+  .pass__plate {
+    font-size: clamp(1.875rem, 1.2rem + 3vw, 2.375rem);
+  }
+  .pass__gloss {
+    margin-top: var(--s-2);
+    font-size: 0.9375rem;
+  }
+  .pass__id {
+    font-size: 1.5rem;
+  }
+  .pass__switch {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    margin: var(--s-4) var(--s-4) 0;
+    padding: 4px;
+    border-radius: var(--radius);
+    background: var(--wall-2);
+  }
+  .pass__switch button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 0;
+    min-height: 44px;
+    padding: 0 var(--s-2);
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--ink-2);
+    font-size: 0.9375rem;
+    font-weight: 700;
+    transition: background var(--t-quick) var(--ease-out), color var(--t-quick) var(--ease-out);
+  }
+  .pass__switch button[aria-pressed="true"] {
+    background: var(--sheet);
+    color: var(--ink);
+    box-shadow: 0 0 0 1px var(--rule-strong), var(--shadow-sheet);
+  }
+  .pass__tag,
+  .coupon--a .coupon__who,
+  .coupon--b .coupon__who {
+    display: none;
+  }
+  .coupon__head {
+    justify-content: center;
+  }
+  .pass__switch .icon {
+    width: 1.05em;
+    height: 1.05em;
+    stroke-width: 2.4;
+    color: var(--ok);
+  }
+  .pass__codes,
+  .coupon--t {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pass__codes[data-show="a"] > :not([data-k="a"]),
+  .pass__codes[data-show="b"] > :not([data-k="b"]),
+  .pass__codes[data-show="t"] > :not([data-k="t"]) {
+    display: none;
+  }
+  .coupon,
+  .coupon--t {
+    grid-template-areas: none;
+    justify-items: center;
+    padding: var(--s-4) var(--s-4) calc(var(--s-5) + var(--strich-w));
+    text-align: center;
+    border: 0;
+  }
+  .coupon + .coupon {
+    border: 0;
+  }
+  .coupon--a::after,
+  .coupon--b::after {
+    inset-inline: var(--s-4);
+  }
+  .coupon--t .coupon__head,
+  .coupon--t .qrcode,
+  .coupon--t .coupon__say,
+  .coupon--t .coupon__acts,
+  .coupon--t .coupon__url {
+    grid-area: auto;
+  }
+  .coupon .qrcode {
+    width: min(100%, 288px);
+  }
+  .coupon--t .qrcode {
+    width: min(100%, 208px);
+  }
+  .coupon__acts {
+    justify-content: center;
+    margin-inline-start: 0;
+  }
+  .pass__dado {
+    padding: var(--s-4);
+  }
+  .pass__table {
+    width: 100%;
+  }
+}

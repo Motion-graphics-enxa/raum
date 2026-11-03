@@ -477,29 +477,26 @@ function Latency({ lat }: { lat?: RoomLatency }) {
   );
 }
 
+/** A room's three codes: each person's join code (room + role; Join takes the language from the phone) and the table's. */
 export function RoomCodes({ room, base, mode }: { room: string; base: string; mode?: ModeConfig }) {
+  const items = [
+    { k: "a", label: mode ? pick(mode.roles.a.label, UI) : "Role a", path: `/j/${room}?role=a` },
+    { k: "b", label: mode ? pick(mode.roles.b.label, UI) : "Role b", path: `/j/${room}?role=b` },
+    { k: "t", label: "Table screen", path: `/t/${room}` },
+  ];
   return (
-    <div className="codes">
-      {(["a", "b"] as const).map((r) => (
-        <figure key={r} className="codes__item">
-          <QR value={`${base}/j/${room}?role=${r}`} size={160} label={r} />
+    <div className={`codes ${mode ? `room--${mode.id}` : ""}`}>
+      {items.map((it) => (
+        <figure key={it.k} className={`codes__item codes__item--${it.k}`}>
+          <QR value={`${base}${it.path}`} size={144} label={`Code for the ${it.label}`} mark={mode?.id} />
           <figcaption>
-            <span className="codes__role">{mode ? pick(mode.roles[r].label, UI) : r}</span>
-            <a className="mono codes__url" href={`/j/${room}?role=${r}`} target="_blank" rel="noreferrer">
-              /j/{room}?role={r}
+            <span className="codes__role">{it.label}</span>
+            <a className="mono codes__url" href={it.path} target="_blank" rel="noreferrer">
+              {it.path}
             </a>
           </figcaption>
         </figure>
       ))}
-      <figure className="codes__item">
-        <QR value={`${base}/t/${room}`} size={160} label="table" />
-        <figcaption>
-          <span className="codes__role">Table</span>
-          <a className="mono codes__url" href={`/t/${room}`} target="_blank" rel="noreferrer">
-            /t/{room}
-          </a>
-        </figcaption>
-      </figure>
     </div>
   );
 }

@@ -9,7 +9,7 @@ import { RoomStore, checkState, percentile, useRoomModel, type Turn } from "../l
 import { shownTranslation } from "../lib/draft";
 import { DraftText } from "../components/DraftText";
 import { FactDims, Hatch, VerifyMark } from "../components/Drawing";
-import { Pair } from "../components/Icons";
+import { Check, Pair } from "../components/Icons";
 import { Timeline, firstWordsMs, pathLabel } from "../components/Sheet";
 import { OfferTimeline } from "../components/Offers";
 import { QR } from "../components/QR";
@@ -96,15 +96,29 @@ export default function Table() {
               <div className="tjoin">
                 <p className="tjoin__lead">Scan with a phone to join the room.</p>
                 <div className="tjoin__codes">
-                  {(["a", "b"] as const).map((r) => (
-                    <figure key={r} className="tjoin__code">
-                      <QR value={`${base}?role=${r}`} size={188} label={label(r)} />
-                      <figcaption>
-                        <span className="tjoin__role">{label(r)}</span>
-                        <span className="mono tjoin__url">/j/{room}?role={r}</span>
-                      </figcaption>
-                    </figure>
-                  ))}
+                  {(["a", "b"] as const).map((r) => {
+                    const who = people.find((p) => p.role === r);
+                    return (
+                      <figure key={r} className={`tjoin__code tjoin__code--${r} ${who ? "is-in" : ""}`}>
+                        <QR value={`${base}?role=${r}`} size={240} label={`Join code for the ${label(r)}`} mark={mode?.id} />
+                        <figcaption>
+                          <span className="tjoin__role">{label(r)}</span>
+                          <span className="tjoin__state">
+                            {who ? (
+                              <>
+                                <Check className="icon" /> Joined · {langName(who.lang, UI)}
+                              </>
+                            ) : (
+                              "Waiting for their phone"
+                            )}
+                          </span>
+                          <span className="mono tjoin__url">
+                            {r === "b" ? `${location.host}/${room}` : `${location.host}/j/${room}?role=a`}
+                          </span>
+                        </figcaption>
+                      </figure>
+                    );
+                  })}
                 </div>
               </div>
             ) : (

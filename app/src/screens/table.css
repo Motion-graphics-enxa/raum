@@ -215,10 +215,11 @@
 }
 
 /* empty: the two QR codes, one each side of the line */
+/* before anyone speaks: each person's code in their half of the sheet, mirrored across the centre line */
 .tjoin {
   display: grid;
-  gap: var(--s-5);
-  padding: clamp(24px, 4vw, 64px) 0;
+  gap: clamp(20px, 3vh, 40px);
+  padding: clamp(24px, 4vh, 56px) 0;
 }
 .tjoin__lead {
   font-family: var(--font-display);
@@ -237,23 +238,88 @@
 .tjoin__code {
   margin: 0;
   display: grid;
-  gap: var(--s-3);
+  gap: var(--s-4);
   justify-items: start;
+  align-content: start;
 }
 .tjoin__code:last-child {
   justify-items: end;
   text-align: end;
 }
+.tjoin__code .qrcode {
+  width: clamp(200px, 16vw, 300px);
+}
 .tjoin__code figcaption {
   display: grid;
+  justify-items: inherit;
+  gap: var(--s-2);
 }
+/* speaker plates at table size: the professional's quiet, the other person's in the room's paint */
 .tjoin__role {
-  font-weight: 750;
-  font-size: 1.15em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  min-height: 1.75em;
+  padding: 0 0.7em 0 0.6em;
+  border-radius: var(--radius-pill);
+  background: var(--you);
+  color: var(--you-ink);
+  font-size: 1.05em;
+  font-weight: 760;
+  white-space: nowrap;
+}
+.tjoin__role::before {
+  content: "";
+  width: 0.42em;
+  height: 0.42em;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px currentColor;
+}
+.tjoin__code--b .tjoin__role {
+  background: var(--them);
+  color: var(--them-ink);
+}
+.tjoin__code--b .tjoin__role::before {
+  background: currentColor;
+  box-shadow: none;
+}
+.tjoin__state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  font-size: max(18px, 1em);
+  font-weight: 650;
+  color: var(--ink-3);
+}
+.tjoin__code.is-in .tjoin__state {
+  color: var(--ok);
+  font-weight: 720;
+}
+.tjoin__state .icon {
+  stroke-width: 2.4;
 }
 .tjoin__url {
   font-size: 0.75em;
   color: var(--ink-3);
+}
+/* each code's foot line: dashed while waiting for the phone, solid green once it is in */
+.tjoin__code::after {
+  content: "";
+  width: clamp(200px, 16vw, 300px);
+  height: 3px;
+  background: repeating-linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--ink-3) 70%, transparent) 0 8px,
+    transparent 8px 14px
+  );
+  transform-origin: left center;
+}
+.tjoin__code:last-child::after {
+  transform-origin: right center;
+}
+.tjoin__code.is-in::after {
+  background: var(--ok);
+  animation: strich-draw 480ms var(--ease-out) both;
 }
 
 /* ---------------------------------------------------------------- glass box: one hairline module grid */
