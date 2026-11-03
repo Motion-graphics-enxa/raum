@@ -35,6 +35,8 @@ import { TurnView } from "../components/Turn";
 import { RoomPlan } from "../components/Plan";
 import { Ledger, Pause, Person, Play, Repeat, Stop } from "../components/Icons";
 import { OfferStrip } from "../components/Offers";
+import { OriginalVoiceControl } from "../components/OriginalVoice";
+import { useOriginalVoice } from "../lib/originalVoice";
 import "./screens.css";
 
 /** Push-to-talk ("hold", the default) or hands-free (today's open mic + the box's VAD), per device. */
@@ -106,6 +108,9 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
   const ticked = useRef<Set<string>>(new Set());
 
   const participants = Object.values(m.participants).filter((p) => p.role === "a" || p.role === "b");
+  // on a call, the other person's own voice under the translation, ducked while it speaks (originalVoice.ts)
+  const ov = useOriginalVoice(live.room, join.identity, participants.map((p) => p.path), !!m.voicePlaying[myLang],
+    (on) => void api.participant(room, join.identity, { original_voice: on }).catch(() => undefined));
   const otherRole = myRole === "a" ? "b" : "a";
   // The participants' real languages (then what the turns show); the mode's default only as a last resort.
   const otherLang = otherLangOf(
@@ -558,6 +563,9 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
             <section className="menu__sec">
               <span className="label">{t(myLang, "join.audio_out")}</span>
               <AudioOutPicker value={audioOut} onChange={(v) => void changeAudioOut(v)} uiLang={myLang} />
+            </section>
+            <section className="menu__sec">
+              <OriginalVoiceControl ov={ov} uiLang={myLang} />
             </section>
             {voiceClone ? (
               <section className="menu__sec">

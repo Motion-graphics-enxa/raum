@@ -156,7 +156,8 @@ export function VerifyMark({
         {state === "green" ? <Check /> : state === "red" ? <RevisionMark /> : <span className="vmark__ring" />}
       </span>
       <span className="vmark__text">{label}</span>
-      {ms != null && state !== "translating" ? <span className="vmark__ms mono">{fmtMs(ms)}</span> : null}
+      {/* live mode: the first words can come before the speaker stops (ms < 0): no time to show then */}
+      {ms != null && ms >= 0 && state !== "translating" ? <span className="vmark__ms mono">{fmtMs(ms)}</span> : null}
     </>
   );
   return onClick ? (

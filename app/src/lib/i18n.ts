@@ -67,6 +67,8 @@ const en: Dict = {
   "join.open_app": "Open in the RAUM app (if installed)",
   "join.joining": "Joining…",
   "join.error": "Could not join this room.",
+  "join.error_scan": "Scan the room's code again, or ask for a new one.",
+  "join.error_retry": "Try again. If it keeps failing, ask for a new code.",
   "join.mic_note": "The microphone is used only while you are in the room.",
   "talk.listening": "Listening",
   "talk.mic_off": "Microphone off",

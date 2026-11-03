@@ -170,7 +170,9 @@ export function createOriginalVoice(room: RoomLike, me: string, deps: OriginalVo
   const raf = deps.raf ?? ((fn: (t: number) => void) => requestAnimationFrame(fn));
   const now = deps.now ?? (() => performance.now());
   let state: OriginalVoiceState = { enabled: false, volume: ORIGINAL_VOLUME, ducked: false };
-  const tracks = new Map<string, { track: RemoteAudioTrack; level: number; ramp: number }>();
+  // our own handle on each element: LiveKit detaches the track itself on unsubscribe, so track.detach() then
+  // returns nothing and the element would stay in the page
+  const tracks = new Map<string, { track: RemoteAudioTrack; el: HTMLMediaElement; level: number; ramp: number }>();
   let ctx: AudioContext | null = null;
   let disposed = false;
 
@@ -225,12 +227,19 @@ export function createOriginalVoice(room: RoomLike, me: string, deps: OriginalVo
     el.dataset.raumOriginal = "1";
     doc?.body.appendChild(el);
     const key = pub.trackSid ?? track.sid ?? `${p.identity}`;
-    tracks.set(key, { track: audio, level: target(), ramp: 0 });
+    drop(key); // a resubscribe of the same track: one element only
+    tracks.set(key, { track: audio, el, level: target(), ramp: 0 });
     audio.setVolume(target());
   };
+  const drop = (key: string) => {
+    const t = tracks.get(key);
+    if (!t) return;
+    tracks.delete(key);
+    t.track.detach(t.el);
+    t.el.remove();
+  };
   const onUnsubscribed = (track: RemoteTrack, pub: RemoteTrackPublication) => {
-    const key = pub.trackSid ?? track.sid ?? "";
-    if (tracks.delete(key)) track.detach().forEach((el) => el.remove());
+    drop(pub.trackSid ?? track.sid ?? "");
   };
   const onBack = () => {
     if (state.enabled) subscribeAll(true);
@@ -243,6 +252,8 @@ export function createOriginalVoice(room: RoomLike, me: string, deps: OriginalVo
   room.on("trackPublished" as never, onPublished as never);
   room.on("trackSubscribed" as never, onSubscribed as never);
   room.on("trackUnsubscribed" as never, onUnsubscribed as never);
+  // tracks already published when this phone connects come with the connect, not as trackPublished events
+  room.on("connected" as never, onBack as never);
   room.on("reconnected" as never, onBack as never);
   doc?.addEventListener("pointerdown", resume, { passive: true });
 
@@ -250,7 +261,10 @@ export function createOriginalVoice(room: RoomLike, me: string, deps: OriginalVo
     set: (next) => {
       const was = state;
       state = { enabled: next.enabled, volume: clamp01(next.volume), ducked: next.ducked };
-      if (next.enabled !== was.enabled) subscribeAll(next.enabled);
+      if (next.enabled !== was.enabled) {
+        if (!next.enabled) [...tracks.keys()].forEach(drop); // silent at once, not when the server confirms
+        subscribeAll(next.enabled);
+      }
       if (state.volume !== was.volume || state.ducked !== was.ducked) [...tracks.keys()].forEach(apply);
     },
     playing: () => tracks.size,
@@ -259,10 +273,10 @@ export function createOriginalVoice(room: RoomLike, me: string, deps: OriginalVo
       room.off("trackPublished" as never, onPublished as never);
       room.off("trackSubscribed" as never, onSubscribed as never);
       room.off("trackUnsubscribed" as never, onUnsubscribed as never);
+      room.off("connected" as never, onBack as never);
       room.off("reconnected" as never, onBack as never);
       doc?.removeEventListener("pointerdown", resume);
-      tracks.forEach(({ track }) => track.detach().forEach((el) => el.remove()));
-      tracks.clear();
+      [...tracks.keys()].forEach(drop);
       if (state.enabled) subscribeAll(false);
       void ctx?.close().catch(() => undefined);
       ctx = null;

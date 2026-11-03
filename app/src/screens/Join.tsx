@@ -140,7 +140,9 @@ export default function Join() {
       saveJoin(j);
       nav(`/r/${room}`);
     } catch (e) {
-      setError(e instanceof ApiError ? `${t(lang, "join.error")} (${e.status})` : t(lang, "join.error"));
+      // what went wrong, then what to do: the status stays for whoever helps
+      const what = e instanceof ApiError ? `${t(lang, "join.error")} (${e.status})` : t(lang, "join.error");
+      setError(`${what} ${t(lang, "join.error_retry")}`);
       setBusy(false);
     }
   };
@@ -182,7 +184,7 @@ export default function Join() {
         {loadFailed ? (
           // the plate above already shows the room id: the banner says what went wrong, once
           <p className="banner banner--bad join__banner" role="alert">
-            {t(lang, "join.error")}
+            {t(lang, "join.error")} {t(lang, "join.error_scan")}
           </p>
         ) : null}
 

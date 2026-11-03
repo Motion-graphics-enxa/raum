@@ -95,7 +95,7 @@ function rig(opts: { webAudio?: boolean } = {}) {
         attached.push(el);
         return el;
       },
-      detach: () => attached.filter((e) => !e.removed),
+      detach: () => [] as unknown[], // as LiveKit after its own unsubscribe: the module must remove its element itself
     };
     return t;
   };
@@ -132,9 +132,10 @@ test("subscribes to the other person's mic only while on, plays it at the slider
   assert.equal(t.volumes.at(-1), 0.35);
   r.ov.set({ enabled: false, volume: 0.35, ducked: false });
   assert.equal(r.subscribed.get("TR_d"), false);
-  r.emit("trackUnsubscribed", t, r.pubs.TR_d);
-  assert.equal(r.ov.playing(), 0);
+  assert.equal(r.ov.playing(), 0); // silent at once, before the server confirms
   assert.ok(r.attached.every((e) => e.removed));
+  r.emit("trackUnsubscribed", t, r.pubs.TR_d); // the confirmation later: nothing left to do
+  assert.equal(r.ov.playing(), 0);
 });
 
 test("ducks to 0.08 under the translation in a short ramp, and comes back", () => {
@@ -182,6 +183,18 @@ test("iOS path: Web Audio gain set before attach (the element itself stays muted
   } finally {
     g.AudioContext = saved;
   }
+});
+
+test("made before LiveKit connected: the tracks that come with the connect are subscribed then", () => {
+  const r = rig();
+  const people = r.room.remoteParticipants;
+  const saved = [...people.entries()];
+  people.clear(); // the hook runs on an early render: the room exists but has not connected yet
+  r.ov.set({ enabled: true, volume: 0.35, ducked: false });
+  assert.equal(r.subscribed.size, 0);
+  saved.forEach(([k, v]) => people.set(k, v)); // connect: the doctor's mic is already published
+  r.emit("connected");
+  assert.equal(r.subscribed.get("TR_d"), true);
 });
 
 test("a late publication and a reconnect are picked up; a stray subscription while off is dropped", () => {
