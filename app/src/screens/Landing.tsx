@@ -1,7 +1,8 @@
 /** `/`: the RAUM website. It opens on a reel of three rooms; in each, one sentence is heard, translated, checked and forgotten. */
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Check, Handshake, Pause, Play, Scale, Stethoscope } from "../components/Icons";
+import { useWaitlist } from "../site/waitlistContext";
 import "./landing.css";
 
 type Lang = "en" | "ru";
@@ -129,10 +130,9 @@ export default function Landing() {
           <a href="#privacy">Privacy</a>
         </nav>
         <LangSwitch lang={lang} onChange={setLang} className="lswitch--nav" />
-        <Link className="btn lnav__cta" to="/start">
+        <StartCta className="btn lnav__cta" arrow>
           Open a room
-          <ArrowRight />
-        </Link>
+        </StartCta>
       </header>
 
       <main id="top">
@@ -220,21 +220,52 @@ export default function Landing() {
             Translates. Checks. Forgets.
           </h2>
           <p className="lclose__p">Scan the room's QR code, choose your language, and talk. No account, no app, no cloud.</p>
-          <Link className="btn btn--lg lclose__cta" to="/start">
-            Open a room
-          </Link>
+          <StartCta className="btn btn--lg lclose__cta">Open a room</StartCta>
         </section>
       </main>
 
       <footer className="lfoot">
         <span className="lfoot__word">RAUM</span>
         <span>A private AI interpreter that lives in the room. Macromedia Berlin Hackathon 2026.</span>
-        <span className="lfoot__links">
-          <Link to="/start">Rooms</Link>
-          <Link to="/admin">Admin</Link>
-        </span>
+        <FootLinks />
       </footer>
     </div>
+  );
+}
+
+/** Opens a room: /start in the app. On the public website, where there is no box, it opens the waitlist. */
+function StartCta({ className, arrow = false, children }: { className: string; arrow?: boolean; children: ReactNode }) {
+  const waitlist = useWaitlist();
+  if (waitlist)
+    return (
+      <button type="button" className={className} aria-haspopup="dialog" onClick={waitlist}>
+        <span>Join the waitlist</span>
+        {arrow ? <ArrowRight /> : null}
+      </button>
+    );
+  return (
+    <Link className={className} to="/start">
+      {children}
+      {arrow ? <ArrowRight /> : null}
+    </Link>
+  );
+}
+
+function FootLinks() {
+  const waitlist = useWaitlist();
+  return (
+    <span className="lfoot__links">
+      {waitlist ? (
+        <button type="button" aria-haspopup="dialog" onClick={waitlist}>
+          Join the waitlist
+        </button>
+      ) : (
+        <>
+          <Link to="/start">Rooms</Link>
+          <Link to="/admin">Admin</Link>
+        </>
+      )}
+    </span>
   );
 }
 
@@ -495,12 +526,11 @@ function Reel({ lang, onLang }: { lang: Lang; onLang: (l: Lang) => void }) {
             ))}
           </ol>
           <div className="reel__go">
-            <Link className="btn reel__cta" to="/start">
+            <StartCta className="btn reel__cta" arrow>
               <span>
                 Open the <span lang="de">{room.plate}</span>
               </span>
-              <ArrowRight />
-            </Link>
+            </StartCta>
             <span className="reel__go-row">
               <a className="reel__more" href={`#room-${room.id}`}>
                 How it works in this room

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:site": "vite build --mode site",
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "node --test tests/*.test.ts"
@@ -15,6 +16,7 @@
     "@fontsource-variable/sofia-sans": "^5.3.0",
     "@fontsource-variable/sofia-sans-extra-condensed": "^5.3.0",
     "@fontsource-variable/sofia-sans-semi-condensed": "^5.3.0",
+    "@vercel/blob": "^2.8.2",
     "livekit-client": "^2.23.0",
     "qrcode": "^1.5.4",
     "react": "^19.3.1",

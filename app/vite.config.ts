@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import basicSsl from "@vitejs/plugin-basic-ssl";
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 // RAUM dev server.
 //  - /api (+ WebSocket /api/events) -> raum-core :8000
@@ -36,7 +37,15 @@ const proxy = {
   "/rtc": { target: livekit, changeOrigin: true, ws: true, configure: logResets },
 };
 
-export default defineConfig({
+// `vite build --mode site` builds the public website instead: only the landing page, from site/index.html into
+// dist-site/, which Vercel serves (vercel.json, api/waitlist.ts). The app build above is unchanged.
+const site = {
+  root: fileURLToPath(new URL("./site", import.meta.url)),
+  publicDir: fileURLToPath(new URL("./public", import.meta.url)),
+  build: { outDir: fileURLToPath(new URL("./dist-site", import.meta.url)), emptyOutDir: true },
+};
+
+export default defineConfig(({ mode }) => ({
   plugins: [react(), ...(https ? [basicSsl()] : [])],
   build: { chunkSizeWarningLimit: 900 }, // livekit-client is one large chunk
   server: {
@@ -53,4 +62,5 @@ export default defineConfig({
     port: 4173,
     proxy,
   },
-});
+  ...(mode === "site" ? site : {}),
+}));
