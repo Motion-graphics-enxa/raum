@@ -1,6 +1,6 @@
 # RAUM build status
 
-_Read by the ops session. Updated at every milestone. Last update: Tue 3 Nov, late morning (main: pass-through voice, Piper temp dirs cleaned; Altbau Daylight UI follow-ups next)._
+_Read by the ops session. Updated at every milestone. Last update: Tue 3 Nov, midday (main: pass-through voice, Piper temp dirs cleaned, Altbau Daylight follow-ups + finish review fixes)._
 
 ## What works (on `main`)
 - **Live on the GX10 (ops):** real engines (whisper.cpp large-v3-turbo, gemma4:26b, gpt-oss:120b, bge-m3, Piper binary), fact guard, encrypted sessions + audit chain. Measured warm: vad 320 / asr 249 / first words 677 / sentence 888 / voice 1399 / check 1425 ms.
@@ -30,6 +30,7 @@ _Read by the ops session. Updated at every milestone. Last update: Tue 3 Nov, la
 - **Altbau Daylight UI (5aed352, user's choice; glass is retired):** redesign, website front page, spectacle motion; demo in Russian (80750af).
 - **Box, Tue morning (main 80750af):** long-de1 -> en on speaker: first voice 6.8 s after speech start, draft text at 1.5 s, 7 silences / 1.58 s (longest 520 ms); draft text costs no voice time (stays on).
 - **Pass-through voice:** a speaker who switched language (device language, else their last turn's) says a whole utterance in a listener's language: that listener gets it as said, voiced, no MT, no slot (`translation.final` `passthrough: true`, verify green 1.0, no gpt-oss); a same-language room unchanged (nothing to voice).
+- **Altbau Daylight follow-ups + finish review (impeccable, verdict "ship after the listed fixes", all 8 made):** summary headings in the reader's language (core adds English to every heading); phone header: link pill keeps only its mark while the banner names a dropped link, room id never cut; dado labels on one line; Talk keeps the hero's top in view, one banner at a time on phones; Join: AI disclosure on the dado above the button; dark wall sun 0.10/0.04 (ink-3 was 2:1); speaker plate in the room's paint; summary never one language twice, take-home QR `?lang=`; Table chips on their language's side, 22 px floor for trust signals; summary head walnut line above the paint. Record: `.impeccable/surfaces/app-src-screens-talk-tsx.md` (Finish review), DESIGN.md.
 - **Piper temp dirs:** each room job (LiveKit forkserver child, ends with `os._exit`, no atexit) left a `raum-piper-*` dir in /dev/shm. Now `raum-piper-<pid>-*`, closed by a multiprocessing exit finalizer, and a new resident sweeps dirs of dead pids (and pid-less ones untouched 10 min).
 - **Live speed, real phones (user's gs rooms, after aa06db2, GPU free), p50:** end of turn 0.69-0.81 s, first words 0.70-0.88 s, **voice 0.82-1.03 s**.
 - **Confirm UX (5aa0985, b7a1061):** green = quiet "noted" chips on the professional's card (`flag kind:"noted"`), nobody asked; uncertain (guard mismatch, checker amber/red from the meaning check, asr_conf < `asr_confirm_conf` 0.6, box data; mode `pipeline.asr_confirm_conf` per room) = one spoken read-back in the standard voice ("Nur zur Sicherheit: ...?") + small Ja/Nein on the card, a spoken yes/no in the next short utterance answers (`confirm via:"voice"`); unanswered stays "unconfirmed", never asked twice; summary lists noted/unconfirmed/confirmed/rejected. A checker that is only warming up/failed/off asks nothing.
@@ -55,7 +56,7 @@ _Read by the ops session. Updated at every milestone. Last update: Tue 3 Nov, la
 - **Tests:** `cd core && uv run pytest -q` -> 1286 passed (incl. services/tts tests); `cd app && npm test` -> 18 passed; `uv run ruff check .` clean; two-phone e2e sz + gs pass on the mock stack.
 
 ## In flight (parallel agents, worktree branches; the integrator merges)
-- Altbau Daylight follow-ups (integrator): summary headings in the reader's language, room name vs "Reconnecting…", mic label position, impeccable finish review.
+- Nothing running. Ops: phones on the box for the Altbau fixes (read-back scroll, Join disclosure, dark theme).
 
 ## Integrator TODO
 - Own voice later: register the clone during speech at `voice_ref_min_s`, so the pre-render uses it from the first utterance.

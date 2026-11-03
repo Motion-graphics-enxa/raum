@@ -147,6 +147,7 @@ export default function Join() {
           </h2>
           <p className="join__consent-body">{t(lang, "join.consent.body")}</p>
           {voiceClone ? <p className="join__consent-body">{t(lang, "join.consent.voice")}</p> : null}
+          <p className="join__consent-body">{t(lang, "join.mic_note")}</p>
           <p className="label join__aiact">{t(lang, "join.consent.ai_act")}</p>
         </section>
 
@@ -156,10 +157,11 @@ export default function Join() {
               {error}
             </p>
           ) : null}
+          {/* EU AI Act Art. 50: said where the person acts, whatever the phone's height hides of the sheet above */}
+          <p className="join__disclose">{t(lang, "join.consent.title")}</p>
           <button type="button" className="btn btn--lg btn--block" onClick={join} disabled={busy || !mode || !feats}>
             {busy ? t(lang, "join.joining") : t(lang, "join.continue")}
           </button>
-          <p className="join__note">{t(lang, "join.mic_note")}</p>
           {inAndroidBrowser() ? (
             // F-09: on Android 12+ a QR code opens the browser; this hands the same join to the RAUM app
             <a className="join__app" href={`raum://j/${encodeURIComponent(room)}?role=${role}&lang=${encodeURIComponent(lang)}`}>

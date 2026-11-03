@@ -30,3 +30,18 @@ FIRST VIEWPORT: Phone 390×844. Top on the wall: room plate in condensed caps ("
 FORM: Altbau Daylight, candidate 7 of 7 on the ordered list (the literal room reading), assigned by the roll. seed:f5337174a914b648. Signature interaction: Lichtfall, draft → final in 420 ms (a diagonal band of daylight sweeps across the hero sheet and rests as warm light, ink darkens, dotted draft underline retracts, tick draws).
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+
+## Finish review (3 Nov 2026)
+
+impeccable-finish-reviewer on the shipped build (5aed352 + 80750af): **ship after the listed fixes**. Fidelity matched the contract on wall/dado/Begleitstrich, header plate and strip, Lichtfall hero and chips, lifted read-back, Join blocks, Home doors, type and material. Material fixes, all made and confirmed in one capture round (phones 360/390 light + dark, Table 1440):
+
+1. Talk: the hero's top stays in view under a read-back or the reader's own reply; one banner at a time on phones.
+2. Join: the AI disclosure in words on the dado above the button (the consent sheet sat under the dado at 360/390).
+3. Dark theme: the sun crossing the wall at 0.10/0.04 (it dropped ink-3 to 2:1).
+4. The other person's speaker plate in the room's paint (`--them` resolved on `:root` to the default paint).
+5. Summary: a phone in neither conversation language never sees one language twice; the take-home QR carries `?lang=`.
+6. Table: fact chips in the cell of their language, never across the centre line.
+7. Table: 3 m floor of 22 px for check marks, fact values, latency figures and the privacy-meter label.
+8. Summary sheet head: the walnut line above the paint (Paint Below The Line).
+
+Also in this pass: summary headings in the reader's language; on phones the link pill keeps only its mark while the banner names a dropped link (the room id was cut at 360 px); the dado's three labels on one line. Detector: two advisory overshoot easings in `spectacle.css` (chip pop, read-back hand-in), kept as the redesign's deliberate spectacle motion.

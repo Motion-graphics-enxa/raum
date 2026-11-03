@@ -196,12 +196,44 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
     }
   }, [m.version]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Keep the newest sentence in view.
+  // Keep the newest sentence in view, but never past the hero's top: the other person's newest sentence (its
+  // speaker plate and check mark) stays whole even when my own reply, a read-back or banners below it would push
+  // it out of a phone's ~500 px of conversation.
+  const settle = (el: HTMLElement) => {
+    const bottom = el.scrollHeight - el.clientHeight;
+    const hero = el.querySelector<HTMLElement>(".turn--r0.turn--theirs");
+    if (!hero) return bottom;
+    const heroTop = hero.getBoundingClientRect().top - el.getBoundingClientRect().top + el.scrollTop - 8;
+    return Math.max(0, Math.min(bottom, heroTop));
+  };
+  // Follow the conversation unless the reader scrolled away by hand (wheel, touch, keys); back at the hero or the
+  // end, it follows again. (Pinned at the hero's top the view is not "near the bottom", so that test cannot tell.)
+  const follow = useRef(true);
   useEffect(() => {
     const el = scroller.current;
     if (!el) return;
-    const near = el.scrollHeight - el.scrollTop - el.clientHeight < 240;
-    if (near) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    const away = () => {
+      follow.current = false;
+    };
+    const back = () => {
+      if (follow.current) return;
+      if (el.scrollTop >= settle(el) - 24 || el.scrollHeight - el.scrollTop - el.clientHeight < 24) follow.current = true;
+    };
+    el.addEventListener("wheel", away, { passive: true });
+    el.addEventListener("touchmove", away, { passive: true });
+    el.addEventListener("keydown", away);
+    el.addEventListener("scroll", back, { passive: true });
+    return () => {
+      el.removeEventListener("wheel", away);
+      el.removeEventListener("touchmove", away);
+      el.removeEventListener("keydown", away);
+      el.removeEventListener("scroll", back);
+    };
+  }, []);
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el || !follow.current) return;
+    el.scrollTo({ top: settle(el), behavior: "smooth" });
   }, [m.turns]);
 
   // A new read-back for me comes into view once (it is not a modal, so it must not land under the dock).
@@ -217,9 +249,14 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
     const el = scroller.current;
     if (!newestAsk || shownAsk.current === newestAsk || !el) return;
     shownAsk.current = newestAsk;
-    if (el.scrollHeight - el.scrollTop - el.clientHeight > 900) return; // reading far back: leave them there
+    if (!follow.current && el.scrollHeight - el.scrollTop - el.clientHeight > 900) return; // reading far back
     const id = setTimeout(() => {
-      document.getElementById(`rb-${newestAsk}`)?.closest(".rb")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      // the read-back into view as far as the hero's top allows (it is answered aloud too: "Hold to answer")
+      const rb = document.getElementById(`rb-${newestAsk}`)?.closest<HTMLElement>(".rb");
+      if (!rb) return;
+      const want = rb.getBoundingClientRect().bottom - el.getBoundingClientRect().bottom + el.scrollTop + 8;
+      const top = Math.max(0, Math.min(want, settle(el)));
+      if (Math.abs(top - el.scrollTop) > 4) el.scrollTo({ top, behavior: "smooth" });
     }, 120);
     return () => clearTimeout(id);
   }, [newestAsk]);
@@ -357,6 +394,8 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
         audioOut={audioOut}
       />
 
+      {/* Banners, most urgent first: on a phone only the first shows (screens.css), the conversation keeps its room.
+          The link ones also name what the compact header pill shows. */}
       {live.state === "reconnecting" ? <div className="banner banner--warn banner--reconnect" role="status">{t(myLang, "talk.reconnecting")}</div> : null}
       {live.state === "disconnected" ? (
         <div className="banner banner--bad" role="alert">
@@ -383,7 +422,6 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
           </button>
         </div>
       ) : null}
-      {offRecord ? <div className="banner banner--off" role="status">{t(myLang, "talk.off_record_on")}</div> : null}
       {sameLang ? (
         <div className="banner banner--warn" role="alert">
           {t(myLang, "talk.same_lang").replace("{lang}", langName(sameLang, UI_LANG))}{" "}
@@ -392,6 +430,7 @@ function TalkInner({ room, join }: { room: string; join: NonNullable<ReturnType<
           </button>
         </div>
       ) : null}
+      {offRecord ? <div className="banner banner--off" role="status">{t(myLang, "talk.off_record_on")}</div> : null}
       {voicePaused ? <div className="banner" role="status">{t(myLang, "talk.voice_playing")}</div> : null}
       {m.session?.human_interpreter_requested ? (
         <div className="banner" role="status">{t(myLang, "talk.human_requested")}</div>

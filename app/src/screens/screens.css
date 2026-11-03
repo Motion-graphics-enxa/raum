@@ -54,6 +54,13 @@
   background: var(--wall-2);
   box-shadow: none;
 }
+/* a phone's conversation has ~500 px: one note at a time, the most urgent (Talk.tsx orders them); the rest are
+   said elsewhere too (the header pill, the orb's caption) or wait their turn */
+@media (max-width: 520px) {
+  .screen--talk > .banner ~ .banner {
+    display: none;
+  }
+}
 .banner__btn {
   border: 0;
   background: none;
@@ -300,9 +307,13 @@
   font-weight: 650;
   color: var(--paint-ink);
 }
-.join__note {
-  font-size: 0.875rem;
-  color: var(--paint-ink-2);
+/* the AI disclosure in words at the action (the full consent is the sheet above; on a short phone the dado
+   covers it until scrolled) */
+.join__disclose {
+  font-size: 1rem;
+  font-weight: 740;
+  line-height: 1.3;
+  color: var(--paint-ink);
   text-align: center;
 }
 .join__error {
@@ -648,7 +659,7 @@
   top: 0;
   height: 10px;
   background: var(--paint);
-  border-bottom: var(--strich-w) solid var(--strich);
+  border-top: var(--strich-w) solid var(--strich); /* Paint Below The Line: the walnut line first, the paint under it */
 }
 .screen--summary .sheet {
   --paint: var(--paint-gespraech);

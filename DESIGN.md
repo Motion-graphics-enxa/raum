@@ -226,10 +226,10 @@ A warm-neutral limewash room with walnut ink, one oil paint per room, and three 
 - **Taubenblau** (`paint-gespraech`): the general conversation room; also the default `--paint`.
 - **Off the record** (`paint-off`): the paint turns grey and the conversation fades to 45% greyscale.
 
-`--paint` is set per screen by `.room--<mode>`. White text (`paint-ink`) holds at least 5:1 on every paint. On the paint, wells and rims are white at 14% and 42% (`paint-well`, `paint-rim`), and a 1 px white sheen (14%) runs along the paint's top edge.
+`--paint` is set per screen by `.room--<mode>`, and `--them` (the other person's plate) is declared again in the same rule: a `var()` in a custom property resolves where it is declared, so on `:root` alone it stayed the default dove blue in every room. White text (`paint-ink`) holds at least 5:1 on every paint. On the paint, wells and rims are white at 14% and 42% (`paint-well`, `paint-rim`), and a 1 px white sheen (14%) runs along the paint's top edge.
 
 ### Tertiary: daylight
-- **Window Daylight** (`sun`, an rgb triplet used only with alpha): the resting light patch on the hero sheet (a 112° gradient from 62% to 0), the Lichtfall sweep, text selection, and the daylight ring on the orb when a read-back waits for this device.
+- **Window Daylight** (`sun`, an rgb triplet used only with alpha): the resting light patch on the hero sheet (a 112° gradient from 62% to 0), the Lichtfall sweep, text selection, and the daylight ring on the orb when a read-back waits for this device. The sun crossing the wall (`spectacle.css`) uses `--wall-sun-a` / `--wall-sun-b`: 0.55 / 0.18 in the morning, 0.10 / 0.04 in the evening theme, where a stronger patch dropped `ink-3` to 2:1.
 - **Mullion Shadow** (`mullion`): the faint shadow of the window cross inside the light patch.
 
 ### Neutral
@@ -279,13 +279,13 @@ A warm-neutral limewash room with walnut ink, one oil paint per room, and three 
 A 4 px base on an 8 px module (`s-1`…`s-8`: 4, 8, 12, 16, 24, 32, 48, 64); the Begleitstrich sits on it everywhere.
 
 Phone (360–430 px), one column, three bands:
-1. **Header on the wall** (not floating): row 1 is the room mark, the plate name, the German name and room id beneath, the link pill and the 44 px menu button. Row 2 is one hairline strip of cells between two `rule-strong` lines: `You speak · German` | `Patient speaks · Arabic` | `You hear on · Speaker`.
+1. **Header on the wall** (not floating): row 1 is the room mark, the plate name, the German name and room id beneath, the link pill and the 44 px menu button. Short of room, the German name truncates; the room id never does. Row 2 is one hairline strip of cells between two `rule-strong` lines: `You speak · German` | `Patient speaks · Arabic` | `You hear on · Speaker`.
 2. **Conversation on the wall**: turns separated by hairlines; only the other person's newest turn stands on the hero sheet (bleeding 8 px past the column). Banners are sheets pinned under the header, 16 px from the edges.
-3. **Dado**: the room's paint below the Begleitstrich, a three-column grid (side action, mic orb, side action). Side actions are 46 px round wells with a sentence-case label under them, 76 px tall.
+3. **Dado**: the room's paint below the Begleitstrich, a three-column grid (side action, mic orb, side action). Side actions are 46 px round wells with a sentence-case label under them, 76 px tall. The three labels share one line: the side wells stand on the orb's foot and the orb rises above them; the orb's caption sits under it as close as the side labels under their wells.
 
 When a room opens, the Begleitstrich draws first (scaleX, 460–480 ms), then the paint rises below it (560 ms), then the dado's contents fade in.
 
-Join: wall header with the wordmark and room; each decision (language, audio route, consent) is its own block; the action sits on the dado. Home: each room is a door, limewash above with its plate name and paint below the line (dado at 46%, 38% on wide screens). Table screen (laptop, read from 3 m): header on the wall, the conversation as one sheet split by one centre line with the two languages mirrored across it, the glass box as a hairline module grid, the paint along the floor; type scales from 16 to 22 px with the viewport. Admin: hairline-dense modules on the wall.
+Join: wall header with the wordmark and room; each decision (language, audio route, consent) is its own block; the action sits on the dado, with the AI disclosure ("This is an AI interpreter.") in words directly above the button, since on a short phone the dado covers the consent sheet until it is scrolled (EU AI Act Art. 50). Home: each room is a door, limewash above with its plate name and paint below the line (dado at 46%, 38% on wide screens). Table screen (laptop, read from 3 m): header on the wall, the conversation as one sheet split by one centre line with the two languages mirrored across it (each turn's fact chips stand in the cell of the language they were checked in, never across the line), the glass box as a hairline module grid, the paint along the floor; type scales from 16 to 22 px with the viewport, and the trust signals (check marks, fact values, the latency figures, the privacy-meter label) never go under 22 px. Admin: hairline-dense modules on the wall.
 
 ## Elevation & Depth
 
@@ -357,10 +357,10 @@ A small sheet pinned under the sentence (4 px corners): the value on top in the 
 - **Read-back** (`.rb`): never a modal; a sheet in the conversation lifted one step (the interruption depth). Unsure = 2 px dashed amber rim; mismatch = solid red rim. The question at ramp-1, max 34ch; Yes (green outline) and No (red outline) at 44 px; "Just say yes or no" when the box spoke it. While it is open the hero's fact chips step aside. Answered: it settles to one quiet line ("Confirmed · spoken").
 
 ### Header status pill
-Outlined pill, 32 px, on the sheet fill. **Live** = green text and rim with a pulsing dot; **Reconnecting…** = amber with a spinning ring; **Offline** = red; off the record dims the plate and cells to 55%.
+Outlined pill, 32 px, on the sheet fill. **Live** = green text and rim with a pulsing dot; **Reconnecting…** = amber with a spinning ring; **Offline** = red; off the record dims the plate and cells to 55%. On a phone, while the link is down (reconnecting or lost) the pill keeps only its mark, a 32 px round: the banner right under the header names the state in words, and the plate and room id keep their room.
 
 ### Banners
-A sheet pinned under the header (6 px corners, sheet shadow) with a 9 px leading dot in its pen: neutral, warn (amber wash), bad (red wash), reconnect (spinning ring), off the record (recessed wall, no shadow).
+A sheet pinned under the header (6 px corners, sheet shadow) with a 9 px leading dot in its pen: neutral, warn (amber wash), bad (red wash), reconnect (spinning ring), off the record (recessed wall, no shadow). On a phone only one banner shows, the most urgent (Talk.tsx orders them: link, tap to hear, same language, off the record, voice playing, notes), so the conversation keeps its room. The conversation follows the newest sentence but never past the hero's top: the other person's newest sentence stays whole under a read-back or the reader's own reply, and a reader who scrolled away by hand is left there until they come back.
 
 ### Buttons
 - **Shape:** gently squared (6 px), 52 px tall (60 px large, 44 px small).
@@ -374,7 +374,7 @@ A sheet pinned under the header (6 px corners, sheet shadow) with a 9 px leading
 Two 72 px tiles on the recessed wall with a square radio mark. Selected: the tile becomes a sheet with a 2 px ink inset ring and the sheet shadow; the square fills with the room's paint.
 
 ### Summary and the burn
-The summary is one sheet. The burn erases section by section and stamps "Key destroyed" in plate capitals, rotated −4° with a red double rim (460 ms).
+The summary is one sheet, its head the room's swatch: the walnut line on top, the paint under it. Each section heading is in the reader's language (English when the box has none), the language the items are read in beneath it; items are in the reader's language, or for a phone in neither conversation language the take-home person's, with the other language under them, never the same language twice. The take-home QR carries the reader's language (`?lang=`). The burn erases section by section and stamps "Key destroyed" in plate capitals, rotated −4° with a red double rim (460 ms).
 
 ### Motion
 One easing, `cubic-bezier(0.22, 1, 0.36, 1)`. Quick state 160 ms; lines draw 240 ms; Lichtfall 420 ms with a 460 ms sweep: the light falls slower than anything else moves. Turns enter 8 px up in 300 ms and then never move. Sheets rise 28 px in 340 ms. Under `prefers-reduced-motion` every animation and transition is cut to 1 ms.

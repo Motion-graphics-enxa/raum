@@ -202,20 +202,29 @@ function TableRow({
   hero: boolean;
   label: string;
 }) {
+  const target = turn.lang === langA ? langB : langA;
+  const state = target ? checkState(turn, target) : "translating";
   const cell = (lang: string | null) => {
     if (!lang) return <span className="trow__empty">—</span>;
     const isSrc = lang === turn.lang;
     const shown = isSrc ? null : shownTranslation(turn, lang); // the translation + its live draft (draft.ts)
     const text = isSrc ? turn.text ?? turn.partial : shown?.text;
+    // the checked facts stand under the translation they were checked in, on its side of the centre line
+    const facts = lang === target && !turn.continuedIn ? turn.facts[lang] ?? [] : [];
     return (
-      <p className={`trow__text ${isSrc ? "is-src" : ""}`} lang={lang} dir={isRtl(lang) ? "rtl" : "ltr"}>
-        {text || (shown?.draft ? null : " ")}
-        {shown?.draft ? <DraftText text={shown.draft} ui={UI} lead={!!text} mark /> : null}
-      </p>
+      <div className="trow__cell">
+        <p className={`trow__text ${isSrc ? "is-src" : ""}`} lang={lang} dir={isRtl(lang) ? "rtl" : "ltr"}>
+          {text || (shown?.draft ? null : " ")}
+          {shown?.draft ? <DraftText text={shown.draft} ui={UI} lead={!!text} mark /> : null}
+        </p>
+        {facts.length ? (
+          <div className="trow__facts">
+            <FactDims facts={facts} lang={UI} state={state} />
+          </div>
+        ) : null}
+      </div>
     );
   };
-  const target = turn.lang === langA ? langB : langA;
-  const state = target ? checkState(turn, target) : "translating";
   return (
     <article className={`trow ${hero ? "is-hero" : ""} ${state === "red" && !turn.continuedIn ? "is-red" : ""}`}>
       <header className="trow__gutter">
@@ -226,11 +235,6 @@ function TableRow({
         {cell(langA)}
         {cell(langB)}
       </div>
-      {target && !turn.continuedIn && turn.facts[target]?.length ? (
-        <div className="trow__facts">
-          <FactDims facts={turn.facts[target]} lang={UI} state={state} />
-        </div>
-      ) : null}
     </article>
   );
 }

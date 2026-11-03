@@ -124,7 +124,7 @@
   color: var(--ink-2);
   font-family: var(--font-label);
   font-weight: 750;
-  font-size: max(13px, 0.72em);
+  font-size: max(18px, 0.9em); /* who spoke, read from 3 m */
 }
 .trow__cols {
   display: grid;
@@ -149,6 +149,9 @@
 }
 .trow__empty {
   color: var(--ink-3);
+}
+.trow__cell {
+  min-width: 0; /* a long fact chip wraps inside its half, never across the centre line */
 }
 .trow__facts {
   padding-top: var(--s-2);
@@ -182,7 +185,7 @@
 
 /* trust signals readable from 3 m: the newest turn at full size, older turns one step down */
 .trow .vmark {
-  font-size: max(14px, 0.72em);
+  font-size: max(22px, 1em);
   min-height: 34px;
   padding-inline: 8px 12px;
 }
@@ -193,13 +196,13 @@
 }
 .trow .dim__value,
 .trow .cloud__pair {
-  font-size: max(18px, 1em);
+  font-size: max(22px, 1.1em);
 }
 .trow .dim__kind {
-  font-size: max(12px, 0.62em);
+  font-size: max(15px, 0.75em);
 }
 .trow.is-hero .vmark {
-  font-size: max(20px, 1em);
+  font-size: max(24px, 1.15em);
   min-height: 46px;
   border-width: 2.5px;
 }
@@ -208,7 +211,7 @@
   font-size: max(24px, 1.35em);
 }
 .trow.is-hero .dim__kind {
-  font-size: max(14px, 0.8em);
+  font-size: max(16px, 0.85em);
 }
 
 /* empty: the two QR codes, one each side of the line */
@@ -306,7 +309,7 @@
 }
 .glass__meter-l {
   font-weight: 700;
-  font-size: 0.95em;
+  font-size: max(22px, 1.1em); /* the privacy claim, read from 3 m */
   color: var(--ink);
 }
 .glass__meter--small {
@@ -321,7 +324,7 @@
 .glass__meter--small .glass__meter-l {
   font-weight: 500;
   color: var(--ink-2);
-  font-size: 0.8em;
+  font-size: max(17px, 0.85em);
 }
 .glass__seal {
   display: inline-flex;
@@ -444,4 +447,11 @@
     padding-inline-start: 0;
     border-inline-start: 0;
   }
+}
+
+/* the latency figures under the last sentence's timeline: trust signals, read from 3 m (finish review) */
+.screen--table .tl__stats {
+  font-size: max(22px, 1.1em);
+  font-weight: 700;
+  color: var(--ink);
 }

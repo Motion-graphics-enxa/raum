@@ -1,6 +1,6 @@
 /** Summary `/r/:room/summary`: the sheet both sides keep (C-11, S-03, S-04, K-03, N-03), then the burn (T-02). */
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { api, eventsSocketUrl, type ModeConfig } from "../lib/api";
 import type { EventData } from "../lib/events";
 import { fmtTime, isRtl, pick, t } from "../lib/i18n";
@@ -18,7 +18,9 @@ type Summary = EventData["summary.ready"];
 export default function SummaryScreen() {
   const { room = "" } = useParams();
   const join = useMemo(() => loadJoin(room), [room]);
-  const lang = join?.lang ?? deviceLang();
+  const [params] = useSearchParams();
+  // the take-home QR carries the reader's language: a second phone opens the sheet as the first one read it
+  const lang = join?.lang ?? params.get("lang") ?? deviceLang();
   const role = join?.role ?? null;
   const store = useMemo(() => new RoomStore(room), [room]);
   useEventSocket(room, store, eventsSocketUrl(room));
@@ -58,11 +60,20 @@ export default function SummaryScreen() {
     if (burned) setFetched((s) => (s ? { ...s, sections: [], file_note: null } : s));
   }, [burned]);
   const summary = burned ? (fetched ?? m.summary) : (m.summary ?? fetched);
-  const other = summary ? (lang === summary.lang_a ? summary.lang_b : summary.lang_a) : null;
+  const takehomeFor = mode?.summary.takehome_for;
+  // the language the items are read in: the reader's, or (a phone in neither language) the take-home person's,
+  // else the professional's; the other conversation language beneath it, never the same language twice
+  const read = !summary
+    ? lang
+    : lang === summary.lang_a || lang === summary.lang_b
+      ? lang
+      : takehomeFor === "b"
+        ? summary.lang_b
+        : summary.lang_a;
+  const other = summary ? (read === summary.lang_a ? summary.lang_b : summary.lang_a) : null;
   const dir = isRtl(lang) ? "rtl" : "ltr";
   const approvedBy = summary?.approved_by ?? [];
   const iApproved = role ? approvedBy.includes(role) : false;
-  const takehomeFor = mode?.summary.takehome_for;
 
   const approve = async () => {
     if (!role) return;
@@ -110,16 +121,16 @@ export default function SummaryScreen() {
           <article className="sheet" aria-label={t(lang, "summary.title")}>
             {summary.sections.map((sec) => (
               <section key={sec.key} className="sheet__sec">
-                <SectionHead title={sec.title} lang={lang} other={other} />
+                <SectionHead title={sec.title} lang={lang} read={read} other={other} />
                 {sec.items.length ? (
                   <ul className="sheet__items">
                     {sec.items.map((it, i) => (
                       <li key={i} className={it.uncertain ? "is-uncertain" : ""}>
-                        <p className="sheet__main" lang={lang} dir="auto">
-                          {it.text[lang] ?? pick(it.text, lang)}
+                        <p className="sheet__main" lang={it.text[read] ? read : undefined} dir="auto">
+                          {it.text[read] ?? pick(it.text, read)}
                           {it.uncertain ? <span className="sheet__unc label"> · {t(lang, "summary.uncertain")}</span> : null}
                         </p>
-                        {other && it.text[other] ? (
+                        {other && it.text[other] && it.text[other] !== (it.text[read] ?? pick(it.text, read)) ? (
                           <p className="sheet__other" lang={other} dir={isRtl(other) ? "rtl" : "ltr"}>
                             {it.text[other]}
                           </p>
@@ -144,7 +155,7 @@ export default function SummaryScreen() {
               </section>
             ) : null}
 
-            {summary.facts?.length ? <CheckedFacts facts={summary.facts} lang={lang} other={other} /> : null}
+            {summary.facts?.length ? <CheckedFacts facts={summary.facts} lang={lang} read={read} other={other} /> : null}
 
             {/* Schriftfeld: the sheet's title block, bottom right as on every drawing */}
             <footer className="sheet__tb">
@@ -188,7 +199,11 @@ export default function SummaryScreen() {
             </button>
             {(role === takehomeFor || !role) && takehomeFor ? (
               <div className="sum__takehome">
-                <QR value={location.href} size={136} label={t(lang, "summary.takehome")} />
+                <QR
+                  value={`${location.origin}${location.pathname}?lang=${encodeURIComponent(read)}`}
+                  size={136}
+                  label={t(lang, "summary.takehome")}
+                />
                 <div>
                   <h3 className="sum__th">{t(lang, "summary.takehome")}</h3>
                   <p className="sum__tb">{t(lang, "summary.takehome_body")}</p>
@@ -268,27 +283,48 @@ export default function SummaryScreen() {
  * its pen (tick noted / confirmed, dotted ring unconfirmed, cross said no), the fact in both languages and the
  * status in words. Sits right above the title block, where a drawing keeps its revisions.
  */
-/** A section's heading in the reader's language, like the items under it (English when the box has none), and
- * the other person's beneath it. */
-function SectionHead({ title, lang, other }: { title: Record<string, string>; lang: string; other: string | null }) {
+/** A section's heading in the reader's language (English when the box has none), and beneath it the language the
+ * items are read in when that differs, else the other person's. */
+function SectionHead({
+  title,
+  lang,
+  read,
+  other,
+}: {
+  title: Record<string, string>;
+  lang: string;
+  read: string;
+  other: string | null;
+}) {
   const own = title[lang];
   const head = own ?? pick(title, lang);
   const headLang = own ? lang : title.en ? "en" : undefined;
+  const second = headLang !== read && title[read] ? read : other;
   return (
     <h2 className="sheet__h">
       <span lang={headLang} dir={headLang && isRtl(headLang) ? "rtl" : undefined}>
         {head}
       </span>
-      {other && title[other] && title[other] !== head ? (
-        <span className="sheet__h2" lang={other} dir={isRtl(other) ? "rtl" : "ltr"}>
-          {title[other]}
+      {second && title[second] && title[second] !== head ? (
+        <span className="sheet__h2" lang={second} dir={isRtl(second) ? "rtl" : "ltr"}>
+          {title[second]}
         </span>
       ) : null}
     </h2>
   );
 }
 
-function CheckedFacts({ facts, lang, other }: { facts: NonNullable<Summary["facts"]>; lang: string; other: string | null }) {
+function CheckedFacts({
+  facts,
+  lang,
+  read,
+  other,
+}: {
+  facts: NonNullable<Summary["facts"]>;
+  lang: string;
+  read: string;
+  other: string | null;
+}) {
   const gloss = other ? t(other, "summary.facts") : null;
   return (
     <section className="sheet__sec sheet__checks">
@@ -307,10 +343,10 @@ function CheckedFacts({ facts, lang, other }: { facts: NonNullable<Summary["fact
               {f.status === "unconfirmed" ? <span className="check__ring" /> : f.status === "rejected" ? <Cross /> : <Check />}
             </span>
             <span className="check__fact">
-              <span className="check__main" lang={lang} dir="auto">
-                {f.text[lang] ?? pick(f.text, lang)}
+              <span className="check__main" lang={f.text[read] ? read : undefined} dir="auto">
+                {f.text[read] ?? pick(f.text, read)}
               </span>
-              {other && f.text[other] && f.text[other] !== f.text[lang] ? (
+              {other && f.text[other] && f.text[other] !== (f.text[read] ?? pick(f.text, read)) ? (
                 <span className="check__other" lang={other} dir={isRtl(other) ? "rtl" : "ltr"}>
                   {f.text[other]}
                 </span>

@@ -23,6 +23,8 @@
   --sheet: #fcfcfa; /* a sheet on the wall: what text sits on longest */
   --sheet-2: #f7f7f3; /* a sheet inside a sheet region (table rows, recessed cells) */
   --sun: 255 224 168; /* window daylight (rgb triplet, used with alpha) */
+  --wall-sun-a: 0.55; /* the sun crossing the wall (spectacle.css): its core and its edge */
+  --wall-sun-b: 0.18;
   --sunlight: linear-gradient(
     112deg,
     rgb(var(--sun) / 0.62) 0%,
@@ -166,6 +168,14 @@
 .room--gespraech {
   --paint: var(--paint-gespraech);
 }
+/* a var() in a custom property resolves where it is declared: --them on :root kept the default paint (dove blue)
+   in every room. Declared again where the room's paint is set, the other person's plate wears the room's colour. */
+.room--sprechzimmer,
+.room--kanzlei,
+.room--verhandlungsraum,
+.room--gespraech {
+  --them: var(--paint);
+}
 
 /* the same room in the evening: warm walnut dark, never a techy navy-black */
 @media (prefers-color-scheme: dark) {
@@ -178,6 +188,8 @@
     --sheet: #272220;
     --sheet-2: #2c2723;
     --sun: 255 186 112;
+    --wall-sun-a: 0.1; /* evening: at 0.55 the patch dropped ink-3 to 2:1 on the wall */
+    --wall-sun-b: 0.04;
     --sunlight: linear-gradient(
       112deg,
       rgb(var(--sun) / 0.2) 0%,
@@ -227,6 +239,8 @@
   --sheet: #272220;
   --sheet-2: #2c2723;
   --sun: 255 186 112;
+  --wall-sun-a: 0.1; /* evening: at 0.55 the patch dropped ink-3 to 2:1 on the wall */
+  --wall-sun-b: 0.04;
   --sunlight: linear-gradient(
     112deg,
     rgb(var(--sun) / 0.2) 0%,

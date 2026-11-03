@@ -29,7 +29,7 @@
   pointer-events: none;
   background:
     linear-gradient(90deg, transparent 47%, rgb(120 92 52 / 0.05) 49%, rgb(120 92 52 / 0.05) 51%, transparent 53%),
-    radial-gradient(closest-side, rgb(var(--sun) / 0.55), rgb(var(--sun) / 0.18) 60%, transparent);
+    radial-gradient(closest-side, rgb(var(--sun) / var(--wall-sun-a)), rgb(var(--sun) / var(--wall-sun-b)) 60%, transparent);
   filter: blur(8px);
   transform: skewX(-14deg);
   animation: wall-sun 32s ease-in-out infinite alternate;
