@@ -239,38 +239,6 @@
   }
 }
 
-/* ---------------------------------------------------------------- Join: the door opens onto the room */
-.screen--join .join__consent {
-  transform-origin: left center;
-  animation: consent-door 900ms var(--ease-out) 260ms both !important;
-}
-@keyframes consent-door {
-  from {
-    opacity: 0;
-    transform: perspective(900px) rotateY(-24deg) translateX(-12px);
-  }
-}
-.join__role-name {
-  animation: role-underline 900ms var(--ease-out) 500ms both;
-}
-@keyframes role-underline {
-  from {
-    background-size: 0% 0.16em;
-  }
-}
-.join__go .btn:not(:disabled) {
-  overflow: hidden;
-}
-.join__go .btn:not(:disabled)::after {
-  content: "";
-  position: absolute;
-  inset: -40%;
-  background: linear-gradient(115deg, transparent 42%, rgb(var(--sun) / 0.9) 50%, transparent 58%);
-  transform: translateX(-120%);
-  animation: orb-glint 4.5s var(--ease-out) 1.4s infinite;
-  pointer-events: none;
-}
-
 /* ---------------------------------------------------------------- Summary: the sheet feeds out of the printer */
 .screen--summary .sheet:not(.sheet--burned) {
   animation: sheet-feed 1100ms var(--ease-out) both;

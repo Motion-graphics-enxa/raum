@@ -45,3 +45,16 @@ impeccable-finish-reviewer on the shipped build (5aed352 + 80750af): **ship afte
 8. Summary sheet head: the walnut line above the paint (Paint Below The Line).
 
 Also in this pass: summary headings in the reader's language; on phones the link pill keeps only its mark while the banner names a dropped link (the room id was cut at 360 px); the dado's three labels on one line. Detector: two advisory overshoot easings in `spectacle.css` (chip pop, read-back hand-in), kept as the redesign's deliberate spectacle motion.
+
+## Join: across the desk (3 Nov 2026)
+
+Surface redesign of Join `/j/:room` inside the fixed Altbau Daylight world (user: "redesign the Join screen, make it more premium"; files Join.tsx + join.css; no tokens or other screens). Unattended: the user said to proceed, so no decision round was shown.
+
+THESIS: Join is the doorway of the room: the door plate, "You join as Patient", then two seats across one desk split by one centre line, the box sitting on that line as its one key. Your seat stands in the window's light with your language in its own script; one tap on the dado sits you down. Refuses the stacked settings form it replaced.
+
+FORM: surface structure 3 of 7 grounded candidates ("Across the desk"), dealt by the roll. seed:0f1cc6721a53d487. Raises: centre-rail reference page (declined): the rail is the desk's one moving part, the box a square key cut into it; terminal wayfinding (declined): a phone shows only the decision ahead, so language and hearing collapse to their value behind one Change. The voice-copy choice stays on screen (consent).
+
+SIGNATURE: Platz nehmen. The desk assembles once: the rail draws down, the box key sets on it, daylight falls across your seat. A changed language or hearing re-keys in place and the light falls again; joining runs the rail dashed toward the box.
+
+Finish review (impeccable-finish-reviewer): first pass recapture (one viewport shot labelled full page), then **fix**, eight material fixes: same-language note and voice choice moved into the desk under the key; dark `seat__en` / hearing icon to ink-2 (4.36:1 → AA); the chooser opens under the key so the key never leaves the rail; the repeating button glint removed; this FORM line; room-not-found without seats, role or a repeated id; the seat control reads Close while open; the dado button on `.btn--wall`. Also the empty seat waits in the shade, and the dado stands on the floor when the wall is short.
+
