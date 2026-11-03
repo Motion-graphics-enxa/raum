@@ -1,7 +1,14 @@
-/** `/`: the RAUM website. Three doors in a Berlin corridor; behind each, a conversation that must not leave the room. */
+/** `/`: the RAUM website. A front page: the tagline over its German, the lede, and the index of three rooms where a conversation must not leave. */
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Check, Handshake, Scale, Stethoscope } from "../components/Icons";
+import { Hatch } from "../components/Drawing";
+import {
+  ArrowRight,
+  Check,
+  Handshake,
+  Scale,
+  Stethoscope,
+} from "../components/Icons";
 import "./landing.css";
 
 type Lang = "en" | "ru";
@@ -21,6 +28,8 @@ interface Room {
   said: string;
   tr: Record<Lang, string>;
   facts: Fact[];
+  /** the checked figure as it stands in the translation, underlined on the front page */
+  hit: Record<Lang, string>;
   leave: string;
   Icon: typeof Stethoscope;
 }
@@ -43,7 +52,9 @@ const ROOMS: Room[] = [
       { value: { en: "twice a day", ru: "2 раза в день" }, kind: "Frequency" },
       { value: { en: "Metformin", ru: "Метформин" }, kind: "Medication" },
     ],
-    leave: "A take-home summary in the patient's language and a German file note.",
+    hit: { en: "500 mg", ru: "500 мг" },
+    leave:
+      "A take-home summary in the patient's language and a German file note.",
     Icon: Stethoscope,
   },
   {
@@ -51,7 +62,8 @@ const ROOMS: Room[] = [
     plate: "Kanzlei",
     gloss: "Law office",
     people: "Lawyer and client",
-    guard: "Deadlines and dates are checked; 'explain simply' only goes out once the lawyer approves it.",
+    guard:
+      "Deadlines and dates are checked; 'explain simply' only goes out once the lawyer approves it.",
     said: "Lawyer",
     de: "Die Frist für Ihren Widerspruch endet am 14. März.",
     tr: {
@@ -62,7 +74,9 @@ const ROOMS: Room[] = [
       { value: { en: "14 March", ru: "14 марта" }, kind: "Deadline" },
       { value: { en: "Objection", ru: "Возражение" }, kind: "Term" },
     ],
-    leave: "German case notes and the client's copy, both with every date checked.",
+    hit: { en: "14 March", ru: "14 марта" },
+    leave:
+      "German case notes and the client's copy, both with every date checked.",
     Icon: Scale,
   },
   {
@@ -70,7 +84,8 @@ const ROOMS: Room[] = [
     plate: "Verhandlungsraum",
     gloss: "Negotiation room",
     people: "CEO and foreign partner",
-    guard: "Every offer is tracked with its amount and terms; the deal glossary keeps names exact.",
+    guard:
+      "Every offer is tracked with its amount and terms; the deal glossary keeps names exact.",
     said: "CEO",
     de: "Unser letztes Angebot: 2,4 Millionen Euro, Lieferung im Juni.",
     tr: {
@@ -81,6 +96,7 @@ const ROOMS: Room[] = [
       { value: { en: "€2.4 m", ru: "2,4 млн €" }, kind: "Amount" },
       { value: { en: "June", ru: "июнь" }, kind: "Delivery" },
     ],
+    hit: { en: "2.4 million euros", ru: "2,4 миллиона евро" },
     leave: "Minutes both sides approve before anyone leaves the table.",
     Icon: Handshake,
   },
@@ -109,11 +125,12 @@ function useInView<T extends Element>(threshold = 0.4) {
   return [ref, seen] as const;
 }
 
-const reduced = () => typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+const reduced = () =>
+  typeof matchMedia !== "undefined" &&
+  matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 export default function Landing() {
   const [lang, setLang] = useState<Lang>("en");
-  const [open, setOpen] = useState<RoomId | null>(null);
 
   useEffect(() => {
     document.title = "RAUM: a private interpreter that lives in the room";
@@ -138,71 +155,102 @@ export default function Landing() {
       </header>
 
       <main id="top">
-        {/* ------------------------------------------------ the corridor */}
-        <section className="lhero" aria-labelledby="lhero-h">
-          {/* the stairwell window, off to the right: its light and its cross fall on the wall */}
-          <div className="lhero__light" aria-hidden="true">
-            <span className="lhero__glow" />
-            <span className="lhero__panes" />
-          </div>
-          <div className="lhero__head">
-            <h1 id="lhero-h" className="lhero__h">
-              <span className="lhero__line">
-                <span>What’s said</span> <span>in the room</span>
+        {/* ------------------------------------------------ the front page */}
+        {/* Set like a front page: the tagline as the headline, the German it was said in under each line (the
+            interpreter's own interlinear), one walnut rule, then the lede and the index of the three rooms. */}
+        <section className="lede" aria-labelledby="lede-h">
+          <div className="lede__top">
+            <h1 id="lede-h" className="lede__h">
+              <span className="lede__row">
+                <span className="lede__en">
+                  <span className="lede__w">What’s said</span>{" "}
+                  <span className="lede__w lede__w--room">in the room</span>
+                </span>
+                <span className="lede__de" lang="de" aria-hidden="true">
+                  Was im Raum gesagt wird,
+                </span>
               </span>{" "}
-              <span className="lhero__line lhero__line--2">
-                <span>stays in</span> <span>the room.</span>
+              <span className="lede__row lede__row--2">
+                <span className="lede__en">
+                  <span className="lede__w">stays</span>{" "}
+                  <span className="lede__w lede__w--room">
+                    in the room<span className="lede__stop">.</span>
+                  </span>
+                </span>
+                <span className="lede__de" lang="de" aria-hidden="true">
+                  bleibt im Raum.
+                </span>
               </span>
             </h1>
-            <div className="lhero__offer">
-              <p>
-                RAUM is a private AI interpreter for the rooms where a misheard number is a legal problem. It translates
-                both ways, checks every figure, and forgets. <strong>Nothing leaves the box.</strong>
-              </p>
-              <LangSwitch lang={lang} onChange={setLang} className="lswitch--hero" />
-            </div>
+            <p className="lede__ok">
+              <span className="lede__tick" aria-hidden="true">
+                <Check />
+              </span>
+              <span>
+                <b>Checked</b>
+                <span>Said in German, translated into English</span>
+              </span>
+            </p>
           </div>
-          <ul className="doors" aria-label="The rooms">
-            {ROOMS.map((r, i) => (
-              <li key={r.id} className={`door door--${r.id} ${open === r.id ? "is-open" : ""}`} style={{ "--i": i } as React.CSSProperties}>
-                <div className="door__room" aria-hidden={open !== r.id}>
-                  <span className="door__said">{r.said} · German</span>
-                  <p className="door__de" lang="de">
-                    {r.de}
-                  </p>
-                  <p className="door__tr" lang={lang}>
-                    {r.tr[lang]}
-                  </p>
-                  <span className="door__ok">
-                    <Check /> Checked
-                  </span>
-                  <a className="door__more" href={`#room-${r.id}`}>
-                    See the room
-                  </a>
-                </div>
-                <button
-                  type="button"
-                  className="door__leaf"
-                  aria-expanded={open === r.id}
-                  aria-label={`${r.plate}, ${r.gloss}. ${open === r.id ? "Close the door" : "Open the door"}`}
-                  onClick={() => setOpen((o) => (o === r.id ? null : r.id))}
-                >
-                  <span className="door__panel door__panel--top" aria-hidden="true" />
-                  <span className="door__plate">
-                    <span className="door__name" lang="de">
-                      {r.plate}
-                    </span>
-                    <span className="door__gloss">{r.gloss}</span>
-                  </span>
-                  <span className="door__people">{r.people}</span>
-                  <span className="door__knob" aria-hidden="true" />
-                  <span className="door__enter" aria-hidden="true">
-                    {open === r.id ? "Close" : "Open the door"}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
+
+          <div className="lede__base">
+            <div className="lede__intro">
+              <p className="lede__p">
+                <span className="lede__runin">RAUM</span> is a private AI interpreter for the rooms where a misheard
+                number is a legal problem. It translates both ways, checks every
+                figure, and forgets. <strong>Nothing leaves the box.</strong>
+              </p>
+              <div className="lede__act">
+                <Link className="btn btn--lg lede__cta" to="/start">
+                  Open a room
+                  <ArrowRight />
+                </Link>
+                <LangSwitch
+                  lang={lang}
+                  onChange={setLang}
+                  className="lswitch--hero"
+                />
+              </div>
+            </div>
+
+            <nav className="index" aria-labelledby="index-h">
+              <h2 id="index-h" className="visually-hidden">
+                The rooms
+              </h2>
+              <ul className="index__list">
+                {ROOMS.map((r, i) => (
+                  <li
+                    key={r.id}
+                    className={`index__row room--${r.id}`}
+                    style={{ "--i": i } as React.CSSProperties}
+                  >
+                    <Link className="index__link" to="/start">
+                      <span className="index__room">
+                        <span className="index__name">
+                          <Hatch mode={r.id} size={26} className="index__mark" />
+                          <span lang="de">{r.plate}</span>
+                        </span>
+                        <span className="index__gloss">
+                          {r.gloss} · {r.people}
+                        </span>
+                      </span>
+                      <span className="index__line">
+                        <span className="index__said" lang={lang}>
+                          <Marked text={r.tr[lang]} hit={r.hit[lang]} />
+                        </span>
+                        <span className="index__fact">
+                          <Check /> {r.facts[0].kind} checked
+                        </span>
+                      </span>
+                      <span className="index__go" aria-hidden="true">
+                        <ArrowRight />
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          </div>
         </section>
 
         {/* ------------------------------------------------ today */}
@@ -212,18 +260,22 @@ export default function Landing() {
           </h2>
           <ul className="ltoday__facts">
             <li>
-              Statutory health insurance pays <span className="ltoday__fig">nothing</span> for an interpreter.
+              Statutory health insurance pays{" "}
+              <span className="ltoday__fig">nothing</span> for an interpreter.
             </li>
             <li>
-              At weekends, only <span className="ltoday__fig">14 of 38</span> German university hospitals can get one.
+              At weekends, only <span className="ltoday__fig">14 of 38</span>{" "}
+              German university hospitals can get one.
             </li>
             <li>
-              Yet about <span className="ltoday__fig">15&nbsp;%</span> of people in Germany mainly speak another language at home.
+              Yet about <span className="ltoday__fig">15&nbsp;%</span> of people
+              in Germany mainly speak another language at home.
             </li>
           </ul>
           <p className="ltoday__law">
-            And sending these conversations to a cloud is its own legal risk: §203 StGB for doctors, §43e BRAO for
-            lawyers, GeschGehG §2 for trade secrets.
+            And sending these conversations to a cloud is its own legal risk:
+            §203 StGB for doctors, §43e BRAO for lawyers, GeschGehG §2 for trade
+            secrets.
           </p>
         </section>
 
@@ -235,9 +287,10 @@ export default function Landing() {
             RAUM checks.
           </h2>
           <p className="lsec__lead">
-            Code compares every number, unit, date, name and medication between what was said and what was translated. A
-            second model from a different family translates it back and scores the meaning. A human confirms what
-            matters.
+            Code compares every number, unit, date, name and medication between
+            what was said and what was translated. A second model from a
+            different family translates it back and scores the meaning. A human
+            confirms what matters.
           </p>
           <CheckDemo lang={lang} />
         </section>
@@ -258,8 +311,9 @@ export default function Landing() {
               One box.
             </h2>
             <p className="lsec__lead">
-              Speech recognition, translation, a checker from a different model family, meaning search, voice: all on
-              one ASUS Ascent GX10 in the room. Pull the internet cable and the conversation goes on.
+              Speech recognition, translation, a checker from a different model
+              family, meaning search, voice: all on one ASUS Ascent GX10 in the
+              room. Pull the internet cable and the conversation goes on.
             </p>
             <ul className="lpriv__models">
               <li>Whisper large-v3-turbo</li>
@@ -282,7 +336,10 @@ export default function Landing() {
           <h2 id="lclose-h" className="lclose__h">
             Translates. Checks. Forgets.
           </h2>
-          <p className="lclose__p">Scan the QR code on the box, choose your language, and talk. No account, no app, no cloud.</p>
+          <p className="lclose__p">
+            Scan the QR code on the box, choose your language, and talk. No
+            account, no app, no cloud.
+          </p>
           <Link className="btn btn--lg lclose__cta" to="/start">
             Open a room
           </Link>
@@ -291,7 +348,10 @@ export default function Landing() {
 
       <footer className="lfoot">
         <span className="lfoot__word">RAUM</span>
-        <span>A private AI interpreter that lives in the room. Macromedia Berlin Hackathon 2026.</span>
+        <span>
+          A private AI interpreter that lives in the room. Macromedia Berlin
+          Hackathon 2026.
+        </span>
         <span className="lfoot__links">
           <Link to="/start">Rooms</Link>
           <Link to="/admin">Admin</Link>
@@ -301,13 +361,45 @@ export default function Landing() {
   );
 }
 
-/** Two copies render (the bar's on wide screens, the hero's on narrow ones); CSS shows one at a time. */
-function LangSwitch({ lang, onChange, className = "" }: { lang: Lang; onChange: (l: Lang) => void; className?: string }) {
+/** The sentence with its checked figure underlined in the checked pen (a solid line: the fact chip's "checked"). */
+function Marked({ text, hit }: { text: string; hit: string }) {
+  const at = text.indexOf(hit);
+  if (at < 0) return <>{text}</>;
   return (
-    <div className={`lswitch ${className}`} role="radiogroup" aria-label="Example translations in">
+    <>
+      {text.slice(0, at)}
+      <span className="index__hit">{hit}</span>
+      {text.slice(at + hit.length)}
+    </>
+  );
+}
+
+/** Two copies render (the bar's on wide screens, the hero's on narrow ones); CSS shows one at a time. */
+function LangSwitch({
+  lang,
+  onChange,
+  className = "",
+}: {
+  lang: Lang;
+  onChange: (l: Lang) => void;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`lswitch ${className}`}
+      role="radiogroup"
+      aria-label="Example translations in"
+    >
       <span className="lswitch__label">Examples in</span>
       {(["en", "ru"] as const).map((l) => (
-        <button key={l} type="button" role="radio" aria-checked={lang === l} className={lang === l ? "is-on" : ""} onClick={() => onChange(l)}>
+        <button
+          key={l}
+          type="button"
+          role="radio"
+          aria-checked={lang === l}
+          className={lang === l ? "is-on" : ""}
+          onClick={() => onChange(l)}
+        >
           {l === "en" ? "English" : "Русский"}
         </button>
       ))}
@@ -319,12 +411,26 @@ function LangSwitch({ lang, onChange, className = "" }: { lang: Lang; onChange: 
 
 const DEMO = {
   de: "Kommen Sie am Donnerstag, dem 12. November, um 9 Uhr wieder.",
-  wrong: { en: "Come back on Thursday, 13 November, at 9.", ru: "Приходите в четверг, 13 ноября, в 9 часов." },
-  right: { en: "Come back on Thursday, 12 November, at 9 a.m.", ru: "Приходите в четверг, 12 ноября, в 9 часов." },
+  wrong: {
+    en: "Come back on Thursday, 13 November, at 9.",
+    ru: "Приходите в четверг, 13 ноября, в 9 часов.",
+  },
+  right: {
+    en: "Come back on Thursday, 12 November, at 9 a.m.",
+    ru: "Приходите в четверг, 12 ноября, в 9 часов.",
+  },
   said: { en: "12 November", ru: "12 ноября" },
   got: { en: "13 November", ru: "13 ноября" },
 };
-const STAGES = ["Heard", "Cleaned", "Transcribed", "Translated", "Checked", "Corrected", "Spoken"];
+const STAGES = [
+  "Heard",
+  "Cleaned",
+  "Transcribed",
+  "Translated",
+  "Checked",
+  "Corrected",
+  "Spoken",
+];
 
 function CheckDemo({ lang }: { lang: Lang }) {
   const [ref, seen] = useInView<HTMLDivElement>(0.45);
@@ -340,7 +446,8 @@ function CheckDemo({ lang }: { lang: Lang }) {
       return;
     }
     const ts: number[] = [];
-    const at = (ms: number, fn: () => void) => ts.push(window.setTimeout(fn, ms));
+    const at = (ms: number, fn: () => void) =>
+      ts.push(window.setTimeout(fn, ms));
     setStep(1);
     setWords(0);
     deWords.forEach((_, i) => at(120 + i * 150, () => setWords(i + 1)));
@@ -373,16 +480,24 @@ function CheckDemo({ lang }: { lang: Lang }) {
     <div className="demo" ref={ref}>
       <ol className="demo__rail" aria-label="Stages">
         {STAGES.map((s, i) => (
-          <li key={s} className={`${step > i ? "is-done" : ""} ${step === i + 1 ? "is-now" : ""} ${s === "Corrected" ? "is-fix" : ""}`}>
+          <li
+            key={s}
+            className={`${step > i ? "is-done" : ""} ${step === i + 1 ? "is-now" : ""} ${s === "Corrected" ? "is-fix" : ""}`}
+          >
             <span className="demo__dot" aria-hidden="true" />
             {s}
           </li>
         ))}
       </ol>
-      <div className={`demo__sheet ${fixed ? "is-final" : "is-draft"} ${caught ? "is-red" : ""}`}>
+      <div
+        className={`demo__sheet ${fixed ? "is-final" : "is-draft"} ${caught ? "is-red" : ""}`}
+      >
         <div className="demo__gutter">
           <span className="demo__plate">Doctor · German</span>
-          <span className={`demo__mark ${fixed ? "is-ok" : caught ? "is-bad" : translated ? "is-pending" : "is-live"}`} role="status">
+          <span
+            className={`demo__mark ${fixed ? "is-ok" : caught ? "is-bad" : translated ? "is-pending" : "is-live"}`}
+            role="status"
+          >
             {fixed ? (
               <>
                 <Check /> Checked · 780 ms
@@ -398,9 +513,15 @@ function CheckDemo({ lang }: { lang: Lang }) {
         </div>
         <p className="demo__de" lang="de">
           {deWords.slice(0, words).join(" ")}
-          {words < deWords.length ? <span className="demo__caret" aria-hidden="true" /> : null}
+          {words < deWords.length ? (
+            <span className="demo__caret" aria-hidden="true" />
+          ) : null}
         </p>
-        <p className={`demo__tr ${translated ? "is-on" : ""}`} lang={lang} aria-live="polite">
+        <p
+          className={`demo__tr ${translated ? "is-on" : ""}`}
+          lang={lang}
+          aria-live="polite"
+        >
           {translated ? (fixed ? DEMO.right[lang] : DEMO.wrong[lang]) : " "}
         </p>
         <div className={`demo__facts ${translated ? "is-on" : ""}`} lang={lang}>
@@ -408,7 +529,9 @@ function CheckDemo({ lang }: { lang: Lang }) {
             <b>{lang === "en" ? "Thursday" : "четверг"}</b>
             <small>Day</small>
           </span>
-          <span className={`demo__chip ${fixed ? "demo__chip--ok" : caught ? "demo__chip--bad" : "demo__chip--pending"}`}>
+          <span
+            className={`demo__chip ${fixed ? "demo__chip--ok" : caught ? "demo__chip--bad" : "demo__chip--pending"}`}
+          >
             <b>
               {DEMO.said[lang]}
               {caught ? (
@@ -425,9 +548,17 @@ function CheckDemo({ lang }: { lang: Lang }) {
             <small>Time</small>
           </span>
         </div>
-        <p className="demo__note">Example. A first translation wrote 13 instead of 12; code compared the dates, flagged it, and the fixed sentence went out.</p>
+        <p className="demo__note">
+          Example. A first translation wrote 13 instead of 12; code compared the
+          dates, flagged it, and the fixed sentence went out.
+        </p>
       </div>
-      <button type="button" className="demo__replay" onClick={replay} disabled={step > 0 && step < 7}>
+      <button
+        type="button"
+        className="demo__replay"
+        onClick={replay}
+        disabled={step > 0 && step < 7}
+      >
         Play it again
       </button>
     </div>
@@ -440,7 +571,12 @@ function RoomStory({ room, lang }: { room: Room; lang: Lang }) {
   const [ref, seen] = useInView<HTMLElement>(0.3);
   const { Icon } = room;
   return (
-    <article id={`room-${room.id}`} ref={ref} className={`lroom room--${room.id} ${seen ? "is-seen" : ""}`} aria-labelledby={`lroom-${room.id}`}>
+    <article
+      id={`room-${room.id}`}
+      ref={ref}
+      className={`lroom room--${room.id} ${seen ? "is-seen" : ""}`}
+      aria-labelledby={`lroom-${room.id}`}
+    >
       <div className="lroom__wall">
         <span className="lroom__icon" aria-hidden="true">
           <Icon />
@@ -463,7 +599,10 @@ function RoomStory({ room, lang }: { room: Room; lang: Lang }) {
         </p>
         <ul className="lroom__facts" aria-label="Checked facts" lang={lang}>
           {room.facts.map((f, i) => (
-            <li key={f.kind} style={{ "--d": `${i * 90}ms` } as React.CSSProperties}>
+            <li
+              key={f.kind}
+              style={{ "--d": `${i * 90}ms` } as React.CSSProperties}
+            >
               <b>{f.value[lang]}</b>
               <small>
                 <Check /> {f.kind}
@@ -488,7 +627,10 @@ function Cable() {
   const start = useRef<number | null>(null);
   const moved = useRef(false);
   useEffect(() => {
-    const id = window.setInterval(() => setKb((k) => Math.round((k + 0.3 + Math.random() * 0.6) * 10) / 10), 900);
+    const id = window.setInterval(
+      () => setKb((k) => Math.round((k + 0.3 + Math.random() * 0.6) * 10) / 10),
+      900,
+    );
     return () => window.clearInterval(id);
   }, []);
   const onDown = (e: React.PointerEvent<HTMLButtonElement>) => {
@@ -523,12 +665,16 @@ function Cable() {
         <span className="cable__port" />
       </div>
       <svg className="cable__wire" viewBox="0 0 400 120" aria-hidden="true">
-        <path d={`M40 60 C ${120 + drag} ${pulled ? 110 : 60}, ${220 + drag} ${pulled ? 120 : 60}, ${300 + drag} 60`} />
+        <path
+          d={`M40 60 C ${120 + drag} ${pulled ? 110 : 60}, ${220 + drag} ${pulled ? 120 : 60}, ${300 + drag} 60`}
+        />
       </svg>
       <button
         type="button"
         className="cable__plug"
-        style={{ transform: `translateX(${pulled ? 150 : drag}px) ${pulled ? "rotate(18deg) translateY(40px)" : ""}` }}
+        style={{
+          transform: `translateX(${pulled ? 150 : drag}px) ${pulled ? "rotate(18deg) translateY(40px)" : ""}`,
+        }}
         onPointerDown={onDown}
         onPointerMove={onMove}
         onPointerUp={onUp}
@@ -556,7 +702,9 @@ function Cable() {
         </div>
         <div>
           <dt>Internet</dt>
-          <dd className={pulled ? "is-off" : ""}>{pulled ? "Unplugged. Still translating." : "Connected, not needed"}</dd>
+          <dd className={pulled ? "is-off" : ""}>
+            {pulled ? "Unplugged. Still translating." : "Connected, not needed"}
+          </dd>
         </div>
       </dl>
     </div>
@@ -574,16 +722,25 @@ function Forget({ lang }: { lang: Lang }) {
     return () => window.clearTimeout(id);
   }, [seen]);
   return (
-    <section ref={ref} className={`lforget ${burn ? "is-burned" : ""}`} aria-labelledby="lforget-h">
+    <section
+      ref={ref}
+      className={`lforget ${burn ? "is-burned" : ""}`}
+      aria-labelledby="lforget-h"
+    >
       <div className="lforget__text">
         <h2 id="lforget-h" className="lsec__h lsec__h--big">
           Then it forgets.
         </h2>
         <p className="lsec__lead">
-          At the end both sides get the summary. Then the session key is overwritten and the files are deleted. Only the
-          audit log remains, with no content: proof that it happened, not what was said.
+          At the end both sides get the summary. Then the session key is
+          overwritten and the files are deleted. Only the audit log remains,
+          with no content: proof that it happened, not what was said.
         </p>
-        <button type="button" className="btn btn--ghost" onClick={() => setBurn((b) => !b)}>
+        <button
+          type="button"
+          className="btn btn--ghost"
+          onClick={() => setBurn((b) => !b)}
+        >
           {burn ? "Show the summary again" : "Destroy the session"}
         </button>
       </div>
@@ -593,14 +750,18 @@ function Forget({ lang }: { lang: Lang }) {
           <h4>Medication</h4>
           <p>Metformin 500 mg, twice a day after meals</p>
           <p className="lforget__tr" lang={lang}>
-            {lang === "en" ? "Checked and read back to the patient" : "Метформин 500 мг, два раза в день после еды"}
+            {lang === "en"
+              ? "Checked and read back to the patient"
+              : "Метформин 500 мг, два раза в день после еды"}
           </p>
         </div>
         <div className="lforget__sec">
           <h4>Next appointment</h4>
           <p>Thursday, 12 November, 9 a.m.</p>
           <p className="lforget__tr" lang={lang}>
-            {lang === "en" ? "Corrected from 13 November" : "Четверг, 12 ноября, 9 часов"}
+            {lang === "en"
+              ? "Corrected from 13 November"
+              : "Четверг, 12 ноября, 9 часов"}
           </p>
         </div>
         <div className="lforget__sec">
