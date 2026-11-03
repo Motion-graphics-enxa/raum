@@ -45,3 +45,8 @@ impeccable-finish-reviewer on the shipped build (5aed352 + 80750af): **ship afte
 8. Summary sheet head: the walnut line above the paint (Paint Below The Line).
 
 Also in this pass: summary headings in the reader's language; on phones the link pill keeps only its mark while the banner names a dropped link (the room id was cut at 360 px); the dado's three labels on one line. Detector: two advisory overshoot easings in `spectacle.css` (chip pop, read-back hand-in), kept as the redesign's deliberate spectacle motion.
+
+## Talk refinement and finish review (3 Nov 2026, design/room)
+
+The inside of the room was refined within the same world; no tokens or other screens changed. The changes: a ruled fact strip, a "Facts noted" ledger, the read-back as a slip at the hero's foot with the whole sheet lifted, Yes/No at 52 px with glyphs, the proof as a ruled section, a language code on the source line, a three-bar voice meter in the plate, the bell-push orb, the strip's hairline as the scroll edge, and a compact off-the-record pill on phones. The impeccable-finish-reviewer verdict was **ship after fixes**. Fixed: the language tag, the hero time stamp and other labels on the hero's light patch now use ink-2 (ink-3 measured 4.27:1 in dark); the Hands-free label is white (paint-ink-2 measured 4.1:1). Its read-back-under-the-dado finding came from the capture harness (390 → 360 resize without a fresh settle). A fresh 360×780 phone shows the hero top and Yes/No in view, so Talk.tsx is unchanged.
+

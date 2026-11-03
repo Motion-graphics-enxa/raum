@@ -8,6 +8,9 @@
   padding: var(--s-4) var(--s-1);
   border-top: var(--line) solid var(--rule);
   animation: turn-in 300ms var(--ease-out) both;
+  /* when a newer sentence takes the light, the old hero's sheet dissolves back into the wall */
+  transition: background-color var(--t-clear) var(--ease-out), border-color var(--t-clear) var(--ease-out),
+    box-shadow var(--t-clear) var(--ease-out);
 }
 .turn:first-child,
 .turn--r0.turn--theirs,
@@ -22,7 +25,8 @@
 .turn--r0.turn--theirs {
   isolation: isolate;
   overflow: clip;
-  margin: var(--s-3) calc(var(--s-2) * -1) var(--s-2);
+  gap: 10px;
+  margin: var(--s-3) calc(var(--s-2) * -1) var(--s-3);
   padding: var(--s-4) var(--s-4) var(--s-5);
   background: var(--sheet);
   border: var(--line) solid var(--rule);
@@ -134,9 +138,30 @@
   background: transparent;
   box-shadow: inset 0 0 0 1.5px currentColor;
 }
-/* speaking now: the plate's dot breathes */
+/* speaking now: the plate's dot opens into a small voice meter (three bars), so "someone is talking" reads before a
+   word has been translated. Under reduced motion the bars stand still: still a different glyph from the dot. */
 .turn.is-live .turn__who::before {
-  animation: breathe 1.2s ease-in-out infinite;
+  width: 11px;
+  height: 11px;
+  border-radius: 0;
+  box-shadow: none;
+  background:
+    linear-gradient(currentColor 0 0) 0 50% / 3px 45% no-repeat,
+    linear-gradient(currentColor 0 0) 50% 50% / 3px 100% no-repeat,
+    linear-gradient(currentColor 0 0) 100% 50% / 3px 65% no-repeat;
+  animation: plate-voice 960ms ease-in-out infinite;
+}
+@keyframes plate-voice {
+  0%,
+  100% {
+    background-size: 3px 45%, 3px 100%, 3px 65%;
+  }
+  33% {
+    background-size: 3px 100%, 3px 55%, 3px 85%;
+  }
+  66% {
+    background-size: 3px 60%, 3px 80%, 3px 40%;
+  }
 }
 .turn__time {
   font-size: var(--label);
@@ -237,6 +262,21 @@
 .turn__sublabel {
   font-size: var(--label);
   font-weight: 650;
+}
+/* the original's language code ahead of the source line, as a bilingual edition marks the facing page */
+.turn__lang {
+  display: inline-block;
+  margin-inline-end: 0.55em;
+  padding: 1px 5px 0;
+  border: var(--line) solid var(--rule-strong);
+  border-radius: 3px;
+  font-family: var(--font-figure);
+  font-size: 0.6875rem;
+  font-weight: 780;
+  line-height: 1.35;
+  letter-spacing: 0.08em;
+  color: var(--ink-2);
+  vertical-align: 0.14em;
 }
 
 .turn__struck {
@@ -386,8 +426,24 @@
   border-radius: var(--radius);
   animation: turn-in 220ms var(--ease-out) both;
 }
+/* secondary labels that stand on the hero's light patch take ink-2: in the evening theme the patch lifts the ground
+   enough that ink-3 drops to 4.3:1 (the time stamp, the proof's row heads, the ledger caption, the timeline) */
+.turn--r0.turn--theirs .turn__time,
+.turn--r0.turn--theirs .fnotes::before,
+.turn--r0.turn--theirs .proof__facts th,
+.turn--r0.turn--theirs .proof__dl dt,
+.turn--r0.turn--theirs .tl__name,
+.turn--r0.turn--theirs .tl__tlabel {
+  color: var(--ink-2);
+}
+/* on the hero the proof is a ruled section of the same sheet, not a box inside it */
 .turn--r0.turn--theirs .proof {
-  background: color-mix(in oklab, var(--sheet) 82%, transparent);
+  margin-top: var(--s-1);
+  padding: var(--s-3) 0 0;
+  background: none;
+  border: 0;
+  border-top: var(--line) solid var(--rule-strong);
+  border-radius: 0;
 }
 .proof__facts {
   border-collapse: collapse;
@@ -445,10 +501,50 @@
   color: var(--ink-2);
 }
 
-/* the hero keeps its facts compact so the plate, sentence, source and chips fit one phone viewport */
-.turn--r0.turn--theirs .dim,
-.turn--r0.turn--theirs .cloud {
-  padding: 6px 11px 7px;
+/* ---------------------------------------------------------------- the facts as one ruled strip */
+/* In the conversation the checked facts are not loose chips pinned on (each its own little sheet with a shadow):
+   they are one strip of ruled cells printed on the sheet, like the header's strip, the cells filling each row.
+   Value over its kind; the state line along each cell's foot (solid checked, dashed checking, dotted unsure).
+   A mismatch is the one red cell: red wash, 2 px red rim inside the rule, said ≠ translated. */
+.turn .facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--line);
+  padding: var(--line);
+  border-radius: var(--radius-sm);
+  background: color-mix(in oklab, var(--ink) 20%, transparent);
+  overflow: hidden;
+}
+.turn .facts > .dim,
+.turn .facts > .cloud {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 7px 12px 10px;
+  border: 0;
+  border-radius: 0;
+  background: var(--sheet);
+  box-shadow: none;
+  animation: fade-in 320ms var(--ease-out) both;
+  animation-delay: var(--dim-delay, 0ms);
+}
+.turn .facts > .cloud {
+  background: color-mix(in oklab, var(--bad) 9%, var(--sheet));
+  box-shadow: inset 0 0 0 2px var(--bad);
+  animation: cloud-in 420ms var(--ease-out) both;
+}
+.turn .facts .dim__value {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* the hero keeps its facts compact so the plate, sentence, source and facts fit one phone viewport; on the sunlit
+   sheet the cells take a breath of the window's warmth instead of standing out paper-white */
+.turn--r0.turn--theirs .facts > .dim,
+.turn--r0.turn--theirs .facts > .cloud {
+  padding: 6px 11px 9px;
+}
+.turn--r0.turn--theirs .facts > .dim {
+  background: color-mix(in oklab, var(--sheet) 93%, rgb(var(--sun)));
 }
 .turn--r0.turn--theirs .dim__value,
 .turn--r0.turn--theirs .cloud__pair {
@@ -458,14 +554,58 @@
 .turn--r0.turn--theirs .dim__kind {
   font-size: 0.75rem;
 }
-.turn--r0.turn--theirs .facts {
-  gap: 6px;
+.turn--r0.turn--theirs .fnotes::before {
+  padding-bottom: 3px;
 }
 .turn--r0.turn--theirs .fnote {
-  min-height: 30px;
-  font-size: 0.875rem;
+  min-height: 36px;
+  padding-block: 5px;
+  font-size: 0.9375rem;
 }
 /* while a read-back asks about this sentence's facts, the question carries them: the chips step aside */
 .turn--r0.turn--theirs:has(.rb:not(.is-done)) .turn__facts {
   display: none;
+}
+
+/* ---------------------------------------------------------------- the read-back on the hero: a slip at its foot */
+/* On the hero the question is not a second sheet inside the first (No Sheet In A Sheet): it is a slip clipped to
+   the sheet's foot, edge to edge, in its pen's wash, and the whole sheet is lifted one step (the interruption
+   depth). Unsure = dashed amber edge, mismatch = solid red. Answered, the slip settles to one quiet line. */
+.turn--r0.turn--theirs:has(.rb:not(.is-done)) {
+  border-color: color-mix(in oklab, var(--unsure) 55%, var(--rule));
+  box-shadow: var(--shadow-lift);
+}
+.turn--r0.turn--theirs:has(.rb--bad:not(.is-done)) {
+  border-color: var(--bad);
+  box-shadow: inset 0 0 0 1px var(--bad), var(--shadow-lift);
+}
+.turn--r0.turn--theirs .rb {
+  order: 99; /* the slip is always the sheet's foot */
+  margin: var(--s-2) calc(var(--s-4) * -1) calc(var(--s-5) * -1);
+  padding: var(--s-4) var(--s-4) var(--s-4);
+  border: 0;
+  border-top: 2px dashed color-mix(in oklab, var(--c) 72%, transparent);
+  border-radius: 0;
+  background: color-mix(in oklab, var(--c) 9%, var(--sheet));
+  box-shadow: none;
+}
+.turn--r0.turn--theirs .rb--bad {
+  border-top-style: solid;
+}
+.turn--r0.turn--theirs .rb:not(.is-done) {
+  animation: rb-slip 460ms var(--ease-out) both;
+}
+@keyframes rb-slip {
+  from {
+    opacity: 0;
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+.turn--r0.turn--theirs .rb.is-done {
+  padding-block: var(--s-3);
+  border-top: var(--line) solid var(--rule);
+  background: color-mix(in oklab, var(--wall-2) 70%, var(--sheet));
 }
