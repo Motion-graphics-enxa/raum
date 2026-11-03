@@ -207,6 +207,39 @@
   height: 18px;
   stroke-width: 1.9;
 }
+/* Talk: the strip's lower hairline is the edge the conversation slides under (no wall between them), the cells
+   carry the same dots as the speaker plates (a ring for you, the room's paint for them), and the plate's controls
+   take a hairline instead of a heavy rim. */
+.screen--talk .tblock {
+  padding-bottom: 0;
+}
+.screen--talk .tblock__cells {
+  border-top-color: var(--rule);
+}
+.screen--talk .tblock__cell dt::before {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.screen--talk .tblock__cell--you dt::before {
+  box-shadow: inset 0 0 0 1.5px currentColor;
+}
+.screen--talk .tblock__cell--them dt::before {
+  background: var(--them);
+}
+.screen--talk .tblock__cell--end dt::before {
+  content: none;
+}
+.screen--talk .tblock__status,
+.screen--talk .tblock__menu {
+  border-width: var(--line);
+}
+.screen--talk .tblock__menu {
+  border-color: var(--rule-strong);
+}
+
 /* phones: the mark makes room for the name */
 @media (max-width: 520px) {
   .screen--talk .tblock__hatch {
@@ -214,11 +247,15 @@
   }
   /* link down: the banner under the header says "Reconnecting…" / the drop in words, so the pill keeps only its
      spinner or red dot (named for screen readers) and the plate and room id are not squeezed (360 px: "SZ-…") */
-  .tblock__status.is-named {
+  .tblock__status.is-named,
+  .screen--talk .tblock[data-off] .tblock__status {
     justify-content: center;
     width: 32px;
     padding: 0;
   }
+  /* off the record: the banner and the dado's Resume say it in words; the pill keeps its ring so the plate keeps
+     one line ("CONSULTATION ROOM" wrapped beside the full pill at 390 px) */
+  .screen--talk .tblock[data-off] .tblock__status-text,
   .tblock__status.is-named .tblock__status-text {
     position: absolute;
     width: 1px;
@@ -269,35 +306,42 @@
   stroke-width: 1.25;
   transition: r 90ms linear, opacity 160ms linear;
 }
+/* The orb is the room's porcelain bell push: glazed limewash lit from the window (top left), its curve turning
+   into shade at the foot, a fine rim where it sits in the paint. Held, it is walnut, pressed in. */
+.talk {
+  --orb-rim: 0 0 0 1px rgb(33 27 23 / 0.12);
+  --orb-glaze: inset 0 1.5px 0 rgb(255 255 255 / 0.95), inset 0 -6px 12px -2px rgb(74 52 30 / 0.16);
+  --orb-cast: 0 18px 30px -14px rgb(0 0 0 / 0.55), 0 3px 6px -2px rgb(0 0 0 / 0.18);
+}
 .talk__btn {
   position: relative;
   width: var(--orb);
   height: var(--orb);
   border-radius: 50%;
   border: 0;
-  background: #f4f4f1;
+  background: radial-gradient(115% 115% at 30% 22%, #ffffff 0%, #f7f6f2 34%, #ebe9e3 74%, #dedbd3 100%);
   color: #211b17;
   display: grid;
   place-items: center;
-  box-shadow: inset 0 -3px 0 rgb(33 27 23 / 0.08), 0 0 0 6px rgb(255 255 255 / 0.16), 0 16px 30px -12px rgb(0 0 0 / 0.5);
-  transition: background 220ms var(--ease-out), color 220ms var(--ease-out), box-shadow 220ms var(--ease-out),
-    transform 140ms var(--ease-out);
+  box-shadow: var(--orb-glaze), var(--orb-rim), 0 0 0 6px rgb(255 255 255 / 0.15), var(--orb-cast);
+  transition: color 220ms var(--ease-out), box-shadow 220ms var(--ease-out), transform 140ms var(--ease-out);
 }
 @media (hover: hover) {
   .talk__btn:hover:not(:disabled) {
-    box-shadow: inset 0 -3px 0 rgb(33 27 23 / 0.08), 0 0 0 9px rgb(255 255 255 / 0.2), 0 18px 32px -12px rgb(0 0 0 / 0.55);
+    box-shadow: var(--orb-glaze), var(--orb-rim), 0 0 0 9px rgb(255 255 255 / 0.2), var(--orb-cast);
   }
 }
 .talk__btn .icon {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   stroke-width: 1.8;
 }
 .talk.is-on .talk__btn,
 .talk[data-state="live"] .talk__btn {
-  background: #211b17;
+  background: radial-gradient(115% 115% at 30% 22%, #4a3f36 0%, #2b231e 42%, #1b1613 100%);
   color: #ffffff;
-  box-shadow: inset 0 2px 0 rgb(255 255 255 / 0.08), 0 0 0 6px rgb(255 255 255 / 0.26), 0 16px 30px -12px rgb(0 0 0 / 0.6);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12), inset 0 6px 14px -4px rgb(0 0 0 / 0.5),
+    0 0 0 1px rgb(0 0 0 / 0.3), 0 0 0 6px rgb(255 255 255 / 0.26), 0 10px 20px -12px rgb(0 0 0 / 0.6);
 }
 .talk__btn:active:not(:disabled),
 .talk[data-state="live"][data-mode="hold"] .talk__btn {
@@ -319,7 +363,7 @@
 .talk[data-state="blocked"] .talk__btn,
 .talk[data-state="disabled"] .talk__btn {
   color: rgb(255 255 255 / 0.85);
-  background: rgb(255 255 255 / 0.1);
+  background: rgb(255 255 255 / 0.1); /* the glaze goes: an empty socket in the paint */
   box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.45);
   transform: none;
 }
@@ -330,7 +374,7 @@
 }
 /* a read-back waits for my answer: the orb rings in daylight */
 .talk[data-purpose="answer"]:not([data-state="live"]) .talk__btn {
-  box-shadow: inset 0 -3px 0 rgb(33 27 23 / 0.08), 0 0 0 6px rgb(var(--sun) / 0.85), 0 16px 30px -12px rgb(0 0 0 / 0.5);
+  box-shadow: var(--orb-glaze), var(--orb-rim), 0 0 0 6px rgb(var(--sun) / 0.85), var(--orb-cast);
 }
 .talk__label {
   display: inline-flex;
@@ -386,13 +430,13 @@
   align-items: center;
   gap: 8px;
   min-height: 36px;
-  margin-top: 4px; /* a step apart from the caption above it: a setting, not part of the label */
-  padding: 0 12px 0 6px;
+  margin-top: 2px; /* a step apart from the caption above it: a setting, not part of the label */
+  padding: 0 10px 0 6px;
   border: 0;
   border-radius: var(--radius-pill);
-  background: var(--paint-well);
-  box-shadow: inset 0 0 0 1px var(--paint-rim);
-  color: var(--paint-ink-2);
+  background: transparent; /* the switch's own track is the affordance: no second pill around it */
+  color: var(--paint-ink); /* white: paint-ink-2 at 13 px held only 4.1:1 on the reseda paint */
+  transition: background var(--t-quick) var(--ease-out);
   font-size: 0.8125rem;
   font-weight: 650;
 }
@@ -403,6 +447,7 @@
   height: 20px;
   border-radius: var(--radius-pill);
   background: rgb(0 0 0 / 0.25);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.3);
   transition: background var(--t-quick) var(--ease-out);
 }
 .talk__switch::after {
@@ -419,6 +464,11 @@
 }
 .talk__mode[aria-checked="true"] {
   color: #fff;
+}
+@media (hover: hover) {
+  .talk__mode:hover {
+    background: var(--paint-well);
+  }
 }
 .talk__mode[aria-checked="true"] .talk__switch {
   background: #211b17;
@@ -477,14 +527,31 @@
   white-space: nowrap;
 }
 .rb__row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--s-3) var(--s-4);
+  display: grid;
+  gap: var(--s-3);
 }
+/* the two answers share the slip's width, a full thumb each: glyph, word and pen (three signals, not colour) */
 .rb__answers {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: var(--s-2);
+  max-width: 400px;
+}
+.rb__answers .btn {
+  min-height: 52px;
+  min-width: 0;
+  padding: 0 var(--s-3);
+  gap: 7px;
+  font-size: 1.0625rem;
+  font-weight: 760;
+}
+.rb__answers .btn .icon {
+  width: 19px;
+  height: 19px;
+  stroke-width: 2.4;
+}
+.rb__answers .btn--ok-line {
+  background: color-mix(in oklab, var(--ok) 6%, var(--sheet));
 }
 .rb__hint {
   direction: ltr; /* chrome stays left to right inside an RTL read-back */
@@ -538,34 +605,43 @@
 }
 
 /* ---------------------------------------------------------------- fact notes (the professional's list) */
+/* A ledger, not a row of pills: what went into the file from this sentence, one ruled line each, captioned with
+   the list's own name. State is the glyph and the rule above it (solid noted / confirmed, dashed unconfirmed),
+   named in words when it is not plain "noted"; the pen colours the glyph and the word only. */
 .fnotes {
   list-style: none;
   margin: var(--s-1) 0 0;
   padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px var(--s-2);
+  display: grid;
+}
+.fnotes::before {
+  content: attr(aria-label);
+  content: attr(aria-label) / "";
+  padding-bottom: 6px;
+  font-size: var(--label);
+  font-weight: 650;
+  letter-spacing: var(--label-track);
+  color: var(--ink-3);
 }
 .fnote {
   --c: var(--ok);
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 6px;
-  min-height: 34px;
+  gap: 10px;
+  min-height: 42px;
   max-width: 100%;
-  padding: 4px 12px 4px 8px;
-  border: 1.5px solid color-mix(in oklab, var(--c) 55%, transparent);
-  border-radius: var(--radius-pill);
-  background: var(--sheet);
-  font-size: 0.9375rem;
-  font-weight: 650;
+  padding: 8px 0;
+  border-top: var(--line) solid var(--rule-strong);
+  font-size: 1rem;
+  font-weight: 620;
   line-height: 1.3;
   color: var(--ink);
   animation: turn-in 260ms var(--ease-out) both;
 }
 .fnote--unconfirmed {
   --c: var(--unsure);
-  border-style: dashed;
+  border-top-style: dashed;
+  border-top-color: color-mix(in oklab, var(--unsure) 60%, transparent);
 }
 .fnote--rejected {
   --c: var(--bad);
@@ -590,6 +666,7 @@
   border: 2px dotted currentColor;
 }
 .fnote__text {
+  flex: 1;
   min-width: 0;
   overflow-wrap: anywhere;
 }
@@ -598,8 +675,8 @@
 }
 .fnote__status {
   flex: none;
-  font-size: 0.6875rem;
-  font-weight: 720;
+  font-size: 0.75rem;
+  font-weight: 740;
   color: var(--c);
 }
 

@@ -143,7 +143,7 @@
 }
 @keyframes answer-ring {
   50% {
-    box-shadow: inset 0 -3px 0 rgb(33 27 23 / 0.08), 0 0 0 12px rgb(var(--sun) / 0.55), 0 16px 30px -12px rgb(0 0 0 / 0.5);
+    box-shadow: var(--orb-glaze), var(--orb-rim), 0 0 0 12px rgb(var(--sun) / 0.55), var(--orb-cast);
   }
 }
 
@@ -181,39 +181,7 @@
   }
 }
 
-/* facts pop onto the sheet one by one, and the mismatch slams in */
-.turn .dim {
-  animation: chip-pop 520ms cubic-bezier(0.2, 1.3, 0.4, 1) both;
-  animation-delay: var(--dim-delay, 0ms);
-}
-@keyframes chip-pop {
-  from {
-    opacity: 0;
-    transform: translateY(10px) scale(0.86);
-  }
-}
-.turn .cloud {
-  animation: cloud-slam 620ms var(--ease-out) both;
-}
-@keyframes cloud-slam {
-  0% {
-    opacity: 0;
-    transform: scale(1.35) rotate(-2deg);
-  }
-  45% {
-    opacity: 1;
-    transform: scale(0.97) rotate(0deg);
-  }
-  60% {
-    transform: translateX(-5px);
-  }
-  75% {
-    transform: translateX(4px);
-  }
-  90% {
-    transform: translateX(-2px);
-  }
-}
+/* the facts' entrance lives with the ruled fact strip (turn.css): cells fade in one by one, the mismatch cell shakes */
 .vmark--green {
   animation: mark-land 600ms var(--ease-out) both;
 }

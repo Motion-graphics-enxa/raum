@@ -247,7 +247,8 @@ export function TalkControl({
           aria-label={label}
           aria-keyshortcuts={hold ? "Space" : undefined}
         >
-          {live || state === "sending" ? <Mic /> : <MicOff />}
+          {/* the struck mic only where it cannot send: hands-free with the mic off, blocked, or disabled */}
+          {live || state === "sending" || (hold && state === "idle") ? <Mic /> : <MicOff />}
         </button>
       </div>
       <p className="talk__label" aria-live="polite">
@@ -315,9 +316,11 @@ export function ReadBack({
         <div className="rb__row">
           <div className="rb__answers" role="group" aria-label={t(lang, "talk.read_back")}>
             <button type="button" className="btn btn--sm btn--ok-line" onClick={() => onAnswer(true)}>
+              <Check />
               {t(lang, "talk.confirm_yes")}
             </button>
             <button type="button" className="btn btn--sm btn--bad" onClick={() => onAnswer(false)}>
+              <Cross />
               {t(lang, "talk.confirm_no")}
             </button>
           </div>

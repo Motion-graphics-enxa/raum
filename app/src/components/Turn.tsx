@@ -137,6 +137,12 @@ export function TurnView({
           {sub || (mine && draft) ? (
             <p className="turn__sub" lang={subLang} dir={isRtl(subLang) ? "rtl" : "ltr"}>
               {mine ? <span className="turn__sublabel">{t(myLang, "talk.they_got")} · </span> : null}
+              {/* the original's language, the way a bilingual edition marks its facing page (the p carries lang) */}
+              {!mine ? (
+                <span className="turn__lang" aria-hidden="true">
+                  {subLang.split("-")[0].toUpperCase()}
+                </span>
+              ) : null}
               {sub}
               {mine && draft ? <DraftText text={draft} ui={myLang} lead={!!sub} mark /> : null}
             </p>
