@@ -168,9 +168,7 @@ async def test_ollama_verifier_back_translation_and_json():
 
 
 def test_backtranslate_num_predict_scales_with_the_text():
-    from raum.pipeline.verifier import backtranslate_num_predict
-
-    from raum.pipeline.verifier import BT_NUM_PREDICT_MIN
+    from raum.pipeline.verifier import BT_NUM_PREDICT_MIN, backtranslate_num_predict
 
     # 128 (eval/results/2026-11-03/checker-20b): 64 left 20b's reasoning short on 37.5 % of the checks
     assert BT_NUM_PREDICT_MIN == 128
