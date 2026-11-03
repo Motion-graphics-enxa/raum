@@ -25,13 +25,15 @@ log = logging.getLogger("raum.pipeline.verifier")
 
 _NUM = re.compile(r"\d+(?:[.,]\d+)?")
 
-BT_NUM_PREDICT_MIN = 64
+# gpt-oss:20b's low reasoning ate a 64-token floor: 37.5 % of the checks hit it and retried at 256 (p50 2.5 s vs
+# 0.9 s); with 128, 6 of the same 320 recorded checks would retry (eval/results/2026-11-03/checker-20b)
+BT_NUM_PREDICT_MIN = 128
 BT_NUM_PREDICT_MAX = 256
 
 
 def backtranslate_num_predict(text: str, ceiling: int = BT_NUM_PREDICT_MAX) -> int:
     """Token budget for one back-translation: about twice the text's token estimate (len / 3), at least
-    64 (room for the low reasoning), at most 256 or the profile's own ``num_predict``."""
+    128 (room for the low reasoning), at most 256 or the profile's own ``num_predict``."""
     ceiling = min(ceiling, BT_NUM_PREDICT_MAX)
     return min(ceiling, max(BT_NUM_PREDICT_MIN, 2 * -(-len(text) // 3)))
 
