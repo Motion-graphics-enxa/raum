@@ -41,3 +41,21 @@ FIRST VIEWPORT: Desktop 1440×900: wordmark and Admin on the wall, "Open a room"
 FORM: The room pass, candidate 5 of 7 on the ordered list, dealt lead. seed:1610641ed5dbc33a. Signature: the pass is issued as a room opens: Lichtfall sweeps the sheet, the code prints in, the Begleitstrich draws and the paint rises; each coupon's foot line turns solid green as its phone joins.
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+
+## Picker v2 (3 Nov 2026, user: the four door cards look like "just 4 blocks"; a fully different style)
+
+Ordered structures: 1 floor plan of the practice, rooms as plan areas; 2 doorbell panel of engraved plates; 3 monumental index, one full-width row per room; 4 drenched stage, one room at a time in its paint; 5 key board with hanging key tags; 6 corridor in perspective; 7 expanding colour fields. Roll seed:340d266677767bfc dealt 3, 2, 6; 3 leads and is built here (two other agents build other concepts in parallel). Challengers fused: split-flap (rows are entities, states change in place), streaming wall (the focused row lifts, the rest dims), metro tiles (type is the interface, colour fields as content); orienteering, zoo map, ticket wallet declined.
+
+### Direction contract (picker v2)
+
+THESIS: The picker is the building's register: four room names set monumental, one full-width row each, and reaching for one paints that row as its room. It refuses cards, tiles and any grid of equal blocks.
+
+OWN-WORLD: Altbau Daylight's materials used as typography: Sofia Sans Extra Condensed caps at poster size in walnut on limewash, hairline rules between rows, the room mark and prefix code in figures at the start, the English name, roles and checks small at the end. Hover or focus draws the 4 px Begleitstrich across the row and raises the room's oil paint under it; the name turns white and tracks in.
+
+STORY: The operator reads four names at a glance, moves toward one, sees it become that room's paint while the others step back, and opens it.
+
+FIRST VIEWPORT: Desktop 1440×900: bar, "Open a room" and one line, a register head, four rows of ~90 px names filling the width, all in view. Phone 390: four rows, mark and English name above each name set to the full width, details under it.
+
+FORM: Monumental index, candidate 3 of 7, dealt lead. seed:340d266677767bfc. Signature: Paint under the line (strich draws 300 ms, paint rises 420 ms, the rest of the register dims).
+
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance

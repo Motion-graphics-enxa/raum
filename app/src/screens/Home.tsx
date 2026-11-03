@@ -1,6 +1,6 @@
 /**
  * `/start`: open a room on this box, then hand each person their code.
- * Picking a door opens the room and issues its pass (`/start?room=<id>`): one coupon per person with their join
+ * Picking a room in the register opens it and issues its pass (`/start?room=<id>`): one coupon per person with their join
  * code and whether their phone is in yet, the table screen's code, and the table action on the room's paint.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type SVGProps } from "react";
@@ -11,6 +11,7 @@ import { langName, pick } from "../lib/i18n";
 import { useEventSocket } from "../lib/live";
 import { RoomStore, useRoomModel } from "../lib/store";
 import { QR } from "../components/QR";
+import { Hatch } from "../components/Drawing";
 import { ArrowRight, Check, Key, Pair } from "../components/Icons";
 import "./screens.css";
 import "./home.css";
@@ -115,21 +116,29 @@ export default function Home() {
               <span>{openErr}</span>
             </p>
           ) : null}
-          <ul className="doors" aria-busy={!modes && !down}>
-            {modes
-              ? modes.map((m, i) => (
-                  <li key={m.id} style={{ "--i": i } as React.CSSProperties}>
-                    <Door mode={m} busy={opening === m.id} locked={!!opening} onOpen={() => void open(m)} />
-                  </li>
-                ))
-              : down
-                ? null
-                : [0, 1, 2, 3].map((i) => (
-                    <li key={i} aria-hidden="true">
-                      <span className="door door--ghost" />
+          <div className="register" aria-busy={!modes && !down}>
+            <div className="register__head" aria-hidden="true">
+              <span>Room</span>
+              <span>{modes ? `${modes.length} ${modes.length === 1 ? "room" : "rooms"} on this box` : "\u00a0"}</span>
+            </div>
+            <ul className="register__rows">
+              {modes
+                ? modes.map((m, i) => (
+                    <li key={m.id} style={{ "--i": i } as React.CSSProperties}>
+                      <Entry mode={m} busy={opening === m.id} locked={!!opening} onOpen={() => void open(m)} />
                     </li>
-                  ))}
-          </ul>
+                  ))
+                : down
+                  ? null
+                  : [0, 1, 2, 3].map((i) => (
+                      <li key={i} aria-hidden="true" style={{ "--i": i } as React.CSSProperties}>
+                        <span className="entry entry--ghost">
+                          <span className="entry__ghost" />
+                        </span>
+                      </li>
+                    ))}
+            </ul>
+          </div>
           {!modes && !down ? <p className="visually-hidden">Loading the rooms on this box…</p> : null}
           {modes && modes.length === 0 ? (
             <p className="home__lead">
@@ -142,46 +151,52 @@ export default function Home() {
   );
 }
 
-/* ------------------------------------------------------------------ the picker: one door per room */
+/* ------------------------------------------------------------------ the picker: the building's register */
 
-function Door({ mode, busy, locked, onOpen }: { mode: ModeConfig; busy: boolean; locked: boolean; onOpen: () => void }) {
+function Entry({ mode, busy, locked, onOpen }: { mode: ModeConfig; busy: boolean; locked: boolean; onOpen: () => void }) {
   const burn = mode.retention?.auto_burn_minutes;
   return (
     <button
       type="button"
-      className={`door door--${mode.id} ${busy ? "is-busy" : ""}`}
+      className={`entry entry--${mode.id} ${busy ? "is-busy" : ""}`}
       onClick={onOpen}
       disabled={locked}
       aria-busy={busy}
     >
-      <span className="door__wall">
-        <span className="door__plate" lang="de">
-          {mode.name.de}
-        </span>
-        <span className="door__name">{pick(mode.name)}</span>
-        <span className="door__roles">
+      <span className="entry__mark">
+        <Hatch mode={mode.id} size={26} />
+        <span className="entry__code mono">{mode.prefix.toUpperCase()}</span>
+      </span>
+      <span className="entry__name" lang="de">
+        {mode.name.de}
+      </span>
+      <span className="entry__en">{pick(mode.name)}</span>
+      <span className="entry__info">
+        <span className="entry__roles">
           {pick(mode.roles.a.label)}
-          <Pair className="icon door__pair" />
+          <Pair className="icon entry__pair" />
           {pick(mode.roles.b.label)}
         </span>
-        {mode.tagline ? <span className="door__checks">{pick(mode.tagline)}</span> : null}
+        {mode.tagline ? <span className="entry__checks">{pick(mode.tagline)}</span> : null}
         {burn ? (
-          <span className="door__burn">
-            <Key className="icon" /> Burns after {burn} idle minutes
+          <span className="entry__burn">
+            <Key className="icon" /> Burns after {burn} idle min
           </span>
         ) : null}
       </span>
-      <span className="door__dado">
+      <span className="entry__go">
         {busy ? (
-          <span className="door__go">
-            <span className="door__ring" aria-hidden="true" />
-            Opening the room…
-          </span>
+          <>
+            <span className="entry__ring" aria-hidden="true" />
+            <span className="entry__go-l">Opening…</span>
+          </>
         ) : (
-          <span className="door__go">
-            Open room
-            <ArrowRight className="icon door__arrow" />
-          </span>
+          <>
+            <span className="entry__go-l">Open</span>
+            <span className="entry__arrow">
+              <ArrowRight className="icon" />
+            </span>
+          </>
         )}
       </span>
     </button>
