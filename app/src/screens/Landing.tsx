@@ -1,7 +1,7 @@
 /** `/`: the RAUM website. Three doors in a Berlin corridor; behind each, a conversation that must not leave the room. */
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, Handshake, Scale, Stethoscope } from "../components/Icons";
+import { ArrowRight, Check, Handshake, Scale, Stethoscope } from "../components/Icons";
 import "./landing.css";
 
 type Lang = "en" | "ru";
@@ -130,26 +130,37 @@ export default function Landing() {
           <a href="#rooms">The rooms</a>
           <a href="#privacy">Privacy</a>
         </nav>
-        <LangSwitch lang={lang} onChange={setLang} />
+        <LangSwitch lang={lang} onChange={setLang} className="lswitch--nav" />
         <Link className="btn lnav__cta" to="/start">
           Open a room
+          <ArrowRight />
         </Link>
       </header>
 
       <main id="top">
         {/* ------------------------------------------------ the corridor */}
         <section className="lhero" aria-labelledby="lhero-h">
-          <div className="lhero__sun" aria-hidden="true" />
+          {/* the stairwell window, off to the right: its light and its cross fall on the wall */}
+          <div className="lhero__light" aria-hidden="true">
+            <span className="lhero__glow" />
+            <span className="lhero__panes" />
+          </div>
           <div className="lhero__head">
             <h1 id="lhero-h" className="lhero__h">
-              What's said in the room
-              <br />
-              stays in the room.
+              <span className="lhero__line">
+                <span>What’s said</span> <span>in the room</span>
+              </span>{" "}
+              <span className="lhero__line lhero__line--2">
+                <span>stays in</span> <span>the room.</span>
+              </span>
             </h1>
-            <p className="lhero__offer">
-              RAUM is a private AI interpreter for the rooms where a misheard number is a legal problem. It translates
-              both ways, checks every figure, and forgets. <strong>Nothing leaves the box.</strong>
-            </p>
+            <div className="lhero__offer">
+              <p>
+                RAUM is a private AI interpreter for the rooms where a misheard number is a legal problem. It translates
+                both ways, checks every figure, and forgets. <strong>Nothing leaves the box.</strong>
+              </p>
+              <LangSwitch lang={lang} onChange={setLang} className="lswitch--hero" />
+            </div>
           </div>
           <ul className="doors" aria-label="The rooms">
             {ROOMS.map((r, i) => (
@@ -290,9 +301,10 @@ export default function Landing() {
   );
 }
 
-function LangSwitch({ lang, onChange }: { lang: Lang; onChange: (l: Lang) => void }) {
+/** Two copies render (the bar's on wide screens, the hero's on narrow ones); CSS shows one at a time. */
+function LangSwitch({ lang, onChange, className = "" }: { lang: Lang; onChange: (l: Lang) => void; className?: string }) {
   return (
-    <div className="lswitch" role="radiogroup" aria-label="Example translations in">
+    <div className={`lswitch ${className}`} role="radiogroup" aria-label="Example translations in">
       <span className="lswitch__label">Examples in</span>
       {(["en", "ru"] as const).map((l) => (
         <button key={l} type="button" role="radio" aria-checked={lang === l} className={lang === l ? "is-on" : ""} onClick={() => onChange(l)}>
