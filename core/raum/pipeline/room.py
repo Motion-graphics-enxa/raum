@@ -108,6 +108,7 @@ from raum.pipeline.draft import Drafts
 from raum.pipeline.echo import EchoControl
 from raum.pipeline.echo_check import EchoCheck
 from raum.pipeline.incomplete import join_fragments
+from raum.pipeline.livevoice import LiveVoiceGuard
 from raum.pipeline.merge import Continuations
 from raum.pipeline.simul import Simultaneous
 from raum.pipeline.speculate import Speculator
@@ -369,6 +370,7 @@ class RoomPipeline:
         self.eot: Any = None  # raum.pipeline.turn.TurnDetector (set by the worker); None: a VAD pause ends the turn
         self.denoise_ms: dict[str, float] = {}
         self.echo = EchoControl()  # C-14: whose mic pauses while which voice plays
+        self.live_voice = LiveVoiceGuard()  # livevoice.py: a call's listener hears the other person's own voice
         tts_opts = config.models.tts.options or {}
         self.voice_ref_s = float(tts_opts.get("voice_ref_s", 8.0))  # voice sample per speaker (memory only)
         self.voice_ref_min_s = float(tts_opts.get("voice_ref_min_s", 3.0))  # used from this length on
@@ -554,12 +556,16 @@ class RoomPipeline:
             return None
         u = self._active.get(speaker)
         if u is not None:
+            self.live_voice.start(speaker)
             self._cancel_hold(u)  # speech again within the end-of-turn wait: the same utterance goes on
             self.spec.drop(u.id)  # speculate.py: what was translated / voiced ahead for that pause is discarded
             u.stages = stats.Stages()  # stats.py: the next pause's timings, not this one's
             return u.id
         if self.echo.is_paused(speaker):  # C-14: the box's own voice from this device's speaker, not speech
             return None
+        if self.live_voice.is_paused(speaker, self.participants):  # the other person's own voice on a call
+            return None
+        self.live_voice.start(speaker)
         p = self.participants.get(speaker)
         role = p.role if p else _role_from_identity(speaker)
         hint = self._participant_lang(p)
@@ -586,7 +592,7 @@ class RoomPipeline:
             return
         f = np.asarray(frame)
         f = int16_to_float(f) if f.dtype == np.int16 else f.astype(np.float32, copy=False).reshape(-1)
-        if not u.echoed and self.echo.is_paused(speaker):
+        if not u.echoed and (self.echo.is_paused(speaker) or self.live_voice.is_paused(speaker, self.participants)):
             u.echoed = True
         u.frames.append(f)
         u.samples += len(f)
@@ -628,6 +634,7 @@ class RoomPipeline:
             return
         # detach synchronously (before any await): a new speech_start for this speaker starts a new utterance
         t_detect = time.monotonic()
+        self.live_voice.stop(speaker, t_detect)
         u = self._active.pop(speaker, None)
         if u is not None:
             self._cancel_hold(u)
@@ -640,6 +647,7 @@ class RoomPipeline:
                 return
             if await self.speech_start(speaker) is None:
                 return
+            self.live_voice.stop(speaker, t_detect)  # that start marked it voicing: it is over already
             u = self._active.pop(speaker, None)
             if u is None:
                 return
@@ -666,6 +674,7 @@ class RoomPipeline:
 
     async def speech_pause(self, speaker: str, audio: np.ndarray | None, vad_ms: float) -> None:
         """VAD END_OF_SPEECH with semantic end of turn: start the decision and return (see module doc)."""
+        self.live_voice.stop(speaker)  # quiet now, whatever the turn decides
         u = self._active.get(speaker)
         if self.eot is None or u is None or u.closed or self.off_record or self._closed:
             await self.speech_end(speaker, audio, vad_ms)
@@ -687,6 +696,7 @@ class RoomPipeline:
         Returns the id of the utterance it ended (after its turn ran), None if none was under way."""
         t_release = time.monotonic()
         self._ptt_ended[speaker] = t_release
+        self.live_voice.stop(speaker, t_release + tail_s)  # the tail is the last of the voice
         if tail_s > 0:
             await asyncio.sleep(tail_s)
         u = self._active.get(speaker)
@@ -1280,7 +1290,9 @@ class RoomPipeline:
         to finish an utterance that began before the pause; anything new from it is echo."""
         if self.off_record or self._closed:
             return False
-        return identity in self._active or not self.echo.is_paused(identity)
+        if identity in self._active:
+            return True
+        return not (self.echo.is_paused(identity) or self.live_voice.is_paused(identity, self.participants))
 
     def _voice_out(self, lang: str, samples: int, rate: int) -> None:
         pb = self.echo.play(lang, samples / max(1, rate), self.participants.values())
@@ -1707,6 +1719,7 @@ class RoomPipeline:
             self._drop(u)
         self._active.clear()
         self.echo.clear()
+        self.live_voice.clear()
         self._forget_voices()
         if self._service_forgets:  # the voice service deletes the samples before the room goes
             await asyncio.wait(list(self._service_forgets), timeout=3.0)

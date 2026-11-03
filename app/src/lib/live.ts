@@ -1,7 +1,7 @@
 /**
  * LiveKit connection for a phone in a room: mic publish, data-channel events, voice track,
- * reconnect + backlog, presence pings. The agent is the only thing we subscribe to:
- * the other person is physically present, so we only play the box's voice in our language.
+ * reconnect + backlog, presence pings. We subscribe to the agent's voice in our language; the other person's own
+ * mic only on a call, quietly under it (./originalVoice.ts): in the same room they are heard anyway.
  *
  * Reconnect and resume (C-12). The session lives on the box, so a phone that drops only has to
  * come back and catch up:
@@ -64,6 +64,8 @@ export interface LiveRoom {
   hold: (open: boolean) => void;
   /** A reliable data message to the agent (topic raum.control). */
   sendControl: (msg: object) => void;
+  /** The LiveKit room (null before the first connect): originalVoice.ts plays the other person's mic from it. */
+  room: Room | null;
 }
 
 const MIC_OPTIONS = { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 };
@@ -357,6 +359,7 @@ export function useLiveRoom(session: LiveSession | null, store: RoomStore, voice
   setMicRef.current = setMic;
 
   return {
+    room: roomRef.current,
     state,
     micOn,
     micError,

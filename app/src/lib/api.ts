@@ -126,7 +126,11 @@ export const api = {
   events: (room: string, since = 0) =>
     req<AnyEnvelope[] | { events: AnyEnvelope[] }>("GET", `/api/rooms/${room}/events?since=${since}`),
   control: (room: string, c: Control) => req<unknown>("POST", `/api/rooms/${room}/control`, c),
-  participant: (room: string, identity: string, change: { lang?: string; audio_out?: string; voice?: string }) =>
+  participant: (
+    room: string,
+    identity: string,
+    change: { lang?: string; audio_out?: string; voice?: string; original_voice?: boolean },
+  ) =>
     req<ParticipantInfo>("POST", `/api/rooms/${room}/participant`, { identity, ...change }),
   presence: (room: string, identity: string, rtt_ms: number) =>
     req<unknown>("POST", `/api/rooms/${room}/presence`, { identity, rtt_ms }),

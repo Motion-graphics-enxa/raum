@@ -1,0 +1,85 @@
+/* Call mode in the Talk menu (OriginalVoice.tsx). The tiles are the shared segmented choice (pickers.css); the
+   level is a walnut hairline rule with an ink fill and a round ink knob, like a fader on the sheet. */
+.ovoice {
+  display: grid;
+  gap: var(--s-2);
+}
+.ovoice__level {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: var(--s-1) var(--s-3);
+  margin-top: var(--s-2);
+}
+.ovoice__name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--ink);
+}
+.ovoice__pct {
+  font-family: var(--font-figure, inherit);
+  font-feature-settings: "tnum";
+  font-weight: 760;
+  font-size: 1rem;
+  color: var(--ink-2);
+}
+.ovoice__hint {
+  grid-column: 1 / -1;
+  font-size: 0.875rem;
+  color: var(--ink-2);
+}
+.ovoice__range {
+  --fill: 35%;
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 44px; /* the touch target; the rule itself is 4 px */
+  margin: 0;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  touch-action: pan-y;
+}
+.ovoice__range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(var(--ink), var(--ink)) 0 0 / var(--fill) 100% no-repeat, var(--rule-strong);
+}
+.ovoice__range::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--rule-strong);
+}
+.ovoice__range::-moz-range-progress {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--ink);
+}
+.ovoice__range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  margin-top: -10px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--ink);
+  box-shadow: 0 0 0 4px var(--sheet), 0 2px 6px -2px rgb(33 27 23 / 0.45);
+  transition: transform var(--t-quick) var(--ease-out);
+}
+.ovoice__range::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--ink);
+  box-shadow: 0 0 0 4px var(--sheet), 0 2px 6px -2px rgb(33 27 23 / 0.45);
+}
+.ovoice__range:active::-webkit-slider-thumb {
+  transform: scale(1.12);
+}
+.ovoice__range:focus-visible {
+  outline: 2.5px solid var(--focus);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}

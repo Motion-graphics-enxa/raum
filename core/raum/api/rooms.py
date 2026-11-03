@@ -81,6 +81,7 @@ class ParticipantUpdate(BaseModel):
     lang: str | None = None
     audio_out: Literal["headphones", "speaker", "room"] | None = None
     voice: Literal["own", "standard"] | None = None
+    original_voice: bool | None = None  # call mode: this device plays the other person's own voice (livevoice.py)
 
 
 @router.post("/rooms/{room}/participant")
@@ -90,7 +91,7 @@ async def participant(room: str, body: ParticipantUpdate, core: CoreDep) -> dict
     device's voice sample at once."""
     lang = body.lang.lower().split("-")[0] if body.lang else None
     p = await core.sessions.update_participant(room, body.identity, lang=lang, audio_out=body.audio_out,
-                                               voice=body.voice)
+                                               voice=body.voice, original_voice=body.original_voice)
     return p.model_dump(mode="json")
 
 

@@ -186,8 +186,10 @@ def participant_info(p: Any, *, prefer: str = "metadata") -> ParticipantInfo:
     voice = get("voice", "own")
     if voice not in VOICES:
         voice = "own"
+    # call mode (raum.pipeline.livevoice): JSON true, or the attribute string "True"
+    original = get("original_voice", "false").strip().lower() in ("true", "1", "yes")
     return ParticipantInfo(id=p.identity, role=role, lang=get("lang", "auto"), device=get("device", "phone"),
-                           path=path, audio_out=audio_out, voice=voice)
+                           path=path, audio_out=audio_out, voice=voice, original_voice=original)
 
 
 class RoomAgent:

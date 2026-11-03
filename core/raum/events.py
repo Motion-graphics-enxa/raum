@@ -59,6 +59,10 @@ class ParticipantInfo(_Data):
     # "own" = an AI copy of the speaker's voice (a voice sample kept in memory only); "standard" = the
     # engine's built-in voice, no sample is ever taken. Default: own.
     voice: Literal["own", "standard"] = "own"
+    # extension (call mode, raum.pipeline.livevoice): this device plays the other person's own mic voice quietly
+    # under the translation (the two are in different places). Unless on headphones its mic then pauses while
+    # another person is voicing (+ a short tail): what it plays is not this device's speech. Default: off.
+    original_voice: bool = False
 
 
 class ParticipantJoined(ParticipantInfo):

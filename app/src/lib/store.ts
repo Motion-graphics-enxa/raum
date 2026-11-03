@@ -64,6 +64,7 @@ export interface RoomModel {
   documents: (EventData["document.ready"] & { ts: number })[]; // F-07, in arrival order
   speaking: Record<string, number>; // speaker -> utterance.start ts (cleared on end)
   voicePaused: string[]; // identities whose mic the box paused while its voice plays (C-14)
+  voicePlaying: Record<string, boolean>; // target language -> the box's voice in it is playing (voice.state)
   lastTs: number;
   version: number;
 }
@@ -83,6 +84,7 @@ export function emptyModel(room: string): RoomModel {
     documents: [],
     speaking: {},
     voicePaused: [],
+    voicePlaying: {},
     lastTs: 0,
     version: 0,
   };
@@ -348,6 +350,7 @@ export function apply(prev: RoomModel, e: AnyEnvelope): RoomModel {
       break;
     case "voice.state":
       m.voicePaused = e.data.playing ? e.data.paused ?? [] : [];
+      m.voicePlaying = { ...m.voicePlaying, [e.data.target_lang]: e.data.playing }; // originalVoice.ts ducks under it
       break;
     case "privacy.meter":
       m.privacy = e.data;

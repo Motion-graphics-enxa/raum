@@ -439,10 +439,13 @@ def test_voice_switch_pushes_metadata_and_is_audited(client, core, pub):
     r = client.post(f"/api/rooms/{ROOM}/participant", json={"identity": j["identity"], "voice": "standard"})
     assert r.status_code == 200 and r.json()["voice"] == "standard"
     assert pushed == [{"role": "b", "lang": "ar", "device": "phone", "path": "direct", "audio_out": "speaker",
-                       "voice": "standard"}]
+                       "voice": "standard", "original_voice": False}]
     upd = [e["meta"] for e in core.sessions.audit.entries(session=j["session_id"])
            if e["event"] == "participant_update"]
     assert upd == [{"role": "b", "lang": "ar", "voice": "standard"}]
+    # call mode (pipeline/livevoice.py): the agent reads it from the same metadata
+    r = client.post(f"/api/rooms/{ROOM}/participant", json={"identity": j["identity"], "original_voice": True})
+    assert r.json()["original_voice"] is True and pushed[-1]["original_voice"] is True
 
 
 def test_participant_update_changes_lang_and_audio_out(tmp_path):

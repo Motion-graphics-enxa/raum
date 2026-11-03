@@ -40,6 +40,7 @@ export interface ParticipantInfo {
   rtt_ms?: number | null;
   audio_out?: "headphones" | "speaker" | "room";
   voice?: "own" | "standard"; // C-13: an AI copy of the speaker's voice, or the standard voice
+  original_voice?: boolean; // call mode: plays the other person's own voice (core pipeline/livevoice.py)
 }
 
 export interface FactCheck {

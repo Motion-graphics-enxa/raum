@@ -506,7 +506,8 @@ class SessionManager:
         return room, s, p
 
     async def update_participant(self, room_id: str, identity: str, *, lang: str | None = None,
-                                 audio_out: str | None = None, voice: str | None = None) -> ParticipantInfo:
+                                 audio_out: str | None = None, voice: str | None = None,
+                                 original_voice: bool | None = None) -> ParticipantInfo:
         """C-02 after joining: change language / voice output / whose voice (C-13). Pushes new metadata to
         LiveKit so the agent re-reads the participant from the next utterance (a switch to the standard
         voice drops the device's voice sample at once)."""
@@ -521,6 +522,8 @@ class SessionManager:
             changes["audio_out"] = audio_out
         if voice:
             changes["voice"] = voice
+        if original_voice is not None:
+            changes["original_voice"] = bool(original_voice)
         p = _participant({**p.model_dump(), **changes})
         if identity in room.participants:
             room.participants[identity] = p
@@ -530,7 +533,7 @@ class SessionManager:
         upd = getattr(self.publisher, "update_participant", None)
         if upd is not None:
             meta = {"role": p.role, "lang": p.lang, "device": p.device, "path": p.path, "audio_out": p.audio_out,
-                    "voice": p.voice}
+                    "voice": p.voice, "original_voice": p.original_voice}
             await upd(room_id, identity, meta)
         await self.state_changed(room, publish=True)
         return p
