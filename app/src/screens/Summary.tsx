@@ -110,14 +110,7 @@ export default function SummaryScreen() {
           <article className="sheet" aria-label={t(lang, "summary.title")}>
             {summary.sections.map((sec) => (
               <section key={sec.key} className="sheet__sec">
-                <h2 className="sheet__h">
-                  <span>{pick(sec.title, lang)}</span>
-                  {other && sec.title[other] && sec.title[other] !== pick(sec.title, lang) ? (
-                    <span className="sheet__h2" lang={other} dir={isRtl(other) ? "rtl" : "ltr"}>
-                      {sec.title[other]}
-                    </span>
-                  ) : null}
-                </h2>
+                <SectionHead title={sec.title} lang={lang} other={other} />
                 {sec.items.length ? (
                   <ul className="sheet__items">
                     {sec.items.map((it, i) => (
@@ -275,6 +268,26 @@ export default function SummaryScreen() {
  * its pen (tick noted / confirmed, dotted ring unconfirmed, cross said no), the fact in both languages and the
  * status in words. Sits right above the title block, where a drawing keeps its revisions.
  */
+/** A section's heading in the reader's language, like the items under it (English when the box has none), and
+ * the other person's beneath it. */
+function SectionHead({ title, lang, other }: { title: Record<string, string>; lang: string; other: string | null }) {
+  const own = title[lang];
+  const head = own ?? pick(title, lang);
+  const headLang = own ? lang : title.en ? "en" : undefined;
+  return (
+    <h2 className="sheet__h">
+      <span lang={headLang} dir={headLang && isRtl(headLang) ? "rtl" : undefined}>
+        {head}
+      </span>
+      {other && title[other] && title[other] !== head ? (
+        <span className="sheet__h2" lang={other} dir={isRtl(other) ? "rtl" : "ltr"}>
+          {title[other]}
+        </span>
+      ) : null}
+    </h2>
+  );
+}
+
 function CheckedFacts({ facts, lang, other }: { facts: NonNullable<Summary["facts"]>; lang: string; other: string | null }) {
   const gloss = other ? t(other, "summary.facts") : null;
   return (

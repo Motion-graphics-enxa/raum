@@ -57,6 +57,9 @@ export function TitleBlock({
           ? "talk.connecting"
           : "talk.disconnected_short";
   const statusClass = offRecord ? "" : live ? "is-live" : link === "disconnected" ? "is-lost" : "is-reconnecting";
+  // Talk names a dropped link in a banner right under the header: on a phone the pill keeps only its mark then,
+  // so the room name and id keep their room (sheet.css)
+  const named = !offRecord && (link === "reconnecting" || link === "disconnected");
   const [you, them] = roles ?? [t(lang, "talk.you"), t(lang, "talk.other")];
   return (
     <header className={`tblock tblock--${mode.id}`} data-off={offRecord ? "1" : undefined}>
@@ -65,13 +68,20 @@ export function TitleBlock({
         <div className="tblock__title">
           <span className="tblock__name">{pick(mode.name, UI_LANG)}</span>
           <span className="tblock__gloss">
-            {mode.name.de && mode.name.de !== pick(mode.name, UI_LANG) ? `${mode.name.de} · ` : ""}
+            {mode.name.de && mode.name.de !== pick(mode.name, UI_LANG) ? (
+              <>
+                <span className="tblock__de">{mode.name.de}</span>
+                <span className="tblock__sep" aria-hidden="true">
+                  ·
+                </span>
+              </>
+            ) : null}
             <span className="visually-hidden">{t(lang, "join.room")} </span>
             <span className="mono">{room.toUpperCase()}</span>
           </span>
         </div>
         <span
-          className={`tblock__status ${statusClass}`}
+          className={`tblock__status ${statusClass} ${named ? "is-named" : ""}`}
           role="status"
           title={`${pathLabel(path, lang)}${rtt != null ? ` · ${rtt} ms` : ""}`}
         >

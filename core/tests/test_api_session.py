@@ -102,7 +102,7 @@ def test_end_builds_bilingual_summary(client, core, pub):
     assert s["generated_ms"] < 10_000
     sec = {x["key"]: x for x in s["sections"]}
     assert list(sec) == ["medications", "allergies", "next_appointment", "warning_signs", "open_questions"]
-    assert sec["medications"]["title"] == {"de": "Medikamente", "ar": "الأدوية"}
+    assert sec["medications"]["title"] == {"de": "Medikamente", "ar": "الأدوية", "en": "Medications"}
 
     def texts(key, lang):
         return [i["text"][lang] for i in sec[key]["items"]]

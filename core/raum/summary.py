@@ -84,11 +84,16 @@ NOTE_NAMES_DE = {"sprechzimmer": "Gesprächsnotiz", "kanzlei": "Aktennotiz", "ve
                  "gespraech": "Notiz"}
 
 
+CHROME_LANG = "en"  # the app's chrome language (app/src/lib/i18n.ts UI_LANG)
+
+
 def section_title(key: str, langs: Iterable[str]) -> dict[str, str]:
+    """The heading in each conversation language, and in English too: a reader whose language is neither (or a
+    sheet read in the English chrome) gets the English heading, never the first language's (it was German)."""
     known = SECTION_TITLES.get(key)
     fallback = key.replace("_", " ").capitalize()
     out: dict[str, str] = {}
-    for lang in langs:
+    for lang in (*langs, CHROME_LANG):
         if lang in out:
             continue
         out[lang] = (known or {}).get(lang) or (known or {}).get("en") or fallback

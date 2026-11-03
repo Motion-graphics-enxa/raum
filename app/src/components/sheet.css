@@ -39,15 +39,27 @@
   overflow-wrap: anywhere;
 }
 .tblock__gloss {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
   color: var(--ink-2);
   font-size: 0.875rem;
   font-weight: 600;
   line-height: 1.25;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* short of room, the German name gives way; the room id (what people read out to join) never does */
+.tblock__de {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tblock__sep {
+  flex: none;
+  margin-inline: 0.35em;
+}
 .tblock__gloss .mono {
+  flex: none;
   font-weight: 700;
   letter-spacing: 0.04em;
 }
@@ -200,6 +212,21 @@
   .screen--talk .tblock__hatch {
     display: none;
   }
+  /* link down: the banner under the header says "Reconnecting…" / the drop in words, so the pill keeps only its
+     spinner or red dot (named for screen readers) and the plate and room id are not squeezed (360 px: "SZ-…") */
+  .tblock__status.is-named {
+    justify-content: center;
+    width: 32px;
+    padding: 0;
+  }
+  .tblock__status.is-named .tblock__status-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 }
 
 /* ---------------------------------------------------------------- talk control: the mic orb on the dado */
@@ -310,7 +337,8 @@
   align-items: center;
   justify-content: center;
   gap: 7px;
-  min-height: 24px;
+  min-height: 20px;
+  margin-top: -6px; /* the stage's 8 px halo room: the caption sits under the orb as the side labels under theirs */
   font-size: 0.9375rem;
   font-weight: 760;
   color: var(--paint-ink);
@@ -358,6 +386,7 @@
   align-items: center;
   gap: 8px;
   min-height: 36px;
+  margin-top: 4px; /* a step apart from the caption above it: a setting, not part of the label */
   padding: 0 12px 0 6px;
   border: 0;
   border-radius: var(--radius-pill);

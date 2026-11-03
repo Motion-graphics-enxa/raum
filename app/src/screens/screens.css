@@ -434,7 +434,7 @@
   position: relative;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
-  align-items: center;
+  align-items: start;
   gap: var(--s-2);
   padding: 10px var(--s-3) calc(env(safe-area-inset-bottom, 0px) + var(--s-2));
   background: linear-gradient(var(--paint), var(--paint)) bottom / 100% 100% no-repeat;
@@ -461,6 +461,9 @@
   justify-items: center;
   gap: 6px;
   min-height: 76px;
+  /* one label line across the dado: the side wells stand on the orb's foot (stage 100 px: 8 px halo room, the
+     84 px orb) and their labels share the orb caption's line; the orb rises above them */
+  margin-top: 42px;
   padding: var(--s-2) var(--s-1);
   border: 0;
   background: transparent;

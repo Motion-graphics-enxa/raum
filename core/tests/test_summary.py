@@ -137,7 +137,7 @@ async def test_empty_session():
     s = await build_summary(get_mode("sprechzimmer"), [], None, "de", "ar")
     assert all(not x.items for x in s.sections)
     assert "Keine Einträge" in s.file_note["de"]
-    assert section(s, "medications").title == {"de": "Medikamente", "ar": "الأدوية"}
+    assert section(s, "medications").title == {"de": "Medikamente", "ar": "الأدوية", "en": "Medications"}
 
 
 def test_helpers():
