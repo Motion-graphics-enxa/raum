@@ -1,4 +1,4 @@
-/* RAUM website: a Berlin stairwell landing with three practice doors, in daylight. */
+/* RAUM website, in Altbau Daylight. The first screen is one sentence at work; the sections below tell the rest. */
 .landing {
   --gut: clamp(20px, 4.4vw, 64px);
   --max: 1312px;
@@ -23,7 +23,7 @@ html:has(.landing) {
   display: flex;
   align-items: center;
   gap: clamp(16px, 2.4vw, 36px);
-  /* on a stage screen wider than the corridor, the bar keeps the doors' outer edges */
+  /* on a stage screen wider than the content, the bar keeps the content's outer edges */
   padding-block: 16px 15px;
   padding-inline: max(var(--gut), calc((100% - var(--max)) / 2));
   background: var(--wall);
@@ -165,529 +165,448 @@ html:has(.landing) {
   }
 }
 
-/* ---------------------------------------------------------------- the corridor */
-.lhero {
-  min-height: max(760px, calc(100dvh - var(--lnav-h)));
-  display: grid;
-  grid-template-rows: 1fr auto;
-  padding: clamp(12px, 2vw, 28px) var(--gut) 0;
-  isolation: isolate;
-  overflow: hidden;
-}
-/* the slate dado along the whole landing, under the Begleitstrich */
-.lhero::after {
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  bottom: 0;
-  height: clamp(200px, 32%, 300px);
-  z-index: -1;
-  background: var(--paint-gespraech);
-  border-top: var(--strich-w) solid var(--strich);
-  box-shadow: inset 0 1px 0 var(--paint-sheen);
-  animation: paint-rise 900ms var(--ease-out) 200ms both;
-}
-/* ---------------------------------------------------------------- the window's light on the wall */
-/* The stairwell window is off to the right. Its light lands on the wall as one skewed patch cut by the window
-   cross (two casements, a transom, a glazing bar), falls in once after the headline sets, then drifts with the
-   sun. Its strength is the theme's --wall-sun-a / --wall-sun-b, the same pair spectacle.css uses: in the evening
-   theme it is low enough that every ink step keeps AA on the wall wherever the patch stands. */
+/* ---------------------------------------------------------------- the first screen: one sentence at work */
+/* The page opens on RAUM doing its job at stage scale: a doctor's sentence is heard, its translation is written
+   in the shade as a pencil draft, checked, and then the daylight falls across the sheet (Lichtfall). Below the
+   Begleitstrich, the house's paint carries the rooms and the way in. */
 .landing {
-  /* the window's light, local to this page. Morning: a warm white patch on a wall that is a shade darker away
-     from the window, so the patch reads as light, not paint. Evening: the theme's own wall-sun strength. */
-  --lit: 255 244 220;
-  --lit-a: 0.86;
-  --lit-edge: var(--sun);
-  --lit-edge-a: 0.5;
-  --lshade: rgb(74 52 30 / 0.055);
+  --sweep-a: 0.62; /* the Lichtfall band: bright in the morning */
+  --say-quiet: var(--ink-3);
 }
+/* evening: the band stays faint and small text steps up to ink-2, so AA holds even while the light crosses it */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .landing {
-    --lit: var(--sun);
-    --lit-a: var(--wall-sun-a);
-    --lit-edge-a: var(--wall-sun-b);
-    --lshade: rgb(0 0 0 / 0.16);
+    --sweep-a: 0.08;
+    --say-quiet: var(--ink-2);
   }
 }
 :root[data-theme="dark"] .landing {
-  --lit: var(--sun);
-  --lit-a: var(--wall-sun-a);
-  --lit-edge-a: var(--wall-sun-b);
-  --lshade: rgb(0 0 0 / 0.16);
+  --sweep-a: 0.08;
+  --say-quiet: var(--ink-2);
 }
-.lhero__light {
-  position: absolute;
-  z-index: -2;
-  inset: 0;
-  pointer-events: none;
-  /* the wall turns away from the window: shade gathers to the far side and under the cornice */
-  background:
-    linear-gradient(180deg, var(--lshade), transparent 120px),
-    radial-gradient(130% 110% at 86% 30%, transparent 30%, var(--lshade) 100%);
-}
-.lhero__glow,
-.lhero__panes {
-  position: absolute;
-  will-change: transform;
-}
-/* light scattered round the patch */
-.lhero__glow {
-  top: -24%;
-  right: -16%;
-  width: 82%;
-  height: 118%;
-  background: radial-gradient(closest-side, rgb(var(--sun) / var(--wall-sun-b)), rgb(var(--sun) / 0) 100%);
-  animation:
-    fade-in 2400ms var(--ease-out) 900ms both,
-    glow-drift 70s ease-in-out 3000ms infinite alternate both;
-}
-.lhero__panes {
-  --mull: 1.9%; /* half the mullion: the window's upright */
-  top: 3%;
-  right: 1%;
-  width: clamp(340px, 48vw, 760px);
-  aspect-ratio: 16 / 11;
-  /* brightest at the window's side, warmer and weaker as it travels */
-  background: linear-gradient(
-    260deg,
-    rgb(var(--lit) / var(--lit-a)),
-    rgb(var(--lit) / calc(var(--lit-a) * 0.78)) 46%,
-    rgb(var(--lit-edge) / var(--lit-edge-a))
-  );
-  -webkit-mask:
-    linear-gradient(90deg, #000 calc(50% - var(--mull)), transparent 0 calc(50% + var(--mull)), #000 0),
-    linear-gradient(180deg, #000 27%, transparent 0 31%, #000 0 64%, transparent 0 66.5%, #000 0);
-  -webkit-mask-composite: source-in;
-  mask:
-    linear-gradient(90deg, #000 calc(50% - var(--mull)), transparent 0 calc(50% + var(--mull)), #000 0),
-    linear-gradient(180deg, #000 27%, transparent 0 31%, #000 0 64%, transparent 0 66.5%, #000 0);
-  mask-composite: intersect;
-  filter: blur(1.5px);
-  transform-origin: 100% 0;
-  transform: translate(0, 0) skewY(-16deg);
-  animation:
-    light-fall 2000ms var(--ease-out) 1000ms both,
-    light-drift 70s ease-in-out 3000ms infinite alternate both;
-}
-/* the shutters open: the light enters from the window side */
-@keyframes light-fall {
-  from {
-    opacity: 0;
-    clip-path: inset(0 0 0 100%);
-  }
-  to {
-    opacity: 1;
-    clip-path: inset(0 0 0 0);
-  }
-}
-/* the sun moves on: the patch slides along the wall and its slant flattens */
-@keyframes light-drift {
-  from {
-    transform: translate(0, 0) skewY(-16deg);
-  }
-  to {
-    transform: translate(-30vw, 5%) skewY(-12deg);
-  }
-}
-@keyframes glow-drift {
-  to {
-    transform: translate(-30vw, 5%);
-  }
-}
-
-/* ---------------------------------------------------------------- the headline, on the doors' grid */
-/* The head shares the doors' three columns and gap, so every edge above lines up with a door below:
-   the first line starts on the first door, the second on the second, the offer fills the first column. */
-.lhero__head {
-  --hfs: clamp(3.25rem, 0.75rem + 6.6vw, 7rem);
-  max-width: var(--max);
-  width: 100%;
-  margin: 0 auto;
+.lfirst {
+  min-height: calc(100dvh - var(--lnav-h));
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-template-rows: auto auto;
-  column-gap: clamp(20px, 3vw, 48px);
-  padding-top: clamp(8px, 2.2vh, 32px);
-  /* a tall screen leaves wall over: it goes above and below the headline, not all under it */
-  align-self: center;
+  grid-template-rows: 1fr auto;
+  isolation: isolate;
 }
-.lhero__h {
-  grid-column: 1 / -1;
-  grid-row: 1 / span 2;
-  display: grid;
-  grid-template-columns: subgrid;
-  grid-template-rows: subgrid;
-  font-family: var(--font-display);
-  font-weight: 900;
-  text-transform: uppercase;
-  font-size: var(--hfs);
-  line-height: 0.84;
-  letter-spacing: 0.004em;
-  font-feature-settings: "case", "kern";
-}
-.lhero__line {
-  grid-column: 1 / -1;
-  grid-row: 1;
-  white-space: nowrap;
-  animation: hero-in 900ms var(--ease-out) both;
-}
-.lhero__line--2 {
-  grid-column: 2 / -1;
-  grid-row: 2;
-  animation-delay: 140ms;
-}
-@keyframes hero-in {
-  from {
-    opacity: 0;
-    transform: translateY(0.22em);
-    clip-path: inset(0 0 100% 0);
-  }
-  to {
-    clip-path: inset(-10% -2% -10% -2%);
-  }
-}
-.lhero__offer {
-  grid-column: 1;
-  grid-row: 2;
-  align-self: start;
-  display: grid;
-  justify-items: start;
-  gap: var(--s-4);
-  /* the offer's first line stands level with the top of the second line's capitals */
-  padding-top: calc(var(--hfs) * 0.06);
-  animation: turn-in 700ms var(--ease-out) 380ms both;
-}
-.lhero__offer p {
-  max-width: 44ch;
-  font-size: clamp(1.0625rem, 0.98rem + 0.16vw, 1.15rem);
-  line-height: 1.42;
-  color: var(--ink-2);
-  text-wrap: pretty;
-}
-.lhero__offer strong {
-  color: var(--ink);
-  font-weight: 750;
-  white-space: nowrap; /* the promise is never split across two lines */
-}
-/* narrower three-door screens: the first column is too slim for the offer, so it sits under the second line */
-@media (max-width: 1179px) {
-  .lhero__head {
-    grid-template-rows: auto auto auto;
-  }
-  .lhero__offer {
-    grid-column: 2 / -1;
-    grid-row: 3;
-    padding-top: var(--s-4);
-  }
-  .lhero__offer p {
-    max-width: 60ch;
-  }
-}
-/* one column of doors: the head is one column too */
-@media (max-width: 820px) {
-  .lhero__head {
-    /* the first line is 8.7 em long: set it to the column it has */
-    --hfs: calc((100vw - 2 * var(--gut)) / 9);
-    display: block;
-    padding-top: var(--s-3);
-  }
-  .lhero__h {
-    display: block;
-  }
-  .lhero__line {
-    display: block;
-  }
-  .lhero__offer {
-    padding-top: var(--s-5);
-  }
-}
-/* a phone: the headline stands as four lines, as tall as the wall allows */
-@media (max-width: 560px) {
-  .lhero__head {
-    --hfs: min(19.5vw, 5.25rem);
-  }
-  .lhero__line {
-    white-space: normal;
-  }
-  .lhero__line > span {
-    display: block;
-  }
-  .lhero__offer {
-    padding-top: var(--s-5);
-  }
-}
-
-/* ---------------------------------------------------------------- doors */
-.doors {
-  list-style: none;
-  margin: clamp(20px, 3vh, 36px) auto 0;
-  padding: 0;
-  width: 100%;
-  max-width: var(--max);
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: clamp(20px, 3vw, 48px);
-  align-items: end;
-  perspective: 1600px;
-}
-.door {
-  --paint: var(--paint-gespraech);
-  position: relative;
-  height: clamp(380px, 54vh, 520px);
-  animation: door-rise 900ms var(--ease-out) both;
-  animation-delay: calc(400ms + var(--i) * 120ms);
-}
-.door--sprechzimmer {
-  --paint: var(--paint-sprechzimmer);
-}
-.door--kanzlei {
-  --paint: var(--paint-kanzlei);
-}
-.door--verhandlungsraum {
-  --paint: var(--paint-verhandlungsraum);
-}
-@keyframes door-rise {
-  from {
-    opacity: 0;
-    transform: translateY(60px);
-  }
-}
-/* the room behind the door: lit by its own window */
-.door__room {
-  position: absolute;
-  inset: 0;
+.lfirst__wall {
   display: grid;
   align-content: center;
-  gap: var(--s-3);
-  padding: clamp(20px, 2.4vw, 32px);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  background:
-    radial-gradient(120% 80% at 80% 10%, rgb(var(--sun) / 0.95), rgb(var(--sun) / 0.4) 45%, transparent 75%),
-    var(--sheet);
-  box-shadow: inset 0 0 0 2px var(--strich), inset 0 -40px 60px -30px rgb(0 0 0 / 0.12);
-  color: var(--ink);
-  opacity: 0;
-  transition: opacity 400ms var(--ease-out) 120ms;
+  gap: clamp(18px, 3vh, 32px);
+  padding: clamp(28px, 5vh, 64px) var(--gut) clamp(24px, 4vh, 48px);
 }
-.door.is-open .door__room {
-  opacity: 1;
+.lfirst__wall > * {
+  width: 100%;
+  max-width: var(--max);
+  margin-inline: auto;
 }
-.door__said {
-  font-size: 0.8125rem;
-  font-weight: 800;
-  color: var(--paint-ink);
-  background: var(--paint);
-  justify-self: start;
-  padding: 4px 11px;
-  border-radius: var(--radius-pill);
-}
-.door__de {
-  font-size: 1rem;
-  color: var(--ink-2);
-  font-weight: 560;
-}
-.door__tr {
-  font-size: clamp(1.25rem, 0.9rem + 0.9vw, 1.75rem);
-  line-height: 1.2;
-  font-weight: 780;
-  letter-spacing: -0.01em;
-}
-.door__ok {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  justify-self: start;
-  padding: 4px 11px 4px 8px;
-  border: 1.5px solid var(--ok);
-  border-radius: var(--radius-pill);
-  color: var(--ok);
-  font-weight: 800;
-  font-size: 0.875rem;
-}
-.door__ok .icon {
-  width: 16px;
-  height: 16px;
-  stroke-width: 2.4;
-}
-.door__more {
-  justify-self: start;
-  font-weight: 750;
-  color: var(--ink);
-}
-/* the leaf: limewash panel above, the room's paint below the line, an enamel plate and a brass knob */
-.door__leaf {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  display: grid;
-  align-content: start;
-  justify-items: start;
-  gap: var(--s-3);
-  padding: clamp(20px, 2.4vw, 32px);
-  border: 2px solid var(--strich);
-  border-bottom: 0;
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  background: var(--sheet);
-  color: var(--ink);
-  text-align: start;
+
+/* the hero sheet: in the cool shade while the words can change, in the window's light once they are final */
+.lsay {
+  position: relative;
+  isolation: isolate;
   overflow: hidden;
-  transform-origin: left center;
-  transform-style: preserve-3d;
-  backface-visibility: hidden;
-  transition: transform 1100ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 600ms var(--ease-out);
-  box-shadow: 0 -10px 40px -24px rgb(74 52 30 / 0.4);
-}
-.door__leaf::after {
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  bottom: 0;
-  height: 42%;
-  z-index: -1;
-  background: var(--paint);
-  border-top: var(--strich-w) solid var(--strich);
-  box-shadow: inset 0 1px 0 var(--paint-sheen);
-  transition: height 500ms var(--ease-out);
-}
-.door__leaf::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  background: linear-gradient(90deg, transparent 60%, rgb(0 0 0 / 0.16));
-  opacity: 0;
-  transition: opacity 600ms var(--ease-out);
-}
-.door__panel--top {
-  position: absolute;
-  inset: auto 14% 50% 14%;
-  height: 12%;
-  border: 1.5px solid var(--rule-strong);
-  border-radius: 3px;
-  box-shadow: inset 0 2px 0 rgb(255 255 255 / 0.6), inset 0 -2px 6px rgb(0 0 0 / 0.04);
-  z-index: -1;
-}
-.door__plate {
   display: grid;
-  gap: 4px;
-  padding: 10px 14px 9px;
-  border: 2px solid var(--strich);
-  border-radius: 3px;
-  background: #ffffff;
-  color: #211b17;
-  box-shadow: 0 2px 0 rgb(0 0 0 / 0.08), 0 8px 16px -10px rgb(0 0 0 / 0.4);
+  gap: clamp(14px, 2.2vh, 24px);
+  padding: clamp(22px, 3.4vw, 52px) clamp(22px, 4vw, 64px) clamp(20px, 2.8vw, 40px);
+  border-radius: var(--radius-lg);
+  border: var(--line) dashed color-mix(in oklab, var(--ink-3) 34%, transparent);
+  background: var(--shade);
+  transition:
+    background var(--t-clear) var(--ease-out),
+    border-color var(--t-clear) var(--ease-out),
+    box-shadow var(--t-clear) var(--ease-out);
+  animation: sheet-up 700ms var(--ease-out) 100ms both;
 }
-.door__name {
-  font-family: var(--font-display);
-  font-weight: 900;
-  font-size: clamp(1.5rem, 0.9rem + 1.3vw, 2.25rem);
-  line-height: 0.9;
-  text-transform: uppercase;
-  letter-spacing: 0.01em;
-  hyphens: auto;
+.lsay.is-final {
+  background: var(--sheet);
+  border-style: solid;
+  border-color: var(--rule);
+  box-shadow: var(--shadow-lift);
 }
-.door__gloss {
-  font-size: 0.8125rem;
-  font-weight: 700;
-  color: #4d443d;
-}
-.door__people {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--ink-2);
-}
-.door__knob {
-  position: absolute;
-  inset-inline-end: 22px;
-  top: 54%;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #f3dc9c, #b08a3e 55%, #6f5420);
-  box-shadow: 0 3px 6px rgb(0 0 0 / 0.35);
-}
-.door__knob::after {
+/* the resting light, with the shadow of the window's upright leaning through it */
+.lsay::before {
   content: "";
   position: absolute;
-  top: 6px;
-  inset-inline-end: 4px;
-  width: 26px;
-  height: 5px;
-  border-radius: 3px;
-  background: linear-gradient(#e7c97f, #8d6b2c);
+  inset: 0 -12%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent 54.6%, var(--mullion) 55.6% 57.2%, transparent 58.2%),
+    var(--sunlight);
+  -webkit-mask-image: linear-gradient(112deg, #000 26%, transparent 84%);
+  mask-image: linear-gradient(112deg, #000 26%, transparent 84%);
+  opacity: 0;
+  transform: translateX(-5%) skewX(-14deg);
+  transition:
+    opacity 900ms var(--ease-out) 360ms,
+    transform 1600ms var(--ease-out) 360ms;
 }
-.door__enter {
+.lsay.is-final::before {
+  opacity: 1;
+  transform: skewX(-14deg);
+}
+/* Lichtfall: one bright band crosses the sheet as the sentence becomes final */
+.lsay::after {
+  content: "";
   position: absolute;
-  inset-inline-start: clamp(20px, 2.4vw, 32px);
-  bottom: clamp(18px, 2.4vw, 28px);
+  inset: -20% -40%;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgb(var(--sun) / var(--sweep-a)) 48%,
+    rgb(255 255 255 / var(--sweep-a)) 50%,
+    rgb(var(--sun) / calc(var(--sweep-a) * 0.6)) 52%,
+    transparent 60%
+  );
+  transform: translateX(-70%);
+  opacity: 0;
+}
+.lsay.is-final::after {
+  animation: l-sweep 1000ms var(--ease-out) 60ms both;
+}
+.lsay__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2) var(--s-4);
+}
+.lsay__plate {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-weight: 800;
-  font-size: 1.0625rem;
+  min-height: 30px;
+  padding: 0 14px 0 11px;
+  border-radius: var(--radius-pill);
+  background: var(--paint-sprechzimmer);
   color: var(--paint-ink);
+  font-weight: 760;
+  font-size: 0.875rem;
 }
-.door__enter::after {
-  content: "";
-  width: 22px;
-  height: 2px;
+.lsay__plate i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
   background: currentColor;
-  transition: width 300ms var(--ease-out);
+}
+.lsay__plate.is-speaking i {
+  animation: breathe 1.1s ease-in-out infinite;
+}
+/* the check mark: line type first (dotted, dashed, solid), colour second, always in words */
+.lsay__mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 0 15px 0 12px;
+  border-radius: var(--radius-pill);
+  border: 2px dotted var(--ink-3);
+  background: var(--sheet);
+  color: var(--ink-2);
+  font-weight: 800;
+  font-size: 0.875rem;
+  transition: border-color var(--t-quick) var(--ease-out), color var(--t-quick) var(--ease-out);
+}
+.lsay__mark.is-check {
+  border-style: dashed;
+}
+.lsay__mark.is-final {
+  border: 2px solid var(--ok);
+  color: var(--ok);
+}
+.lsay__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--live);
+  animation: breathe 1.4s ease-in-out infinite;
+}
+.lsay__ring {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  animation: spin 800ms linear infinite;
+}
+.lsay__tick {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.6;
+}
+.lsay__tick path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: tick-draw 380ms var(--ease-out) 140ms forwards;
+}
+@keyframes tick-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.lsay__src {
+  min-height: 1.35em;
+  font-size: clamp(1.125rem, 0.95rem + 0.6vw, 1.5rem);
+  font-weight: 560;
+  line-height: 1.35;
+  color: var(--ink-2);
+}
+/* the translation is the headline: the other person's words, at the size of the room */
+.lsay__tr {
+  font-family: var(--font-text);
+  font-weight: 720;
+  font-size: clamp(2.5rem, 0.85rem + 5.9vw, 6.5rem);
+  line-height: 1;
+  letter-spacing: -0.034em;
+  font-feature-settings: "kern";
+  text-wrap: balance;
+  color: var(--ink);
+  transition: color var(--t-clear) var(--ease-out);
+}
+.lsay.is-draft .lsay__tr {
+  color: var(--ink-2);
+}
+/* words that are still to come keep their place, so the sentence never moves as it arrives */
+.lsay .w {
+  opacity: 0;
+  text-decoration: underline dotted transparent;
+  text-decoration-thickness: 0.06em;
+  text-underline-offset: 0.14em;
+  transition:
+    opacity 180ms var(--ease-out),
+    text-decoration-color var(--t-clear) var(--ease-out);
+}
+.lsay__src .w {
+  text-decoration-thickness: 2px;
+}
+.lsay .w.is-on {
+  opacity: 1;
+}
+/* the pencil line under a translation that can still change */
+.lsay.is-draft .lsay__tr .w.is-on {
+  text-decoration-color: color-mix(in oklab, var(--ink-3) 70%, transparent);
+}
+.lsay .w.is-caret::after {
+  content: "";
+  display: inline-block;
+  width: max(3px, 0.06em);
+  height: 0.82em;
+  margin-inline-start: 0.06em;
+  vertical-align: -0.06em;
+  background: var(--paint-sprechzimmer);
+  animation: l-caret 1s steps(2, start) infinite;
+}
+.lsay__note {
+  max-width: 70ch;
+  font-size: 0.9375rem;
+  color: var(--say-quiet);
+}
+.lfirst__offer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4) var(--s-6);
+}
+.lfirst__offer p {
+  max-width: 64ch;
+  font-size: clamp(1.0625rem, 0.98rem + 0.25vw, 1.25rem);
+  line-height: 1.45;
+  color: var(--ink-2);
+  text-wrap: pretty;
+  animation: turn-in 700ms var(--ease-out) 500ms both;
+}
+.lfirst__offer strong {
+  color: var(--ink);
+  font-weight: 750;
+  white-space: nowrap;
+}
+/* the way down to the proof: the demo where a wrong date is caught */
+.lfirst__proof {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  font-weight: 750;
+  font-size: 1.0625rem;
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--rule-strong);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.32em;
+  transition: text-decoration-color var(--t-quick) var(--ease-out);
+  animation: turn-in 700ms var(--ease-out) 620ms both;
+}
+.lfirst__proof .icon {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2;
+  transform: rotate(90deg);
+  transition: transform 260ms var(--ease-out);
 }
 @media (hover: hover) {
-  .door:not(.is-open) .door__leaf:hover {
-    transform: rotateY(-9deg);
-    box-shadow: 18px -10px 50px -20px rgb(74 52 30 / 0.55);
+  .lfirst__proof:hover {
+    text-decoration-color: currentColor;
   }
-  .door:not(.is-open) .door__leaf:hover::before {
-    opacity: 0.6;
-  }
-  .door__leaf:hover::after {
-    height: 46%;
-  }
-  .door__leaf:hover .door__enter::after {
-    width: 38px;
+  .lfirst__proof:hover .icon {
+    transform: rotate(90deg) translateX(3px);
   }
 }
-.door.is-open .door__leaf {
-  transform: rotateY(-84deg);
-  box-shadow: 30px 0 60px -20px rgb(0 0 0 / 0.4);
-}
-.door.is-open .door__leaf::before {
-  opacity: 1;
-}
-/* the light spilling out of an open door onto the dado */
-.door::after {
-  content: "";
-  position: absolute;
-  inset-inline: -10%;
-  top: 100%;
-  height: 120px;
-  background: radial-gradient(60% 100% at 50% 0%, rgb(var(--sun) / 0.75), transparent 70%);
-  transform: perspective(300px) rotateX(55deg);
-  transform-origin: top;
-  opacity: 0;
-  transition: opacity 700ms var(--ease-out) 200ms;
-  pointer-events: none;
-}
-.door.is-open::after {
-  opacity: 1;
-}
-@media (max-width: 820px) {
-  .doors {
-    grid-template-columns: 1fr;
-    gap: var(--s-4);
-    padding-bottom: var(--s-5);
-  }
-  .door {
-    height: 300px;
-  }
-  .door__panel--top {
+@media (max-width: 900px) {
+  .lfirst__proof {
     display: none;
   }
-  .lhero::after {
-    height: 30%;
+}
+
+/* the dado: the house's paint below the Begleitstrich, with the rooms and the way in */
+.lfirst__dado {
+  --paint: var(--paint-gespraech);
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--s-3) clamp(20px, 3vw, 48px);
+  padding: calc(var(--strich-w) + clamp(18px, 3vh, 30px)) max(var(--gut), calc((100% - var(--max)) / 2))
+    clamp(18px, 3vh, 30px);
+  color: var(--paint-ink);
+}
+.lfirst__dado::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: var(--strich-w);
+  background: var(--strich);
+  transform-origin: left;
+  animation: strich-draw 480ms var(--ease-out) both;
+}
+.lfirst__dado::after {
+  content: "";
+  position: absolute;
+  inset: var(--strich-w) 0 0;
+  z-index: -1;
+  background: var(--paint);
+  box-shadow: inset 0 1px 0 var(--paint-sheen);
+  animation: paint-rise 560ms var(--ease-out) 300ms both;
+}
+.lfirst__dado > * {
+  animation: fade-in 420ms var(--ease-out) 760ms both;
+}
+.lfirst__dado :focus-visible {
+  outline: 2.5px solid #fff;
+  outline-offset: 3px;
+}
+.lfirst__label {
+  font-size: var(--label);
+  font-weight: 650;
+  letter-spacing: var(--label-track);
+  color: var(--paint-ink-2);
+}
+.lfirst__rooms {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, auto));
+  justify-content: start;
+  gap: var(--s-2) clamp(18px, 2.8vw, 44px);
+}
+.lfirst__room {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 12px;
+  row-gap: 4px;
+  align-items: center;
+  padding: 6px 0;
+  color: var(--paint-ink);
+  text-decoration: none;
+}
+/* the room mark: limewash above, the room's paint below the line */
+.lfirst__swatch {
+  grid-row: 1 / span 2;
+  width: 30px;
+  height: 30px;
+  border-radius: 4px;
+  background: linear-gradient(var(--sheet) 0 56%, var(--strich) 0 66%, var(--paint) 0);
+  box-shadow: 0 0 0 1.5px var(--paint-rim);
+}
+.lfirst__name {
+  font-family: var(--font-display);
+  font-weight: 860;
+  text-transform: uppercase;
+  font-size: clamp(1.375rem, 1.1rem + 0.7vw, 1.875rem);
+  line-height: 0.9;
+  letter-spacing: 0.012em;
+  text-decoration: underline transparent;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.14em;
+  transition: text-decoration-color var(--t-quick) var(--ease-out);
+}
+.lfirst__gloss {
+  font-size: 0.8125rem;
+  font-weight: 650;
+  color: var(--paint-ink-2);
+}
+@media (hover: hover) {
+  .lfirst__room:hover .lfirst__name {
+    text-decoration-color: currentColor;
+  }
+}
+.lfirst__cta {
+  padding: 0 22px 0 28px;
+  text-decoration: none;
+}
+.lfirst__cta .icon {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2;
+  transition: transform 260ms var(--ease-out);
+}
+@media (hover: hover) {
+  .lfirst__cta:hover .icon {
+    transform: translateX(3px);
+  }
+}
+@media (max-width: 1100px) {
+  .lfirst__dado {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .lfirst__label {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 760px) {
+  .lfirst__dado {
+    grid-template-columns: 1fr;
+  }
+  .lfirst__rooms {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .lfirst__room {
+    padding: 12px 0;
+    border-bottom: var(--line) solid rgb(255 255 255 / 0.2);
+  }
+  .lfirst__cta {
+    width: 100%;
+    margin-top: var(--s-2);
+  }
+}
+/* a phone: the hero sheet bleeds 8 px past the column, as it does in the app */
+@media (max-width: 560px) {
+  .lfirst__wall {
+    padding: var(--s-4) calc(var(--gut) - 8px) var(--s-5);
+  }
+  .lsay {
+    padding: 18px 18px 16px;
+  }
+  .lfirst__offer {
+    padding-inline: 8px;
   }
 }
 
@@ -1617,8 +1536,7 @@ html:has(.landing) {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .lhero__glow,
-  .lhero__panes {
+  .lsay::after {
     animation: none;
   }
   .lroom__plate,
@@ -1646,88 +1564,6 @@ html:has(.landing) {
   }
 }
 
-/* the opened leaf stands in the doorway's start edge: the room's words begin clear of it */
-.door.is-open .door__room {
-  padding-inline-start: calc(clamp(20px, 2.4vw, 32px) + 56px);
-}
-/* ---------------------------------------------------------------- door anatomy: frame, fanlight, two panels */
-.door {
-  --fan: clamp(48px, 7vh, 72px);
-}
-.door::before {
-  content: "";
-  position: absolute;
-  z-index: 0;
-  inset: -12px -12px 0 -12px;
-  border: var(--strich-w) solid var(--strich);
-  border-bottom: 0;
-  border-radius: 8px 8px 0 0;
-  background:
-    linear-gradient(90deg, transparent calc(50% - 1px), var(--strich) calc(50% - 1px) calc(50% + 1px), transparent calc(50% + 1px)) top 12px left 12px / calc(100% - 24px) var(--fan) no-repeat,
-    linear-gradient(160deg, rgb(var(--sun) / 0.9), rgb(255 255 255 / 0.7) 55%, rgb(var(--sun) / 0.5)) top 12px left 12px / calc(100% - 24px) var(--fan) no-repeat,
-    var(--wall-2);
-  pointer-events: none;
-}
-.door__room,
-.door__leaf {
-  top: calc(var(--fan) + 14px);
-}
-.door__leaf {
-  border-radius: 2px 2px 0 0;
-}
-.door__panel--top {
-  inset: 40% 12% 47% 12%;
-  height: auto;
-  border: 1.5px solid var(--rule-strong);
-  border-radius: 2px;
-  box-shadow: none;
-}
-.door__panel--top::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 50%;
-  width: 1.5px;
-  background: var(--rule-strong);
-}
-.door__knob {
-  top: auto;
-  bottom: calc(42% + 22px);
-  width: 14px;
-  height: 14px;
-  background: #b08a3e;
-  box-shadow: 0 2px 3px rgb(0 0 0 / 0.25);
-}
-.door__knob::after {
-  top: 5px;
-  background: #9a7733;
-}
-/* the doors stand on an oak floor */
-.lhero {
-  padding-bottom: 26px;
-}
-.lhero::before {
-  content: "";
-  position: absolute;
-  inset-inline: 0;
-  bottom: 0;
-  height: 26px;
-  z-index: 1;
-  background: repeating-linear-gradient(90deg, #8a5d33 0 180px, #7f552f 180px 181px, #8f6237 181px 330px, #7f552f 330px 331px);
-  border-top: 2px solid var(--strich);
-}
-.lhero::after {
-  bottom: 26px;
-}
-@media (max-width: 820px) {
-  .door {
-    --fan: 40px;
-  }
-  .door::before {
-    inset: -8px -8px 0 -8px;
-  }
-}
 /* the corridor's facts, said as sentences */
 .ltoday__facts li {
   font-size: clamp(1.125rem, 1rem + 0.5vw, 1.5rem);

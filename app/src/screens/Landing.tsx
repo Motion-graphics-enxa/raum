@@ -1,5 +1,5 @@
-/** `/`: the RAUM website. Three doors in a Berlin corridor; behind each, a conversation that must not leave the room. */
-import { useEffect, useRef, useState } from "react";
+/** `/`: the RAUM website. It opens on one sentence at work: heard, translated, checked, in the light. */
+import { Fragment, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Check, Handshake, Scale, Stethoscope } from "../components/Icons";
 import "./landing.css";
@@ -113,7 +113,6 @@ const reduced = () => typeof matchMedia !== "undefined" && matchMedia("(prefers-
 
 export default function Landing() {
   const [lang, setLang] = useState<Lang>("en");
-  const [open, setOpen] = useState<RoomId | null>(null);
 
   useEffect(() => {
     document.title = "RAUM: a private interpreter that lives in the room";
@@ -138,72 +137,8 @@ export default function Landing() {
       </header>
 
       <main id="top">
-        {/* ------------------------------------------------ the corridor */}
-        <section className="lhero" aria-labelledby="lhero-h">
-          {/* the stairwell window, off to the right: its light and its cross fall on the wall */}
-          <div className="lhero__light" aria-hidden="true">
-            <span className="lhero__glow" />
-            <span className="lhero__panes" />
-          </div>
-          <div className="lhero__head">
-            <h1 id="lhero-h" className="lhero__h">
-              <span className="lhero__line">
-                <span>What’s said</span> <span>in the room</span>
-              </span>{" "}
-              <span className="lhero__line lhero__line--2">
-                <span>stays in</span> <span>the room.</span>
-              </span>
-            </h1>
-            <div className="lhero__offer">
-              <p>
-                RAUM is a private AI interpreter for the rooms where a misheard number is a legal problem. It translates
-                both ways, checks every figure, and forgets. <strong>Nothing leaves the box.</strong>
-              </p>
-              <LangSwitch lang={lang} onChange={setLang} className="lswitch--hero" />
-            </div>
-          </div>
-          <ul className="doors" aria-label="The rooms">
-            {ROOMS.map((r, i) => (
-              <li key={r.id} className={`door door--${r.id} ${open === r.id ? "is-open" : ""}`} style={{ "--i": i } as React.CSSProperties}>
-                <div className="door__room" aria-hidden={open !== r.id}>
-                  <span className="door__said">{r.said} · German</span>
-                  <p className="door__de" lang="de">
-                    {r.de}
-                  </p>
-                  <p className="door__tr" lang={lang}>
-                    {r.tr[lang]}
-                  </p>
-                  <span className="door__ok">
-                    <Check /> Checked
-                  </span>
-                  <a className="door__more" href={`#room-${r.id}`}>
-                    See the room
-                  </a>
-                </div>
-                <button
-                  type="button"
-                  className="door__leaf"
-                  aria-expanded={open === r.id}
-                  aria-label={`${r.plate}, ${r.gloss}. ${open === r.id ? "Close the door" : "Open the door"}`}
-                  onClick={() => setOpen((o) => (o === r.id ? null : r.id))}
-                >
-                  <span className="door__panel door__panel--top" aria-hidden="true" />
-                  <span className="door__plate">
-                    <span className="door__name" lang="de">
-                      {r.plate}
-                    </span>
-                    <span className="door__gloss">{r.gloss}</span>
-                  </span>
-                  <span className="door__people">{r.people}</span>
-                  <span className="door__knob" aria-hidden="true" />
-                  <span className="door__enter" aria-hidden="true">
-                    {open === r.id ? "Close" : "Open the door"}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
+        {/* ------------------------------------------------ the first sentence */}
+        <FirstSentence lang={lang} onLang={setLang} />
 
         {/* ------------------------------------------------ today */}
         <section className="ltoday" aria-labelledby="ltoday-h">
@@ -298,6 +233,151 @@ export default function Landing() {
         </span>
       </footer>
     </div>
+  );
+}
+
+/* ---------------------------------------------------------------- the first screen: RAUM at work */
+
+/** The page opens on one sentence a doctor says. RAUM hears it, writes the translation in the shade as a draft,
+ *  checks it, and the daylight falls across it: Lichtfall, the product's own signature, is the headline. */
+const FIRST = {
+  de: "Was im Raum gesagt wird, bleibt im Raum.",
+  tr: {
+    en: "What’s said in the room stays in the room.",
+    ru: "То, что сказано в комнате, остаётся в комнате.",
+  },
+};
+type Phase = "hear" | "draft" | "check" | "final";
+
+function FirstSentence({ lang, onLang }: { lang: Lang; onLang: (l: Lang) => void }) {
+  const de = FIRST.de.split(" ");
+  const tr = FIRST.tr[lang].split(" ");
+  const [phase, setPhase] = useState<Phase>("hear");
+  const [heard, setHeard] = useState(0);
+  const [written, setWritten] = useState(0);
+  const heardAll = useRef(false); // set by the timer itself, so a cancelled run (StrictMode) hears it again
+
+  useEffect(() => {
+    const n = FIRST.tr[lang].split(" ").length;
+    if (reduced()) {
+      setHeard(de.length);
+      setWritten(n);
+      setPhase("final");
+      return;
+    }
+    const ts: number[] = [];
+    const at = (ms: number, fn: () => void) => ts.push(window.setTimeout(fn, ms));
+    // the first time the sentence is heard; a language change only rewrites the translation
+    let t = 0;
+    if (!heardAll.current) {
+      setPhase("hear");
+      setHeard(0);
+      setWritten(0);
+      de.forEach((_, i) => at(260 + i * 95, () => setHeard(i + 1)));
+      t = 260 + de.length * 95 + 160;
+      at(t, () => (heardAll.current = true));
+    } else {
+      setWritten(0);
+      t = 120;
+    }
+    at(t, () => setPhase("draft"));
+    for (let i = 0; i < n; i++) at(t + 40 + i * 105, () => setWritten(i + 1));
+    const done = t + 40 + n * 105;
+    at(done + 120, () => setPhase("check"));
+    at(done + 900, () => setPhase("final"));
+    return () => ts.forEach(clearTimeout);
+  }, [lang]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const typing = phase === "hear" || phase === "draft";
+  return (
+    <section className="lfirst" aria-labelledby="lfirst-h">
+      <div className="lfirst__wall">
+        <article className={`lsay ${phase === "final" ? "is-final" : "is-draft"}`} aria-label="Example: a sentence, translated and checked">
+          <header className="lsay__head">
+            <span className={`lsay__plate ${phase === "hear" ? "is-speaking" : ""}`}>
+              <i aria-hidden="true" />
+              Doctor · German
+            </span>
+            <span className={`lsay__mark is-${phase}`}>
+              {phase === "final" ? (
+                <>
+                  <svg viewBox="0 0 24 24" className="icon lsay__tick" aria-hidden="true">
+                    <path d="M5 12.5l4.5 4.5L19 7.5" pathLength={1} />
+                  </svg>
+                  Checked
+                </>
+              ) : phase === "check" ? (
+                <>
+                  <i className="lsay__ring" aria-hidden="true" />
+                  Checking
+                </>
+              ) : (
+                <>
+                  <i className="lsay__dot" aria-hidden="true" />
+                  {phase === "hear" ? "Listening" : "Live draft"}
+                </>
+              )}
+            </span>
+          </header>
+          <p className="lsay__src" lang="de">
+            <Words words={de} shown={heard} caret={phase === "hear"} />
+          </p>
+          <h1 id="lfirst-h" className="lsay__tr" lang={lang}>
+            <Words words={tr} shown={written} caret={typing && phase === "draft"} />
+          </h1>
+          <p className="lsay__note">
+            Example. A doctor to a patient: translated, then translated back by a second model to check the meaning.
+          </p>
+        </article>
+        <div className="lfirst__offer">
+          <p>
+            RAUM is a private AI interpreter for the rooms where a misheard number is a legal problem. It translates both
+            ways, checks every figure, and forgets. <strong>Nothing leaves the box.</strong>
+          </p>
+          <LangSwitch lang={lang} onChange={onLang} className="lswitch--hero" />
+          <a className="lfirst__proof" href="#check">
+            Watch it catch a wrong date
+            <ArrowRight />
+          </a>
+        </div>
+      </div>
+      <nav className="lfirst__dado" aria-label="The rooms">
+        <span className="lfirst__label">The rooms</span>
+        <ul className="lfirst__rooms">
+          {ROOMS.map((r) => (
+            <li key={r.id}>
+              <a href={`#room-${r.id}`} className={`lfirst__room room--${r.id}`}>
+                <span className="lfirst__swatch" aria-hidden="true" />
+                <span className="lfirst__name" lang="de">
+                  {r.plate}
+                </span>
+                <span className="lfirst__gloss">
+                  {r.gloss} · {r.people}
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+        <Link className="btn btn--wall btn--lg lfirst__cta" to="/start">
+          Open a room
+          <ArrowRight />
+        </Link>
+      </nav>
+    </section>
+  );
+}
+
+/** Words that arrive one by one. The words still to come keep their place, so nothing moves as they arrive. */
+function Words({ words, shown, caret }: { words: string[]; shown: number; caret: boolean }) {
+  return (
+    <>
+      {words.map((w, i) => (
+        <Fragment key={`${i}-${w}`}>
+          <span className={`w ${i < shown ? "is-on" : ""} ${caret && i === shown - 1 ? "is-caret" : ""}`}>{w}</span>
+          {i < words.length - 1 ? " " : ""}
+        </Fragment>
+      ))}
+    </>
   );
 }
 
