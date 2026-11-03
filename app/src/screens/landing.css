@@ -172,17 +172,36 @@ html:has(.landing) {
 .landing {
   --sweep-a: 0.62; /* the Lichtfall band: bright in the morning */
   --say-quiet: var(--ink-3);
+  --lsay-sun: var(--sunlight);
+  --lsay-mullion: rgb(120 92 52 / 0.16); /* the upright's shadow, strong enough to read on the lit sheet */
 }
 /* evening: the band stays faint and small text steps up to ink-2, so AA holds even while the light crosses it */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .landing {
     --sweep-a: 0.08;
     --say-quiet: var(--ink-2);
+    --lsay-mullion: var(--mullion);
+    /* low evening sun on the sheet, not a warm stain in its corner */
+    --lsay-sun: linear-gradient(
+      112deg,
+      rgb(var(--sun) / 0.12) 0%,
+      rgb(var(--sun) / 0.08) 36%,
+      rgb(var(--sun) / 0.03) 64%,
+      rgb(var(--sun) / 0) 84%
+    );
   }
 }
 :root[data-theme="dark"] .landing {
   --sweep-a: 0.08;
   --say-quiet: var(--ink-2);
+  --lsay-mullion: var(--mullion);
+  --lsay-sun: linear-gradient(
+    112deg,
+    rgb(var(--sun) / 0.12) 0%,
+    rgb(var(--sun) / 0.08) 36%,
+    rgb(var(--sun) / 0.03) 64%,
+    rgb(var(--sun) / 0) 84%
+  );
 }
 .lfirst {
   min-height: calc(100dvh - var(--lnav-h));
@@ -233,8 +252,8 @@ html:has(.landing) {
   z-index: -1;
   pointer-events: none;
   background:
-    linear-gradient(90deg, transparent 54.6%, var(--mullion) 55.6% 57.2%, transparent 58.2%),
-    var(--sunlight);
+    linear-gradient(90deg, transparent 54.6%, var(--lsay-mullion) 55.6% 57.2%, transparent 58.2%),
+    var(--lsay-sun);
   -webkit-mask-image: linear-gradient(112deg, #000 26%, transparent 84%);
   mask-image: linear-gradient(112deg, #000 26%, transparent 84%);
   opacity: 0;
@@ -405,12 +424,13 @@ html:has(.landing) {
   font-size: 0.9375rem;
   color: var(--say-quiet);
 }
+/* the offer, then the way down to the proof right after it */
 .lfirst__offer {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--s-4) var(--s-6);
+  align-items: last baseline;
+  justify-content: flex-start;
+  gap: var(--s-3) var(--s-6);
 }
 .lfirst__offer p {
   max-width: 64ch;
@@ -457,8 +477,9 @@ html:has(.landing) {
   }
 }
 @media (max-width: 900px) {
-  .lfirst__proof {
-    display: none;
+  .lfirst__offer {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 

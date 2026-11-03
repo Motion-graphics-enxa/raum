@@ -273,9 +273,10 @@ function FirstSentence({ lang, onLang }: { lang: Lang; onLang: (l: Lang) => void
       setPhase("hear");
       setHeard(0);
       setWritten(0);
+      // the translation starts while the doctor is still speaking: three words in, the draft begins
       de.forEach((_, i) => at(260 + i * 95, () => setHeard(i + 1)));
-      t = 260 + de.length * 95 + 160;
-      at(t, () => (heardAll.current = true));
+      at(260 + de.length * 95, () => (heardAll.current = true));
+      t = 260 + 3 * 95;
     } else {
       setWritten(0);
       t = 120;
@@ -320,7 +321,7 @@ function FirstSentence({ lang, onLang }: { lang: Lang; onLang: (l: Lang) => void
             </span>
           </header>
           <p className="lsay__src" lang="de">
-            <Words words={de} shown={heard} caret={phase === "hear"} />
+            <Words words={de} shown={heard} caret={heard > 0 && heard < de.length} />
           </p>
           <h1 id="lfirst-h" className="lsay__tr" lang={lang}>
             <Words words={tr} shown={written} caret={typing && phase === "draft"} />
@@ -334,11 +335,11 @@ function FirstSentence({ lang, onLang }: { lang: Lang; onLang: (l: Lang) => void
             RAUM is a private AI interpreter for the rooms where a misheard number is a legal problem. It translates both
             ways, checks every figure, and forgets. <strong>Nothing leaves the box.</strong>
           </p>
-          <LangSwitch lang={lang} onChange={onLang} className="lswitch--hero" />
           <a className="lfirst__proof" href="#check">
             Watch it catch a wrong date
             <ArrowRight />
           </a>
+          <LangSwitch lang={lang} onChange={onLang} className="lswitch--hero" />
         </div>
       </div>
       <nav className="lfirst__dado" aria-label="The rooms">
