@@ -1,7 +1,7 @@
-/** `/`: the RAUM website. Three doors in a Berlin corridor; behind each, a conversation that must not leave the room. */
-import { useEffect, useRef, useState } from "react";
+/** `/`: the RAUM website. It opens on a reel of three rooms; in each, one sentence is heard, translated, checked and forgotten. */
+import { Fragment, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Check, Handshake, Scale, Stethoscope } from "../components/Icons";
+import { ArrowRight, Check, Handshake, Pause, Play, Scale, Stethoscope } from "../components/Icons";
 import "./landing.css";
 
 type Lang = "en" | "ru";
@@ -113,7 +113,6 @@ const reduced = () => typeof matchMedia !== "undefined" && matchMedia("(prefers-
 
 export default function Landing() {
   const [lang, setLang] = useState<Lang>("en");
-  const [open, setOpen] = useState<RoomId | null>(null);
 
   useEffect(() => {
     document.title = "RAUM: a private interpreter that lives in the room";
@@ -138,72 +137,8 @@ export default function Landing() {
       </header>
 
       <main id="top">
-        {/* ------------------------------------------------ the corridor */}
-        <section className="lhero" aria-labelledby="lhero-h">
-          {/* the stairwell window, off to the right: its light and its cross fall on the wall */}
-          <div className="lhero__light" aria-hidden="true">
-            <span className="lhero__glow" />
-            <span className="lhero__panes" />
-          </div>
-          <div className="lhero__head">
-            <h1 id="lhero-h" className="lhero__h">
-              <span className="lhero__line">
-                <span>What’s said</span> <span>in the room</span>
-              </span>{" "}
-              <span className="lhero__line lhero__line--2">
-                <span>stays in</span> <span>the room.</span>
-              </span>
-            </h1>
-            <div className="lhero__offer">
-              <p>
-                RAUM is a private AI interpreter for the rooms where a misheard number is a legal problem. It translates
-                both ways, checks every figure, and forgets. <strong>Nothing leaves the box.</strong>
-              </p>
-              <LangSwitch lang={lang} onChange={setLang} className="lswitch--hero" />
-            </div>
-          </div>
-          <ul className="doors" aria-label="The rooms">
-            {ROOMS.map((r, i) => (
-              <li key={r.id} className={`door door--${r.id} ${open === r.id ? "is-open" : ""}`} style={{ "--i": i } as React.CSSProperties}>
-                <div className="door__room" aria-hidden={open !== r.id}>
-                  <span className="door__said">{r.said} · German</span>
-                  <p className="door__de" lang="de">
-                    {r.de}
-                  </p>
-                  <p className="door__tr" lang={lang}>
-                    {r.tr[lang]}
-                  </p>
-                  <span className="door__ok">
-                    <Check /> Checked
-                  </span>
-                  <a className="door__more" href={`#room-${r.id}`}>
-                    See the room
-                  </a>
-                </div>
-                <button
-                  type="button"
-                  className="door__leaf"
-                  aria-expanded={open === r.id}
-                  aria-label={`${r.plate}, ${r.gloss}. ${open === r.id ? "Close the door" : "Open the door"}`}
-                  onClick={() => setOpen((o) => (o === r.id ? null : r.id))}
-                >
-                  <span className="door__panel door__panel--top" aria-hidden="true" />
-                  <span className="door__plate">
-                    <span className="door__name" lang="de">
-                      {r.plate}
-                    </span>
-                    <span className="door__gloss">{r.gloss}</span>
-                  </span>
-                  <span className="door__people">{r.people}</span>
-                  <span className="door__knob" aria-hidden="true" />
-                  <span className="door__enter" aria-hidden="true">
-                    {open === r.id ? "Close" : "Open the door"}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
+        {/* ------------------------------------------------ the reel: three rooms, played like a title sequence */}
+        <Reel lang={lang} onLang={setLang} />
 
         {/* ------------------------------------------------ today */}
         <section className="ltoday" aria-labelledby="ltoday-h">
@@ -312,6 +247,265 @@ function LangSwitch({ lang, onChange, className = "" }: { lang: Lang; onChange: 
         </button>
       ))}
     </div>
+  );
+}
+
+/* ---------------------------------------------------------------- the reel */
+
+/** One scene per room: [brackets] mark the facts code compares between what was said and its translation. */
+const REEL: Record<RoomId, { to: string; de: string; tr: Record<Lang, string> }> = {
+  sprechzimmer: {
+    to: "the patient",
+    de: "Nehmen Sie [zweimal täglich] [500 mg] [Metformin] nach dem Essen.",
+    tr: {
+      en: "Take [500 mg] of [metformin] [twice a day], after meals.",
+      ru: "Принимайте [500 мг] [метформина] [два раза в день] после еды.",
+    },
+  },
+  kanzlei: {
+    to: "the client",
+    de: "Die Frist für Ihren [Widerspruch] endet am [14. März].",
+    tr: {
+      en: "The deadline for your [objection] ends on [14 March].",
+      ru: "Срок подачи вашего [возражения] истекает [14 марта].",
+    },
+  },
+  verhandlungsraum: {
+    to: "the partner",
+    de: "Unser letztes Angebot: [2,4 Millionen Euro], Lieferung im [Juni].",
+    tr: {
+      en: "Our final offer: [2.4 million euros], delivery in [June].",
+      ru: "Наше последнее предложение: [2,4 миллиона евро], поставка в [июне].",
+    },
+  },
+};
+const SCENE_MS = 7600;
+const LEAD_MS = 900; // the first scene waits for the line to draw and the paint to come in
+const facts = (s: string) => (s.match(/\[/g) ?? []).length;
+
+/** A sentence as words that arrive one by one; its facts are wrapped so the check can mark them. */
+function Sentence({ text, lang, className }: { text: string; lang: string; className: string }) {
+  let w = 0;
+  let f = 0;
+  const words = (t: string) =>
+    t.split(/(\s+)/).map((x, i) =>
+      !x ? null : /^\s+$/.test(x) ? x : (
+        <span key={i} className="w" style={{ "--w": w++ } as React.CSSProperties}>
+          {x}
+        </span>
+      ),
+    );
+  return (
+    <p className={className} lang={lang}>
+      {text
+        .split(/(\[[^\]]+\])/)
+        .filter(Boolean)
+        .map((seg, i) =>
+          seg.startsWith("[") ? (
+            <span key={i} className="f" style={{ "--f": f++ } as React.CSSProperties}>
+              {words(seg.slice(1, -1))}
+            </span>
+          ) : (
+            <Fragment key={i}>{words(seg)}</Fragment>
+          ),
+        )}
+    </p>
+  );
+}
+
+/** Pauses the reel while it is off screen or the tab is hidden. */
+function useOnScreen<T extends Element>() {
+  const ref = useRef<T>(null);
+  const [on, setOn] = useState(true);
+  useEffect(() => {
+    const el = ref.current;
+    let seen = true;
+    let shown = document.visibilityState !== "hidden";
+    const sync = () => setOn(seen && shown);
+    const onVis = () => {
+      shown = document.visibilityState !== "hidden";
+      sync();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    let io: IntersectionObserver | undefined;
+    if (el && typeof IntersectionObserver !== "undefined") {
+      io = new IntersectionObserver(
+        (es) => {
+          for (const e of es) seen = e.isIntersecting;
+          sync();
+        },
+        { threshold: 0.15 },
+      );
+      io.observe(el);
+    }
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      io?.disconnect();
+    };
+  }, []);
+  return [ref, on] as const;
+}
+
+function Reel({ lang, onLang }: { lang: Lang; onLang: (l: Lang) => void }) {
+  const [ref, onScreen] = useOnScreen<HTMLElement>();
+  const [scene, setScene] = useState(0);
+  const [prev, setPrev] = useState(-1);
+  const [phase, setPhase] = useState(0); // 0 waiting · 1 heard · 2 translated · 3 checked · 4 forgotten
+  const [lit, setLit] = useState(false);
+  const [playing, setPlaying] = useState(true);
+  const [run, setRun] = useState(0);
+  const booted = useRef(false);
+  const still = reduced() || !playing;
+  const room = ROOMS[scene];
+  const n = facts(REEL[room.id].de);
+
+  useEffect(() => {
+    if (still) {
+      booted.current = true;
+      setLit(true);
+      setPhase(3);
+      return;
+    }
+    if (!onScreen) return;
+    const ts: number[] = [];
+    const at = (ms: number, fn: () => void) => ts.push(window.setTimeout(fn, ms));
+    const lead = booted.current ? 0 : LEAD_MS;
+    booted.current = true;
+    setPhase(0);
+    at(Math.max(0, lead - 600), () => setLit(true));
+    at(lead + 350, () => setPhase(1));
+    at(lead + 2000, () => setPhase(2));
+    at(lead + 3300, () => setPhase(3));
+    at(lead + SCENE_MS - 1150, () => setPhase(4));
+    at(lead + SCENE_MS, () => {
+      setPrev(scene);
+      setScene((scene + 1) % ROOMS.length);
+    });
+    return () => ts.forEach(clearTimeout);
+  }, [scene, run, still, onScreen]);
+
+  const go = (i: number) => {
+    if (i === scene) setRun((r) => r + 1);
+    else {
+      setPrev(scene);
+      setScene(i);
+    }
+  };
+
+  const cls = ["reel", lit ? "is-lit" : "", phase >= 1 ? "is-heard" : "", phase >= 2 ? "is-tr" : "", phase === 3 ? "is-ok" : "", phase === 4 ? "is-gone" : "", still ? "is-still" : ""]
+    .filter(Boolean)
+    .join(" ");
+  const status =
+    phase >= 4 ? "Session over. Key destroyed." : phase === 3 ? `${n} of ${n} facts match` : phase === 2 ? "Translating, checking" : "Listening";
+
+  return (
+    <section ref={ref} className={cls} aria-labelledby="reel-h">
+      <div className="reel__wall">
+        <span className="reel__beam" aria-hidden="true" />
+        <div className="reel__head">
+          <h1 id="reel-h" className="reel__h">
+            <span className="reel__line">
+              <span>What’s said in the room</span>
+            </span>{" "}
+            <span className="reel__line reel__line--2">
+              <span>stays in the room.</span>
+            </span>
+          </h1>
+          <div className="reel__offer">
+            <p>
+              RAUM is a private AI interpreter for the rooms where a misheard number is a legal problem. It translates both
+              ways, checks every figure, and forgets. <strong>Nothing leaves the box.</strong>
+            </p>
+            <LangSwitch lang={lang} onChange={onLang} className="lswitch--hero" />
+          </div>
+        </div>
+        <div className="reel__stack reel__stack--de">
+          {ROOMS.map((r, i) => (
+            <div key={r.id} className={`reel__scene ${i === scene ? "is-on" : ""}`} aria-hidden={i !== scene}>
+              <span className="reel__who">
+                <span className="reel__live" aria-hidden="true" />
+                Example · {r.said}, speaking German
+              </span>
+              <Sentence className="reel__de" text={REEL[r.id].de} lang="de" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="reel__dado">
+        <span className="reel__strich" aria-hidden="true" />
+        <span className="reel__paint" aria-hidden="true">
+          {ROOMS.map((r, i) => (
+            <i key={r.id} className={`paint--${r.id} ${lit && i === scene ? "is-on" : ""} ${lit && i === prev && i !== scene ? "is-prev" : ""}`} />
+          ))}
+        </span>
+        <span className="reel__ghost" aria-hidden="true">
+          {ROOMS.map((r, i) => (
+            <span key={r.id} className={lit && i === scene ? "is-on" : ""} lang="de">
+              {r.plate}
+            </span>
+          ))}
+        </span>
+        <span className="reel__sweep" aria-hidden="true" />
+
+        <div className="reel__stack reel__stack--tr">
+          {ROOMS.map((r, i) => (
+            <div key={r.id} className={`reel__scene ${i === scene ? "is-on" : ""}`} aria-hidden={i !== scene}>
+              <div className="reel__meta">
+                <span className="reel__to">
+                  For {REEL[r.id].to}, in {lang === "en" ? "English" : "Russian"}
+                </span>
+                <span className="reel__status">
+                  {i === scene && phase === 3 ? <Check /> : <span className="reel__dot" aria-hidden="true" />}
+                  {i === scene ? status : "Listening"}
+                </span>
+              </div>
+              <Sentence className="reel__tr" text={REEL[r.id].tr[lang]} lang={lang} />
+            </div>
+          ))}
+        </div>
+
+        <div className="reel__foot">
+          <ol className="reel__rooms" aria-label="The rooms">
+            {ROOMS.map((r, i) => (
+              <li key={r.id} className={i === scene ? "is-on" : ""}>
+                <button type="button" aria-pressed={i === scene} onClick={() => go(i)}>
+                  <span className="reel__bar" aria-hidden="true">
+                    <i
+                      key={i === scene ? `${scene}-${run}-${still}` : "off"}
+                      style={{ "--lead": prev === -1 && run === 0 ? `${LEAD_MS}ms` : "0ms" } as React.CSSProperties}
+                    />
+                  </span>
+                  <span className="reel__plate" lang="de">
+                    {r.plate}
+                  </span>
+                  <span className="reel__gloss">
+                    {r.gloss} · {r.people}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ol>
+          <div className="reel__go">
+            <Link className="btn reel__cta" to="/start">
+              <span>
+                Open the <span lang="de">{room.plate}</span>
+              </span>
+              <ArrowRight />
+            </Link>
+            <span className="reel__go-row">
+              <a className="reel__more" href={`#room-${room.id}`}>
+                How it works in this room
+              </a>
+              <button type="button" className="reel__pause" aria-pressed={!playing} onClick={() => setPlaying((p) => !p)}>
+                {playing ? <Pause /> : <Play />}
+                {playing ? "Pause" : "Play"}
+              </button>
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
