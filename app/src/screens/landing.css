@@ -275,9 +275,6 @@ html:has(.landing) {
   color: var(--ink);
   font-weight: 750;
 }
-.reel__offer .lswitch {
-  margin-top: 18px;
-}
 
 /* what was said, written on the wall just above the line */
 .reel__stack {
@@ -362,7 +359,8 @@ html:has(.landing) {
 }
 
 /* ------------------------------------------- the check: each fact marked on both sides of the line */
-.reel .f {
+.reel .f,
+.reel .fw {
   white-space: nowrap;
 }
 .reel__de .f {
@@ -375,8 +373,7 @@ html:has(.landing) {
   transition: background-size 800ms var(--reel-ease) calc(var(--f) * 200ms);
 }
 .reel__tr .f {
-  margin-inline: -0.07em;
-  padding-inline: 0.07em;
+  padding-inline: 0.05em;
   border-radius: 5px;
   -webkit-box-decoration-break: clone;
   box-decoration-break: clone;
@@ -647,6 +644,10 @@ html:has(.landing) {
   align-items: flex-end;
   gap: 12px;
 }
+/* below 900 px the bar has no room for the language switch; it waits under the way in */
+.reel__foot .lswitch--hero {
+  justify-self: start;
+}
 .reel__go-row {
   display: flex;
   align-items: center;
@@ -735,11 +736,30 @@ html:has(.landing) {
   .reel {
     min-height: 0;
   }
+  /* a phone gets the whole scene, the chapters and the way in on its first screen */
   .reel__wall {
-    padding-top: 30px;
+    padding: 22px var(--row) 18px;
+    gap: 18px;
+  }
+  .reel__offer {
+    margin-top: 14px;
+  }
+  .reel__offer p {
+    line-height: 1.42;
   }
   .reel__dado {
     min-height: 0;
+    padding-top: calc(var(--strich-w) + 20px);
+    gap: 20px;
+  }
+  .reel__status {
+    min-height: 30px;
+  }
+  .reel__foot {
+    gap: 14px;
+  }
+  .reel .reel__cta {
+    min-height: 50px;
   }
   .reel__h {
     line-height: 0.86;
@@ -753,6 +773,8 @@ html:has(.landing) {
   .reel__meta {
     flex-direction: column;
     align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 10px;
   }
   .reel__rooms {
     gap: 12px;

@@ -1,5 +1,5 @@
 /** `/`: the RAUM website. It opens on a reel of three rooms; in each, one sentence is heard, translated, checked and forgotten. */
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Check, Handshake, Pause, Play, Scale, Stethoscope } from "../components/Icons";
 import "./landing.css";
@@ -242,7 +242,7 @@ function LangSwitch({ lang, onChange, className = "" }: { lang: Lang; onChange: 
     <div className={`lswitch ${className}`} role="radiogroup" aria-label="Example translations in">
       <span className="lswitch__label">Examples in</span>
       {(["en", "ru"] as const).map((l) => (
-        <button key={l} type="button" role="radio" aria-checked={lang === l} className={lang === l ? "is-on" : ""} onClick={() => onChange(l)}>
+        <button key={l} type="button" role="radio" lang={l} aria-checked={lang === l} className={lang === l ? "is-on" : ""} onClick={() => onChange(l)}>
           {l === "en" ? "English" : "Русский"}
         </button>
       ))}
@@ -295,20 +295,24 @@ function Sentence({ text, lang, className }: { text: string; lang: string; class
         </span>
       ),
     );
+  // a fact keeps the punctuation after it on its line, so no line ever starts with a comma
   return (
     <p className={className} lang={lang}>
       {text
-        .split(/(\[[^\]]+\])/)
+        .split(/(\[[^\]]+\][,.;:!?]?)/)
         .filter(Boolean)
-        .map((seg, i) =>
-          seg.startsWith("[") ? (
-            <span key={i} className="f" style={{ "--f": f++ } as React.CSSProperties}>
-              {words(seg.slice(1, -1))}
+        .map((seg, i) => {
+          const m = /^\[([^\]]+)\](.*)$/.exec(seg);
+          if (!m) return <Fragment key={i}>{words(seg)}</Fragment>;
+          return (
+            <span key={i} className="fw">
+              <span className="f" style={{ "--f": f++ } as React.CSSProperties}>
+                {words(m[1])}
+              </span>
+              {m[2] ? words(m[2]) : null}
             </span>
-          ) : (
-            <Fragment key={i}>{words(seg)}</Fragment>
-          ),
-        )}
+          );
+        })}
     </p>
   );
 }
@@ -358,6 +362,9 @@ function Reel({ lang, onLang }: { lang: Lang; onLang: (l: Lang) => void }) {
   const still = reduced() || !playing;
   const room = ROOMS[scene];
   const n = facts(REEL[room.id].de);
+  // the bar restarts with the scene timers; only the very first scene waits for the line and the paint
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const barLead = useMemo(() => (booted.current ? 0 : LEAD_MS), [scene, run, still, onScreen]);
 
   useEffect(() => {
     if (still) {
@@ -416,7 +423,6 @@ function Reel({ lang, onLang }: { lang: Lang; onLang: (l: Lang) => void }) {
               RAUM is a private AI interpreter for the rooms where a misheard number is a legal problem. It translates both
               ways, checks every figure, and forgets. <strong>Nothing leaves the box.</strong>
             </p>
-            <LangSwitch lang={lang} onChange={onLang} className="lswitch--hero" />
           </div>
         </div>
         <div className="reel__stack reel__stack--de">
@@ -472,8 +478,8 @@ function Reel({ lang, onLang }: { lang: Lang; onLang: (l: Lang) => void }) {
                 <button type="button" aria-pressed={i === scene} onClick={() => go(i)}>
                   <span className="reel__bar" aria-hidden="true">
                     <i
-                      key={i === scene ? `${scene}-${run}-${still}` : "off"}
-                      style={{ "--lead": prev === -1 && run === 0 ? `${LEAD_MS}ms` : "0ms" } as React.CSSProperties}
+                      key={i === scene ? `${scene}-${run}-${still}-${onScreen}` : "off"}
+                      style={{ "--lead": `${barLead}ms` } as React.CSSProperties}
                     />
                   </span>
                   <span className="reel__plate" lang="de">
@@ -503,6 +509,7 @@ function Reel({ lang, onLang }: { lang: Lang; onLang: (l: Lang) => void }) {
               </button>
             </span>
           </div>
+          <LangSwitch lang={lang} onChange={onLang} className="lswitch--hero" />
         </div>
       </div>
     </section>
