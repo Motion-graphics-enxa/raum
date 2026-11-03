@@ -60,9 +60,8 @@ const ROOMS: Room[] = [
     },
     facts: [
       { value: { en: "14 March", ru: "14 марта" }, kind: "Deadline" },
-      { value: { en: "Objection", ru: "Возражение" }, kind: "Term" },
     ],
-    leave: "German case notes and the client's copy, both with every date checked.",
+    leave: "German case notes and the client's copy, with the checked dates and deadlines listed.",
     Icon: Scale,
   },
   {
@@ -70,7 +69,7 @@ const ROOMS: Room[] = [
     plate: "Verhandlungsraum",
     gloss: "Negotiation room",
     people: "CEO and foreign partner",
-    guard: "Every offer is tracked with its amount and terms; the deal glossary keeps names exact.",
+    guard: "Every offer is tracked with its amount and who made it; the deal glossary keeps names exact.",
     said: "CEO",
     de: "Unser letztes Angebot: 2,4 Millionen Euro, Lieferung im Juni.",
     tr: {
@@ -147,18 +146,20 @@ export default function Landing() {
           </h2>
           <ul className="ltoday__facts">
             <li>
-              Statutory health insurance pays <span className="ltoday__fig">nothing</span> for an interpreter.
+              Statutory health insurance <span className="ltoday__fig">does not pay</span> for spoken-language interpreters.
             </li>
             <li>
-              At weekends, only <span className="ltoday__fig">14 of 38</span> German university hospitals can get one.
+              In a 2022 Ärzteblatt survey, only <span className="ltoday__fig">14 of 38</span> German university hospitals said they
+              could call an interpreter at weekends.
             </li>
             <li>
-              Yet about <span className="ltoday__fig">15&nbsp;%</span> of people in Germany mainly speak another language at home.
+              Yet <span className="ltoday__fig">15.5 million</span> people in Germany, almost one in five, mainly or only speak
+              another language at home.
             </li>
           </ul>
           <p className="ltoday__law">
-            And sending these conversations to a cloud is its own legal risk: §203 StGB for doctors, §43e BRAO for
-            lawyers, GeschGehG §2 for trade secrets.
+            And sending these conversations to a cloud is its own legal risk: §203 StGB for doctors and lawyers, §43e BRAO
+            for lawyers' IT providers, GeschGehG §2 for trade secrets.
           </p>
         </section>
 
@@ -170,9 +171,9 @@ export default function Landing() {
             RAUM checks.
           </h2>
           <p className="lsec__lead">
-            Code compares every number, unit, date, name and medication between what was said and what was translated. A
-            second model from a different family translates it back and scores the meaning. A human confirms what
-            matters.
+            Code compares the numbers, doses, dates, times, amounts, medications and glossary names between what was said
+            and what was translated. A second model from a different family translates it back, and a third model compares
+            that with what was said. A human confirms what matters.
           </p>
           <CheckDemo lang={lang} />
         </section>
@@ -188,22 +189,23 @@ export default function Landing() {
         <section id="privacy" className="lpriv" aria-labelledby="lpriv-h">
           <div className="lpriv__text">
             <h2 id="lpriv-h" className="lsec__h lsec__h--big">
-              Seven models.
+              Eight models.
               <br />
               One box.
             </h2>
             <p className="lsec__lead">
-              Speech recognition, translation, a checker from a different model family, meaning search, voice: all on
+              Speech recognition, translation, a checker from a different model family, meaning comparison, voice: all on
               one ASUS Ascent GX10 in the room. Pull the internet cable and the conversation goes on.
             </p>
             <ul className="lpriv__models">
               <li>Whisper large-v3-turbo</li>
-              <li>Gemma 4</li>
-              <li>gpt-oss</li>
+              <li>Gemma 4 E4B</li>
+              <li>gpt-oss-20b</li>
               <li>bge-m3</li>
               <li>Silero VAD</li>
-              <li>DeepFilterNet</li>
-              <li>Piper</li>
+              <li>LiveKit turn detector</li>
+              <li>smart-turn v3</li>
+              <li>Chatterbox (Piper as fallback)</li>
             </ul>
           </div>
           <Cable />
@@ -217,7 +219,7 @@ export default function Landing() {
           <h2 id="lclose-h" className="lclose__h">
             Translates. Checks. Forgets.
           </h2>
-          <p className="lclose__p">Scan the QR code on the box, choose your language, and talk. No account, no app, no cloud.</p>
+          <p className="lclose__p">Scan the room's QR code, choose your language, and talk. No account, no app, no cloud.</p>
           <Link className="btn btn--lg lclose__cta" to="/start">
             Open a room
           </Link>
@@ -264,10 +266,10 @@ const REEL: Record<RoomId, { to: string; de: string; tr: Record<Lang, string> }>
   },
   kanzlei: {
     to: "the client",
-    de: "Die Frist für Ihren [Widerspruch] endet am [14. März].",
+    de: "Die Frist für Ihren Widerspruch endet am [14. März].",
     tr: {
-      en: "The deadline for your [objection] ends on [14 March].",
-      ru: "Срок подачи вашего [возражения] истекает [14 марта].",
+      en: "The deadline for your objection ends on [14 March].",
+      ru: "Срок подачи вашего возражения истекает [14 марта].",
     },
   },
   verhandlungsraum: {
@@ -421,7 +423,7 @@ function Reel({ lang, onLang }: { lang: Lang; onLang: (l: Lang) => void }) {
           <div className="reel__offer">
             <p>
               RAUM is a private AI interpreter for the rooms where a misheard number is a legal problem. It translates both
-              ways, checks every figure, and forgets. <strong>Nothing leaves the box.</strong>
+              ways, checks every figure, and forgets. <strong>No byte goes to a third party.</strong>
             </p>
           </div>
         </div>
@@ -521,15 +523,16 @@ function Reel({ lang, onLang }: { lang: Lang; onLang: (l: Lang) => void }) {
 const DEMO = {
   de: "Kommen Sie am Donnerstag, dem 12. November, um 9 Uhr wieder.",
   wrong: { en: "Come back on Thursday, 13 November, at 9.", ru: "Приходите в четверг, 13 ноября, в 9 часов." },
-  right: { en: "Come back on Thursday, 12 November, at 9 a.m.", ru: "Приходите в четверг, 12 ноября, в 9 часов." },
+  // RAUM never re-translates on its own: the mismatch is read back to the patient (the app's own read-back wording)
+  right: { en: "Just to be sure: 12 November?", ru: "Просто уточню: 12 ноября?" },
   said: { en: "12 November", ru: "12 ноября" },
   got: { en: "13 November", ru: "13 ноября" },
 };
-const STAGES = ["Heard", "Cleaned", "Transcribed", "Translated", "Checked", "Corrected", "Spoken"];
+const STAGES = ["Heard", "Transcribed", "Translated", "Checked", "Read back", "Spoken"];
 
 function CheckDemo({ lang }: { lang: Lang }) {
   const [ref, seen] = useInView<HTMLDivElement>(0.45);
-  const [step, setStep] = useState(0); // 0 idle … 7 spoken
+  const [step, setStep] = useState(0); // 0 idle … 6 spoken
   const [words, setWords] = useState(0);
   const deWords = DEMO.de.split(" ");
 
@@ -537,7 +540,7 @@ function CheckDemo({ lang }: { lang: Lang }) {
     if (!seen) return;
     if (reduced()) {
       setWords(deWords.length);
-      setStep(7);
+      setStep(6);
       return;
     }
     const ts: number[] = [];
@@ -547,26 +550,25 @@ function CheckDemo({ lang }: { lang: Lang }) {
     deWords.forEach((_, i) => at(120 + i * 150, () => setWords(i + 1)));
     const t0 = 120 + deWords.length * 150;
     at(t0 + 100, () => setStep(2));
-    at(t0 + 400, () => setStep(3));
-    at(t0 + 800, () => setStep(4));
-    at(t0 + 1700, () => setStep(5));
-    at(t0 + 3000, () => setStep(6));
-    at(t0 + 3800, () => setStep(7));
+    at(t0 + 500, () => setStep(3));
+    at(t0 + 1400, () => setStep(4));
+    at(t0 + 2700, () => setStep(5));
+    at(t0 + 3500, () => setStep(6));
     return () => ts.forEach(clearTimeout);
   }, [seen]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const translated = step >= 4;
-  const caught = step === 5;
-  const fixed = step >= 6;
+  const translated = step >= 3;
+  const caught = step === 4;
+  const fixed = step >= 5; // read back to the patient
   const replay = () => {
     setStep(0);
     setWords(0);
     window.setTimeout(() => {
       setWords(deWords.length);
-      setStep(4);
-      window.setTimeout(() => setStep(5), 700);
-      window.setTimeout(() => setStep(6), 2000);
-      window.setTimeout(() => setStep(7), 2700);
+      setStep(3);
+      window.setTimeout(() => setStep(4), 700);
+      window.setTimeout(() => setStep(5), 2000);
+      window.setTimeout(() => setStep(6), 2700);
     }, 60);
   };
 
@@ -574,7 +576,7 @@ function CheckDemo({ lang }: { lang: Lang }) {
     <div className="demo" ref={ref}>
       <ol className="demo__rail" aria-label="Stages">
         {STAGES.map((s, i) => (
-          <li key={s} className={`${step > i ? "is-done" : ""} ${step === i + 1 ? "is-now" : ""} ${s === "Corrected" ? "is-fix" : ""}`}>
+          <li key={s} className={`${step > i ? "is-done" : ""} ${step === i + 1 ? "is-now" : ""} ${s === "Read back" ? "is-fix" : ""}`}>
             <span className="demo__dot" aria-hidden="true" />
             {s}
           </li>
@@ -586,7 +588,7 @@ function CheckDemo({ lang }: { lang: Lang }) {
           <span className={`demo__mark ${fixed ? "is-ok" : caught ? "is-bad" : translated ? "is-pending" : "is-live"}`} role="status">
             {fixed ? (
               <>
-                <Check /> Checked · 780 ms
+                <Check /> Checked · 3 ms
               </>
             ) : caught ? (
               "Mismatch caught"
@@ -626,9 +628,12 @@ function CheckDemo({ lang }: { lang: Lang }) {
             <small>Time</small>
           </span>
         </div>
-        <p className="demo__note">Example. A first translation wrote 13 instead of 12; code compared the dates, flagged it, and the fixed sentence went out.</p>
+        <p className="demo__note">
+          Example. A first translation wrote 13 instead of 12. Code compared the dates, flagged it, and RAUM asked the
+          patient: “Just to be sure: 12 November?”
+        </p>
       </div>
-      <button type="button" className="demo__replay" onClick={replay} disabled={step > 0 && step < 7}>
+      <button type="button" className="demo__replay" onClick={replay} disabled={step > 0 && step < 6}>
         Play it again
       </button>
     </div>
@@ -684,14 +689,9 @@ function RoomStory({ room, lang }: { room: Room; lang: Lang }) {
 
 function Cable() {
   const [pulled, setPulled] = useState(false);
-  const [kb, setKb] = useState(18.4);
   const [drag, setDrag] = useState(0);
   const start = useRef<number | null>(null);
   const moved = useRef(false);
-  useEffect(() => {
-    const id = window.setInterval(() => setKb((k) => Math.round((k + 0.3 + Math.random() * 0.6) * 10) / 10), 900);
-    return () => window.clearInterval(id);
-  }, []);
   const onDown = (e: React.PointerEvent<HTMLButtonElement>) => {
     if (pulled) return;
     start.current = e.clientX;
@@ -752,10 +752,6 @@ function Cable() {
           <dd>0</dd>
         </div>
         <div>
-          <dt>Encrypted tunnel to your own devices</dt>
-          <dd className="mono">{kb.toFixed(1)} KB</dd>
-        </div>
-        <div>
           <dt>Internet</dt>
           <dd className={pulled ? "is-off" : ""}>{pulled ? "Unplugged. Still translating." : "Connected, not needed"}</dd>
         </div>
@@ -794,14 +790,14 @@ function Forget({ lang }: { lang: Lang }) {
           <h4>Medication</h4>
           <p>Metformin 500 mg, twice a day after meals</p>
           <p className="lforget__tr" lang={lang}>
-            {lang === "en" ? "Checked and read back to the patient" : "Метформин 500 мг, два раза в день после еды"}
+            {lang === "en" ? "Checked and noted" : "Метформин 500 мг, два раза в день после еды"}
           </p>
         </div>
         <div className="lforget__sec">
           <h4>Next appointment</h4>
           <p>Thursday, 12 November, 9 a.m.</p>
           <p className="lforget__tr" lang={lang}>
-            {lang === "en" ? "Corrected from 13 November" : "Четверг, 12 ноября, 9 часов"}
+            {lang === "en" ? "Confirmed by read-back" : "Четверг, 12 ноября, 9 часов"}
           </p>
         </div>
         <div className="lforget__sec">

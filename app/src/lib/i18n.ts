@@ -59,7 +59,7 @@ const en: Dict = {
   "join.change": "Change",
   "join.consent.title": "This is an AI interpreter.",
   "join.consent.body":
-    "Your words are translated by AI models running on this box in the room. Nothing is recorded and nothing leaves the box. When the conversation ends, the session is destroyed.",
+    "Your words are translated by AI models running on this box in the room. Nothing is kept after the conversation, and nothing leaves the box. When the conversation ends, the session is destroyed.",
   "join.consent.voice":
     "With “My own voice”, an AI copy of your voice speaks the translation of your words. The voice sample stays only in the memory of this box and is deleted when the conversation ends, or right away if you choose the standard voice.",
   "join.consent.ai_act": "Disclosure under EU AI Act, Art. 50",
@@ -465,7 +465,7 @@ const ru: Dict = {
   "join.change": "Изменить",
   "join.consent.title": "Это ИИ-переводчик.",
   "join.consent.body":
-    "Ваши слова переводят модели ИИ, работающие на этом устройстве в комнате. Ничего не записывается и ничего не покидает устройство. После разговора сеанс уничтожается.",
+    "Ваши слова переводят модели ИИ, работающие на этом устройстве в комнате. Ничего не хранится после разговора, и ничего не покидает устройство. После разговора сеанс уничтожается.",
   "join.consent.voice":
     "Если выбран «Мой голос», перевод ваших слов произносит ИИ-копия вашего голоса. Образец голоса хранится только в памяти этого устройства и удаляется после разговора, а если вы выберете стандартный голос, то сразу.",
   "join.consent.ai_act": "Уведомление согласно ст. 50 Регламента ЕС об ИИ",
