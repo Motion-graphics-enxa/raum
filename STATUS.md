@@ -56,10 +56,10 @@ _Read by the ops session. Updated at every milestone. Last update: Tue 3 Nov, mi
 - **Tests:** `cd core && uv run pytest -q` -> 1286 passed (incl. services/tts tests); `cd app && npm test` -> 18 passed; `uv run ruff check .` clean; two-phone e2e sz + gs pass on the mock stack.
 
 ## In flight (parallel agents, worktree branches; the integrator merges)
-- Nothing running. Ops: phones on the box for the Altbau fixes (read-back scroll, Join disclosure, dark theme).
+- Ops: four impeccable redesign branches (design/landing-top, design/start-qr, design/join, design/room), cut after 3bb6877; the integrator does the merge-conflict pass when they come back. Hands off Landing/Home/QR/Join/Talk/Turn/DraftText and the shared styles until then.
+- Dropped: "own voice later" (the user chose standard voices, `voice_ref: false`).
 
 ## Integrator TODO
-- Own voice later: register the clone during speech at `voice_ref_min_s`, so the pre-render uses it from the first utterance.
 - Box: the read-back path end to end (uncertain fact -> spoken read-back -> spoken yes); echo check's effect on live `asr_ms` (first run: none).
 - impeccable context drift reported by its tooling (not repaired as a side effect): PRODUCT.md says "web" though there is an Android build; `.impeccable/design.json` older than DESIGN.md; no `buildPath` in `.impeccable/config.json`.
 - Spoken AI disclosure for the speakerphone participant (no consent screen).
