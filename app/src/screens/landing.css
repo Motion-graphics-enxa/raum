@@ -427,10 +427,9 @@ html:has(.landing) {
 /* the offer, then the way down to the proof right after it */
 .lfirst__offer {
   display: flex;
-  flex-wrap: wrap;
-  align-items: last baseline;
-  justify-content: flex-start;
-  gap: var(--s-3) var(--s-6);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-3);
 }
 .lfirst__offer p {
   max-width: 64ch;
@@ -474,12 +473,6 @@ html:has(.landing) {
   }
   .lfirst__proof:hover .icon {
     transform: rotate(90deg) translateX(3px);
-  }
-}
-@media (max-width: 900px) {
-  .lfirst__offer {
-    align-items: flex-start;
-    flex-direction: column;
   }
 }
 
