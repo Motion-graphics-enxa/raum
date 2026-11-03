@@ -50,3 +50,15 @@ Also in this pass: summary headings in the reader's language; on phones the link
 
 The inside of the room was refined within the same world; no tokens or other screens changed. The changes: a ruled fact strip, a "Facts noted" ledger, the read-back as a slip at the hero's foot with the whole sheet lifted, Yes/No at 52 px with glyphs, the proof as a ruled section, a language code on the source line, a three-bar voice meter in the plate, the bell-push orb, the strip's hairline as the scroll edge, and a compact off-the-record pill on phones. The impeccable-finish-reviewer verdict was **ship after fixes**. Fixed: the language tag, the hero time stamp and other labels on the hero's light patch now use ink-2 (ink-3 measured 4.27:1 in dark); the Hands-free label is white (paint-ink-2 measured 4.1:1). Its read-back-under-the-dado finding came from the capture harness (390 → 360 resize without a fresh settle). A fresh 360×780 phone shows the hero top and Yes/No in view, so Talk.tsx is unchanged.
 
+## Join: across the desk (3 Nov 2026)
+
+Surface redesign of Join `/j/:room` inside the fixed Altbau Daylight world (user: "redesign the Join screen, make it more premium"; files Join.tsx + join.css; no tokens or other screens). Unattended: the user said to proceed, so no decision round was shown.
+
+THESIS: Join is the doorway of the room: the door plate, "You join as Patient", then two seats across one desk split by one centre line, the box sitting on that line as its one key. Your seat stands in the window's light with your language in its own script; one tap on the dado sits you down. Refuses the stacked settings form it replaced.
+
+FORM: surface structure 3 of 7 grounded candidates ("Across the desk"), dealt by the roll. seed:0f1cc6721a53d487. Raises: centre-rail reference page (declined): the rail is the desk's one moving part, the box a square key cut into it; terminal wayfinding (declined): a phone shows only the decision ahead, so language and hearing collapse to their value behind one Change. The voice-copy choice stays on screen (consent).
+
+SIGNATURE: Platz nehmen. The desk assembles once: the rail draws down, the box key sets on it, daylight falls across your seat. A changed language or hearing re-keys in place and the light falls again; joining runs the rail dashed toward the box.
+
+Finish review (impeccable-finish-reviewer): first pass recapture (one viewport shot labelled full page), then **fix**, eight material fixes: same-language note and voice choice moved into the desk under the key; dark `seat__en` / hearing icon to ink-2 (4.36:1 → AA); the chooser opens under the key so the key never leaves the rail; the repeating button glint removed; this FORM line; room-not-found without seats, role or a repeated id; the seat control reads Close while open; the dado button on `.btn--wall`. Also the empty seat waits in the shade, and the dado stands on the floor when the wall is short.
+
